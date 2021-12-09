@@ -104,6 +104,21 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
     EXPECT_EQ(PieceSet::WHITE, blackPawn.getSet());
 }
 
+TEST_F(ChessPieceFixture, EqualityOperations)
+{   
+    ChessPiece blackPawn(PieceSet::BLACK, PieceType::PAWN);
+    EXPECT_EQ(blackPawn, blackPawn);
+    
+    ChessPiece anotherBlackPawn(PieceSet::BLACK, PieceType::PAWN);
+    EXPECT_EQ(blackPawn, anotherBlackPawn);   
+
+    ChessPiece whitePawn(PieceSet::WHITE, PieceType::PAWN);
+    EXPECT_NE(blackPawn, whitePawn);
+    
+    ChessPiece whiteRook(PieceSet::WHITE, PieceType::ROOK);
+    EXPECT_EQ(whiteRook, whiteRook);
+}
+
 ////////////////////////////////////////////////////////////////
 
 }

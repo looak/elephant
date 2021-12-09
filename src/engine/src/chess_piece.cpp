@@ -16,7 +16,7 @@ ChessPiece::ChessPiece(PieceSet _set, PieceType _type) :
 	m_internalState |= (byte)_type;
 }
 
-bool ChessPiece::operator==(const ChessPiece& rhs)
+bool ChessPiece::operator==(const ChessPiece& rhs) const
 {
 	return m_internalState == rhs.m_internalState;
 }
