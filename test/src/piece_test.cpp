@@ -24,58 +24,58 @@ TEST_F(ChessPieceFixture, Empty)
 
 TEST_F(ChessPieceFixture, AllPieces)
 {
-    ChessPiece whitePawn(WHITE, PAWN);
+    ChessPiece whitePawn(PieceSet::WHITE, PieceType::PAWN);
     EXPECT_EQ(PieceType::PAWN, whitePawn.getType());
     EXPECT_EQ(PieceSet::WHITE, whitePawn.getSet());
 
-    ChessPiece blackPawn(BLACK, PAWN);
+    ChessPiece blackPawn(PieceSet::BLACK, PieceType::PAWN);
     EXPECT_EQ(PieceType::PAWN, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet());
 
-    ChessPiece whiteKnight(WHITE, KNIGHT);
+    ChessPiece whiteKnight(PieceSet::WHITE, PieceType::KNIGHT);
     EXPECT_EQ(PieceType::KNIGHT, whiteKnight.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteKnight.getSet());
 
-    ChessPiece blackKnight(BLACK, KNIGHT);
+    ChessPiece blackKnight(PieceSet::BLACK, PieceType::KNIGHT);
     EXPECT_EQ(PieceType::KNIGHT, blackKnight.getType());
     EXPECT_EQ(PieceSet::BLACK, blackKnight.getSet());
 
-    ChessPiece whiteBishop(WHITE, BISHOP);
+    ChessPiece whiteBishop(PieceSet::WHITE, PieceType::BISHOP);
     EXPECT_EQ(PieceType::BISHOP, whiteBishop.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteBishop.getSet());
 
-    ChessPiece blackBishop(BLACK, BISHOP);
+    ChessPiece blackBishop(PieceSet::BLACK, PieceType::BISHOP);
     EXPECT_EQ(PieceType::BISHOP, blackBishop.getType());
     EXPECT_EQ(PieceSet::BLACK, blackBishop.getSet());
 
-    ChessPiece whiteRook(WHITE, ROOK);
+    ChessPiece whiteRook(PieceSet::WHITE, PieceType::ROOK);
     EXPECT_EQ(PieceType::ROOK, whiteRook.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteRook.getSet());
 
-    ChessPiece blackRook(BLACK, ROOK);
+    ChessPiece blackRook(PieceSet::BLACK, PieceType::ROOK);
     EXPECT_EQ(PieceType::ROOK, blackRook.getType());
     EXPECT_EQ(PieceSet::BLACK, blackRook.getSet());
 
-    ChessPiece whiteQueen(WHITE, QUEEN);
+    ChessPiece whiteQueen(PieceSet::WHITE, PieceType::QUEEN);
     EXPECT_EQ(PieceType::QUEEN, whiteQueen.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteQueen.getSet());
 
-    ChessPiece blackQueen(BLACK, QUEEN);
+    ChessPiece blackQueen(PieceSet::BLACK, PieceType::QUEEN);
     EXPECT_EQ(PieceType::QUEEN, blackQueen.getType());
     EXPECT_EQ(PieceSet::BLACK, blackQueen.getSet());
 
-    ChessPiece whiteKing(WHITE, KING);
+    ChessPiece whiteKing(PieceSet::WHITE, PieceType::KING);
     EXPECT_EQ(PieceType::KING, whiteKing.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteKing.getSet());
 
-    ChessPiece blackKing(BLACK, KING);
+    ChessPiece blackKing(PieceSet::BLACK, PieceType::KING);
     EXPECT_EQ(PieceType::KING, blackKing.getType());
     EXPECT_EQ(PieceSet::BLACK, blackKing.getSet());
 }
 
 TEST_F(ChessPieceFixture, AssignmentOperations)
 {
-    ChessPiece blackPawn(BLACK, PAWN);
+    ChessPiece blackPawn(PieceSet::BLACK, PieceType::PAWN);
     EXPECT_EQ(PieceType::PAWN, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet()); 
 
@@ -83,7 +83,7 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
     EXPECT_EQ(PieceType::NON, blackPawn.getType());
     EXPECT_EQ(PieceSet::WHITE, blackPawn.getSet());
 
-    blackPawn = ChessPiece(BLACK, QUEEN);
+    blackPawn = ChessPiece(PieceSet::BLACK, PieceType::QUEEN);
     EXPECT_EQ(PieceType::QUEEN, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet());
 
@@ -95,7 +95,7 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
     EXPECT_EQ(PieceType::KING, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet());
 
-    ChessPiece whiteRook(WHITE, ROOK);
+    ChessPiece whiteRook(PieceSet::WHITE, PieceType::ROOK);
     EXPECT_EQ(PieceType::ROOK, whiteRook.getType());
     EXPECT_EQ(PieceSet::WHITE, whiteRook.getSet());
 

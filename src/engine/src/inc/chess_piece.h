@@ -16,7 +16,7 @@
 #pragma once
 #include "defines.h"
 
-enum PieceType : byte
+enum class PieceType : byte
 {
 	NON = 0,
 	PAWN = 1,
@@ -28,7 +28,7 @@ enum PieceType : byte
 	NR_OF_PIECES = 7,
 };
 
-enum PieceSet : byte
+enum class PieceSet : byte
 {
 	WHITE = 0,
 	BLACK = 1,
@@ -38,20 +38,11 @@ enum PieceSet : byte
 struct ChessPiece
 {
 public:
-	ChessPiece() :
-		m_internalState(0x00)
-	{}
+	ChessPiece();
+	ChessPiece(byte value);
+	ChessPiece(PieceSet _set, PieceType _type);
 
-	ChessPiece(byte value) :
-		m_internalState(value)
-	{}
-
-	ChessPiece(PieceSet _set, PieceType _type) :
-		m_internalState(0x00)
-	{
-		m_internalState |= _set << 7;
-		m_internalState |= _type;
-	}
+	bool operator==(const ChessPiece& rhs);
 
 	PieceType getType()	{ return static_cast<PieceType>(m_internalState & 0x07); }
 	PieceSet getSet()	{ return static_cast<PieceSet>(m_internalState >> 7); }
