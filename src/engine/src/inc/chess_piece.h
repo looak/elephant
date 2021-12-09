@@ -42,6 +42,10 @@ public:
 		m_internalState(0x00)
 	{}
 
+	ChessPiece(byte value) :
+		m_internalState(value)
+	{}
+
 	ChessPiece(PieceSet _set, PieceType _type) :
 		m_internalState(0x00)
 	{
