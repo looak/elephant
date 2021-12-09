@@ -13,9 +13,30 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
+
 #pragma once
+#include "chess_piece.h"
 
-class ChessBoard
+enum Column { A, B, C, D, E, F, G, H };
+
+struct ChessboardTile
 {
+	ChessPiece Piece;
+};
 
+class Chessboard
+{
+public:
+	Chessboard();
+	Chessboard(const Chessboard& other);
+	Chessboard(const Chessboard&& other) = delete;
+	~Chessboard() = default;
+
+	void Clear();
+	void Setup();
+
+	void getTile(char annoation[2]);
+
+private:
+	ChessboardTile m_tiles[64];
 };
