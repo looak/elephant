@@ -20,4 +20,5 @@ set(INC_DIR "src/inc")
 set(TEST_SOURCE ${TEST_SOURCE}
 ${SRC_DIR}/elephant_test.cpp
 ${SRC_DIR}/bitboard_test.cpp
+${SRC_DIR}/chessboard_test.cpp
 ${SRC_DIR}/piece_test.cpp)
