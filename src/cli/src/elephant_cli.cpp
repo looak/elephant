@@ -2,16 +2,21 @@
 //
 
 #include "elephant_cli.h"
+
 #include <iostream>
 #include <string>
 
 using namespace std;
 
-int main()
+
+Application::Application()
 {
 	std::cout << " Elephant Chess Engine 2021" << std::endl
 		<< " Version: " << 0;
+}
 
+void Application::Run()
+{
 	while (1)
 	{
 		std::cout << std::endl << " > ";
@@ -20,6 +25,4 @@ int main()
 
 		std::cout << buffer;
 	}
-
-	return 0;
 }

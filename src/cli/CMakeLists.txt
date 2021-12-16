@@ -1,6 +1,18 @@
-﻿set(LIBRARY_NAME ElephantCli)
-
-# Add source to this project's executable.
-add_executable (${LIBRARY_NAME} "")
+﻿# Add source to this project's executable.
+add_library(${CLI_LIB} "")
 
 include(sourcelist.cmake)
+
+include_directories(../engine/inc/)
+
+target_sources(${CLI_LIB}
+    PRIVATE
+        ${CLI_SOURCE}
+    PUBLIC
+        ${CLI_SOURCE_INCLUDE}
+)
+
+target_include_directories(${CLI_LIB}
+    PUBLIC
+        ${INC_DIR}
+)

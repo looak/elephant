@@ -53,15 +53,15 @@ Chessboard::Chessboard(const Chessboard& other)
 	std::memcpy(m_tiles, other.m_tiles, sizeof(m_tiles));
 }
 
-const ChessboardTile& Chessboard::getTile(const Notation& position) const
-{
-	return m_tiles[position.getIndex()];
-}
-
-ChessboardTile& Chessboard::editTile(const Notation& position)
-{
-	return m_tiles[position.getIndex()];
-}
+//const ChessboardTile& Chessboard::getTile(const Notation& position) const
+//{
+//	return m_tiles[position.getIndex()];
+//}
+//
+//ChessboardTile& Chessboard::editTile(const Notation& position)
+//{
+//	return m_tiles[position.getIndex()];
+//}
 
 void Chessboard::Clear()
 {
@@ -74,3 +74,8 @@ bool Chessboard::PlacePiece(ChessPiece p, const Notation& tile)
 	return false;
 }
 
+const ChessPiece&
+Chessboard::readTile(const Notation& position) const
+{
+	return m_tiles[position.getIndex()].m_piece;
+}

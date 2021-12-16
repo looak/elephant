@@ -81,8 +81,10 @@ public:
 
 	bool PlacePiece(ChessPiece p, const Notation& tile);
 
-	const ChessboardTile& getTile(const Notation& position) const;
-	ChessboardTile& editTile(const Notation& position);
+	const ChessPiece& readTile(const Notation& position) const;
+
+	//const ChessboardTile& getTile(const Notation& position) const;
+	//ChessboardTile& editTile(const Notation& position);
 
 private:
 	int getTileIndex(byte file, byte rank);

@@ -18,18 +18,17 @@ public:
 TEST_F(ChessboardFixture, Empty)
 {
     Chessboard b; // by default a board should start empty.
-    ChessboardTile emptyTile;
-    EXPECT_EQ(emptyTile, b.getTile({ 0, 0 }));
+    ChessPiece expectedPiece; // empty, default, 0;
 
-    ChessboardTile expected(Notation::BuildPosition('h', 8));
-    
-    EXPECT_EQ(expected, b.getTile({ 7, 7 }));
+    EXPECT_EQ(expectedPiece, b.readTile({ 0, 0 }));
+    EXPECT_EQ(expectedPiece, b.readTile({ 7, 7 }));
+    EXPECT_EQ(expectedPiece, b.readTile({ 3, 3 }));
+    EXPECT_EQ(expectedPiece, b.readTile({ 4, 4 }));
 
-    expected = Notation::BuildPosition('d', 4);
-    EXPECT_EQ(expected, b.getTile({ 3, 3 }));
-
-    expected = Notation::BuildPosition('e', 5);
-    EXPECT_EQ(expected, b.getTile({ 4, 4 }));
+    EXPECT_EQ(expectedPiece, b.readTile(Notation::BuildPosition('a', 1)));
+    EXPECT_EQ(expectedPiece, b.readTile(Notation::BuildPosition('b', 2)));
+    EXPECT_EQ(expectedPiece, b.readTile(Notation::BuildPosition('e', 4)));
+    EXPECT_EQ(expectedPiece, b.readTile(Notation::BuildPosition('f', 4)));
 }
 
 TEST_F(ChessboardFixture, Notation_BuildPosition)

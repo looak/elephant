@@ -31,7 +31,7 @@ include(sourcelist.cmake)
 
 
 add_executable(${PROJECT_NAME} ${TEST_SOURCE})
-target_link_libraries(${PROJECT_NAME} gtest_main ElephantGambitEngine)
+target_link_libraries(${PROJECT_NAME} gtest_main engine)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})
