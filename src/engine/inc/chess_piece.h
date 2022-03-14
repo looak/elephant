@@ -42,10 +42,13 @@ public:
 	ChessPiece(byte value);
 	ChessPiece(PieceSet _set, PieceType _type);
 
+	char toString() const;
+	static char toString(const ChessPiece& piece);
+
 	bool operator==(const ChessPiece& rhs) const;
 
-	PieceType getType()	{ return static_cast<PieceType>(m_internalState & 0x07); }
-	PieceSet getSet()	{ return static_cast<PieceSet>(m_internalState >> 7); }
+	PieceType getType() const	{ return static_cast<PieceType>(m_internalState & 0x07); }
+	PieceSet getSet() const 	{ return static_cast<PieceSet>(m_internalState >> 7); }
 
 private:	
 	// [set][moved flag][not used][not used][not used][piece t][piece t][piece t]

@@ -2,7 +2,7 @@
 #include <cstring>
 #include <utility>
 
-Notation&& Notation::BuildPosition(byte file, byte rank)
+Notation Notation::BuildPosition(byte file, byte rank)
 {
 	Notation result(0xF, 0xF);
 	byte corrFile = (byte)(tolower(file) - 'a');
@@ -15,6 +15,13 @@ Notation&& Notation::BuildPosition(byte file, byte rank)
 	result.file = corrFile;	
 	result.rank = corrRank;
 	return std::move(result);
+}
+
+Notation& Notation::operator=(Notation&& other)
+{
+	file = other.file;
+	rank = other.rank;
+	return *this;
 }
 
 ChessboardTile::ChessboardTile(Notation&& notation) :
@@ -74,8 +81,50 @@ bool Chessboard::PlacePiece(ChessPiece p, const Notation& tile)
 	return false;
 }
 
+// const ChessPiece&
+// Chessboard::readTile(const Notation& position) const
+// {
+// 	return m_tiles[position.getIndex()].m_piece;
+// }
+
 const ChessPiece&
 Chessboard::readTile(const Notation& position) const
 {
 	return m_tiles[position.getIndex()].m_piece;
+}
+
+ChessboardTile& 
+Chessboard::editTile(const Notation& position)
+{
+	return m_tiles[position.getIndex()];
+}
+
+Chessboard::Iterator::Iterator(Chessboard& chessboard) :
+	m_chessboard(chessboard),
+	m_end(false)
+{ }
+
+ChessboardTile&
+Chessboard::Iterator::get()
+{
+	return m_chessboard.editTile(m_position);
+}
+
+ChessboardTile&
+Chessboard::Iterator::operator*()
+{
+	return get();
+}
+
+void Chessboard::Iterator::operator++()
+{
+	m_position.file++;
+	if (m_position.file >= 7)
+	{
+		m_position.file = 0;
+		m_position.rank++;
+
+		if (m_position.rank >= 8)
+			m_end = true;
+	}
 }

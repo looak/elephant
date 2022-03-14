@@ -20,7 +20,7 @@
 
 struct Notation
 {
-	static Notation&& BuildPosition(byte file, byte rank);
+	static Notation BuildPosition(byte file, byte rank);
 	// Should Notation validate rank & file?
 	// Should Notation validate format of rank & file?
 	Notation() :
@@ -33,10 +33,8 @@ struct Notation
 		rank(_rank)
 	{}
 
-	Notation(const Notation& other) :
-		file(other.file),
-		rank(other.rank)
-	{}
+	Notation(Notation&& other) = default;
+
 
 	byte file : 4;
 	byte rank : 4;
@@ -44,6 +42,7 @@ struct Notation
 
 	byte getIndex() const { return (rank * 8) + file; }
 	bool operator==(const Notation& rhs) const;
+	Notation& operator=(Notation&& other);
 };
 
 struct ChessboardTile
@@ -82,9 +81,27 @@ public:
 	bool PlacePiece(ChessPiece p, const Notation& tile);
 
 	const ChessPiece& readTile(const Notation& position) const;
-
+	ChessboardTile& editTile(const Notation& position);
+	//const ChessPiece& operator[](byte index) const;
 	//const ChessboardTile& getTile(const Notation& position) const;
 	//ChessboardTile& editTile(const Notation& position);
+	class Iterator
+	{
+		Iterator(Chessboard& chessboard);
+		void operator++();
+	//	ChessboardTile& operator->();
+		ChessboardTile& operator*();
+
+		// iterator comparison
+		// iterator end
+		// const itr?
+
+	private:
+		ChessboardTile& get();
+		Chessboard& m_chessboard;
+		Notation m_position;
+		bool m_end;
+	};
 
 private:
 	int getTileIndex(byte file, byte rank);
