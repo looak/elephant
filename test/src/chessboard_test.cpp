@@ -21,15 +21,15 @@ TEST_F(ChessboardFixture, Empty)
 {
     ChessPiece expectedPiece; // empty, default, 0;
 
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 0, 0 }).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 7, 7 }).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 3, 3 }).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 4, 4 }).getPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 0, 0 }).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 7, 7 }).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 3, 3 }).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 4, 4 }).readPiece());
  
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('a', 1)).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).getPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).getPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('a', 1)).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).readPiece());
 }
 
 TEST_F(ChessboardFixture, Notation_Equality)
@@ -177,6 +177,103 @@ TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
             otherItr++;
         }
     }
+}
+
+TEST_F(ChessboardFixture, ChessboardIterator_IterratingExt)
+{
+    auto itr = m_emptyChessboard.begin();
+    //const Chessboard constBoard;
+
+    byte expectedIndex = 0;
+    byte expectedRank = 0;
+    byte expectedFile = 0;
+    EXPECT_FALSE(itr.end());
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 2;
+    expectedIndex = 2;
+    expectedRank = 0;
+    expectedFile = 2;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 8;
+    expectedIndex = 10;
+    expectedRank = 1;
+    expectedFile = 2;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 16;
+    expectedIndex = 26;
+    expectedRank = 3;
+    expectedFile = 2;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 7;
+    expectedIndex = 33;
+    expectedRank = 4;
+    expectedFile = 1;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+    
+    itr += 7;
+    expectedIndex = 40;
+    expectedRank = 5;
+    expectedFile = 0;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 7;
+    expectedIndex = 47;
+    expectedRank = 5;
+    expectedFile = 7;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 7;
+    expectedIndex = 54;
+    expectedRank = 6;
+    expectedFile = 6;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 7;
+    expectedIndex = 61;
+    expectedRank = 7;
+    expectedFile = 5;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    itr += 7;
+    expectedIndex = 64;
+    expectedRank = 8;
+    expectedFile = 0;
+    EXPECT_EQ(expectedIndex, itr.index());
+    EXPECT_EQ(expectedRank, itr.rank());
+    EXPECT_EQ(expectedFile, itr.file());
+
+    auto scnditr = m_emptyChessboard.begin();    
+
+    scnditr += 11;
+    expectedIndex = 11;
+    expectedRank = 1;
+    expectedFile = 3;
+    EXPECT_EQ(expectedIndex, scnditr.index());
+    EXPECT_EQ(expectedRank, scnditr.rank());
+    EXPECT_EQ(expectedFile, scnditr.file());
+
 }
 
 TEST_F(ChessboardFixture, ChessboardIterator_Equality)

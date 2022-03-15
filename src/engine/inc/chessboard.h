@@ -60,7 +60,7 @@ public:
 	ChessboardTile(Notation&& notation);
 	~ChessboardTile() = default;
 
-	const ChessPiece& getPiece() const { return m_piece; };
+	const ChessPiece& readPiece() const { return m_piece; };
 	ChessPiece& editPiece() { return m_piece; };
 
 	const Notation& getPosition() { return m_position; };
@@ -90,6 +90,11 @@ public:
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
+
+	Notation& editEnPassant() { return m_enPassant; }
+	const Notation& readEnPassant() const { return m_enPassant; }
+	byte& editCastlingState() { return m_castlingState; }
+	byte readCastlingState() const { return m_castlingState; }
 	
 	template<typename T, bool isConst = false>
 	class ChessboardIterator
@@ -131,12 +136,28 @@ public:
 
 		ChessboardIterator& operator+=(byte incre)
 		{
-			byte incfile = incre % 7;
-			byte incRank = incre / 7;
+			byte incFile = incre % 8;
+			byte incRank = incre / 8;
 
-			// overflowing tests
-			// tests for this operation
+			byte resFile = m_position.file + incFile;
+			byte resRank = m_position.rank + incRank;
 
+			if (resFile / 8 > 0)
+			{
+				resFile = resFile % 8;
+				resRank++;
+			}
+
+			if (resRank > 7)
+			{
+				resRank = 8;
+				resFile = 0;
+			}
+
+			m_position.file = resFile;
+			m_position.rank = resRank;
+
+			return *this;
 		}
 
 		ChessboardIterator operator++(int)
@@ -176,6 +197,10 @@ private:
 	const ChessboardTile& get(const Notation& position) const { return readTile(position); }
 
 	ChessboardTile m_tiles[64];
+
+	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
+	byte m_castlingState;
+	Notation m_enPassant;
 };
 
 template<typename T, bool isConst>

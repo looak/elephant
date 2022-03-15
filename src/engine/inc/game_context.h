@@ -24,6 +24,18 @@ public:
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
 
+    byte readPly() const { return m_plyCount; }
+    byte& editPly() { return m_plyCount; }
+
+    byte readMoveCount() const { return m_moveCount; }
+    byte& editMoveCount() { return m_moveCount; }
+
+    PieceSet readToPlay() const { return m_toPlay; }
+    PieceSet& editToPlay() { return m_toPlay; }
+    
 private:
     Chessboard m_board;
+    PieceSet m_toPlay;
+    byte m_plyCount;
+    byte m_moveCount;
 };

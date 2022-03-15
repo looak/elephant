@@ -17,7 +17,7 @@ bool Board(const Chessboard& board, const std::string& input)
             std::cout << "\n > " << (int)(boardItr.rank() + 1) << "  ";
         }
         
-        std::cout << '[' << (*boardItr).getPiece().toString() << ']';
+        std::cout << '[' << (*boardItr).readPiece().toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 

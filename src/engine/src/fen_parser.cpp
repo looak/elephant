@@ -1,27 +1,160 @@
 #include "fen_parser.h"
-#include "defines.h"
 #include <cctype>
 #include <cstdlib>
+#include <sstream>
+#include <string>
+#include <list>
+
+#include "defines.h"
+#include "chessboard.h"
+#include "game_context.h"
+
+bool deserializeCastling(const std::string& castlingStr, GameContext& outputContext)
+{
+    byte castlingState = 0x00;
+    if (castlingStr[0] != '-')
+    {
+        for (char cstling : castlingStr)
+        {
+            switch (cstling)
+            {
+            case 'k':
+                castlingState |= 0x04;
+                break;
+            case 'q':
+                castlingState |= 0x08;
+                break;
+            case 'K':
+                castlingState |= 0x01;
+                break;
+            case 'Q':
+                castlingState |= 0x02;
+                break;
+            default:
+                return false;
+            }
+        }
+    }
+
+    outputContext.editChessboard().editCastlingState() = castlingState;
+    return true;
+}
+
+bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
+{
+    std::istringstream ssboard(boardStr);
+    std::list<std::string> ranks;
+    std::string rank;
+    while (std::getline(ssboard, rank, '/'))
+    {
+        ranks.push_back(rank);
+    }
+
+    if (ranks.size() != 8)
+        return false;
+
+    auto boardItr = outputContext.editChessboard().begin();
+    while (!ranks.empty())
+    {        
+        const char* rdr = ranks.back().c_str();
+        while (*rdr != '\0')
+        {
+            char value = *rdr;
+
+            if (std::isdigit(value))
+            {
+                byte steps = (byte)std::atoi(&value);
+                boardItr += steps;
+            }
+            else if (value == '/')
+            {
+                ++boardItr;
+            }
+            else
+            {
+                if (!(*boardItr).editPiece().fromString(value))
+                    return false;
+                ++boardItr;
+            }
+
+            ++rdr;
+        }
+
+        ranks.pop_back();
+    }
+
+    return true;
+}
+
+bool deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
+{
+    char value = std::tolower(toPlayStr[0]);
+    if (value == 'w')
+        outputContext.editToPlay() = PieceSet::WHITE;
+    else if (value == 'b')
+        outputContext.editToPlay() = PieceSet::BLACK;
+    else
+        return false;
+
+    return true;
+}
+
+bool deserializeEnPassant(const std::string& enPassantStr, GameContext& outputContext)
+{
+    outputContext.editChessboard().editEnPassant() = Notation();
+    if (enPassantStr.size() > 1)
+    {
+        byte file = enPassantStr[0];
+        byte rank = (byte)std::atoi(&enPassantStr[1]);
+        outputContext.editChessboard().editEnPassant() = Notation::BuildPosition(file, rank);
+    }
+    return true;
+}
 
 bool FENParser::deserialize(const char* input, GameContext& outputContext)
 {
-    byte boardIndx = 0;
-    const char* rdr = input;
-    while (*rdr != '\0')
+    std::istringstream ssfen(input);
+    std::list<std::string> tokens;
+    std::string token;
+    while (std::getline(ssfen, token, ' '))
     {
-        char value = *rdr;
-        
-        if (std::isdigit(value))
-        {
-            byte steps = (byte)std::atoi(&value);
-            boardIndx += steps;
-        }
-        else if (value == '/')
-        {
-            boardIndx++;
-        }
-        rdr++;
+        tokens.push_back(token);
     }
 
-    return false;
+    if (tokens.size() != 6)
+        return false;
+    
+    if (!deserializeBoard(tokens.front(), outputContext))
+        return false;
+
+    tokens.pop_front();
+
+    if (!deserializeToPlay(tokens.front(), outputContext))
+        return false;
+
+    tokens.pop_front();
+    
+    if (!deserializeCastling(tokens.front(), outputContext))
+        return false;
+
+    tokens.pop_front();
+
+    if (!deserializeEnPassant(tokens.front(), outputContext))
+        return false;
+
+    tokens.pop_front();
+
+    byte plyCount = std::atoi(&tokens.front()[0]);
+    tokens.pop_front();
+    
+    byte moveCount = std::atoi(&tokens.front()[0]);
+    tokens.pop_front();
+
+    outputContext.editPly() = plyCount;
+    outputContext.editMoveCount() = moveCount;
+
+    if (!tokens.empty())
+        return false;
+
+    return true;
 }
