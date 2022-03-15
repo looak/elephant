@@ -3,17 +3,27 @@
 
 #include "elephant_cli.h"
 #include "game_context.h"
-#include "commands_print.h"
+#include "commands.h"
 
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
+#include <list>
 
 Application::Application()
 {
 	std::cout << " Elephant Chess Engine 2021" << std::endl
 		<< " Version: " << 0;
+}
+
+void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
+{
+	std::istringstream ssargs(buffer);
+	std::string token;
+	while (std::getline(ssargs, token, ' '))
+	{
+		tokens.push_back(token);
+	}
 }
 
 void Application::Run()
@@ -25,18 +35,16 @@ void Application::Run()
 		std::cout << std::endl << " > ";
 		std::string buffer = "";
 		std::getline(std::cin, buffer);
-		std::istringstream ssargs(buffer);
-		std::vector<std::string> tokens;
-		std::string token;
-		while (std::getline(ssargs, token, ':'))
-		{
-			tokens.push_back(token);
-		}
+		std::list<std::string> tokens;
+		extractArgsFromCommand(buffer, tokens);
 
-		auto&& command = PrintCommands::CommandList.find(tokens.front());
-		if(tokens.size() > 0 && command != PrintCommands::CommandList.end())
+		auto&& command = CliCommands::options.find(tokens.front());
+		if(tokens.size() > 0 && command != CliCommands::options.end())
 		{
-			command->second.first(context.readChessboard(), "");
+			auto token = tokens.front();
+			tokens.pop_front();
+			
+			command->second.first(tokens, context);
 			// else
 			// 	printOptions.at(tokens.front()).first(tokens.back(), state);
 		}
@@ -45,7 +53,5 @@ void Application::Run()
 			std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
 			std::cout << " > Invalid command: " << invalidInput << ", help for all commands!" <<std::endl;
 		}
-
-		std::cout << buffer;
 	}
 }

@@ -1,44 +1,52 @@
 #include "commands_print.h"
+#include "commands_utils.h"
 #include <iostream>
+#include "chessboard.h"
 
-namespace PrintCommands
+namespace CliPrintCommands
 {
-void Board(const Chessboard& board, const std::string input)
+bool Board(const Chessboard& board, const std::string& input)
 {
-    auto boardItr = Chessboard::Iterator(const_cast<Chessboard&>(board));
-
-    while (!boardItr.end())
-    {
+    auto boardItr = board.begin();
         
-    }
-    for (byte rank = 8; rank >= 1; rank--)
+    byte prevRank = -1;
+    do 
     {
-        std::cout << " > " << (int)rank << "  ";
-        for (byte file = 'a'; file <= 'h'; file++)
+        if (prevRank != boardItr.rank())
         {
-            Notation position = Notation::BuildPosition(file, rank);
-            const auto& piece = board.readTile(std::move(position));
-            // auto val = PieceDef::printable(tmp);
-            std::cout << '[' << piece.toString() << ']';
+            std::cout << "\n > " << (int)(boardItr.rank() + 1) << "  ";
         }
+        
+        std::cout << '[' << (*boardItr).getPiece().toString() << ']';
+        prevRank = boardItr.rank();
+        ++boardItr;
+
+    } while (boardItr != board.end());
+    std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
+
+    return true;
+}
+
+void BoardHelp(int option, const std::string& command)
+{
+
+}
+
+bool HelpCommand(const Chessboard&, const std::string& input)
+{
+    std::cout << " > Elephant Gambit CLI print Commands:" << std::endl;
+    for (PrintCommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
+    {
+        options.at(iter->first).second(0, iter->first);
         std::cout << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << " >     A  B  C  D  E  F  G  H";
+
+    return true;
 }
 
-void BoardHelp(int option, const std::string command)
+void HelpCommandHelp(int, const std::string& command)
 {
-
+    std::string helpText("Outputs this help message");
+    std::cout << AddLineDivider(command, helpText);
 }
-
-void HelpCommand(const Chessboard& board, const std::string input)
-{
-
-}
-
-void HelpCommandHelp(int option, const std::string command)
-{
-    
-}
-} // namespace PrintCommands
+} // namespace CliPrintCommands

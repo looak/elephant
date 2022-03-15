@@ -10,11 +10,11 @@ Notation Notation::BuildPosition(byte file, byte rank)
 
 	// validate placement is inside the board.
 	if (corrFile > 7 || corrRank > 7)
-		return std::move(result);
+		return result;
 
 	result.file = corrFile;	
 	result.rank = corrRank;
-	return std::move(result);
+	return result;
 }
 
 Notation& Notation::operator=(Notation&& other)
@@ -22,6 +22,13 @@ Notation& Notation::operator=(Notation&& other)
 	file = other.file;
 	rank = other.rank;
 	return *this;
+}
+
+bool Notation::operator==(const Notation& rhs) const
+{
+	bool result = rank == rhs.rank;
+	result &= file == rhs.file;
+	return result;
 }
 
 ChessboardTile::ChessboardTile(Notation&& notation) :
@@ -33,13 +40,6 @@ bool ChessboardTile::operator==(const ChessboardTile& rhs) const
 {
 	bool result = m_position == rhs.m_position;
 	result |= m_piece == rhs.m_piece;
-	return result;
-}
-
-bool Notation::operator==(const Notation& rhs) const
-{
-	bool result = rank == rhs.rank;
-	result |= file == rhs.file;	
 	return result;
 }
 
@@ -60,16 +60,6 @@ Chessboard::Chessboard(const Chessboard& other)
 	std::memcpy(m_tiles, other.m_tiles, sizeof(m_tiles));
 }
 
-//const ChessboardTile& Chessboard::getTile(const Notation& position) const
-//{
-//	return m_tiles[position.getIndex()];
-//}
-//
-//ChessboardTile& Chessboard::editTile(const Notation& position)
-//{
-//	return m_tiles[position.getIndex()];
-//}
-
 void Chessboard::Clear()
 {
 	std::memset(m_tiles, 0, sizeof(m_tiles));
@@ -81,16 +71,10 @@ bool Chessboard::PlacePiece(ChessPiece p, const Notation& tile)
 	return false;
 }
 
-// const ChessPiece&
-// Chessboard::readTile(const Notation& position) const
-// {
-// 	return m_tiles[position.getIndex()].m_piece;
-// }
-
-const ChessPiece&
+const ChessboardTile&
 Chessboard::readTile(const Notation& position) const
 {
-	return m_tiles[position.getIndex()].m_piece;
+	return m_tiles[position.getIndex()];
 }
 
 ChessboardTile& 
@@ -99,32 +83,27 @@ Chessboard::editTile(const Notation& position)
 	return m_tiles[position.getIndex()];
 }
 
-Chessboard::Iterator::Iterator(Chessboard& chessboard) :
-	m_chessboard(chessboard),
-	m_end(false)
-{ }
+const Notation s_beginPos = Notation::BuildPosition('a', 1);
+const Notation s_endPos = Notation(0, 8);
 
-ChessboardTile&
-Chessboard::Iterator::get()
+Chessboard::Iterator
+Chessboard::begin()
 {
-	return m_chessboard.editTile(m_position);
+	return Chessboard::Iterator(*this, Notation(s_beginPos));
 }
 
-ChessboardTile&
-Chessboard::Iterator::operator*()
+Chessboard::Iterator 
+Chessboard::end()
 {
-	return get();
+	return Chessboard::Iterator(*this, Notation(s_endPos));
 }
-
-void Chessboard::Iterator::operator++()
+Chessboard::ConstIterator 
+Chessboard::begin() const
 {
-	m_position.file++;
-	if (m_position.file >= 7)
-	{
-		m_position.file = 0;
-		m_position.rank++;
-
-		if (m_position.rank >= 8)
-			m_end = true;
-	}
+	return Chessboard::ConstIterator(*this, Notation(s_beginPos));
+}
+Chessboard::ConstIterator
+Chessboard::end() const
+{
+	return Chessboard::ConstIterator(*this, Notation(s_endPos));
 }

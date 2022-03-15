@@ -34,6 +34,7 @@ struct Notation
 	{}
 
 	Notation(Notation&& other) = default;
+	explicit Notation(const Notation& other) = default;
 
 
 	byte file : 4;
@@ -53,7 +54,7 @@ public:
 	ChessboardTile(Notation&& notation);
 	~ChessboardTile() = default;
 
-	const ChessPiece& getPiece() { return m_piece; };
+	const ChessPiece& getPiece() const { return m_piece; };
 	ChessPiece& editPiece() { return m_piece; };
 
 	const Notation& getPosition() { return m_position; };
@@ -69,6 +70,7 @@ private:
 
 class Chessboard
 {
+	friend class Iterator;
 public:
 	Chessboard();
 	Chessboard(const Chessboard& other);
@@ -80,31 +82,100 @@ public:
 
 	bool PlacePiece(ChessPiece p, const Notation& tile);
 
-	const ChessPiece& readTile(const Notation& position) const;
+	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
-	//const ChessPiece& operator[](byte index) const;
-	//const ChessboardTile& getTile(const Notation& position) const;
-	//ChessboardTile& editTile(const Notation& position);
-	class Iterator
+	
+	template<typename T, bool isConst = false>
+	class ChessboardIterator
 	{
-		Iterator(Chessboard& chessboard);
-		void operator++();
-	//	ChessboardTile& operator->();
-		ChessboardTile& operator*();
+		friend class Chessboard;
+		using reference = typename std::conditional_t<isConst, const ChessboardTile&, ChessboardTile&>;
+	public:
+		ChessboardIterator(const ChessboardIterator& other) :
+			m_chessboard(other.m_chessboard),
+			m_position(other.m_position)
+		{
 
-		// iterator comparison
-		// iterator end
-		// const itr?
+		}
+
+		ChessboardIterator(T& board) :
+			m_chessboard(board)
+		{}
+
+		ChessboardIterator(T& board, Notation pos) :
+			m_chessboard(board),
+			m_position(std::move(pos))
+		{}
+
+		bool operator==(const ChessboardIterator& rhs) const;
+		bool operator!=(const ChessboardIterator& rhs) const;
+		ChessboardIterator& operator++()
+		{
+			if (end()) return *this;
+
+			m_position.file++;
+			if (m_position.file > 7)
+			{
+				m_position.file = 0;
+				m_position.rank++;
+			}
+
+			return *this;
+		}
+
+		ChessboardIterator operator++(int)
+		{
+			ChessboardIterator itr(*this);
+			++(*this);
+			return itr;
+		}
+
+		bool end() const;
+		byte file() const { return m_position.file; }
+		byte rank() const { return m_position.rank; }
+		byte index() const { return m_position.getIndex(); }
+					
+		reference operator*() const
+		{
+			return m_chessboard.get(m_position);
+		}
 
 	private:
-		ChessboardTile& get();
-		Chessboard& m_chessboard;
-		Notation m_position;
-		bool m_end;
+		T& m_chessboard;
+		mutable Notation m_position;
 	};
+
+	using Iterator = ChessboardIterator<Chessboard, false>;
+	using ConstIterator = ChessboardIterator<const Chessboard, true>;
+
+	Iterator begin();
+	Iterator end();
+	ConstIterator begin() const;
+	ConstIterator end() const;
 
 private:
 	int getTileIndex(byte file, byte rank);
 
+	ChessboardTile& get(const Notation& position) { return editTile(position); }
+	const ChessboardTile& get(const Notation& position) const { return readTile(position); }
+
 	ChessboardTile m_tiles[64];
 };
+
+template<typename T, bool isConst>
+bool Chessboard::ChessboardIterator<T, isConst>::operator==(const ChessboardIterator<T, isConst>& rhs) const
+{
+	return &m_chessboard == &rhs.m_chessboard && m_position == rhs.m_position;
+}
+
+template<typename T, bool isConst>
+bool Chessboard::ChessboardIterator<T, isConst>::operator!=(const ChessboardIterator<T, isConst>& rhs) const
+{
+	return !(*this == rhs);
+}
+
+template<typename T, bool isConst>
+bool Chessboard::ChessboardIterator<T, isConst>::end() const
+{
+	return m_position.rank >= 8;
+}
