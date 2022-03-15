@@ -29,7 +29,8 @@ bool Board(const Chessboard& board, const std::string& input)
 
 void BoardHelp(int option, const std::string& command)
 {
-
+    std::string helpText("Print the current board (default)");
+    std::cout << AddLineDivider(command, helpText);
 }
 
 bool HelpCommand(const Chessboard&, const std::string& input)

@@ -32,6 +32,28 @@ TEST_F(ChessboardFixture, Empty)
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).getPiece());
 }
 
+TEST_F(ChessboardFixture, Notation_Equality)
+{
+    Notation expected(0, 0);
+    EXPECT_EQ(expected, expected);
+
+    expected = Notation(0xf, 0xf);
+    auto pos = Notation::BuildPosition('z', 1); // invalid position
+    EXPECT_EQ(expected, pos);
+
+    Notation defaultValue;
+    expected = Notation(0xf, 0xf);
+    pos = Notation(0);
+    EXPECT_EQ(expected, defaultValue);
+    EXPECT_NE(expected, pos);
+    EXPECT_NE(pos, defaultValue);
+
+    expected = Notation(28);
+    pos = Notation::BuildPosition('e', 4);
+    EXPECT_EQ(expected, pos);
+    EXPECT_NE(defaultValue, expected);
+}
+
 TEST_F(ChessboardFixture, Notation_BuildPosition)
 {
     Notation expected(0, 0);
@@ -83,6 +105,40 @@ TEST_F(ChessboardFixture, Notation_GetIndex)
     pos = Notation::BuildPosition('b', 1);
     EXPECT_EQ(expected, pos.getIndex());
 }
+
+TEST_F(ChessboardFixture, Notation_IndexCtor)
+{
+    auto expected = Notation(0, 0);
+    auto pos = Notation(0);
+    EXPECT_EQ(expected, pos);
+
+    expected = Notation(4, 3);
+    pos = Notation(28);
+    EXPECT_EQ(expected, pos);
+
+    expected = Notation(3, 1);
+    pos = Notation(11);
+    EXPECT_EQ(expected, pos);
+
+    expected = Notation(7, 6);
+    pos = Notation(55);
+    EXPECT_EQ(expected, pos);
+
+    expected = Notation(0, 7);
+    pos = Notation(56);
+    EXPECT_EQ(expected, pos);
+
+    for (int r = 0; r < 8; r++)
+    {
+        for (int f = 0; f < 8; f++)
+        {
+            expected = Notation(f, r);
+            pos = Notation(expected.getIndex());
+            EXPECT_EQ(expected, pos);
+        }
+    }
+}
+
 
 TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
 {

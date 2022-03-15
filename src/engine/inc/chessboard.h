@@ -28,6 +28,12 @@ struct Notation
 		rank(0xF)
 	{}
 
+	Notation(byte index)
+	{
+		file = index % 8;
+		rank = index / 8;
+	}
+
 	Notation(byte _file, byte _rank) :
 		file(_file),
 		rank(_rank)
