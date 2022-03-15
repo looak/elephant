@@ -39,11 +39,11 @@ struct ChessPiece
 {
 public:
 	ChessPiece();
-	ChessPiece(byte value);
 	ChessPiece(PieceSet _set, PieceType _type);
 
 	char toString() const;
 	static char toString(const ChessPiece& piece);
+	bool fromString(char piece);
 
 	bool operator==(const ChessPiece& rhs) const;
 

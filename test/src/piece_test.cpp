@@ -87,11 +87,11 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
     EXPECT_EQ(PieceType::QUEEN, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet());
 
-    blackPawn = 0x00;
+    blackPawn = ChessPiece();
     EXPECT_EQ(PieceType::NON, blackPawn.getType());
     EXPECT_EQ(PieceSet::WHITE, blackPawn.getSet());
 
-    blackPawn = 0x86;
+    blackPawn = ChessPiece(PieceSet::BLACK, PieceType::KING);
     EXPECT_EQ(PieceType::KING, blackPawn.getType());
     EXPECT_EQ(PieceSet::BLACK, blackPawn.getSet());
 
@@ -173,6 +173,62 @@ TEST_F(ChessPieceFixture, ToStringOperations)
     EXPECT_EQ('K', whiteKing.toString());
     EXPECT_EQ('K', ChessPiece::toString(whiteKing));
 }
+
+TEST_F(ChessPieceFixture, FromStringOperations)
+{
+    ChessPiece testPiece;
+    EXPECT_FALSE(testPiece.fromString('a'));
+    EXPECT_FALSE(testPiece.fromString('z'));
+
+    ChessPiece blackPawn(PieceSet::BLACK, PieceType::PAWN);
+    EXPECT_TRUE(testPiece.fromString('p'));
+    EXPECT_EQ(blackPawn, testPiece);
+
+    ChessPiece blackKnight(PieceSet::BLACK, PieceType::KNIGHT);
+    EXPECT_TRUE(testPiece.fromString('n'));
+    EXPECT_EQ(blackKnight, testPiece);
+
+    ChessPiece blackBishop(PieceSet::BLACK, PieceType::BISHOP);
+    EXPECT_TRUE(testPiece.fromString('b'));
+    EXPECT_EQ(blackBishop, testPiece);
+
+    ChessPiece blackRook(PieceSet::BLACK, PieceType::ROOK);
+    EXPECT_TRUE(testPiece.fromString('r'));
+    EXPECT_EQ(blackRook, testPiece);
+
+    ChessPiece blackQueen(PieceSet::BLACK, PieceType::QUEEN);
+    EXPECT_TRUE(testPiece.fromString('q'));
+    EXPECT_EQ(blackQueen, testPiece);
+
+    ChessPiece blackKing(PieceSet::BLACK, PieceType::KING);
+    EXPECT_TRUE(testPiece.fromString('k'));
+    EXPECT_EQ(blackKing, testPiece);
+
+    ChessPiece whitePawn(PieceSet::WHITE, PieceType::PAWN);
+    EXPECT_TRUE(testPiece.fromString('P'));
+    EXPECT_EQ(whitePawn, testPiece);
+
+    ChessPiece whiteKnight(PieceSet::WHITE, PieceType::KNIGHT);
+    EXPECT_TRUE(testPiece.fromString('N'));
+    EXPECT_EQ(whiteKnight, testPiece);
+
+    ChessPiece whiteBishop(PieceSet::WHITE, PieceType::BISHOP);
+    EXPECT_TRUE(testPiece.fromString('B'));
+    EXPECT_EQ(whiteBishop, testPiece);
+
+    ChessPiece whiteRook(PieceSet::WHITE, PieceType::ROOK);
+    EXPECT_TRUE(testPiece.fromString('R'));
+    EXPECT_EQ(whiteRook, testPiece);
+
+    ChessPiece whiteQueen(PieceSet::WHITE, PieceType::QUEEN);
+    EXPECT_TRUE(testPiece.fromString('Q'));
+    EXPECT_EQ(whiteQueen, testPiece);
+
+    ChessPiece whiteKing(PieceSet::WHITE, PieceType::KING);
+    EXPECT_TRUE(testPiece.fromString('K'));
+    EXPECT_EQ(whiteKing, testPiece);
+}
+
 
 ////////////////////////////////////////////////////////////////
 
