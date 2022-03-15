@@ -1,27 +1,38 @@
 #include "commands_print.h"
 #include "commands_utils.h"
-#include <iostream>
 #include "chessboard.h"
+#include <iostream>
+#include <sstream>
+#include <array>
 
 namespace CliPrintCommands
 {
 bool Board(const Chessboard& board, const std::string& input)
 {
     auto boardItr = board.begin();
+    std::array<std::stringstream, 8> ranks;
         
     byte prevRank = -1;
     do 
     {
         if (prevRank != boardItr.rank())
         {
-            std::cout << "\n > " << (int)(boardItr.rank() + 1) << "  ";
+            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
         }
         
-        std::cout << '[' << (*boardItr).readPiece().toString() << ']';
+        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 
     } while (boardItr != board.end());
+
+    auto rankItr = ranks.rbegin();
+    while (rankItr != ranks.rend())
+    {        
+        std::cout << (*rankItr).str();
+        rankItr++;
+    }
+
     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
 
     return true;
