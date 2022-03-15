@@ -123,6 +123,16 @@ public:
 			return *this;
 		}
 
+		ChessboardIterator& operator+=(byte incre)
+		{
+			byte incfile = incre % 7;
+			byte incRank = incre / 7;
+
+			// overflowing tests
+			// tests for this operation
+
+		}
+
 		ChessboardIterator operator++(int)
 		{
 			ChessboardIterator itr(*this);

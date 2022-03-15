@@ -5,10 +5,6 @@ ChessPiece::ChessPiece() :
 	m_internalState(0x00)
 {}
 
-ChessPiece::ChessPiece(byte value) :
-	m_internalState(value)
-{}
-
 ChessPiece::ChessPiece(PieceSet _set, PieceType _type) :
 	m_internalState(0x00)
 {
@@ -50,6 +46,45 @@ char ChessPiece::toString(const ChessPiece& piece)
 		retValue = std::toupper(retValue);
 
 	return retValue;
+}
+
+bool ChessPiece::fromString(char piece)
+{
+	PieceSet set = PieceSet::BLACK;
+	if (std::isupper(piece))
+	{
+		set = PieceSet::WHITE;
+	}
+
+	char lower = std::tolower(piece);
+	PieceType type;
+	switch(lower)
+	{
+		case 'p':
+			type = PieceType::PAWN;
+			break;
+		case 'n':
+			type = PieceType::KNIGHT;
+			break;
+		case 'b':
+			type = PieceType::BISHOP;
+			break;
+		case 'r':
+			type = PieceType::ROOK;
+			break;
+		case 'q':
+			type = PieceType::QUEEN;
+			break;
+		case 'k':
+			type = PieceType::KING;
+			break;
+		default:
+			m_internalState = 0;
+			return false;
+	}
+
+	*this = ChessPiece(set, type);
+	return true;
 }
 
 bool ChessPiece::operator==(const ChessPiece& rhs) const
