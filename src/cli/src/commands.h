@@ -14,6 +14,9 @@ typedef std::function<bool(std::list<std::string>&, GameContext&)> CommandFuncti
 typedef std::function<void(const std::string&)> HelpCommandFunction;
 typedef std::map<std::string, std::pair<CommandFunction, HelpCommandFunction>> CommandsMap;
 
+bool FenCommand(std::list<std::string>& tokens, GameContext& context);
+void FenHelpCommand(const std::string& command);
+
 bool HelpCommand(std::list<std::string>& tokens, GameContext& context);
 void HelpHelpCommand(const std::string& command);
 
@@ -30,14 +33,14 @@ void PrintHelpCommand(const std::string& command);
 //};
 
 static CommandsMap options = {
-    // {"fen", { FenCommand, FenHelpCommand } },
+    { "fen", { FenCommand, FenHelpCommand } },
     // {"clear", { ClearCommand, ClearHelpCommand } },
-    {"help", { HelpCommand, HelpHelpCommand } },
-    {"print", { PrintCommand, PrintHelpCommand } },
+    { "help", { HelpCommand, HelpHelpCommand } },
+    { "print", { PrintCommand, PrintHelpCommand } },
     // {"move", { MoveCommand, MoveHelpCommand } },
     // {"divide", {DivideDepthCommand, DivideDepthCommandHelp } },
     // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
-    {"exit", { ExitCommand, ExitHelpCommand } }
+    { "exit", { ExitCommand, ExitHelpCommand } }
     // {"about", { AboutCommand, AboutHelpCommand } }
 
 };

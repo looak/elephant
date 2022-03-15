@@ -2,11 +2,32 @@
 #include "commands_print.h"
 #include "commands_utils.h"
 #include "game_context.h"
+#include "fen_parser.h"
 
 #include <vector>
 
 namespace CliCommands
 {
+
+bool FenCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    // rebuild string - maybe we should change how this works
+    std::string fen("");
+    for (auto&& str : tokens)
+        fen += str + " ";
+
+    bool ret = FENParser::deserialize(fen.c_str(), context);
+    if (!ret)
+        std::cout << " > Invalid FEN: " << fen;
+
+    return ret;
+}
+
+void FenHelpCommand(const std::string& command)
+{
+    std::string helpText("Writes given FEN to current Game Context.");
+    std::cout << AddLineDivider(command, helpText);
+}
 
 void HelpHelpCommand(const std::string& command)
 {

@@ -45,8 +45,6 @@ void Application::Run()
 			tokens.pop_front();
 			
 			command->second.first(tokens, context);
-			// else
-			// 	printOptions.at(tokens.front()).first(tokens.back(), state);
 		}
 		else
 		{
