@@ -42,10 +42,8 @@ struct Notation
 	Notation(Notation&& other) = default;
 	explicit Notation(const Notation& other) = default;
 
-
 	byte file : 4;
-	byte rank : 4;
-	
+	byte rank : 4;	
 
 	byte getIndex() const { return (rank * 8) + file; }
 	bool operator==(const Notation& rhs) const;
@@ -105,9 +103,7 @@ public:
 		ChessboardIterator(const ChessboardIterator& other) :
 			m_chessboard(other.m_chessboard),
 			m_position(other.m_position)
-		{
-
-		}
+		{}
 
 		ChessboardIterator(T& board) :
 			m_chessboard(board)
@@ -120,62 +116,18 @@ public:
 
 		bool operator==(const ChessboardIterator& rhs) const;
 		bool operator!=(const ChessboardIterator& rhs) const;
-		ChessboardIterator& operator++()
-		{
-			if (end()) return *this;
 
-			m_position.file++;
-			if (m_position.file > 7)
-			{
-				m_position.file = 0;
-				m_position.rank++;
-			}
+		ChessboardIterator& operator++();
+		ChessboardIterator operator++(int);
+		ChessboardIterator& operator+=(byte incre);
 
-			return *this;
-		}
-
-		ChessboardIterator& operator+=(byte incre)
-		{
-			byte incFile = incre % 8;
-			byte incRank = incre / 8;
-
-			byte resFile = m_position.file + incFile;
-			byte resRank = m_position.rank + incRank;
-
-			if (resFile / 8 > 0)
-			{
-				resFile = resFile % 8;
-				resRank++;
-			}
-
-			if (resRank > 7)
-			{
-				resRank = 8;
-				resFile = 0;
-			}
-
-			m_position.file = resFile;
-			m_position.rank = resRank;
-
-			return *this;
-		}
-
-		ChessboardIterator operator++(int)
-		{
-			ChessboardIterator itr(*this);
-			++(*this);
-			return itr;
-		}
+		reference operator*() const { return m_chessboard.get(m_position); }
 
 		bool end() const;
 		byte file() const { return m_position.file; }
 		byte rank() const { return m_position.rank; }
 		byte index() const { return m_position.getIndex(); }
 					
-		reference operator*() const
-		{
-			return m_chessboard.get(m_position);
-		}
 
 	private:
 		T& m_chessboard;
@@ -219,4 +171,54 @@ template<typename T, bool isConst>
 bool Chessboard::ChessboardIterator<T, isConst>::end() const
 {
 	return m_position.rank >= 8;
+}
+
+template<typename T, bool isConst>
+Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator++()
+{
+	if (end()) return *this;
+
+	m_position.file++;
+	if (m_position.file > 7)
+	{
+		m_position.file = 0;
+		m_position.rank++;
+	}
+
+	return *this;
+}
+
+template<typename T, bool isConst>
+Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isConst>::operator++(int)
+{
+	ChessboardIterator itr(*this);
+	++(*this);
+	return itr;
+}
+
+template<typename T, bool isConst>
+Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(byte incre)
+{
+	byte incFile = incre % 8;
+	byte incRank = incre / 8;
+
+	byte resFile = m_position.file + incFile;
+	byte resRank = m_position.rank + incRank;
+
+	if (resFile / 8 > 0)
+	{
+		resFile = resFile % 8;
+		resRank++;
+	}
+
+	if (resRank > 7)
+	{
+		resRank = 8;
+		resFile = 0;
+	}
+
+	m_position.file = resFile;
+	m_position.rank = resRank;
+
+	return *this;
 }
