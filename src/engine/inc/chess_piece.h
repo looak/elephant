@@ -35,6 +35,20 @@ enum class PieceSet : byte
 	NR_OF_SETS = 2
 };
 
+class ChessPieceDef
+{
+public:
+	static signed short 	MoveCount(unsigned int pIndex);
+	static bool 			Slides(unsigned int pIndex);
+	static signed short 	Moves0x88(unsigned int pIndex, unsigned int mIndex);
+	static signed short 	Attacks0x88(unsigned int pIndex, unsigned int mIndex);
+
+private:
+	static signed short m_moveCount[6];
+	static bool m_slides[6];
+	static signed short m_moves0x88[6][8];
+	static signed short m_attacks0x88[6][8];
+};
 
 
 struct ChessPiece
@@ -44,7 +58,6 @@ public:
 	ChessPiece(PieceSet _set, PieceType _type);
 
 	char toString() const;
-	static char toString(const ChessPiece& piece);
 	bool fromString(char piece);
 
 	bool operator==(const ChessPiece& rhs) const;

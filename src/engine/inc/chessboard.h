@@ -74,18 +74,10 @@ private:
 
 class Chessboard
 {
-	friend class Iterator;
 public:
 	Chessboard();
-	Chessboard(const Chessboard& other);
-	Chessboard(const Chessboard&& other) = delete;
 	~Chessboard() = default;
-
-	void Clear();
-	void Setup();
-
-	bool PlacePiece(ChessPiece p, const Notation& tile);
-
+	
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
 

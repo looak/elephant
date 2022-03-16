@@ -139,7 +139,6 @@ TEST_F(ChessboardFixture, Notation_IndexCtor)
     }
 }
 
-
 TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
 {
     auto itr = m_emptyChessboard.begin();

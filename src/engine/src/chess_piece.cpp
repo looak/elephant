@@ -1,6 +1,53 @@
 ﻿#include "chess_piece.h"
 #include <iostream>
 
+signed short ChessPieceDef::m_moveCount[6] = {
+	2, 8, 4, 4, 8, 8
+};
+
+bool ChessPieceDef::m_slides[6] = {
+	false, false, true, true, true, false,
+};
+
+signed short ChessPieceDef::m_moves0x88[6][8] = {
+	{ -16, -32, 0, 0, 0, 0, 0, 0 },
+	{ -33, -31, -18, -14, 14, 18, 31, 33 },
+	{ -17, -15, 15, 17, 0, 0, 0, 0 },
+	{ -16, -1, 1, 16, 0, 0, 0, 0 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 }
+};
+
+signed short ChessPieceDef::m_attacks0x88[6][8] = {
+	{ -15, -17, 0, 0, 0, 0, 0, 0 },
+	{ -33, -31, -18, -14, 14, 18, 31, 33 },
+	{ -17, -15, 15, 17, 0, 0, 0, 0 },
+	{ -16, -1, 1, 16, 0, 0, 0, 0 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 }
+};
+
+signed short ChessPieceDef::MoveCount(unsigned int pIndex)
+{
+	return m_moveCount[pIndex];
+}
+
+bool ChessPieceDef::Slides(unsigned int pIndex)
+{
+	return m_slides[pIndex];
+}
+
+signed short ChessPieceDef::Moves0x88(unsigned int pIndex, unsigned int mIndex)
+{
+	return m_moves0x88[pIndex][mIndex];
+}
+
+signed short ChessPieceDef::Attacks0x88(unsigned int pIndex, unsigned int mIndex)
+{
+	return m_attacks0x88[pIndex][mIndex];
+}
+
+
 ChessPiece::ChessPiece() :
 	m_internalState(0x00)
 {}
@@ -14,35 +61,30 @@ ChessPiece::ChessPiece(PieceSet _set, PieceType _type) :
 
 char ChessPiece::toString() const
 {
-	return toString(*this);
-}
-
-char ChessPiece::toString(const ChessPiece& piece)
-{
 	char retValue = ' ';
-	switch(piece.getType())
+	switch (getType())
 	{
-		case PieceType::PAWN:
-			retValue = 'p';
-			break;
-		case PieceType::BISHOP:
-			retValue = 'b';
-			break;
-		case PieceType::KNIGHT:
-			retValue = 'n';
-			break;
-		case PieceType::ROOK:
-			retValue = 'r';
-			break;
-		case PieceType::QUEEN:
-			retValue = 'q';
-			break;
-		case PieceType::KING:
-			retValue = 'k';
-			break;
+	case PieceType::PAWN:
+		retValue = 'p';
+		break;
+	case PieceType::BISHOP:
+		retValue = 'b';
+		break;
+	case PieceType::KNIGHT:
+		retValue = 'n';
+		break;
+	case PieceType::ROOK:
+		retValue = 'r';
+		break;
+	case PieceType::QUEEN:
+		retValue = 'q';
+		break;
+	case PieceType::KING:
+		retValue = 'k';
+		break;
 	}
 
-	if (piece.getSet() == PieceSet::WHITE)
+	if (getSet() == PieceSet::WHITE)
 		retValue = std::toupper(retValue);
 
 	return retValue;

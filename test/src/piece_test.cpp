@@ -126,52 +126,40 @@ TEST_F(ChessPieceFixture, ToStringOperations)
 {
     ChessPiece blackPawn(PieceSet::BLACK, PieceType::PAWN);
     EXPECT_EQ('p', blackPawn.toString());
-    EXPECT_EQ('p', ChessPiece::toString(blackPawn));
 
     ChessPiece blackKnight(PieceSet::BLACK, PieceType::KNIGHT);
     EXPECT_EQ('n', blackKnight.toString());
-    EXPECT_EQ('n', ChessPiece::toString(blackKnight));
 
     ChessPiece blackBishop(PieceSet::BLACK, PieceType::BISHOP);
     EXPECT_EQ('b', blackBishop.toString());
-    EXPECT_EQ('b', ChessPiece::toString(blackBishop));
 
     ChessPiece blackRook(PieceSet::BLACK, PieceType::ROOK);
     EXPECT_EQ('r', blackRook.toString());
-    EXPECT_EQ('r', ChessPiece::toString(blackRook));
 
     ChessPiece blackQueen(PieceSet::BLACK, PieceType::QUEEN);
     EXPECT_EQ('q', blackQueen.toString());
-    EXPECT_EQ('q', ChessPiece::toString(blackQueen));
 
     ChessPiece blackKing(PieceSet::BLACK, PieceType::KING);
     EXPECT_EQ('k', blackKing.toString());
-    EXPECT_EQ('k', ChessPiece::toString(blackKing));
 
     ChessPiece whitePawn(PieceSet::WHITE, PieceType::PAWN);
     EXPECT_EQ('P', whitePawn.toString());
-    EXPECT_EQ('P', ChessPiece::toString(whitePawn));
     EXPECT_NE(blackPawn.toString(), whitePawn.toString());
 
     ChessPiece whiteKnight(PieceSet::WHITE, PieceType::KNIGHT);
     EXPECT_EQ('N', whiteKnight.toString());
-    EXPECT_EQ('N', ChessPiece::toString(whiteKnight));
 
     ChessPiece whiteBishop(PieceSet::WHITE, PieceType::BISHOP);
     EXPECT_EQ('B', whiteBishop.toString());
-    EXPECT_EQ('B', ChessPiece::toString(whiteBishop));
 
     ChessPiece whiteRook(PieceSet::WHITE, PieceType::ROOK);
     EXPECT_EQ('R', whiteRook.toString());
-    EXPECT_EQ('R', ChessPiece::toString(whiteRook));
 
     ChessPiece whiteQueen(PieceSet::WHITE, PieceType::QUEEN);
     EXPECT_EQ('Q', whiteQueen.toString());
-    EXPECT_EQ('Q', ChessPiece::toString(whiteQueen));
 
     ChessPiece whiteKing(PieceSet::WHITE, PieceType::KING);
     EXPECT_EQ('K', whiteKing.toString());
-    EXPECT_EQ('K', ChessPiece::toString(whiteKing));
 }
 
 TEST_F(ChessPieceFixture, FromStringOperations)
