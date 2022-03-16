@@ -35,6 +35,8 @@ enum class PieceSet : byte
 	NR_OF_SETS = 2
 };
 
+
+
 struct ChessPiece
 {
 public:

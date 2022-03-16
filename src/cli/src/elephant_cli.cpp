@@ -4,6 +4,7 @@
 #include "elephant_cli.h"
 #include "game_context.h"
 #include "commands.h"
+#include "log.h"
 
 #include <iostream>
 #include <sstream>
@@ -29,6 +30,7 @@ void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& t
 void Application::Run()
 {
 	GameContext context;
+	LOG_INFO() << "test";
 
 	while (1)
 	{
