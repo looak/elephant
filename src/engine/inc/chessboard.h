@@ -94,15 +94,18 @@ public:
 	public:
 		ChessboardIterator(const ChessboardIterator& other) :
 			m_chessboard(other.m_chessboard),
+			m_index(other.m_index),
 			m_position(other.m_position)
 		{}
 
 		ChessboardIterator(T& board) :
-			m_chessboard(board)
+			m_chessboard(board),
+			m_index(0)
 		{}
 
 		ChessboardIterator(T& board, Notation pos) :
 			m_chessboard(board),
+			m_index(0),
 			m_position(std::move(pos))
 		{}
 
@@ -118,11 +121,12 @@ public:
 		bool end() const;
 		byte file() const { return m_position.file; }
 		byte rank() const { return m_position.rank; }
-		byte index() const { return m_position.getIndex(); }
+		byte index() const { return m_index; }
 					
 
 	private:
 		T& m_chessboard;
+		mutable byte m_index;
 		mutable Notation m_position;
 	};
 
@@ -162,21 +166,15 @@ bool Chessboard::ChessboardIterator<T, isConst>::operator!=(const ChessboardIter
 template<typename T, bool isConst>
 bool Chessboard::ChessboardIterator<T, isConst>::end() const
 {
-	return m_position.rank >= 8;
+	return m_index >= 64;
 }
 
 template<typename T, bool isConst>
 Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator++()
 {
 	if (end()) return *this;
-
-	m_position.file++;
-	if (m_position.file > 7)
-	{
-		m_position.file = 0;
-		m_position.rank++;
-	}
-
+	++m_index;
+	m_position = Notation(m_index);	
 	return *this;
 }
 
@@ -191,26 +189,12 @@ Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isC
 template<typename T, bool isConst>
 Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(byte incre)
 {
-	byte incFile = incre % 8;
-	byte incRank = incre / 8;
-
-	byte resFile = m_position.file + incFile;
-	byte resRank = m_position.rank + incRank;
-
-	if (resFile / 8 > 0)
-	{
-		resFile = resFile % 8;
-		resRank++;
-	}
-
-	if (resRank > 7)
-	{
-		resRank = 8;
-		resFile = 0;
-	}
-
-	m_position.file = resFile;
-	m_position.rank = resRank;
+	signed char result = m_index + incre;
+	if (result < 0 || result > 63)
+		result = 64;
+	
+	m_index = result;
+	m_position = Notation(m_index);
 
 	return *this;
 }
