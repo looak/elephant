@@ -77,6 +77,8 @@ class Chessboard
 public:
 	Chessboard();
 	~Chessboard() = default;
+
+	bool MakeMove(const Notation& source, const Notation& target);
 	
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);

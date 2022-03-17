@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
+#include "elephant_test_utils.h"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "elephant_test_utils.h"
 
 namespace ElephantTest
 {
@@ -133,13 +133,13 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     EXPECT_EQ(0x00, testContext.readChessboard().readCastlingState());
 
     Chessboard expected;
-    expected.editTile(g1).editPiece() = blackQueen;
-    expected.editTile(d8).editPiece() = blackKing;
-    expected.editTile(e6).editPiece() = whitePawn;
-    expected.editTile(f5).editPiece() = whitePawn;
-    expected.editTile(g7).editPiece() = whiteKnight;
-    expected.editTile(f7).editPiece() = whiteRook;
-    expected.editTile(h4).editPiece() = whiteKing;
+    expected.editTile(g1).editPiece() = BLACKQUEEN;
+    expected.editTile(d8).editPiece() = BLACKKING;
+    expected.editTile(e6).editPiece() = WHITEPAWN;
+    expected.editTile(f5).editPiece() = WHITEPAWN;
+    expected.editTile(g7).editPiece() = WHITEKNIGHT;
+    expected.editTile(f7).editPiece() = WHITEROOK;
+    expected.editTile(h4).editPiece() = WHITEKING;
 
     auto&& expitr = expected.begin();
     auto&& resitr = testContext.readChessboard().begin();

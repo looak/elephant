@@ -23,4 +23,5 @@ ${SRC_DIR}/bitboard_test.cpp
 ${SRC_DIR}/chessboard_test.cpp
 ${SRC_DIR}/fen_parser_test.cpp
 ${SRC_DIR}/piece_test.cpp
+${SRC_DIR}/move_test.cpp
 ${SRC_DIR}/elephant_test_utils.h)
