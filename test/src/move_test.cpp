@@ -17,6 +17,19 @@ public:
 };
 ////////////////////////////////////////////////////////////////
 
+TEST_F(MoveFixture, InvalidMoves)
+{
+    bool result = false;
+    result = m_chessboard.MakeMove(Notation(87), Notation(0));
+    EXPECT_FALSE(result);
+    result = m_chessboard.MakeMove(Notation(0), Notation((int)877));
+    EXPECT_FALSE(result);
+
+    // no piece on target tile
+    result = m_chessboard.MakeMove(Notation(0), Notation(2));
+    EXPECT_FALSE(result);
+}
+
 TEST_F(MoveFixture, PawnMoves)
 {
     // setup
@@ -24,6 +37,7 @@ TEST_F(MoveFixture, PawnMoves)
 
     // do
     bool result = m_chessboard.MakeMove(e4, e5);
+    ASSERT_TRUE(result);
     
     // verify
     ChessPiece exp; // default, "empty" piece

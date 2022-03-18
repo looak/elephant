@@ -1,35 +1,5 @@
 ﻿#include "chessboard.h"
-#include <cstring>
-#include <utility>
-
-Notation Notation::BuildPosition(byte file, byte rank)
-{
-	Notation result(0xF, 0xF);
-	byte corrFile = (byte)(tolower(file) - 'a');
-	byte corrRank = rank - 1;
-
-	// validate placement is inside the board.
-	if (corrFile > 7 || corrRank > 7)
-		return result;
-
-	result.file = corrFile;	
-	result.rank = corrRank;
-	return result;
-}
-
-Notation& Notation::operator=(Notation&& other)
-{
-	file = other.file;
-	rank = other.rank;
-	return *this;
-}
-
-bool Notation::operator==(const Notation& rhs) const
-{
-	bool result = rank == rhs.rank;
-	result &= file == rhs.file;
-	return result;
-}
+#include "log.h"
 
 ChessboardTile::ChessboardTile(Notation&& notation) :
 	m_position(std::move(notation))
@@ -50,21 +20,33 @@ Chessboard::Chessboard()
 		for (byte f = 0; f < 8; f++)
 		{
 			Notation pos(r,f);
-			m_tiles[pos.getIndex()].editPosition() = std::move(pos);
+			m_tiles[pos.index()].editPosition() = std::move(pos);
 		}
 	}
+}
+
+bool Chessboard::MakeMove(const Notation& source, const Notation& target)
+{
+	if (Bitboard::IsValidSquare(source) || Bitboard::IsValidSquare(target))
+		return false;
+
+	const auto& piece = m_tiles[source.index()].readPiece();
+	if (piece == ChessPiece())
+		return false;
+
+	return false;
 }
 
 const ChessboardTile&
 Chessboard::readTile(const Notation& position) const
 {
-	return m_tiles[position.getIndex()];
+	return m_tiles[position.index()];
 }
 
 ChessboardTile& 
 Chessboard::editTile(const Notation& position)
 {
-	return m_tiles[position.getIndex()];
+	return m_tiles[position.index()];
 }
 
 const Notation s_beginPos = Notation::BuildPosition('a', 1);

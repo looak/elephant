@@ -217,6 +217,27 @@ TEST_F(ChessPieceFixture, FromStringOperations)
     EXPECT_EQ(whiteKing, testPiece);
 }
 
+TEST_F(ChessPieceFixture, FlipSet)
+{
+    ChessPiece whiteBishop(PieceSet::WHITE, PieceType::BISHOP);
+    PieceSet expected = PieceSet::BLACK;
+    PieceSet set = ChessPiece::FlipSet(whiteBishop.getSet());
+    EXPECT_EQ(expected, set);
+    
+    expected = PieceSet::WHITE;
+    set = ChessPiece::FlipSet(set);
+    EXPECT_EQ(expected, set);
+
+    byte exp = 0;
+    byte res = (byte)PieceSet::BLACK;
+    res = ChessPiece::FlipSet(res);
+    EXPECT_EQ(exp, res);
+
+    exp = 1;
+    res = ChessPiece::FlipSet(res);
+    EXPECT_EQ(exp, res);
+}
+
 
 ////////////////////////////////////////////////////////////////
 

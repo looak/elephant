@@ -21,21 +21,21 @@ struct Move
 {
 public:
 
-private:
-    Notation m_target;
-    Notation m_source;
-    ChessPiece m_piece;
+// private:
+//     Notation m_target;
+//     Notation m_source;
+//     ChessPiece m_piece;
 
-    enum MoveFlag
-    {
-        Capture = 1,
-        Promotion = 2,
-        Castle = 4,
-        Check = 8,
-        Unused = 16,
-        Unused2 = 32,
-        Unused3 = 64,
-        Unused4 = 128
-    };
-    byte m_flags;
+//     enum MoveFlag
+//     {
+//         Capture = 1,
+//         Promotion = 2,
+//         Castle = 4,
+//         Check = 8,
+//         Unused = 16,
+//         Unused2 = 32,
+//         Unused3 = 64,
+//         Unused4 = 128
+//     };
+//     byte m_flags;
 };

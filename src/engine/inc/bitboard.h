@@ -17,10 +17,20 @@
 #pragma once
 #include <defines.h>
 
+struct Notation;
+struct ChessPiece;
+
 class Bitboard
 {
 public:
+	static bool IsValidSquare(byte currSqr);
+	static bool IsValidSquare(const Notation& source);
+	bool PlacePiece(const ChessPiece& piece, const Notation& target);
+	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target);
 
 private:
-	u64 m_board;
+	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
+
+	u64 m_material[2][6];
+	//u64 m_board;
 };

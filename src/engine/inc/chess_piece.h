@@ -38,10 +38,10 @@ enum class PieceSet : byte
 class ChessPieceDef
 {
 public:
-	static signed short 	MoveCount(unsigned int pIndex);
-	static bool 			Slides(unsigned int pIndex);
-	static signed short 	Moves0x88(unsigned int pIndex, unsigned int mIndex);
-	static signed short 	Attacks0x88(unsigned int pIndex, unsigned int mIndex);
+	static signed short 	MoveCount(byte pIndex);
+	static bool 			Slides(byte pIndex);
+	static signed short 	Moves0x88(byte pIndex, byte mIndex);
+	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
 
 private:
 	static signed short m_moveCount[6];
@@ -54,6 +54,10 @@ private:
 struct ChessPiece
 {
 public:
+	static PieceSet FlipSet(PieceSet source);
+	static byte FlipSet(byte source);
+
+public:
 	ChessPiece();
 	ChessPiece(PieceSet _set, PieceType _type);
 
@@ -64,6 +68,8 @@ public:
 
 	PieceType getType() const	{ return static_cast<PieceType>(m_internalState & 0x07); }
 	PieceSet getSet() const 	{ return static_cast<PieceSet>(m_internalState >> 7); }
+	byte type() const		{ return m_internalState & 0x07; }
+	byte set() const 		{ return m_internalState >> 7; }
 
 private:	
 	// [set][moved flag][not used][not used][not used][piece t][piece t][piece t]

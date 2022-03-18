@@ -15,40 +15,10 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
+#include "bitboard.h"
 #include "chess_piece.h"
+#include "notation.h"
 #include <string>
-
-struct Notation
-{
-	static Notation BuildPosition(byte file, byte rank);
-	// Should Notation validate rank & file?
-	// Should Notation validate format of rank & file?
-	Notation() :
-		file(0xF),
-		rank(0xF)
-	{}
-
-	Notation(byte index)
-	{
-		file = index % 8;
-		rank = index / 8;
-	}
-
-	Notation(byte _file, byte _rank) :
-		file(_file),
-		rank(_rank)
-	{}
-
-	Notation(Notation&& other) = default;
-	explicit Notation(const Notation& other) = default;
-
-	byte file : 4;
-	byte rank : 4;	
-
-	byte getIndex() const { return (rank * 8) + file; }
-	bool operator==(const Notation& rhs) const;
-	Notation& operator=(Notation&& other);
-};
 
 struct ChessboardTile
 {
@@ -79,7 +49,7 @@ public:
 	~Chessboard() = default;
 
 	bool MakeMove(const Notation& source, const Notation& target);
-	
+
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
 
@@ -87,7 +57,7 @@ public:
 	const Notation& readEnPassant() const { return m_enPassant; }
 	byte& editCastlingState() { return m_castlingState; }
 	byte readCastlingState() const { return m_castlingState; }
-	
+
 	template<typename T, bool isConst = false>
 	class ChessboardIterator
 	{
@@ -124,7 +94,7 @@ public:
 		byte file() const { return m_position.file; }
 		byte rank() const { return m_position.rank; }
 		byte index() const { return m_index; }
-					
+
 
 	private:
 		T& m_chessboard;
@@ -176,7 +146,7 @@ Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, is
 {
 	if (end()) return *this;
 	++m_index;
-	m_position = Notation(m_index);	
+	m_position = Notation(m_index);
 	return *this;
 }
 
@@ -194,7 +164,7 @@ Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, is
 	signed char result = m_index + incre;
 	if (result < 0 || result > 63)
 		result = 64;
-	
+
 	m_index = result;
 	m_position = Notation(m_index);
 

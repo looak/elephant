@@ -16,6 +16,7 @@
 
 #pragma once
 #include <stdint.h>
+#include "log.h"
 
 typedef unsigned char byte;
 typedef unsigned long long u64;

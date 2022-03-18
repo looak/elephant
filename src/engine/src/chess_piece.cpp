@@ -1,4 +1,5 @@
 ﻿#include "chess_piece.h"
+#include "log.h"
 #include <iostream>
 
 signed short ChessPieceDef::m_moveCount[6] = {
@@ -27,24 +28,36 @@ signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-signed short ChessPieceDef::MoveCount(unsigned int pIndex)
+signed short ChessPieceDef::MoveCount(byte pIndex)
 {
 	return m_moveCount[pIndex];
 }
 
-bool ChessPieceDef::Slides(unsigned int pIndex)
+bool ChessPieceDef::Slides(byte pIndex)
 {
 	return m_slides[pIndex];
 }
 
-signed short ChessPieceDef::Moves0x88(unsigned int pIndex, unsigned int mIndex)
+signed short ChessPieceDef::Moves0x88(byte pIndex, byte mIndex)
 {
 	return m_moves0x88[pIndex][mIndex];
 }
 
-signed short ChessPieceDef::Attacks0x88(unsigned int pIndex, unsigned int mIndex)
+signed short ChessPieceDef::Attacks0x88(byte pIndex, byte mIndex)
 {
 	return m_attacks0x88[pIndex][mIndex];
+}
+
+PieceSet ChessPiece::FlipSet(PieceSet source)
+{
+	int retValue = !(int)source;
+	return (PieceSet)retValue;
+}
+
+byte ChessPiece::FlipSet(byte source)
+{
+	byte retValue = !source;
+	return retValue;
 }
 
 
@@ -82,6 +95,11 @@ char ChessPiece::toString() const
 	case PieceType::KING:
 		retValue = 'k';
 		break;
+		case PieceType::NON:
+		retValue = ' ';
+		break;
+	default:
+		LOG_ERROR() << "Invalid Chess Piece;\n";
 	}
 
 	if (getSet() == PieceSet::WHITE)
