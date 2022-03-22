@@ -3,10 +3,10 @@ language: cpp
 os: freebsd
 addons:
   pkg:
-    - gcc10
+    - llvm90
   env:
-    - CC=gcc10
-    - CXX=g++10
+    - CC=/usr/local/bin/clang90    # llvm90 installs it to /usr/local/bin/clang90
+    - CXX=/usr/local/bin/clang++90 # llvm90 installs it to /usr/local/bin/clang++90
 
 before_script:
   - cmake .
