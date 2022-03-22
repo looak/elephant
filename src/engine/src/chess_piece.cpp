@@ -155,3 +155,8 @@ bool ChessPiece::operator==(const ChessPiece& rhs) const
 {
 	return m_internalState == rhs.m_internalState;
 }
+
+bool ChessPiece::operator!=(const ChessPiece& rhs) const
+{
+	return !(*this == rhs);
+}
