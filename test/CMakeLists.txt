@@ -35,3 +35,4 @@ target_link_libraries(${PROJECT_NAME} gtest_main engine)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})
+add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})

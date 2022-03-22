@@ -122,7 +122,7 @@ TEST_F(FenParserFixture, StartingPosition)
 // At this position, in game 6 Nepomniachtchi resigned.
 TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 {
-    std::string startingPositionFen = "3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136";
+    std::string startingPositionFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
     bool result = FENParser::deserialize(startingPositionFen.c_str(), testContext);
     EXPECT_TRUE(result);
 
