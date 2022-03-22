@@ -9,6 +9,9 @@ addons:
     packages:
       - g++-7
 
+before_script:
+  - CXX=/usr/bin/g++-7 CC=/usr/bin/gcc-7
+
 script:
   - make
   - bin/ElephantTest
