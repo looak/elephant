@@ -47,3 +47,8 @@ bool Notation::operator==(const Notation& rhs) const
 	result &= file == rhs.file;
 	return result;
 }
+
+bool Notation::operator!=(const Notation& rhs) const
+{
+	return !(*this == rhs);
+}

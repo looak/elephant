@@ -51,5 +51,6 @@ struct Notation
 
 	byte index() const { return (rank * 8) + file; }
 	bool operator==(const Notation& rhs) const;
+	bool operator!=(const Notation& rhs) const;
 	Notation& operator=(Notation&& other);
 };
