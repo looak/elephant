@@ -29,9 +29,17 @@ bool Bitboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece)
+Bitboard::Bitboard()
+{
+    std::memset(&m_material[0][0], 0, sizeof(u64)*(2*6));
+}
+
+u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling)
 {
     u64 ret = ~universe;
+    
+    u64 matComb = MaterialCombined(piece.set());
+    u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
 
     // Figure out if we're moving a pawn out of it's starting position.
     // Pawn specific modifires and values, starting row to figure out if we can do a double step
@@ -85,17 +93,31 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece)
             // build a square mask from current square
 			u64 sqrMask = UINT64_C(1) << curSqr;
 
-			// if (matComb & sqrMask) 
-			// 	sliding = false;
-			// if (matCombOp & sqrMask)
-			// {
-			// 	sliding = false;
-			// }
+            // check if we are blocked by a friendly piece or a oponent piece.
+			if (matComb & sqrMask) 
+            {
+				sliding = false;
+                break;
+            }
+            else if (opMatComb & sqrMask && piece.getType() != PieceType::PAWN) // put this in a lambda or a callback function as a parameter?
+            {
+                sliding = false;
+            }
 			
             ret |= sqrMask;
 
 		} while (sliding);
     }
+
+    if (piece.getType() == PieceType::KING)
+        ret |= Castling(piece.set(), castling);
+
+    return ret;
+}
+
+u64 Bitboard::GetAttackedSquares(PieceSet set)
+{
+    u64 ret = ~universe;
 
     return ret;
 }
@@ -152,4 +174,69 @@ bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, cons
     
 
     return false;
+}
+
+u64 Bitboard::Castling(byte set, byte castling)
+{
+   	u64 retVal = ~universe;
+	byte rank = 0;
+	if (set == 1) // BLACK
+	{
+		rank = 7;
+        // shift castling right
+        // this should make black caslting 1 & 2
+		castling = castling >> 2;
+	}
+
+    // early out in case we don't have any castling available to us.
+    if (castling == 0) 
+        return retVal;
+    
+    u64 attacked = GetAttackedSquares(ChessPiece::FlipSet((PieceSet)set));
+	u64 combMat = MaterialCombined();
+
+    // check king side
+	if (castling & 1)
+    {
+        // build castling square mask
+        byte fsqr = (rank * 8) + 5;
+        byte gsqr = fsqr + 1;
+        u64 mask = ~universe;
+        mask |= UINT64_C(1) << fsqr;
+        mask |= UINT64_C(1) << gsqr;
+
+        if (!(attacked & mask) && !(combMat & mask))
+            retVal |= UINT64_C(1) << gsqr;
+    }
+    // check queen side
+    if (castling & 2)
+    {
+        // build castling square mask
+        byte bsqr = (rank * 8) + 1;
+        byte csqr = bsqr + 1;
+        byte dsqr = csqr + 1;
+        u64 mask = ~universe;
+        mask |= UINT64_C(1) << bsqr;
+        mask |= UINT64_C(1) << csqr;
+        mask |= UINT64_C(1) << dsqr;
+
+        if (!(attacked & mask) && !(combMat & mask))
+            retVal |= UINT64_C(1) << csqr;
+    }
+    return retVal;
+}
+
+u64 Bitboard::MaterialCombined()
+{
+    return MaterialCombined(0) | MaterialCombined(1);
+}
+
+u64 Bitboard::MaterialCombined(byte set)
+{
+    u64 combMaterialMask = 0;
+    for (u64 msk : m_material[set])
+    {
+        combMaterialMask |= msk;
+    }
+    return combMaterialMask;
 }

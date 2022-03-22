@@ -16,22 +16,29 @@
 
 #pragma once
 #include <defines.h>
+#include "chess_piece.h"
 
 struct Notation;
-struct ChessPiece;
 
 class Bitboard
 {
 public:
 	static bool IsValidSquare(signed short currSqr);
 	static bool IsValidSquare(const Notation& source);
+public:
+	Bitboard();
+		
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target);
 
-	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece);
+	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0);
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece);
+	u64 GetAttackedSquares(PieceSet set);
 
 private:
+	u64 MaterialCombined();
+	u64 MaterialCombined(byte set);
+	u64 Castling(byte set, byte castling);
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
 
 	u64 m_material[2][6];
