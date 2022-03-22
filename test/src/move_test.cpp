@@ -22,7 +22,7 @@ TEST_F(MoveFixture, InvalidMoves)
     bool result = false;
     result = m_chessboard.MakeMove(Notation(87), Notation(0));
     EXPECT_FALSE(result);
-    result = m_chessboard.MakeMove(Notation(0), Notation((int)877));
+    result = m_chessboard.MakeMove(Notation(0), Notation(127));
     EXPECT_FALSE(result);
 
     // no piece on target tile

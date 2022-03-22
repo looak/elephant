@@ -38,13 +38,13 @@ enum class PieceSet : byte
 class ChessPieceDef
 {
 public:
-	static signed short 	MoveCount(byte pIndex);
+	static byte			 	MoveCount(byte pIndex);
 	static bool 			Slides(byte pIndex);
 	static signed short 	Moves0x88(byte pIndex, byte mIndex);
 	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
 
 private:
-	static signed short m_moveCount[6];
+	static byte m_moveCount[6];
 	static bool m_slides[6];
 	static signed short m_moves0x88[6][8];
 	static signed short m_attacks0x88[6][8];

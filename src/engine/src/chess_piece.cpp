@@ -2,7 +2,7 @@
 #include "log.h"
 #include <iostream>
 
-signed short ChessPieceDef::m_moveCount[6] = {
+byte ChessPieceDef::m_moveCount[6] = {
 	2, 8, 4, 4, 8, 8
 };
 
@@ -28,23 +28,27 @@ signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-signed short ChessPieceDef::MoveCount(byte pIndex)
+byte ChessPieceDef::MoveCount(byte pIndex)
 {
+	pIndex -= 1;
 	return m_moveCount[pIndex];
 }
 
 bool ChessPieceDef::Slides(byte pIndex)
 {
+	pIndex -= 1;
 	return m_slides[pIndex];
 }
 
 signed short ChessPieceDef::Moves0x88(byte pIndex, byte mIndex)
 {
+	pIndex -= 1;
 	return m_moves0x88[pIndex][mIndex];
 }
 
 signed short ChessPieceDef::Attacks0x88(byte pIndex, byte mIndex)
 {
+	pIndex -= 1;
 	return m_attacks0x88[pIndex][mIndex];
 }
 

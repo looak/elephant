@@ -23,14 +23,16 @@ struct ChessPiece;
 class Bitboard
 {
 public:
-	static bool IsValidSquare(byte currSqr);
+	static bool IsValidSquare(signed short currSqr);
 	static bool IsValidSquare(const Notation& source);
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target);
+
+	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece);
+	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece);
 
 private:
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
 
 	u64 m_material[2][6];
-	//u64 m_board;
 };
