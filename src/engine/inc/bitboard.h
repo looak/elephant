@@ -29,6 +29,7 @@ public:
 	Bitboard();
 		
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
+	bool ClearPiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target);
 
 	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0);

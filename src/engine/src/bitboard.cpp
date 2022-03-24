@@ -24,6 +24,14 @@ bool Bitboard::IsValidSquare(const Notation& source)
     return Bitboard::IsValidSquare(source.index());
 }
 
+bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
+{
+    u64 mask = UINT64_C(1) << target.index();
+	m_material[piece.set()][piece.type()] ^= mask;
+	
+	return true;
+}
+
 bool Bitboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 {
     u64 mask = UINT64_C(1) << target.index();
@@ -195,34 +203,11 @@ bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
 
 bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target)
 {
-    //byte currSqr = source.index();
+    u64 movesMask = GetAvailableMoves(source, piece);
 
-    u64 srcMask = UINT64_C(1) << source.index();
-	if ((m_material[piece.set()][piece.type()] & srcMask) == 0)
-        return false; // no piece at src square
+    u64 targetMask = UINT64_C(1) << target.index();
 
-    //u64 trgMask = UINT64_C(1) << target.index();
-
-    // combine material into one mask to check if we're blocking ourselves.
-    u64 combMaterialMask = 0;
-    for (u64 msk : m_material[piece.set()])
-    {
-        combMaterialMask |= msk;
-    }
-
-	if ((combMaterialMask & srcMask) == 0)
-        return false; // target square is blocked by our own pieces
-
-    // byte pIndex = piece.type() - 1;
-    // byte mCount = ChessPieceDef::MoveCount(pIndex);
-    
-//    byte sq0x88 = currSqr + (currSqr & (byte)~7);
-
-    // board0x88 out of bounds check.
-    //ChessPieceDef::Moves0x88(pIndex, )
-    
-
-    return false;
+    return movesMask & targetMask;
 }
 
 u64 Bitboard::Castling(byte set, byte castling)

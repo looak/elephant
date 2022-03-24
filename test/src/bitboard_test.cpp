@@ -143,6 +143,39 @@ TEST_F(BitboardFixture, Black_King_Move_e8)
     EXPECT_EQ(expected, result);
 }
 
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ xq][ x ][ x ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ x ][ K ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ x ][ x ][ x ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_King_Attack_d5)
+{
+    Bitboard board;
+    auto K = WHITEKING;
+    auto q = BLACKQUEEN;
+
+    board.PlacePiece(K, d5);
+    board.PlacePiece(q, c6);
+    
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << c5.index();
+    expected |= INT64_C(1) << c4.index();
+    expected |= INT64_C(1) << d6.index();
+    expected |= INT64_C(1) << d4.index();
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << e5.index();
+    expected |= INT64_C(1) << e4.index();
+
+    u64 result = board.GetAvailableMoves(d5, K);
+    EXPECT_EQ(expected, result);
+}
+
 // 8 [ k ][ x ][ . ][ . ][ . ][ . ][ x ][ k ]
 // 7 [ x ][ x ][ . ][ . ][ . ][ . ][ x ][ x ]
 // 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
@@ -735,6 +768,32 @@ TEST_F(BitboardFixture, White_Knight_Attack_e3)
     expected |= INT64_C(1) << d5.index();
 
     u64 result = board.GetAttackedSquares(e3, N);
+    EXPECT_EQ(expected, result);
+}
+
+TEST_F(BitboardFixture, White_Knight_Attack_e3_ClearPiece)
+{
+    Bitboard board;
+    auto N = WHITEKNIGHT;
+    auto B = WHITEBISHOP;
+    auto b = BLACKBISHOP;
+
+    board.PlacePiece(N, e3);
+    board.PlacePiece(B, f5);
+    board.PlacePiece(b, d5);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << d5.index();
+
+    u64 result = board.GetAttackedSquares(e3, N);
+    EXPECT_EQ(expected, result);
+
+    // clear piece
+    board.ClearPiece(b, d5);
+
+    expected = ~universe;
+    result = board.GetAttackedSquares(e3, N);
     EXPECT_EQ(expected, result);
 }
 

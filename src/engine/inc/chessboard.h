@@ -48,6 +48,7 @@ public:
 	Chessboard();
 	~Chessboard() = default;
 
+	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool MakeMove(const Notation& source, const Notation& target);
 
 	const ChessboardTile& readTile(const Notation& position) const;
@@ -111,12 +112,14 @@ public:
 	ConstIterator end() const;
 
 private:
+	void InternalMakeMove(const Notation& source, const Notation& target);
 	int getTileIndex(byte file, byte rank);
 
 	ChessboardTile& get(const Notation& position) { return editTile(position); }
 	const ChessboardTile& get(const Notation& position) const { return readTile(position); }
 
 	ChessboardTile m_tiles[64];
+	Bitboard m_bitboard;
 
 	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 	byte m_castlingState;

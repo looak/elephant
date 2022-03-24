@@ -25,16 +25,46 @@ Chessboard::Chessboard()
 	}
 }
 
+bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
+{
+	if (!Bitboard::IsValidSquare(target))
+		return false;
+
+	const auto& tsqrPiece = m_tiles[target.index()].readPiece(); // should we do this check on the bitboard instead?
+	if (tsqrPiece != ChessPiece())
+		return false; // already a piece on this square
+
+	m_tiles[target.index()].editPiece() = piece;
+	m_bitboard.PlacePiece(piece, target);
+	return true;
+}
+
+void Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
+{
+	ChessPiece piece = m_tiles[source.index()].editPiece();
+	m_tiles[source.index()].editPiece() = ChessPiece(); // clear old square.
+	m_tiles[target.index()].editPiece() = piece;
+
+	m_bitboard.ClearPiece(piece, source);
+	m_bitboard.PlacePiece(piece, target);
+}
+
 bool Chessboard::MakeMove(const Notation& source, const Notation& target)
 {
-	if (Bitboard::IsValidSquare(source) || Bitboard::IsValidSquare(target))
+	if (!Bitboard::IsValidSquare(source) || !Bitboard::IsValidSquare(target))
 		return false;
 
 	const auto& piece = m_tiles[source.index()].readPiece();
 	if (piece == ChessPiece())
 		return false;
 
-	return false;
+	if (m_bitboard.IsValidMove(source, piece, target) == false)
+		return false;
+
+	// do move
+	InternalMakeMove(source, target);
+
+	return true;
 }
 
 const ChessboardTile&
