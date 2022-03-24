@@ -40,6 +40,9 @@ private:
 	u64 MaterialCombined(byte set);
 	u64 Castling(byte set, byte castling);
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
+	u64 GetAvailableMovesForPawn(u64 materialCombined, const Notation& source, const ChessPiece& piece);
+
+	u64 InternalGenerateMask(byte curSqr, u64 mat, u64 opMat, signed short dir, bool sliding);
 
 	u64 m_material[2][6];
 };

@@ -30,19 +30,19 @@ TEST_F(MoveFixture, InvalidMoves)
     EXPECT_FALSE(result);
 }
 
-TEST_F(MoveFixture, PawnMoves)
-{
-    // setup
-    m_chessboard.editTile(e4).editPiece() = WHITEPAWN;
+// TEST_F(MoveFixture, PawnMoves)
+// {
+//     // setup
+//     m_chessboard.editTile(e4).editPiece() = WHITEPAWN;
 
-    // do
-    bool result = m_chessboard.MakeMove(e4, e5);
-    ASSERT_TRUE(result);
+//     // do
+//     bool result = m_chessboard.MakeMove(e4, e5);
+//     ASSERT_TRUE(result);
     
-    // verify
-    ChessPiece exp; // default, "empty" piece
-    EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
-    EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e5).readPiece());
-}
+//     // verify
+//     ChessPiece exp; // default, "empty" piece
+//     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
+//     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e5).readPiece());
+// }
 
 }

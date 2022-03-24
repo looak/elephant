@@ -699,6 +699,45 @@ TEST_F(BitboardFixture, White_Knight_Move_b5)
     EXPECT_EQ(expected, result);
 }
 
+// board position
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ b ][ . ][ B ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ N ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+// expected result
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, White_Knight_Attack_e3)
+{
+    Bitboard board;
+    auto N = WHITEKNIGHT;
+    auto B = WHITEBISHOP;
+    auto b = BLACKBISHOP;
+
+    board.PlacePiece(N, e3);
+    board.PlacePiece(B, f5);
+    board.PlacePiece(b, d5);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << d5.index();
+
+    u64 result = board.GetAttackedSquares(e3, N);
+    EXPECT_EQ(expected, result);
+}
+
 // TEST_F(BitboardFixture, Pawn_Attack) {
 //     GambitEngine::Bitboard board;
 //     EXPECT_EQ(true, board.PlacePiece(WHITE, PAWN, 'e', 2));
