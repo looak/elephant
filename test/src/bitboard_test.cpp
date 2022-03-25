@@ -797,203 +797,52 @@ TEST_F(BitboardFixture, White_Knight_Attack_e3_ClearPiece)
     EXPECT_EQ(expected, result);
 }
 
-// TEST_F(BitboardFixture, Pawn_Attack) {
-//     GambitEngine::Bitboard board;
-//     EXPECT_EQ(true, board.PlacePiece(WHITE, PAWN, 'e', 2));
-//     board.PlacePiece(WHITE, PAWN, 'f', 3);
-//     board.PlacePiece(BLACK, PAWN, 'd', 3);
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ xB][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, White_Pawn_Threaten)
+{
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+    auto B = WHITEBISHOP;
 
-//     u64 attked = ~universe;
-//     // d3 should be attacked
-//     attked |= INT64_C(1) << INT64_C(19);
-//     // e4 should be attacked
-//     attked |= INT64_C(1) << INT64_C(28);
-//     // g4 should be attacked
-//     attked |= INT64_C(1) << INT64_C(30);
-//         // f3 should be guarded
-//     attked |= INT64_C(1) << INT64_C(21);
+    board.PlacePiece(P, b3);
+    board.PlacePiece(p, b6);
+    board.PlacePiece(B, a5);
 
-//     auto result = board.Attacked(WHITE);
-//     EXPECT_EQ(~universe, result ^ attked);
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a4.index();
+    expected |= INT64_C(1) << c4.index();
 
-//     attked = ~universe;
-//     // e4 should be attacked
-//     attked |= INT64_C(1) << INT64_C(10);
-//     // g4 should be attacked
-//     attked |= INT64_C(1) << INT64_C(12);
+    // do
+    u64 result = board.GetThreatenedSquares(b3, P);
+    // validate
+    EXPECT_EQ(expected, result);
 
-//     result = board.Attacked(BLACK);
-//     EXPECT_FALSE(result ^ attked);
-// }
+    // setup
+    expected = ~universe;
+    expected |= INT64_C(1) << a5.index();
+    expected |= INT64_C(1) << c5.index();
+    // do
+    result = board.GetThreatenedSquares(b6, p);
+    // validate
+    EXPECT_EQ(expected, result);
 
-// TEST_F(BitboardFixture, King_Available_Moves)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(WHITE, KING, 'e', 1);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(3);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(5);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(11);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(12);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(13);
-
-//     u64 avaMoves = board.AvailableMovesSimple(WHITE, KING, 4);
-
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, King_Black_Available_Moves)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, KING, 'e', 8);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(59);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(61);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(53);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(52);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(51);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, KING, 60, 0, 0, prom);
-
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-
-// TEST_F(BitboardFixture, King_Black_Available_Moves_With_Rooks)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, KING, 'e', 8);
-//     board.PlacePiece(BLACK, ROOK, 'h', 8);
-//     board.PlacePiece(BLACK, ROOK, 'a', 8);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(58);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(59);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(61);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(62);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(53);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(52);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(51);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, KING, 60, 0, 0xc, prom);
-
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, Knight_Available_Moves)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, KNIGHT, 'd', 4);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(42);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(44);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(33);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(37);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(17);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(21);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(10);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(12);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, KNIGHT, 27, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-
-//     board.PlacePiece(BLACK, PAWN, 44);
-//     avaMoves = board.AvailableMoves(BLACK, KNIGHT, 27, 0, 0, prom);
-
-//     expectedAvaMv ^= INT64_C(1) << INT64_C(44);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-
-//     board.PlacePiece(WHITE, PAWN, 37);
-//     avaMoves = board.AvailableMoves(BLACK, KNIGHT, 27, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, Knight_Pinned_NoAvaMoves)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, KNIGHT, 'd', 4);
-//     board.PlacePiece(BLACK, KING, 'd', 8);
-
-//     board.PlacePiece(WHITE, ROOK, 'd', 1);
-
-//     u64 expectedAvaMv = ~universe;
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, KNIGHT, 27, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, Rook_Pinned_LimitedMoves)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, ROOK, 'd', 4);
-//     board.PlacePiece(BLACK, KING, 'd', 8);
-
-//     board.PlacePiece(WHITE, ROOK, 'd', 1);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(19);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(11);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(3);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(35);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(43);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(51);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, ROOK, 27, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, Rook_Pinned_KingCanMove)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, ROOK, 'd', 4);
-//     board.PlacePiece(BLACK, KING, 'd', 8);
-
-//     board.PlacePiece(WHITE, ROOK, 'd', 1);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(58);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(60);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(50);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(51);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(52);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, KING, 59, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-
-// TEST_F(BitboardFixture, Rook_Pinned_ButNot_TwoPieces)
-// {
-//     GambitEngine::Bitboard board;
-//     board.PlacePiece(BLACK, ROOK, 'd', 4);
-//     board.PlacePiece(BLACK, ROOK, 'd', 3);
-//     board.PlacePiece(BLACK, KING, 'd', 8);
-
-//     board.PlacePiece(WHITE, ROOK, 'd', 1);
-
-//     u64 expectedAvaMv = ~universe;
-//     expectedAvaMv |= INT64_C(1) << INT64_C(16);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(17);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(18);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(20);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(21);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(22);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(23);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(11);
-//     expectedAvaMv |= INT64_C(1) << INT64_C(3);
-
-//     byte prom = 0;
-//     u64 avaMoves = board.AvailableMoves(BLACK, ROOK, 19, 0, 0, prom);
-//     EXPECT_EQ(expectedAvaMv, avaMoves);
-// }
-////////////////////////////////////////////////////////////////
+    // setup
+    expected = ~universe;
+    expected |= INT64_C(1) << a5.index();
+    // do
+    result = board.GetAttackedSquares(b6, p);
+    // validate
+    EXPECT_EQ(expected, result);
+}
 
 } // namespace ElephantTest

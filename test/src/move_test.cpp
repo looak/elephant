@@ -54,6 +54,25 @@ TEST_F(MoveFixture, PawnMoves)
     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(d4).readPiece());
 }
 
+TEST_F(MoveFixture, PawnMoves_enpassant)
+{
+    // setup
+    auto P = WHITEPAWN;
+    m_chessboard.PlacePiece(P, d2);
+
+    // do
+    bool result = m_chessboard.MakeMove(d2, d4);
+    EXPECT_TRUE(result);
+    
+    // verify
+    ChessPiece exp; // default, "empty" piece
+    EXPECT_EQ(exp, m_chessboard.readTile(d2).readPiece());
+    EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(d4).readPiece());
+
+    auto enPassantSqr = d3; // expected
+    EXPECT_EQ(enPassantSqr, m_chessboard.readEnPassant());    
+}
+
 TEST_F(MoveFixture, InvalidMove_NoPiece)
 {
     // do

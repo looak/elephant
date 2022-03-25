@@ -167,22 +167,32 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
     return ret;
 }
 
-u64 Bitboard::GetAttackedSquares(const Notation& source, const ChessPiece& piece)
+u64 Bitboard::GetThreatenedSquares(const Notation& source, const ChessPiece& piece)
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     bool sliding = ChessPieceDef::Slides(piece.type());
+    signed char moveMod = 1;
+    if (piece.getSet() == PieceSet::WHITE)
+        moveMod = -1;
         
     byte moveCount = ChessPieceDef::MoveCount(piece.type());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
         byte curSqr = source.index();
 		signed short dir = ChessPieceDef::Attacks0x88(piece.type(), moveIndx);
-
+        dir *= moveMod;
         ret |= InternalGenerateMask(curSqr, matComb, opMatComb, dir, sliding);
     }
 
+    return ret;
+}
+
+u64 Bitboard::GetAttackedSquares(const Notation& source, const ChessPiece& piece)
+{
+    u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
+    u64 ret = GetThreatenedSquares(source, piece);
     return ret & opMatComb;
 }
 

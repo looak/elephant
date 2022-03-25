@@ -112,6 +112,7 @@ public:
 	ConstIterator end() const;
 
 private:
+	void UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove);
 	void InternalMakeMove(const Notation& source, const Notation& target);
 	int getTileIndex(byte file, byte rank);
 

@@ -34,6 +34,7 @@ public:
 
 	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0);
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece);
+	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece);
 	u64 GetAttackedSquares(PieceSet set);
 
 private:

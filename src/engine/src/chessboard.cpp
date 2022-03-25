@@ -39,6 +39,19 @@ bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
+void Chessboard::UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove)
+{
+	m_enPassant = Notation();
+
+	if (wasPawnMove)
+	{
+		signed char dif = source.rank - target.rank;
+		dif = abs(dif);
+		if (dif == 2) // we made a enpassant move
+			m_enPassant = Notation(source.file, source.rank + 1);
+	}	
+}
+
 void Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
 {
 	ChessPiece piece = m_tiles[source.index()].editPiece();
@@ -61,8 +74,10 @@ bool Chessboard::MakeMove(const Notation& source, const Notation& target)
 	if (m_bitboard.IsValidMove(source, piece, target) == false)
 		return false;
 
+	bool isPawn = piece.getType() == PieceType::PAWN;
 	// do move
 	InternalMakeMove(source, target);
+	UpdateEnPassant(source, target, isPawn);
 
 	return true;
 }
