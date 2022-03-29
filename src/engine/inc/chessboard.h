@@ -20,6 +20,8 @@
 #include "notation.h"
 #include <string>
 
+struct Move;
+
 struct ChessboardTile
 {
 	friend class Chessboard;
@@ -49,7 +51,8 @@ public:
 	~Chessboard() = default;
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
-	bool MakeMove(const Notation& source, const Notation& target);
+	bool MakeMove(Move& move);
+	
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
@@ -112,7 +115,7 @@ public:
 	ConstIterator end() const;
 
 private:
-	void UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove);
+	bool UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove);
 	void InternalMakeMove(const Notation& source, const Notation& target);
 	int getTileIndex(byte file, byte rank);
 

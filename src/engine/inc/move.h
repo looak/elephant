@@ -14,28 +14,53 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include "chessboard.h"
+#include "defines.h"
 #include "chess_piece.h"
+#include "notation.h"
+
+enum class MoveFlag : byte
+{
+    Zero = 0,
+    Capture = 1,
+    Promotion = 2,
+    Castle = 4,
+    Check = 8,
+    EnPassant = 16,
+    Unused2 = 32,
+    Ceckmate = 64,
+    FirstMove = 128,
+    Invalid = 0xff
+};
+
+inline MoveFlag operator|(MoveFlag a, MoveFlag b)
+{
+    return static_cast<MoveFlag>(static_cast<byte>(a) | static_cast<byte>(b));
+}
+
+inline MoveFlag operator&(MoveFlag a, MoveFlag b)
+{
+    return static_cast<MoveFlag>(static_cast<byte>(a) & static_cast<byte>(b));
+}
+
+inline MoveFlag& operator|=(MoveFlag& a, MoveFlag b) 
+{ 
+    a = a | b;
+    return a;
+}
 
 struct Move
 {
 public:
+    Move(const Notation& source, const Notation& target);
+    Notation TargetSquare;
+    Notation SourceSquare;
+    ChessPiece Piece;
 
-// private:
-//     Notation m_target;
-//     Notation m_source;
-//     ChessPiece m_piece;
+    MoveFlag Flags;
 
-//     enum MoveFlag
-//     {
-//         Capture = 1,
-//         Promotion = 2,
-//         Castle = 4,
-//         Check = 8,
-//         Unused = 16,
-//         Unused2 = 32,
-//         Unused3 = 64,
-//         Unused4 = 128
-//     };
-//     byte m_flags;
+    Notation Algebraic;
+
+    Move* PrevMove;
+    unsigned short NextMoveCount;
+    Move* NextMove;
 };

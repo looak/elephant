@@ -1,4 +1,5 @@
 ﻿#include "chessboard.h"
+#include "move.h"
 #include "log.h"
 
 ChessboardTile::ChessboardTile(Notation&& notation) :
@@ -39,7 +40,7 @@ bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
-void Chessboard::UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove)
+bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove)
 {
 	m_enPassant = Notation();
 
@@ -48,8 +49,13 @@ void Chessboard::UpdateEnPassant(const Notation& source, const Notation& target,
 		signed char dif = source.rank - target.rank;
 		dif = abs(dif);
 		if (dif == 2) // we made a enpassant move
+		{
 			m_enPassant = Notation(source.file, source.rank + 1);
-	}	
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
@@ -62,22 +68,34 @@ void Chessboard::InternalMakeMove(const Notation& source, const Notation& target
 	m_bitboard.PlacePiece(piece, target);
 }
 
-bool Chessboard::MakeMove(const Notation& source, const Notation& target)
+bool Chessboard::MakeMove(Move& move)
 {
-	if (!Bitboard::IsValidSquare(source) || !Bitboard::IsValidSquare(target))
+	move.Flags = MoveFlag::Invalid;
+	
+	if (!Bitboard::IsValidSquare(move.SourceSquare) || !Bitboard::IsValidSquare(move.TargetSquare))
 		return false;
 
-	const auto& piece = m_tiles[source.index()].readPiece();
+	const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
 	if (piece == ChessPiece())
 		return false;
 
-	if (m_bitboard.IsValidMove(source, piece, target) == false)
+	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare) == false)
 		return false;
 
+		
+	move.Flags = MoveFlag::Zero;
+	move.Piece = piece;
 	bool isPawn = piece.getType() == PieceType::PAWN;
+
+	if (m_tiles[move.TargetSquare.index()].readPiece() != ChessPiece())
+	{
+		move.Flags |= MoveFlag::Capture;
+	}
+
 	// do move
-	InternalMakeMove(source, target);
-	UpdateEnPassant(source, target, isPawn);
+	InternalMakeMove(move.SourceSquare, move.TargetSquare);
+	if (UpdateEnPassant(move.SourceSquare, move.TargetSquare, isPawn))
+		move.Flags |= MoveFlag::EnPassant;
 
 	return true;
 }

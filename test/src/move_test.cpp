@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 #include "elephant_test_utils.h"
+#include "move.h"
 #include "chessboard.h"
+#include "chess_piece.h"
+
 
 namespace ElephantTest
 {
@@ -20,14 +23,26 @@ public:
 TEST_F(MoveFixture, InvalidMoves)
 {
     bool result = false;
-    result = m_chessboard.MakeMove(Notation(87), Notation(0));
+    auto move = Move(Notation(87), Notation(0));
+    result = m_chessboard.MakeMove(move);
     EXPECT_FALSE(result);
-    result = m_chessboard.MakeMove(Notation(0), Notation(127));
-    EXPECT_FALSE(result);
+    EXPECT_EQ(move.Flags, MoveFlag::Invalid);
 
-    // no piece on target tile
-    result = m_chessboard.MakeMove(Notation(0), Notation(2));
+    move.TargetSquare = Notation(127);
+    move.SourceSquare = Notation(0);
+    move.Flags = MoveFlag::Zero;
+    result = m_chessboard.MakeMove(move);
     EXPECT_FALSE(result);
+    EXPECT_EQ(move.Flags, MoveFlag::Invalid);
+    EXPECT_EQ(ChessPiece(), move.Piece);
+
+    move.TargetSquare = Notation(0);
+    move.SourceSquare = Notation(2);
+    move.Flags = MoveFlag::Zero;
+    // no piece on target tile
+    result = m_chessboard.MakeMove(move);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(move.Flags, MoveFlag::Invalid);
 }
 
 TEST_F(MoveFixture, PawnMoves)
@@ -36,18 +51,25 @@ TEST_F(MoveFixture, PawnMoves)
     auto P = WHITEPAWN;
     m_chessboard.PlacePiece(P, e4);
     m_chessboard.PlacePiece(P, d2);
+    auto move = Move(e4, e5);
 
     // do
-    bool result = m_chessboard.MakeMove(e4, e5);
+    bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
+    EXPECT_EQ(MoveFlag::Zero, move.Flags);
+    EXPECT_EQ(P, move.Piece);
     
     // verify
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e5).readPiece());
 
-    result = m_chessboard.MakeMove(d2, d4);
+    move.SourceSquare = d2;
+    move.TargetSquare = d4;
+    move.Piece = ChessPiece();
+    result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
+    EXPECT_EQ(P, move.Piece);
     
     // verify
     EXPECT_EQ(exp, m_chessboard.readTile(d2).readPiece());
@@ -59,10 +81,12 @@ TEST_F(MoveFixture, PawnMoves_enpassant)
     // setup
     auto P = WHITEPAWN;
     m_chessboard.PlacePiece(P, d2);
+    Move move(d2, d4);
 
     // do
-    bool result = m_chessboard.MakeMove(d2, d4);
+    bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
+    EXPECT_EQ(MoveFlag::EnPassant, MoveFlag::EnPassant & move.Flags);
     
     // verify
     ChessPiece exp; // default, "empty" piece
@@ -75,9 +99,13 @@ TEST_F(MoveFixture, PawnMoves_enpassant)
 
 TEST_F(MoveFixture, InvalidMove_NoPiece)
 {
+    Move move(e4, e5);
+
     // do
-    bool result = m_chessboard.MakeMove(e4, e5);
+    bool result = m_chessboard.MakeMove(move);
     EXPECT_FALSE(result);
+    EXPECT_EQ(MoveFlag::Invalid, move.Flags);
+
 }
 
 TEST_F(MoveFixture, InvalidMove_OccupideSpace)
@@ -87,29 +115,46 @@ TEST_F(MoveFixture, InvalidMove_OccupideSpace)
     auto b = BLACKBISHOP;
     m_chessboard.PlacePiece(P, e4);
     m_chessboard.PlacePiece(b, e5);
+    Move move(e4, e5);
 
     // do
-    bool result = m_chessboard.MakeMove(e4, e5);
+    bool result = m_chessboard.MakeMove(move);
     EXPECT_FALSE(result);
+    EXPECT_EQ(MoveFlag::Invalid, move.Flags);
+    EXPECT_EQ(ChessPiece(), move.Piece);
     
     // verify
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(b, m_chessboard.readTile(e5).readPiece());
 }
 
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][ q ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][ K ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// Kxd5
 TEST_F(MoveFixture, KingMove_Capture)
 {   
     auto K = WHITEKING;
     auto q = BLACKQUEEN;
     m_chessboard.PlacePiece(K, e4);
     m_chessboard.PlacePiece(q, d5);
+    Move move(e4, d5);
 
     EXPECT_EQ(K, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(q, m_chessboard.readTile(d5).readPiece());
 
     // do
-    bool result = m_chessboard.MakeMove(e4, d5);
+    bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
+    EXPECT_EQ(K, move.Piece);
+    EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
 
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(K, m_chessboard.readTile(d5).readPiece());
