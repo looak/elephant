@@ -14,7 +14,10 @@ bool ChessboardTile::operator==(const ChessboardTile& rhs) const
 	return result;
 }
 
-Chessboard::Chessboard()
+Chessboard::Chessboard() :
+	m_castlingState(0),
+	m_enPassant(Notation()),
+	m_enPassantTarget(Notation())
 {
 	for (byte r = 0; r < 8; r++)
 	{
@@ -40,24 +43,112 @@ bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
-bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove)
+bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target)
 {
-	m_enPassant = Notation();
-	m_enPassantTarget = Notation();
-
-	if (wasPawnMove)
+	signed char dif = source.rank - target.rank;
+	if (abs(dif) == 2) // we made a enpassant move
 	{
-		signed char dif = source.rank - target.rank;
-		if (abs(dif) == 2) // we made a enpassant move
-		{
-			dif *= .5f;
-			m_enPassant = Notation(source.file, source.rank - dif);
-			m_enPassantTarget = Notation(target);
-			return true;
-		}
+		dif *= .5f;
+		m_enPassant = Notation(source.file, source.rank - dif);
+		m_enPassantTarget = Notation(target);
+		return true;
 	}
 
 	return false;
+}
+
+Notation Chessboard::InternalHandlePawnMove(Move& move)
+{
+	auto pieceTarget = Notation(move.TargetSquare);	
+	// compare target square with en passant - if this is equal we build a "offset target" where the pawn should be.
+	if (pieceTarget == m_enPassant)
+	{
+		pieceTarget = Notation(m_enPassantTarget);
+		if (m_tiles[pieceTarget.index()].readPiece().getType() != PieceType::PAWN)
+			LOG_ERROR() << "No Pawn in expected EnPassant target square!";
+	}
+
+	// reset enpassant cached values
+	m_enPassant = Notation();
+	m_enPassantTarget = Notation();
+
+	if (UpdateEnPassant(move.SourceSquare, move.TargetSquare))
+	{
+		move.Flags |= MoveFlag::EnPassant;
+	}
+
+	return pieceTarget;
+}
+
+void Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove)
+{
+	byte casltingMask = 3 << (2 * move.Piece.set());
+	if (m_castlingState & casltingMask)
+	{
+		byte targetRank = 7 * move.Piece.set();
+		if (move.TargetSquare.file == 2) // we are in c file.
+		{
+			targetRook = Notation(0, targetRank);
+			rookMove = Notation(3, targetRank);
+			
+		}
+		else if (move.TargetSquare.file == 6) // we are in g file.
+		{
+			targetRook = Notation(7, targetRank);
+			rookMove = Notation(5, targetRank);
+		}
+
+		move.Flags |= MoveFlag::Castle;
+	}
+	casltingMask &= m_castlingState;
+	m_castlingState ^= casltingMask;
+}
+
+void Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove)
+{  	
+	if (move.Piece.getType() == PieceType::KING && targetRook != Notation())
+	{
+		InternalMakeMove(targetRook, rookMove);
+	}
+	else
+	{
+		byte mask = 0;
+		// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
+		switch(move.SourceSquare.index())
+		{
+			case 63: // H8 Black King Side Rook
+				mask |= 0x04;
+				break;
+			case 56: // A8 Black Queen Side Rook
+				mask |= 0x08;
+				break;
+			case 7: // H1 White King Side Rook
+				mask |= 0x01;
+				break;
+			case 0: // A1 White Queen Side Rook
+				mask |= 0x02;
+				break;
+		}
+
+		mask &= m_castlingState;
+		m_castlingState ^= mask;
+	}
+}
+
+void Chessboard::InternalHandleKingRookMove(Move& move)
+{
+	Notation targetRook, rookMove;
+	switch(move.Piece.getType())
+	{
+		case PieceType::KING:
+		InternalHandleKingMove(move, targetRook, rookMove);
+		
+		case PieceType::ROOK:
+		InternalHandleRookMove(move, targetRook, rookMove);
+
+		default:
+		break;
+	}
 }
 
 void Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
@@ -83,19 +174,26 @@ bool Chessboard::MakeMove(Move& move)
 
 	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index()) == false)
 		return false;
-		
+	
 	move.Flags = MoveFlag::Zero;
 	move.Piece = piece;
-	bool isPawn = piece.getType() == PieceType::PAWN;
 
 	auto pieceTarget = Notation(move.TargetSquare);
-	
-	// compare target square with en passant - if this is equal we build a "offset target" where the pawn should be.
-	if (pieceTarget == m_enPassant)
+
+	switch(piece.getType())
 	{
-		pieceTarget = Notation(m_enPassantTarget);
-		if (m_tiles[pieceTarget.index()].readPiece().getType() != PieceType::PAWN)
-			return false; // something went wrong with en passant.
+		case PieceType::PAWN:
+		pieceTarget = InternalHandlePawnMove(move);
+		break;
+		
+		case PieceType::KING:
+		case PieceType::ROOK:
+		InternalHandleKingRookMove(move);
+
+		default:
+		// reset enpassant cached values
+		m_enPassant = Notation();
+		m_enPassantTarget = Notation();
 	}
 
 	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
@@ -107,8 +205,6 @@ bool Chessboard::MakeMove(Move& move)
 
 	// do move
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
-	if (UpdateEnPassant(move.SourceSquare, move.TargetSquare, isPawn))
-		move.Flags |= MoveFlag::EnPassant;
 
 	return true;
 }

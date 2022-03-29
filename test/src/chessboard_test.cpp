@@ -30,6 +30,8 @@ TEST_F(ChessboardFixture, Empty)
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).readPiece());
+
+    EXPECT_EQ(0, m_emptyChessboard.readCastlingState());
 }
 
 TEST_F(ChessboardFixture, Notation_Equality)
