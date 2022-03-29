@@ -30,9 +30,9 @@ public:
 		
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool ClearPiece(const ChessPiece& piece, const Notation& target);
-	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target);
+	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant);
 
-	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0);
+	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0x0);
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece);
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece);
 	u64 GetAttackedSquares(PieceSet set);
@@ -42,7 +42,7 @@ private:
 	u64 MaterialCombined(byte set);
 	u64 Castling(byte set, byte castling);
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
-	u64 GetAvailableMovesForPawn(u64 materialCombined, const Notation& source, const ChessPiece& piece);
+	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant);
 
 	u64 InternalGenerateMask(byte curSqr, u64 mat, u64 opMat, signed short dir, bool sliding);
 

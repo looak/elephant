@@ -43,14 +43,16 @@ bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target, bool wasPawnMove)
 {
 	m_enPassant = Notation();
+	m_enPassantTarget = Notation();
 
 	if (wasPawnMove)
 	{
 		signed char dif = source.rank - target.rank;
-		dif = abs(dif);
-		if (dif == 2) // we made a enpassant move
+		if (abs(dif) == 2) // we made a enpassant move
 		{
-			m_enPassant = Notation(source.file, source.rank + 1);
+			dif *= .5f;
+			m_enPassant = Notation(source.file, source.rank - dif);
+			m_enPassantTarget = Notation(target);
 			return true;
 		}
 	}
@@ -79,17 +81,28 @@ bool Chessboard::MakeMove(Move& move)
 	if (piece == ChessPiece())
 		return false;
 
-	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare) == false)
+	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index()) == false)
 		return false;
-
 		
 	move.Flags = MoveFlag::Zero;
 	move.Piece = piece;
 	bool isPawn = piece.getType() == PieceType::PAWN;
 
-	if (m_tiles[move.TargetSquare.index()].readPiece() != ChessPiece())
+	auto pieceTarget = Notation(move.TargetSquare);
+	
+	// compare target square with en passant - if this is equal we build a "offset target" where the pawn should be.
+	if (pieceTarget == m_enPassant)
+	{
+		pieceTarget = Notation(m_enPassantTarget);
+		if (m_tiles[pieceTarget.index()].readPiece().getType() != PieceType::PAWN)
+			return false; // something went wrong with en passant.
+	}
+
+	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
 	{
 		move.Flags |= MoveFlag::Capture;
+		// remove captured piece from board.
+		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
 	}
 
 	// do move

@@ -88,10 +88,10 @@ u64 Bitboard::InternalGenerateMask(byte curSqr, u64 mat, u64 opMat, signed short
     return ret;
 }
 
-u64 Bitboard::GetAvailableMovesForPawn(u64 matComb, const Notation& source, const ChessPiece& piece)
+u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant)
 {
     u64 ret = ~universe;    
-    
+    u64 matComb = mat | opMat;
     // Figure out if we're moving a pawn out of it's starting position.
     // Pawn specific modifires and values, starting row to figure out if we can do a double step
     // moveModifier for allowing white & black pawn moves to be represented by one value.
@@ -139,17 +139,26 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 matComb, const Notation& source, cons
         ret |= sqrMask;
     }
 
+    // add attacked quares to potential moves
+    if (enPassant != 0xff)
+    {
+        u64 enPassantMask = UINT64_C(1) << enPassant;
+        opMat |= enPassantMask;
+        u64 potentialAttacks = GetThreatenedSquares(source, piece);        
+        ret |= (potentialAttacks & opMat);
+    }
+
     return ret;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling)
+u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant)
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     
     if (piece.getType() == PieceType::PAWN)
-        return GetAvailableMovesForPawn(matComb | opMatComb, source, piece);
+        return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant);
     
     bool sliding = ChessPieceDef::Slides(piece.type());
     byte moveCount = ChessPieceDef::MoveCount(piece.type());
@@ -211,9 +220,9 @@ bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
     return false;
 }
 
-bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target)
+bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant)
 {
-    u64 movesMask = GetAvailableMoves(source, piece);
+    u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant);
 
     u64 targetMask = UINT64_C(1) << target.index();
 

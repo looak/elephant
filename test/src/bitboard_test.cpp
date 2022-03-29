@@ -845,4 +845,66 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     EXPECT_EQ(expected, result);
 }
 
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ p ][ P ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ x ][ x ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Pawn_Avaliable_Move_EnPassant)
+{
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+
+    board.PlacePiece(P, g4);
+    board.PlacePiece(p, f4);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << f3.index();
+    expected |= INT64_C(1) << g3.index();
+
+    auto enPassantSqr = g3;
+    // do
+    u64 result = board.GetAvailableMoves(f4, p, 0, enPassantSqr.index());
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ x ][ x ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ p ][ P ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, White_Pawn_Avaliable_Move_EnPassant)
+{
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+
+    board.PlacePiece(P, g5);
+    board.PlacePiece(p, f5);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << f6.index();
+    expected |= INT64_C(1) << g6.index();
+
+    auto enPassantSqr = f6;
+    // do
+    u64 result = board.GetAvailableMoves(g5, P, 0, enPassantSqr.index());
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
 } // namespace ElephantTest
