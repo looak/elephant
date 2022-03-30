@@ -37,6 +37,20 @@ public:
 		std::cout << std::endl;
 		return *this;
 	}
+
+	LogMessage& operator<<(const char stream)
+	{		
+		std::cout << " > message: " << stream;
+		std::cout << std::endl;
+		return *this;
+	}
+	
+	LogMessage& operator<<(int value)
+	{		
+		std::cout << " > message: " << value;
+		std::cout << std::endl;
+		return *this;
+	}
 };
 
 class Log

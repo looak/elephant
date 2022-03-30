@@ -42,6 +42,7 @@ bool deserializeCastling(const std::string& castlingStr, GameContext& outputCont
 
 bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 {
+    LOG_INFO() << boardStr.c_str();
     std::istringstream ssboard(boardStr);
     std::list<std::string> ranks;
     std::string rank;

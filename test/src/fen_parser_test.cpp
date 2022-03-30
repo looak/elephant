@@ -25,6 +25,37 @@ TEST_F(FenParserFixture, Initialize)
     EXPECT_FALSE(result);
 }
 
+bool PrintBoard(const Chessboard& board)
+{
+    auto boardItr = board.begin();
+    std::array<std::stringstream, 8> ranks;
+        
+    byte prevRank = -1;
+    do 
+    {
+        if (prevRank != boardItr.rank())
+        {
+            ranks[boardItr.rank()] << (int)(boardItr.rank() + 1) << "  ";
+        }
+        
+        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+        prevRank = boardItr.rank();
+        ++boardItr;
+
+    } while (boardItr != board.end());
+
+    auto rankItr = ranks.rbegin();
+    while (rankItr != ranks.rend())
+    {        
+        LOG_INFO() << (*rankItr).str().c_str();
+        rankItr++;
+    }
+
+    LOG_INFO() << "    A  B  C  D  E  F  G  H";
+
+    return true;
+}
+
 TEST_F(FenParserFixture, StartingPosition)
 {
     std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -39,7 +70,12 @@ TEST_F(FenParserFixture, StartingPosition)
 
     ChessPiece p(PieceSet::BLACK, PieceType::ROOK);
     Notation n(56);
-    EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
+    EXPECT_NE(Notation(), n);
+    const auto& piece = testContext.readChessboard().readTile(n).readPiece();
+    PrintBoard(testContext.readChessboard());
+    EXPECT_EQ(p, piece);
+    ChessboardTile tile;
+    EXPECT_NE(tile, testContext.readChessboard().readTile(n));
     
     n = Notation(63);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
@@ -125,7 +161,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     std::string startingPositionFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
     bool result = FENParser::deserialize(startingPositionFen.c_str(), testContext);
     EXPECT_TRUE(result);
-
+    PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, testContext.readPly());
     EXPECT_EQ(136, testContext.readMoveCount());
     EXPECT_EQ(PieceSet::BLACK, testContext.readToPlay());

@@ -172,11 +172,15 @@ Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isC
 template<typename T, bool isConst>
 Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(byte incre)
 {
-	signed char result = m_index + incre;
+	LOG_INFO() << static_cast<int>(incre);
+	signed char temp_index = static_cast<signed char>(m_index);
+	signed char temp_incre = static_cast<signed char>(incre);
+	signed char result = temp_index + temp_incre;
+	LOG_INFO() <<  static_cast<int>(result);
 	if (result < 0 || result > 63)
 		result = 64;
 
-	m_index = result;
+	m_index = static_cast<unsigned char>(result);
 	m_position = Notation(m_index);
 
 	return *this;
