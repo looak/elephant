@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <list>
+#include <charconv>
 
 #include "defines.h"
 #include "chessboard.h"
@@ -60,11 +61,16 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
         const char* rdr = ranks.back().c_str();
         while (*rdr != '\0')
         {
-            char value = *rdr;
+            char nullterminated_value[2];
+            nullterminated_value[0] = *rdr;
+            nullterminated_value[1] = '\0';
+
+            char value = nullterminated_value[0];
 
             if (std::isdigit(value))
             {
-                signed short steps = value - '0';
+                signed short steps = 0;
+                auto result = std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
                 boardItr += steps;
             }

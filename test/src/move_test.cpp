@@ -267,6 +267,103 @@ TEST_F(MoveFixture, EnPassant_Ignored_ResetFlag)
     EXPECT_EQ(p, m_chessboard.readTile(d3).readPiece());
 }
 
+
+
+// 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][ P ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// e8=Q
+TEST_F(MoveFixture, Pawn_Promotion)
+{
+    auto P = WHITEPAWN;
+    auto n = BLACKKNIGHT;
+    
+    m_chessboard.PlacePiece(P, e7);
+    m_chessboard.PlacePiece(n, d8);
+    Move move(e7, e8); // promote
+    move.Promote = WHITEQUEEN;
+    
+    // do
+    bool result = m_chessboard.MakeMove(move);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(P, move.Piece);
+    EXPECT_EQ(MoveFlag::Promotion, move.Flags);
+
+    auto Q = WHITEQUEEN;
+    EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+}
+
+// 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][ P ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// exd8=R
+TEST_F(MoveFixture, Pawn_Promotion_Capture)
+{
+    auto P = WHITEPAWN;
+    auto n = BLACKKNIGHT;
+    
+    m_chessboard.PlacePiece(P, e7);
+    m_chessboard.PlacePiece(n, d8);
+    Move move(e7, d8); // promote
+    move.Promote = WHITEROOK;
+    
+    // do
+    bool result = m_chessboard.MakeMove(move);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(P, move.Piece);
+    EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
+    EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+
+    auto R = WHITEROOK;
+    EXPECT_EQ(R, m_chessboard.readTile(d8).readPiece());
+}
+
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][ p ][   ][   ][   ]
+// 1 [   ][   ][   ][ Q ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// exd1=q
+TEST_F(MoveFixture, Black_Pawn_Promotion_Capture)
+{
+    auto p = BLACKPAWN;
+    auto Q = WHITEQUEEN;
+    
+    m_chessboard.PlacePiece(p, e2);
+    m_chessboard.PlacePiece(Q, d1);
+    Move move(e2, d1); // promote
+    move.Promote = BLACKQUEEN;
+    
+    // do
+    bool result = m_chessboard.MakeMove(move);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(p, move.Piece);
+    EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
+    EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+
+    auto q = BLACKQUEEN;
+    EXPECT_EQ(q, m_chessboard.readTile(d1).readPiece());
+}
+
 // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -309,6 +406,17 @@ TEST_F(MoveFixture, Black_King_Castle_QueenSide)
 // Moves:
 // 1. O-O-O Ra6
 // 2. Rh3 O-O
+//
+// Result:
+// 8 [   ][   ][   ][   ][   ][ r ][ k ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [ r ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][ R ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][ K ][ R ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
 TEST_F(MoveFixture, Castling)
 {   
     auto k = BLACKKING;

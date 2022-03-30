@@ -89,7 +89,7 @@ public:
 
 		ChessboardIterator& operator++();
 		ChessboardIterator operator++(int);
-		ChessboardIterator& operator+=(byte incre);
+		ChessboardIterator& operator+=(int incre);
 
 		reference operator*() const { return m_chessboard.get(m_position); }
 
@@ -170,18 +170,14 @@ Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isC
 }
 
 template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(byte incre)
+Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(int incre)
 {
-	LOG_INFO() << static_cast<int>(incre);
-	signed char temp_index = static_cast<signed char>(m_index);
-	signed char temp_incre = static_cast<signed char>(incre);
-	signed char result = temp_index + temp_incre;
-	LOG_INFO() <<  static_cast<int>(result);
+	int temp_index = static_cast<int>(m_index);	
+	int result = temp_index + incre;
 	if (result < 0 || result > 63)
 		result = 64;
 
 	m_index = static_cast<unsigned char>(result);
 	m_position = Notation(m_index);
-
 	return *this;
 }

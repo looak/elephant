@@ -74,15 +74,15 @@ TEST_F(BitboardFixture, King_Move_e1)
     // setup
     u64 expected = ~universe;
     // d1 should be available for moving
-    expected |= 1 << d1.index();
+    expected |= INT64_C(1) << d1.index();
     // f1 should be available for moving
-    expected |= 1 << f1.index();
+    expected |= INT64_C(1) << f1.index();
     // d2 should be available for moving
-    expected |= 1 << d2.index();
+    expected |= INT64_C(1) << d2.index();
     // e2 should be available for moving
-    expected |= 1 << e2.index();
+    expected |= INT64_C(1) << e2.index();
     // f2 should be available for moving
-    expected |= 1 << f2.index();
+    expected |= INT64_C(1) << f2.index();
 
     auto result = board.GetAvailableMoves(e1, K);
     EXPECT_EQ(expected, result);

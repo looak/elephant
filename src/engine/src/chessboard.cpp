@@ -77,6 +77,15 @@ Notation Chessboard::InternalHandlePawnMove(Move& move)
 		move.Flags |= MoveFlag::EnPassant;
 	}
 
+	// we need to flip set for this calculation since it's the opposite side of the
+	// board which is the promotion rank.
+	byte promoteRankCheck = 7 * ChessPiece::FlipSet(move.Piece.set());
+	if (move.TargetSquare.rank == promoteRankCheck)
+	{ // edit the source tile piece, since we're using this when we do our internal move.
+		m_tiles[move.SourceSquare.index()].editPiece() = move.Promote;
+		move.Flags |= MoveFlag::Promotion;
+	}
+
 	return pieceTarget;
 }
 

@@ -55,10 +55,9 @@ public:
     Notation TargetSquare;
     Notation SourceSquare;
     ChessPiece Piece;
+    ChessPiece Promote;
 
     MoveFlag Flags;
-
-    Notation Algebraic;
 
     Move* PrevMove;
     unsigned short NextMoveCount;
