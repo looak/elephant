@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <array>
 #include "elephant_test_utils.h"
 #include "fen_parser.h"
 #include "game_context.h"

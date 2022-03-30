@@ -64,7 +64,8 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 
             if (std::isdigit(value))
             {
-                byte steps = (byte)std::atoi(&value);
+                signed short steps = value - '0';
+                LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
                 boardItr += steps;
             }
             else if (value == '/')

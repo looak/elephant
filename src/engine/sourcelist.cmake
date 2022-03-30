@@ -22,4 +22,5 @@ ${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/internal_defines.h
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/move.cpp
-${ENGINE_SRC_DIR}/notation.cpp)
+${ENGINE_SRC_DIR}/notation.cpp
+${ENGINE_SRC_DIR}/log.cpp)

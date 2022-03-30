@@ -23,14 +23,34 @@
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 #define LOG_ERROR() Log::LogErrorImpl(__FILENAME__, __FUNCTION__, __LINE__)
+#define LOG_ERROR_EXPR(expr) Log::LogErrorImpl(expr, __FILENAME__, __FUNCTION__, __LINE__)
 #define LOG_INFO() Log::LogInfoImpl(__FILENAME__, __LINE__)
 #define LOG_WARNING() Log::LogWarningImpl(__FILENAME__, __LINE__)
 #define FATAL_ASSERT(expr) Log::AssertImpl(expr, __FILENAME__, __FUNCTION__, __LINE__)
 
-class LogMessage
+
+class BaseMessage
 {
 public:
-	LogMessage& operator<<(const char* stream)
+	virtual BaseMessage& operator<<(const char* stream)
+	{
+		return *this;
+	}
+
+	virtual BaseMessage& operator<<(const char stream)
+	{	
+		return *this;
+	}
+	
+	virtual BaseMessage& operator<<(int value)
+	{		
+		return *this;
+	}
+};
+class LogMessage : public BaseMessage
+{
+public:
+	BaseMessage& operator<<(const char* stream) override
 	{
 		if (stream != nullptr)
 			std::cout << " > message: " << stream;
@@ -38,14 +58,14 @@ public:
 		return *this;
 	}
 
-	LogMessage& operator<<(const char stream)
+	BaseMessage& operator<<(const char stream) override
 	{		
 		std::cout << " > message: " << stream;
 		std::cout << std::endl;
 		return *this;
 	}
 	
-	LogMessage& operator<<(int value)
+	BaseMessage& operator<<(int value) override
 	{		
 		std::cout << " > message: " << value;
 		std::cout << std::endl;
@@ -53,34 +73,67 @@ public:
 	}
 };
 
+class EmptyMessage : public BaseMessage
+{
+public:
+	BaseMessage& operator<<(const char* stream) override
+	{
+		return *this;
+	}
+
+	BaseMessage& operator<<(const char stream) override
+	{
+		return *this;
+	}
+	
+	BaseMessage& operator<<(int value) override
+	{
+		return *this;
+	}
+};
+
 class Log
 {
 public:
-	static LogMessage LogInfoImpl(const char* file, const int line)
+	static BaseMessage& LogInfoImpl(const char* file, const int line)
 	{
 		std::cout << "[      INFO] " << file << ":" << line;
-		return LogMessage();
+		return s_logMessage;
 	}
 
-	static LogMessage LogWarningImpl(const char* file, const int line)
+	static BaseMessage& LogWarningImpl(const char* file, const int line)
 	{
 		std::cout << "[   WARNING] " << file << ":" << line;
-		return LogMessage();
+		return s_logMessage;
+	}
+	
+	static BaseMessage& LogErrorImpl(int expression, const char* file, const char* function, const int line)
+	{
+		if (expression == 0)
+		{
+			return LogErrorImpl(file, function, line);
+		}
+
+		return s_emptyMessage;
 	}
 
-	static LogMessage LogErrorImpl(const char* file, const char* function, const int line)
+	static BaseMessage& LogErrorImpl(const char* file, const char* function, const int line)
 	{
 		std::cout << "[     ERROR] " << file << ":" << line << " > " << function;
-		return LogMessage();
+		return s_logMessage;
 	}
 
-	static LogMessage AssertImpl(int expression, const char* file, const char* function, const int line)
+	static BaseMessage& AssertImpl(int expression, const char* file, const char* function, const int line)
 	{
 		if (expression == 0)
 		{
 			std::cout << "[FATAL ASRT] " << file << ":" << line << " > " << function;
 			assert(expression);
 		}
-		return LogMessage();
+		return s_emptyMessage;
 	}
+
+private:
+	static EmptyMessage s_emptyMessage;
+	static LogMessage s_logMessage;
 };
