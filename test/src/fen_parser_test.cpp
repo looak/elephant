@@ -70,12 +70,9 @@ TEST_F(FenParserFixture, StartingPosition)
 
     ChessPiece p(PieceSet::BLACK, PieceType::ROOK);
     Notation n(56);
-    EXPECT_NE(Notation(), n);
     const auto& piece = testContext.readChessboard().readTile(n).readPiece();
     PrintBoard(testContext.readChessboard());
     EXPECT_EQ(p, piece);
-    ChessboardTile tile;
-    EXPECT_NE(tile, testContext.readChessboard().readTile(n));
     
     n = Notation(63);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
