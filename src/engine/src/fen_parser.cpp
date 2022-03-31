@@ -43,7 +43,6 @@ bool deserializeCastling(const std::string& castlingStr, GameContext& outputCont
 
 bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 {
-    LOG_INFO() << boardStr.c_str();
     std::istringstream ssboard(boardStr);
     std::list<std::string> ranks;
     std::string rank;
@@ -70,7 +69,7 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
             if (std::isdigit(value))
             {
                 signed short steps = 0;
-                auto result = std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
+                std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
                 boardItr += steps;
             }

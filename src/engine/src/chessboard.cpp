@@ -7,7 +7,8 @@ ChessboardTile::ChessboardTile(Notation&& notation) :
 {
 }
 
-bool ChessboardTile::operator==(const ChessboardTile& rhs) const
+bool 
+ChessboardTile::operator==(const ChessboardTile& rhs) const
 {
 	bool result = m_position == rhs.m_position;
 	result |= m_piece == rhs.m_piece;
@@ -29,7 +30,8 @@ Chessboard::Chessboard() :
 	}
 }
 
-bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
+bool 
+Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 {
 	if (!Bitboard::IsValidSquare(target))
 		return false;
@@ -43,7 +45,8 @@ bool Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
-bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target)
+bool 
+Chessboard::UpdateEnPassant(const Notation& source, const Notation& target)
 {
 	signed char dif = source.rank - target.rank;
 	if (abs(dif) == 2) // we made a enpassant move
@@ -57,7 +60,8 @@ bool Chessboard::UpdateEnPassant(const Notation& source, const Notation& target)
 	return false;
 }
 
-Notation Chessboard::InternalHandlePawnMove(Move& move)
+Notation 
+Chessboard::InternalHandlePawnMove(Move& move)
 {
 	auto pieceTarget = Notation(move.TargetSquare);	
 	// compare target square with en passant - if this is equal we build a "offset target" where the pawn should be.
@@ -77,10 +81,7 @@ Notation Chessboard::InternalHandlePawnMove(Move& move)
 		move.Flags |= MoveFlag::EnPassant;
 	}
 
-	// we need to flip set for this calculation since it's the opposite side of the
-	// board which is the promotion rank.
-	byte promoteRankCheck = 7 * ChessPiece::FlipSet(move.Piece.set());
-	if (move.TargetSquare.rank == promoteRankCheck)
+	if (IsPromoting(move))
 	{ // edit the source tile piece, since we're using this when we do our internal move.
 		m_tiles[move.SourceSquare.index()].editPiece() = move.Promote;
 		move.Flags |= MoveFlag::Promotion;
@@ -89,7 +90,8 @@ Notation Chessboard::InternalHandlePawnMove(Move& move)
 	return pieceTarget;
 }
 
-void Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove)
+void 
+Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove)
 {
 	byte casltingMask = 3 << (2 * move.Piece.set());
 	if (m_castlingState & casltingMask)
@@ -99,21 +101,22 @@ void Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notati
 		{
 			targetRook = Notation(0, targetRank);
 			rookMove = Notation(3, targetRank);
+			move.Flags |= MoveFlag::Castle;
 			
 		}
 		else if (move.TargetSquare.file == 6) // we are in g file.
 		{
 			targetRook = Notation(7, targetRank);
 			rookMove = Notation(5, targetRank);
+			move.Flags |= MoveFlag::Castle;
 		}
-
-		move.Flags |= MoveFlag::Castle;
 	}
 	casltingMask &= m_castlingState;
 	m_castlingState ^= casltingMask;
 }
 
-void Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove)
+void 
+Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove)
 {  	
 	if (move.Piece.getType() == PieceType::KING && targetRook != Notation())
 	{
@@ -144,7 +147,8 @@ void Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, 
 	}
 }
 
-void Chessboard::InternalHandleKingRookMove(Move& move)
+void 
+Chessboard::InternalHandleKingRookMove(Move& move)
 {
 	Notation targetRook, rookMove;
 	switch(move.Piece.getType())
@@ -160,7 +164,8 @@ void Chessboard::InternalHandleKingRookMove(Move& move)
 	}
 }
 
-void Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
+void 
+Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
 {
 	ChessPiece piece = m_tiles[source.index()].editPiece();
 	m_tiles[source.index()].editPiece() = ChessPiece(); // clear old square.
@@ -170,7 +175,8 @@ void Chessboard::InternalMakeMove(const Notation& source, const Notation& target
 	m_bitboard.PlacePiece(piece, target);
 }
 
-bool Chessboard::MakeMove(Move& move)
+bool 
+Chessboard::MakeMove(Move& move)
 {
 	move.Flags = MoveFlag::Invalid;
 	
@@ -216,6 +222,93 @@ bool Chessboard::MakeMove(Move& move)
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
 
 	return true;
+}
+
+bool
+Chessboard::IsMoveCastling(const Move& move) const
+{
+	byte casltingMask = 3 << (2 * move.Piece.set());
+	if (m_castlingState & casltingMask)
+	{
+		if (move.TargetSquare.file == 2) 
+			return true; // castling queen side
+		else if (move.TargetSquare.file == 6)
+			return true; // castling king side
+	}
+
+	return false;
+}
+
+bool
+Chessboard::IsPromoting(const Move& move) const
+{
+	// we need to flip set for this calculation since it's the opposite side of the
+	// board which is the promotion rank.
+	byte promoteRankCheck = 7 * ChessPiece::FlipSet(move.Piece.set());
+	if (move.TargetSquare.rank == promoteRankCheck)
+		return true;
+
+	return false;
+}
+
+std::vector<Move> 
+Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece) const
+{
+	std::vector<Move> moveVector;
+	if (!Bitboard::IsValidSquare(source))
+		return moveVector;
+
+	if (piece == ChessPiece())
+		return moveVector;
+
+	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index());
+	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
+
+	for (signed char rank = 7; rank >= 0; --rank)
+	{
+		byte byte_rank = static_cast<byte>(rank);
+		for(byte file = 0; file < 8; ++file)
+		{
+			byte sqr = (byte_rank * 8) + file;
+			u64 sqrMask = UINT64_C(1) << sqr;
+
+			if (sqrMask & movesbb)
+			{				
+				auto& move = moveVector.emplace_back(source, Notation(file, rank));
+				move.Flags = MoveFlag::Zero;
+				move.Piece = piece;
+
+				if (sqrMask & attacked)
+					move.Flags |= MoveFlag::Capture;
+
+				if (IsMoveCastling(move))
+					move.Flags |= MoveFlag::Castle;
+
+				if (piece.getType() == PieceType::PAWN && IsPromoting(move))
+				{
+					move.Flags |= MoveFlag::Promotion;
+					move.Promote = ChessPiece(piece.getSet(), PieceType::QUEEN);
+
+					Move rookPromote = Move(move);
+					rookPromote.Promote = ChessPiece(piece.getSet(), PieceType::ROOK);
+
+					Move bishopPromote = Move(move);
+					bishopPromote.Promote = ChessPiece(piece.getSet(), PieceType::BISHOP);
+
+					Move knightPromote = Move(move);
+					knightPromote.Promote = ChessPiece(piece.getSet(), PieceType::KNIGHT);
+
+					// when pushing back new elements to the vector our reference to move is moved and 
+					// pointing at garbage. So we do this last.
+					moveVector.push_back(rookPromote);
+					moveVector.push_back(bishopPromote);
+					moveVector.push_back(knightPromote);
+				}
+			}
+		}
+	}
+
+	return moveVector;
 }
 
 const ChessboardTile&

@@ -52,6 +52,10 @@ struct Move
 {
 public:
     Move(const Notation& source, const Notation& target);
+    Move(const Move& other);
+
+    Move& operator=(const Move& other);
+
     Notation TargetSquare;
     Notation SourceSquare;
     ChessPiece Piece;

@@ -11,7 +11,8 @@ ${ENGINE_INC_DIR}/game_context.h
 ${ENGINE_INC_DIR}/bitboard.h
 ${ENGINE_INC_DIR}/log.h
 ${ENGINE_INC_DIR}/move.h
-${ENGINE_INC_DIR}/notation.h)
+${ENGINE_INC_DIR}/notation.h
+${ENGINE_INC_DIR}/move_generator.h)
 
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -23,4 +24,5 @@ ${ENGINE_SRC_DIR}/internal_defines.h
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
-${ENGINE_SRC_DIR}/log.cpp)
+${ENGINE_SRC_DIR}/log.cpp
+${ENGINE_SRC_DIR}/move_generator.cpp)

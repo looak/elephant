@@ -97,13 +97,13 @@ class Log
 public:
 	static BaseMessage& LogInfoImpl(const char* file, const int line)
 	{
-		std::cout << "[      INFO] " << file << ":" << line;
+		std::cout << "[     INFO ] " << file << ":" << line;
 		return s_logMessage;
 	}
 
 	static BaseMessage& LogWarningImpl(const char* file, const int line)
 	{
-		std::cout << "[   WARNING] " << file << ":" << line;
+		std::cout << "[  WARNING ] " << file << ":" << line;
 		return s_logMessage;
 	}
 	
@@ -119,7 +119,7 @@ public:
 
 	static BaseMessage& LogErrorImpl(const char* file, const char* function, const int line)
 	{
-		std::cout << "[     ERROR] " << file << ":" << line << " > " << function;
+		std::cout << "[    ERROR ] " << file << ":" << line << " > " << function;
 		return s_logMessage;
 	}
 

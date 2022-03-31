@@ -19,6 +19,7 @@
 #include "chess_piece.h"
 #include "notation.h"
 #include <string>
+#include <vector>
 
 struct Move;
 
@@ -33,7 +34,7 @@ public:
 	const ChessPiece& readPiece() const { return m_piece; };
 	ChessPiece& editPiece() { return m_piece; };
 
-	const Notation& getPosition() { return m_position; };
+	const Notation& readPosition() const { return m_position; };
 
 	bool operator==(const ChessboardTile& rhs) const;
 
@@ -52,6 +53,8 @@ public:
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool MakeMove(Move& move);
+
+	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece) const;
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
@@ -124,6 +127,9 @@ private:
 
 	ChessboardTile& get(const Notation& position) { return editTile(position); }
 	const ChessboardTile& get(const Notation& position) const { return readTile(position); }
+
+	bool IsMoveCastling(const Move& move) const;
+	bool IsPromoting(const Move& move) const;
 
 	ChessboardTile m_tiles[64];
 	Bitboard m_bitboard;
