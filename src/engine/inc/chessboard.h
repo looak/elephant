@@ -20,6 +20,7 @@
 #include "notation.h"
 #include <string>
 #include <vector>
+#include <array>
 
 struct Move;
 
@@ -54,7 +55,8 @@ public:
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool MakeMove(Move& move);
 
-	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece) const;
+	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask) const;
+	u64 GetThreatenedMask(PieceSet set) const;
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
@@ -130,9 +132,14 @@ private:
 
 	bool IsMoveCastling(const Move& move) const;
 	bool IsPromoting(const Move& move) const;
-
-	ChessboardTile m_tiles[64];
+	bool IsCheck(const Move& move) const;
+	bool VerifyMove(const Move& move) const;
+	
+	std::array<ChessboardTile, 64> m_tiles;
 	Bitboard m_bitboard;
+
+	// caching kings and their locations
+	std::pair<ChessPiece, Notation> m_kings[2];
 
 	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 	byte m_castlingState;

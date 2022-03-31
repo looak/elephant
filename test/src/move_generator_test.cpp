@@ -82,7 +82,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
     EXPECT_EQ(4, result.size());
     for (auto&& move : result)
     {        
-        EXPECT_EQ(move.Flags, MoveFlag::Promotion);        
+        EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
     } 
 }
 
@@ -105,6 +105,31 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
     } 
+}
+
+// 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// e2, f2, f1
+TEST_F(MoveGeneratorFixture, Check)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(WHITEKING, e1);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(3, result.size());
 }
 
 

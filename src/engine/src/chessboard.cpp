@@ -36,9 +36,15 @@ Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	if (!Bitboard::IsValidSquare(target))
 		return false;
 
-	const auto& tsqrPiece = m_tiles[target.index()].readPiece(); // should we do this check on the bitboard instead?
+	const auto& tsqrPiece = m_tiles[target.index()].readPiece();
 	if (tsqrPiece != ChessPiece())
 		return false; // already a piece on this square
+
+	if (piece.getType() == PieceType::KING)
+	{
+		m_kings[piece.set()].first = piece;
+		m_kings[piece.set()].second = Notation(target);
+	}
 
 	m_tiles[target.index()].editPiece() = piece;
 	m_bitboard.PlacePiece(piece, target);
@@ -168,6 +174,10 @@ void
 Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
 {
 	ChessPiece piece = m_tiles[source.index()].editPiece();
+	
+	if (piece.getType() == PieceType::KING)
+		m_kings[piece.set()].second = Notation(target);
+
 	m_tiles[source.index()].editPiece() = ChessPiece(); // clear old square.
 	m_tiles[target.index()].editPiece() = piece;
 
@@ -175,11 +185,9 @@ Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
 	m_bitboard.PlacePiece(piece, target);
 }
 
-bool 
-Chessboard::MakeMove(Move& move)
+bool
+Chessboard::VerifyMove(const Move& move) const
 {
-	move.Flags = MoveFlag::Invalid;
-	
 	if (!Bitboard::IsValidSquare(move.SourceSquare) || !Bitboard::IsValidSquare(move.TargetSquare))
 		return false;
 
@@ -187,9 +195,23 @@ Chessboard::MakeMove(Move& move)
 	if (piece == ChessPiece())
 		return false;
 
-	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index()) == false)
+	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(move.Piece.getSet()));
+
+	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index(), threatenedMask) == false)
 		return false;
 	
+	return true;
+}
+
+bool 
+Chessboard::MakeMove(Move& move)
+{
+	move.Flags = MoveFlag::Invalid;
+	
+	if (!VerifyMove(move))
+		return false;
+
+	const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
 	move.Flags = MoveFlag::Zero;
 	move.Piece = piece;
 
@@ -217,6 +239,9 @@ Chessboard::MakeMove(Move& move)
 		// remove captured piece from board.
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
 	}
+
+	if (IsCheck(move))
+		move.Flags |= MoveFlag::Check;
 
 	// do move
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
@@ -251,8 +276,44 @@ Chessboard::IsPromoting(const Move& move) const
 	return false;
 }
 
+bool
+Chessboard::IsCheck(const Move& move) const
+{
+	u64 threatened = ~universe;
+	// get threatened squares from new location
+	auto flag = (move.Flags & MoveFlag::Promotion);
+	if (flag == MoveFlag::Promotion)
+		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Promote);
+	else
+		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Piece);
+	
+	auto opSet = ChessPiece::FlipSet(move.Piece.set());
+	u64 kingMask = UINT64_C(1) << m_kings[opSet].second.index();
+
+	if (threatened & kingMask)
+		return true;
+	
+	return false;
+}
+
+u64
+Chessboard::GetThreatenedMask(PieceSet set) const
+{
+	u64 mask = ~universe;
+	auto boardItr = begin();
+	while (boardItr != end())
+	{
+		if ((*boardItr).m_piece.getSet() == set && (*boardItr).readPiece() != ChessPiece())
+			mask |= m_bitboard.GetThreatenedSquares((*boardItr).readPosition(), (*boardItr).readPiece());
+
+		++boardItr;
+	}
+
+	return mask;
+}
+
 std::vector<Move> 
-Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece) const
+Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -261,7 +322,7 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece) c
 	if (piece == ChessPiece())
 		return moveVector;
 
-	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index());
+	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask);
 	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
 
 	for (signed char rank = 7; rank >= 0; --rank)
@@ -278,6 +339,9 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece) c
 				move.Flags = MoveFlag::Zero;
 				move.Piece = piece;
 
+				if (IsCheck(move))
+					move.Flags |= MoveFlag::Check;
+
 				if (sqrMask & attacked)
 					move.Flags |= MoveFlag::Capture;
 
@@ -291,12 +355,24 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece) c
 
 					Move rookPromote = Move(move);
 					rookPromote.Promote = ChessPiece(piece.getSet(), PieceType::ROOK);
+					
+					if (IsCheck(rookPromote))
+						rookPromote.Flags |= MoveFlag::Check;
 
 					Move bishopPromote = Move(move);
 					bishopPromote.Promote = ChessPiece(piece.getSet(), PieceType::BISHOP);
 
+					if (IsCheck(bishopPromote))
+						bishopPromote.Flags |= MoveFlag::Check;
+
 					Move knightPromote = Move(move);
 					knightPromote.Promote = ChessPiece(piece.getSet(), PieceType::KNIGHT);
+					
+					if (IsCheck(knightPromote))
+						knightPromote.Flags |= MoveFlag::Check;
+
+					if (IsCheck(move))
+						move.Flags |= MoveFlag::Check;
 
 					// when pushing back new elements to the vector our reference to move is moved and 
 					// pointing at garbage. So we do this last.

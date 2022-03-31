@@ -151,7 +151,48 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
     return ret;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant) const
+u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 opMat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const
+{
+    u64 ret = ~universe;
+
+    byte moveCount = ChessPieceDef::MoveCount(piece.type());
+    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+    {
+        byte curSqr = source.index();
+		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
+
+        bool dirCheck = dir < INT8_MAX || dir > INT8_MIN;
+        if (!dirCheck)
+            LOG_ERROR() << "dir is out of bounds\n";
+    
+        // build a 0x88 square out of current square.
+        signed char sq0x88 = to0x88(curSqr);
+        // do move
+        sq0x88 += dir;
+        if (sq0x88 & 0x88) // validate move, are we still on the board?
+            continue;
+
+        // convert our sqr0x88 back to a square index
+        curSqr = fr0x88(sq0x88);
+        // build a square mask from current square
+        u64 sqrMask = UINT64_C(1) << curSqr;
+
+        // check if we are blocked by a friendly piece or a oponent piece.
+        if (mat & sqrMask) 
+            continue;
+
+        else if (threatenedMask & sqrMask)
+            continue;
+        
+        ret |= sqrMask;
+    }
+    
+    ret |= Castling(piece.set(), castling);
+
+    return ret;
+}
+
+u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
@@ -159,6 +200,8 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
     
     if (piece.getType() == PieceType::PAWN)
         return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant);
+    else if(piece.getType() == PieceType::KING)
+        return GetAvailableMovesForKing(matComb, opMatComb, threatened, source, piece, castling);
     
     bool sliding = ChessPieceDef::Slides(piece.type());
     byte moveCount = ChessPieceDef::MoveCount(piece.type());
@@ -169,9 +212,6 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
 
         ret |= InternalGenerateMask(curSqr, matComb, opMatComb, dir, sliding);
     }
-
-    if (piece.getType() == PieceType::KING)
-        ret |= Castling(piece.set(), castling);
 
     return ret;
 }
@@ -220,9 +260,9 @@ bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
     return false;
 }
 
-bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant)
+bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const
 {
-    u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant);
+    u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant, threatenedMask);
 
     u64 targetMask = UINT64_C(1) << target.index();
 
