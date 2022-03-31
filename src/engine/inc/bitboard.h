@@ -15,7 +15,8 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <defines.h>
+#include <functional>
+#include "defines.h"
 #include "chess_piece.h"
 
 struct Notation;
@@ -32,20 +33,21 @@ public:
 	bool ClearPiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const;
 
-	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0x0, u64 threatenedMask = 0) const;
+	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0) const;
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetAttackedSquares(PieceSet set);
 
 private:
+typedef std::function<bool(u64 sqrMask)> ResolveMask;
 	u64 MaterialCombined() const;
 	u64 MaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling) const;
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
 	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant) const;
-	u64 GetAvailableMovesForKing(u64 mat, u64 opMat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const;
+	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const;
 
-	u64 InternalGenerateMask(byte curSqr, u64 mat, u64 opMat, signed short dir, bool sliding) const;
+	u64 InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func) const;
 
 	u64 m_material[2][6];
 };
