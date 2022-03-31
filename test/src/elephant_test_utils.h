@@ -2,19 +2,19 @@
 
 namespace ElephantTest
 { 
-    #define BLACKPAWN ChessPiece(PieceSet::BLACK, PieceType::PAWN)
-    #define BLACKKNIGHT ChessPiece(PieceSet::BLACK, PieceType::KNIGHT)
-    #define BLACKBISHOP ChessPiece(PieceSet::BLACK, PieceType::BISHOP)
-    #define BLACKROOK ChessPiece(PieceSet::BLACK, PieceType::ROOK)
-    #define BLACKQUEEN ChessPiece(PieceSet::BLACK, PieceType::QUEEN)
-    #define BLACKKING ChessPiece(PieceSet::BLACK, PieceType::KING)
+    #define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
+    #define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)
+    #define BLACKBISHOP ChessPiece(Set::BLACK, PieceType::BISHOP)
+    #define BLACKROOK ChessPiece(Set::BLACK, PieceType::ROOK)
+    #define BLACKQUEEN ChessPiece(Set::BLACK, PieceType::QUEEN)
+    #define BLACKKING ChessPiece(Set::BLACK, PieceType::KING)
 
-    #define WHITEPAWN ChessPiece(PieceSet::WHITE, PieceType::PAWN)
-    #define WHITEKNIGHT ChessPiece(PieceSet::WHITE, PieceType::KNIGHT)
-    #define WHITEBISHOP ChessPiece(PieceSet::WHITE, PieceType::BISHOP)
-    #define WHITEROOK ChessPiece(PieceSet::WHITE, PieceType::ROOK)    
-    #define WHITEQUEEN ChessPiece(PieceSet::WHITE, PieceType::QUEEN)
-    #define WHITEKING ChessPiece(PieceSet::WHITE, PieceType::KING)
+    #define WHITEPAWN ChessPiece(Set::WHITE, PieceType::PAWN)
+    #define WHITEKNIGHT ChessPiece(Set::WHITE, PieceType::KNIGHT)
+    #define WHITEBISHOP ChessPiece(Set::WHITE, PieceType::BISHOP)
+    #define WHITEROOK ChessPiece(Set::WHITE, PieceType::ROOK)    
+    #define WHITEQUEEN ChessPiece(Set::WHITE, PieceType::QUEEN)
+    #define WHITEKING ChessPiece(Set::WHITE, PieceType::KING)
 
     #define a1 Notation::BuildPosition('a', 1)
     #define a2 Notation::BuildPosition('a', 2)

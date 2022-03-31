@@ -297,7 +297,7 @@ Chessboard::IsCheck(const Move& move) const
 }
 
 u64
-Chessboard::GetThreatenedMask(PieceSet set) const
+Chessboard::GetThreatenedMask(Set set) const
 {
 	u64 mask = ~universe;
 	auto boardItr = begin();

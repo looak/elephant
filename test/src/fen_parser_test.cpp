@@ -65,11 +65,11 @@ TEST_F(FenParserFixture, StartingPosition)
     
     EXPECT_EQ(0, testContext.readPly());
     EXPECT_EQ(1, testContext.readMoveCount());
-    EXPECT_EQ(PieceSet::WHITE, testContext.readToPlay());
+    EXPECT_EQ(Set::WHITE, testContext.readToPlay());
     EXPECT_EQ(Notation(), testContext.readChessboard().readEnPassant());
     EXPECT_EQ(0x0f, testContext.readChessboard().readCastlingState());
 
-    ChessPiece p(PieceSet::BLACK, PieceType::ROOK);
+    ChessPiece p(Set::BLACK, PieceType::ROOK);
     Notation n(56);
     const auto& piece = testContext.readChessboard().readTile(n).readPiece();
     PrintBoard(testContext.readChessboard());
@@ -78,65 +78,65 @@ TEST_F(FenParserFixture, StartingPosition)
     n = Notation(63);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::BLACK, PieceType::KNIGHT);
+    p = ChessPiece(Set::BLACK, PieceType::KNIGHT);
     n = Notation(57);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
     
     n = Notation(62);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::BLACK, PieceType::BISHOP);
+    p = ChessPiece(Set::BLACK, PieceType::BISHOP);
     n = Notation(58);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
     n = Notation(61);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::BLACK, PieceType::QUEEN);
+    p = ChessPiece(Set::BLACK, PieceType::QUEEN);
     n = Notation(59);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::BLACK, PieceType::KING);
+    p = ChessPiece(Set::BLACK, PieceType::KING);
     n = Notation(60);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::BLACK, PieceType::PAWN);
+    p = ChessPiece(Set::BLACK, PieceType::PAWN);
     for (byte ind = 48; ind < 56; ++ind)
     {
         n = Notation(ind);
         EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
     }
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::ROOK);
+    p = ChessPiece(Set::WHITE, PieceType::ROOK);
     n = Notation(0);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
     n = Notation(7);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::KNIGHT);
+    p = ChessPiece(Set::WHITE, PieceType::KNIGHT);
     n = Notation(1);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
     n = Notation(6);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::BISHOP);
+    p = ChessPiece(Set::WHITE, PieceType::BISHOP);
     n = Notation(2);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
     n = Notation(5);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::QUEEN);
+    p = ChessPiece(Set::WHITE, PieceType::QUEEN);
     n = Notation(3);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::KING);
+    p = ChessPiece(Set::WHITE, PieceType::KING);
     n = Notation(4);
     EXPECT_EQ(p, testContext.readChessboard().readTile(n).readPiece());
 
-    p = ChessPiece(PieceSet::WHITE, PieceType::PAWN);
+    p = ChessPiece(Set::WHITE, PieceType::PAWN);
     for (byte ind = 8; ind < 16; ++ind)
     {
         n = Notation(ind);
@@ -162,7 +162,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, testContext.readPly());
     EXPECT_EQ(136, testContext.readMoveCount());
-    EXPECT_EQ(PieceSet::BLACK, testContext.readToPlay());
+    EXPECT_EQ(Set::BLACK, testContext.readToPlay());
     EXPECT_EQ(Notation(), testContext.readChessboard().readEnPassant());
     EXPECT_EQ(0x00, testContext.readChessboard().readCastlingState());
 

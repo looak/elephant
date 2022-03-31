@@ -36,7 +36,7 @@ public:
 	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0) const;
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
-	u64 GetAttackedSquares(PieceSet set);
+	u64 GetAttackedSquares(Set set);
 
 private:
 typedef std::function<bool(u64 sqrMask)> ResolveMask;

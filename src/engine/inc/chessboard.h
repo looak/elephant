@@ -56,7 +56,7 @@ public:
 	bool MakeMove(Move& move);
 
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask) const;
-	u64 GetThreatenedMask(PieceSet set) const;
+	u64 GetThreatenedMask(Set set) const;
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
@@ -134,7 +134,7 @@ private:
 	bool IsPromoting(const Move& move) const;
 	bool IsCheck(const Move& move) const;
 	bool VerifyMove(const Move& move) const;
-	
+
 	std::array<ChessboardTile, 64> m_tiles;
 	Bitboard m_bitboard;
 

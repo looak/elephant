@@ -28,7 +28,7 @@ enum class PieceType : byte
 	NR_OF_PIECES = 7,
 };
 
-enum class PieceSet : byte
+enum class Set : byte
 {
 	WHITE = 0,
 	BLACK = 1,
@@ -54,12 +54,12 @@ private:
 struct ChessPiece
 {
 public:
-	static PieceSet FlipSet(PieceSet source);
+	static Set FlipSet(Set source);
 	static byte FlipSet(byte source);
 
 public:
 	ChessPiece();
-	ChessPiece(PieceSet _set, PieceType _type);
+	ChessPiece(Set _set, PieceType _type);
 
 	char toString() const;
 	bool fromString(char piece);
@@ -68,7 +68,7 @@ public:
 	bool operator!=(const ChessPiece& rhs) const;
 
 	PieceType getType() const	{ return static_cast<PieceType>(m_internalState & 0x07); }
-	PieceSet getSet() const 	{ return static_cast<PieceSet>(m_internalState >> 7); }
+	Set getSet() const 	{ return static_cast<Set>(m_internalState >> 7); }
 	byte type() const		{ return m_internalState & 0x07; }
 	byte set() const 		{ return m_internalState >> 7; }
 

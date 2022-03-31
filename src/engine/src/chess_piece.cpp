@@ -52,10 +52,10 @@ signed short ChessPieceDef::Attacks0x88(byte pIndex, byte mIndex)
 	return m_attacks0x88[pIndex][mIndex];
 }
 
-PieceSet ChessPiece::FlipSet(PieceSet source)
+Set ChessPiece::FlipSet(Set source)
 {
 	int retValue = !(int)source;
-	return (PieceSet)retValue;
+	return (Set)retValue;
 }
 
 byte ChessPiece::FlipSet(byte source)
@@ -69,7 +69,7 @@ ChessPiece::ChessPiece() :
 	m_internalState(0x00)
 {}
 
-ChessPiece::ChessPiece(PieceSet _set, PieceType _type) :
+ChessPiece::ChessPiece(Set _set, PieceType _type) :
 	m_internalState(0x00)
 {
 	m_internalState |= (byte)_set << 7;
@@ -106,7 +106,7 @@ char ChessPiece::toString() const
 		LOG_ERROR() << "Invalid Chess Piece;\n";
 	}
 
-	if (getSet() == PieceSet::WHITE)
+	if (getSet() == Set::WHITE)
 		retValue = std::toupper(retValue);
 
 	return retValue;
@@ -114,10 +114,10 @@ char ChessPiece::toString() const
 
 bool ChessPiece::fromString(char piece)
 {
-	PieceSet set = PieceSet::BLACK;
+	Set set = Set::BLACK;
 	if (std::isupper(piece))
 	{
-		set = PieceSet::WHITE;
+		set = Set::WHITE;
 	}
 
 	char lower = std::tolower(piece);

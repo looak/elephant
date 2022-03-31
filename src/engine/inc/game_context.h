@@ -20,7 +20,7 @@ class GameContext
 {
 public:
     GameContext() :
-        m_toPlay(PieceSet::WHITE),
+        m_toPlay(Set::WHITE),
         m_plyCount(0),
         m_moveCount(0)
     {}
@@ -34,12 +34,12 @@ public:
     byte readMoveCount() const { return m_moveCount; }
     byte& editMoveCount() { return m_moveCount; }
 
-    PieceSet readToPlay() const { return m_toPlay; }
-    PieceSet& editToPlay() { return m_toPlay; }
+    Set readToPlay() const { return m_toPlay; }
+    Set& editToPlay() { return m_toPlay; }
     
 private:
     Chessboard m_board;
-    PieceSet m_toPlay;
+    Set m_toPlay;
     byte m_plyCount;
     byte m_moveCount;
 };

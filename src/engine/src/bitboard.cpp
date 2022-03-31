@@ -95,7 +95,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
     byte row = 6;
     moveMod = 1;
 
-    if (piece.getSet() == PieceSet::WHITE)
+    if (piece.getSet() == Set::WHITE)
     {
         row = 1;
         moveMod = -1;
@@ -218,7 +218,7 @@ u64 Bitboard::GetThreatenedSquares(const Notation& source, const ChessPiece& pie
     u64 matComb = MaterialCombined(piece.set());
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     signed char moveMod = 1;
-    if (piece.getSet() == PieceSet::WHITE)
+    if (piece.getSet() == Set::WHITE)
         moveMod = -1;
     
     bool sliding = false;
@@ -264,7 +264,7 @@ bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
 {
     // move modifier to help us determine given move is valid for set.
     int8_t moveModifier = 1;
-    if (set == (byte)PieceSet::WHITE)
+    if (set == (byte)Set::WHITE)
     {
         moveModifier = -1;
     }

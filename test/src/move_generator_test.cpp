@@ -73,7 +73,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKPAWN, a2);    
-    testContext.editToPlay() = PieceSet::BLACK;
+    testContext.editToPlay() = Set::BLACK;
 
     // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
@@ -92,7 +92,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKPAWN, a2);
     board.PlacePiece(WHITEROOK, b1);
-    testContext.editToPlay() = PieceSet::BLACK;
+    testContext.editToPlay() = Set::BLACK;
 
     // do 
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
@@ -148,6 +148,35 @@ TEST_F(MoveGeneratorFixture, Check)
 TEST_F(MoveGeneratorFixture, Check_Guarded_Piece)
 {
     // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(BLACKKNIGHT, d2);
+    board.PlacePiece(WHITEKING, e1);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(3, result.size());
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// e2, f2, d1
+// can not capture knight on d2 since it is guarded
+// by rook on d8.
+TEST_F(MoveGeneratorFixture, Black_Capture_From_Check)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKROOK, d8);
