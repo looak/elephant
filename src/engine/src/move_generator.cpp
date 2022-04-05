@@ -1,7 +1,34 @@
 #include "move_generator.h"
 #include "game_context.h"
 
-std::vector<Move> MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
+MoveCount 
+MoveGenerator::CountMoves(const std::vector<Move>& moves) const
+{
+    MoveCount result;
+
+    for(auto mv : moves)
+    {
+        if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
+			result.Captures++;				
+		if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
+			result.Promotions++;
+		if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
+			result.EnPassants++;
+		if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
+			result.Castles++;		
+		if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
+			result.Checks++;
+		if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)
+			result.Checkmates++;
+    }
+
+    result.Moves = moves.size();
+
+    return result;
+}
+
+std::vector<Move> 
+MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 {
     std::vector<Move> retMoves;
     auto currentSet = context.readToPlay();

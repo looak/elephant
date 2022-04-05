@@ -27,7 +27,7 @@ enum class MoveFlag : byte
     Check = 8,
     EnPassant = 16,
     Unused2 = 32,
-    Ceckmate = 64,
+    Checkmate = 64,
     FirstMove = 128,
     Invalid = 0xff
 };

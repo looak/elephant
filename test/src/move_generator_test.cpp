@@ -45,7 +45,15 @@ TEST_F(MoveGeneratorFixture, WhiteKingAndPawn)
     board.PlacePiece(WHITEPAWN, e2);
 
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
-    EXPECT_EQ(6, result.size());
+
+    auto count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(6, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
 }
 
 TEST_F(MoveGeneratorFixture, KnightOneCapture)
@@ -105,6 +113,57 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
     } 
+}
+
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [ p ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][ R ][   ][   ][   ][   ][ K ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// a1=Q, a1=R, a1=B, a1=N, b1=Q+ b1=R+, b1=B, b1=N
+// 8 promotions, 4 of which are captures, two of which are checks.
+TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKPAWN, a2);
+    board.PlacePiece(WHITEROOK, b1);
+    board.PlacePiece(WHITEKING, g1);
+    testContext.editToPlay() = Set::BLACK;
+
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // verify
+    EXPECT_EQ(8, result.size());
+    for (auto&& move : result)
+    {
+        if (move.TargetSquare == b1)
+        {
+            EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+            if (move.Promote == BLACKQUEEN || move.Promote == BLACKROOK)
+                EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
+            else
+                EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
+        }
+        else
+            EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
+        EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
+    }
+
+    auto count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(8, count.Moves);
+    EXPECT_EQ(4, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(8, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(2, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
 }
 
 // 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
@@ -179,14 +238,29 @@ TEST_F(MoveGeneratorFixture, Black_Capture_From_Check)
     testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
-    board.PlacePiece(BLACKROOK, d8);
-    board.PlacePiece(BLACKKNIGHT, d2);
-    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(WHITEPAWN, f7);
     
     // do 
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    EXPECT_EQ(3, result.size());
+    // verify
+    for (auto&& move : result)
+    {
+        if (move.TargetSquare == f7)
+        {
+            EXPECT_EQ(move.Flags, MoveFlag::Capture);
+            break;
+        }
+    }
+    
+    auto count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(5, count.Moves);
+    EXPECT_EQ(1, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
 }
 
 

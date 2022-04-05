@@ -16,12 +16,35 @@
 
 #include <vector>
 #include "move.h"
+#include "defines.h"
 
 class GameContext;
+struct MoveCount
+{
+    void operator += (const MoveCount& rhs)
+    {
+        this->Captures 		+= rhs.Captures;
+        this->Promotions 	+= rhs.Promotions;
+        this->EnPassants 	+= rhs.EnPassants;
+        this->Castles 		+= rhs.Castles;
+        this->Checks 		+= rhs.Checks;
+        this->Checkmates 	+= rhs.Checkmates;
+        this->Moves 		+= rhs.Moves;
+    }
+    u32 Captures = 0;
+    u32 Promotions = 0;
+    u32 EnPassants = 0;
+    u32 Castles = 0;
+    u32 Checks = 0;
+    u32 Checkmates = 0;
+    u32 Moves = 0;
+};
 
 class MoveGenerator
 {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
+
+    MoveCount CountMoves(const std::vector<Move>& moves) const;
 
 };
