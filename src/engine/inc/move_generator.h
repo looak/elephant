@@ -15,12 +15,15 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #include <vector>
+#include <functional>
+#include <optional>
 #include "move.h"
 #include "defines.h"
 
 class GameContext;
 struct MoveCount
 {
+    typedef std::function<bool(const Move&)> Predicate;
     void operator += (const MoveCount& rhs)
     {
         this->Captures 		+= rhs.Captures;
@@ -45,6 +48,6 @@ class MoveGenerator
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
 
-    MoveCount CountMoves(const std::vector<Move>& moves) const;
+    MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
 
 };

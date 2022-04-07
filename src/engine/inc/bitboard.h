@@ -33,21 +33,27 @@ public:
 	bool ClearPiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const;
 
-	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0) const;
+	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false) const;
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetAttackedSquares(Set set);
 
+	u64 GetKingMask(const ChessPiece& king, const Notation& target) const;
+	u64 GetMaterialCombined(Set set) const;
+
 private:
 typedef std::function<bool(u64 sqrMask)> ResolveMask;
-	u64 MaterialCombined() const;
+typedef std::function<u64(u64 sqrMask)> Validate;
+
 	u64 MaterialCombined(byte set) const;
+	u64 MaterialCombined() const;
+	u64 SlidingMaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling) const;
 	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
-	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant) const;
+	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked) const;
 	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const;
 
-	u64 InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func) const;
+	u64 InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask){ return sqrMask; }) const;
 
 	u64 m_material[2][6];
 };

@@ -907,7 +907,6 @@ TEST_F(BitboardFixture, White_Pawn_Avaliable_Move_EnPassant)
     EXPECT_EQ(expected, result);
 }
 
-
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
@@ -945,5 +944,109 @@ TEST_F(BitboardFixture, Black_Rook_Threat_Blocked_By_Some_Pieces)
     // validate
     EXPECT_EQ(expected, result);
 }
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ r ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ R ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Block_Check)
+{
+    Bitboard board;
+    auto r = BLACKROOK;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+
+    // setup
+    board.PlacePiece(r, c3);
+    board.PlacePiece(k, e7);
+    board.PlacePiece(R, e2);
+
+    u64 expected = ~universe;    
+    expected |= INT64_C(1) << e3.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(e2, R);
+
+    u64 kingMask = board.GetKingMask(k, e7);
+    threat &= kingMask;
+    u64 result = board.GetAvailableMoves(c3, r, 0, 0, threat, true);
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ r ][ . ][ xR][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
+{
+    Bitboard board;
+    auto r = BLACKROOK;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(r, c2);
+    board.PlacePiece(k, e7);
+    board.PlacePiece(R, e2);
+
+    u64 expected = ~universe;    
+    expected |= INT64_C(1) << e2.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(e2, R);
+
+    u64 kingMask = board.GetKingMask(k, e7);
+    threat &= kingMask;
+    u64 result = board.GetAvailableMoves(c2, r, 0, 0, threat, true);
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ R ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ r ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
+{
+    Bitboard board;
+    auto r = BLACKROOK;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(r, c1);
+    board.PlacePiece(k, e7);
+    board.PlacePiece(R, e2);
+
+    u64 expected = ~universe;
+
+    // do
+    u64 threat = board.GetThreatenedSquares(e2, R);
+
+    u64 kingMask = board.GetKingMask(k, e7);
+    threat &= kingMask;
+
+    u64 result = board.GetAvailableMoves(c1, r, 0, 0, threat, true);
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
 
 } // namespace ElephantTest

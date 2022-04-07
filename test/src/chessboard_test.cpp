@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "chessboard.h"
+#include "elephant_test_utils.h"
 
 namespace ElephantTest
 {
@@ -315,6 +316,39 @@ TEST_F(ChessboardFixture, ChessboardIterator_Equality)
     EXPECT_EQ(itrA, itrA);
     EXPECT_NE(itrA, itrB);
     EXPECT_EQ(itrC, itrC);
+}
+
+TEST_F(ChessboardFixture, KingCheckedByOpRook)
+{
+    Chessboard b;
+    b.PlacePiece(WHITEKING, e1);
+    b.PlacePiece(BLACKROOK, e8);
+
+    bool result = b.Checked(Set::WHITE);
+    EXPECT_TRUE(result);
+}
+
+TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
+{
+    Chessboard b;
+    b.PlacePiece(BLACKKING, e8);
+    b.PlacePiece(WHITEROOK, f1);
+
+    bool result = b.Checked(Set::BLACK);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(ChessboardFixture, KingsNotChecked)
+{
+    Chessboard b;
+    b.PlacePiece(BLACKKING, e8);
+    b.PlacePiece(WHITEKING, e1);
+
+    bool result = b.Checked(Set::BLACK);
+    EXPECT_FALSE(result);
+
+    result = b.Checked(Set::WHITE);
+    EXPECT_FALSE(result);
 }
 
 ////////////////////////////////////////////////////////////////

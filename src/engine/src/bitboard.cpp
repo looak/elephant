@@ -13,7 +13,10 @@ bool Bitboard::IsValidSquare(signed short currSqr)
     if (currSqr < 0)
         return false;
     if (currSqr > 127)
-        LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
+    {
+        // LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
+        return false;
+    }
 
     byte sq0x88 = currSqr + (currSqr & ~7);
     return (sq0x88 & 0x88) == 0;
@@ -27,7 +30,8 @@ bool Bitboard::IsValidSquare(const Notation& source)
 bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
 {
     u64 mask = UINT64_C(1) << target.index();
-	m_material[piece.set()][piece.type()] ^= mask;
+    u8 pieceIndx = piece.type() - 1;
+	m_material[piece.set()][pieceIndx] ^= mask;
 	
 	return true;
 }
@@ -35,7 +39,8 @@ bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
 bool Bitboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 {
     u64 mask = UINT64_C(1) << target.index();
-	m_material[piece.set()][piece.type()] |= mask;
+    u8 pieceIndx = piece.type() - 1;
+	m_material[piece.set()][pieceIndx] |= mask;
 	
 	return true;
 }
@@ -45,7 +50,7 @@ Bitboard::Bitboard()
     std::memset(&m_material[0][0], 0, sizeof(u64)*(2*6));
 }
 
-u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare) const
+u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare, Validate valid) const
 {
     u64 ret = ~universe;
 
@@ -74,14 +79,14 @@ u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding,
         if (!resolveSquare(sqrMask))
             break;
       
-        ret |= sqrMask;
+        ret |= valid(sqrMask);
 
     } while (sliding);
 
     return ret;
 }
 
-u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant) const
+u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked) const
 {
     u64 ret = ~universe;    
     u64 matComb = mat | opMat;
@@ -137,6 +142,40 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
     u64 potentialAttacks = GetThreatenedSquares(source, piece);
     ret |= (potentialAttacks & opMat);
 
+    if (checked)
+        ret &= threatenedMask;
+
+    return ret;
+}
+
+u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
+{    
+    byte moveCount = ChessPieceDef::MoveCount(king.type());
+
+    u64 opMat = SlidingMaterialCombined(ChessPiece::FlipSet(king.set()));
+
+    bool sliding = true;
+    auto resolve = [&](u64 sqrMask)
+    {
+        if (opMat & sqrMask)
+        {
+            sliding = false;
+        }
+        return true;
+    };
+
+    u64 ret = ~universe;
+    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+    {
+        sliding = true;
+        byte curSqr = target.index();
+		signed short dir = ChessPieceDef::Moves0x88(king.type(), moveIndx);
+
+        u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);
+        if (mvMask & opMat)
+            ret |= mvMask;
+    }
+
     return ret;
 }
 
@@ -171,16 +210,19 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notati
     return ret;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened) const
+u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened, bool checked) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     
     if (piece.getType() == PieceType::PAWN)
-        return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant);
+        return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant, threatened, checked);
     else if(piece.getType() == PieceType::KING)
         return GetAvailableMovesForKing(matComb, threatened, source, piece, castling);
+
+    if (checked)
+        threatened |= opMatComb;
 
     bool sliding = false;
     auto resolve = [&](u64 sqrMask)
@@ -199,6 +241,12 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
         return true;
     };
 
+    auto validChecked = [&](u64 sqrMask)
+    {
+        sqrMask &= threatened;
+        return sqrMask;            
+    };
+
     byte moveCount = ChessPieceDef::MoveCount(piece.type());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
@@ -206,7 +254,13 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
         byte curSqr = source.index();
 		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
 
-        ret |= InternalGenerateMask(curSqr, dir, sliding, resolve);
+        u64 mvMask = 0;
+        if (checked)
+            mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve, validChecked);
+        else
+            mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);       
+
+        ret |= mvMask;
     }
 
     return ret;
@@ -334,6 +388,11 @@ u64 Bitboard::Castling(byte set, byte castling) const
     return retVal;
 }
 
+u64 Bitboard::GetMaterialCombined(Set set) const
+{
+    return MaterialCombined(static_cast<byte>(set));
+}
+
 u64 Bitboard::MaterialCombined() const
 {
     return MaterialCombined(0) | MaterialCombined(1);
@@ -347,4 +406,12 @@ u64 Bitboard::MaterialCombined(byte set) const
         combMaterialMask |= msk;
     }
     return combMaterialMask;
+}
+
+u64 Bitboard::SlidingMaterialCombined(byte set) const
+{
+    u8 bishop = 2;
+    u8 rook = 3;
+    u8 queen = 4;
+    return m_material[set][bishop] | m_material[set][rook] | m_material[set][queen];
 }

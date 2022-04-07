@@ -204,13 +204,42 @@ TEST_F(MoveGeneratorFixture, Check)
 // e2, f2, d1
 // can not capture knight on d2 since it is guarded
 // by rook on d8.
-TEST_F(MoveGeneratorFixture, Check_Guarded_Piece)
+TEST_F(MoveGeneratorFixture, GuardedPiece)
 {
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKROOK, d8);
     board.PlacePiece(BLACKKNIGHT, d2);
+    board.PlacePiece(WHITEKING, e1);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(3, result.size());
+}
+
+// 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][ n ][   ][   ]
+// 2 [   ][   ][   ][ n ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// e2, f2, d1
+// can not capture knight on d2 since it is guarded
+// by rook on d8.
+TEST_F(MoveGeneratorFixture, CheckGuardedPiece)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(BLACKKNIGHT, d2);
+    board.PlacePiece(BLACKKNIGHT, f3);
     board.PlacePiece(WHITEKING, e1);
     
     // do 
@@ -228,11 +257,7 @@ TEST_F(MoveGeneratorFixture, Check_Guarded_Piece)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-// valid moves:
-// e2, f2, d1
-// can not capture knight on d2 since it is guarded
-// by rook on d8.
-TEST_F(MoveGeneratorFixture, Black_Capture_From_Check)
+TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
 {
     // setup
     testContext.editToPlay() = Set::BLACK;
@@ -262,6 +287,144 @@ TEST_F(MoveGeneratorFixture, Black_Capture_From_Check)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 }
+
+
+// 8 [   ][   ][   ][   ][   ][   ][ b ][   ]
+// 7 [   ][   ][   ][   ][   ][ x ][   ][ x ]
+// 6 [   ][   ][   ][   ][ x ][   ][   ][   ]
+// 5 [   ][   ][   ][ x ][   ][   ][   ][   ]
+// 4 [   ][   ][ x ][   ][   ][   ][   ][   ]
+// 3 [   ][ x ][   ][   ][   ][   ][   ][   ]
+// 2 [ x ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MoveGeneratorFixture, BlackBishop)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKBISHOP, g8);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // verify
+    auto count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(7, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][ b ][   ]
+// 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][ R ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// -- Bxf7
+// Only valid move for bishop is to capture the pawn.
+TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKBISHOP, g8);
+    board.PlacePiece(WHITEPAWN, f7);
+    board.PlacePiece(WHITEROOK, f1);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    MoveCount::Predicate predicate = [](const Move& mv) 
+    {
+        static ChessPiece b = BLACKBISHOP;
+        if (mv.Piece == b)
+            return true;
+        
+        return false;
+    };
+    // verify
+    auto count =  moveGenerator.CountMoves(result, predicate);
+    EXPECT_EQ(1, count.Moves);
+    EXPECT_EQ(1, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+
+    count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(5, count.Moves);
+    EXPECT_EQ(1, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][ b ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ R ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+
+TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKBISHOP, e5);
+    board.PlacePiece(WHITEROOK, e1);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    MoveCount::Predicate predicate = [](const Move& mv) 
+    {
+        static ChessPiece b = BLACKBISHOP;
+        if (mv.Piece == b)
+            return true;
+        
+        return false;
+    };
+    // verify
+    auto count =  moveGenerator.CountMoves(result, predicate);
+    EXPECT_EQ(0, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+
+    count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(5, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+
 
 
 

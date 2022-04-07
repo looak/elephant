@@ -2,12 +2,15 @@
 #include "game_context.h"
 
 MoveCount 
-MoveGenerator::CountMoves(const std::vector<Move>& moves) const
+MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
 {
     MoveCount result;
 
     for(auto mv : moves)
     {
+        if (!predicate(mv))
+            continue;
+
         if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
 			result.Captures++;				
 		if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
@@ -20,9 +23,9 @@ MoveGenerator::CountMoves(const std::vector<Move>& moves) const
 			result.Checks++;
 		if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)
 			result.Checkmates++;
-    }
 
-    result.Moves = moves.size();
+        result.Moves++;
+    }
 
     return result;
 }
@@ -34,7 +37,17 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
     auto currentSet = context.readToPlay();
     const auto& board = context.readChessboard();
 
+    bool isChecked = board.Checked(currentSet);
     u64 threatenedMask = board.GetThreatenedMask(ChessPiece::FlipSet(currentSet));
+
+    u64 kingMask = board.GetKingMask(currentSet);
+
+    if (isChecked)
+    {
+        // checking if we can block the check.
+        if (kingMask > 0)
+            threatenedMask &= kingMask;
+    }
 
     auto&& itr = board.begin();
     while (itr != board.end())
@@ -42,7 +55,18 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
         auto piece = (*itr).readPiece();
         if (piece.getSet() == currentSet && piece.getType() != PieceType::NON)
         {
-            auto moves = board.GetAvailableMoves((*itr).readPosition(), piece, threatenedMask);
+            bool isPinnedOrChecked = isChecked;
+            u64 threatCopy = threatenedMask;
+            const auto& pos = (*itr).readPosition();
+            // are we pinned
+            u64 sqrMask = UINT64_C(1) << pos.index();
+            if (sqrMask & kingMask)
+            {
+                threatCopy &= kingMask;
+                isPinnedOrChecked = true;
+            }
+
+            auto moves = board.GetAvailableMoves(pos, piece, threatCopy, isPinnedOrChecked);
             retMoves.insert(retMoves.end(), moves.begin(), moves.end());
         }
 

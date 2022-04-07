@@ -28,6 +28,11 @@ Chessboard::Chessboard() :
 			m_tiles[pos.index()].editPosition() = std::move(pos);
 		}
 	}
+
+	m_kings[0].first = ChessPiece();
+	m_kings[0].second = Notation();
+	m_kings[1].first = ChessPiece();
+	m_kings[1].second = Notation();
 }
 
 bool 
@@ -277,6 +282,25 @@ Chessboard::IsPromoting(const Move& move) const
 }
 
 bool
+Chessboard::Checked(Set set) const
+{
+	u8 indx = static_cast<u8>(set);
+	auto king = m_kings[indx];
+
+	if (king.first == ChessPiece())
+		return false;
+
+	Set op = ChessPiece::FlipSet(set);
+	u64 threatMask = GetThreatenedMask(op);
+	u64 kingMask = UINT64_C(1) << king.second.index();
+
+	if (threatMask & kingMask)
+		return true;
+	
+	return false;
+}
+
+bool
 Chessboard::IsCheck(const Move& move) const
 {
 	u64 threatened = ~universe;
@@ -288,12 +312,24 @@ Chessboard::IsCheck(const Move& move) const
 		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Piece);
 	
 	auto opSet = ChessPiece::FlipSet(move.Piece.set());
+	
+	if (!m_bitboard.IsValidSquare(m_kings[opSet].second))
+		return false;
+
 	u64 kingMask = UINT64_C(1) << m_kings[opSet].second.index();
 
 	if (threatened & kingMask)
 		return true;
 	
 	return false;
+}
+
+u64 Chessboard::GetKingMask(Set set) const
+{
+	u8 indx = static_cast<u8>(set);
+	if (m_kings[indx].first == ChessPiece())
+		return 0;
+	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second);
 }
 
 u64
@@ -313,7 +349,7 @@ Chessboard::GetThreatenedMask(Set set) const
 }
 
 std::vector<Move> 
-Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask) const
+Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -321,8 +357,8 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 
 	if (piece == ChessPiece())
 		return moveVector;
-
-	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask);
+	
+	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask, checked);
 	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
 
 	for (signed char rank = 7; rank >= 0; --rank)
