@@ -339,8 +339,10 @@ Chessboard::GetThreatenedMask(Set set) const
 	auto boardItr = begin();
 	while (boardItr != end())
 	{
-		if ((*boardItr).m_piece.getSet() == set && (*boardItr).readPiece() != ChessPiece())
-			mask |= m_bitboard.GetThreatenedSquares((*boardItr).readPosition(), (*boardItr).readPiece());
+		const auto& piece = (*boardItr).readPiece();
+		const auto& pos = (*boardItr).readPosition();
+		if (piece != ChessPiece() && piece.getSet() == set)
+			mask |= m_bitboard.GetThreatenedSquares(pos, piece);
 
 		++boardItr;
 	}
@@ -381,7 +383,7 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 				if (sqrMask & attacked)
 					move.Flags |= MoveFlag::Capture;
 
-				if (IsMoveCastling(move))
+				if (move.Piece.getType() == PieceType::KING && IsMoveCastling(move))
 					move.Flags |= MoveFlag::Castle;
 
 				if (piece.getType() == PieceType::PAWN && IsPromoting(move))

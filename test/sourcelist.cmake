@@ -25,4 +25,6 @@ ${SRC_DIR}/fen_parser_test.cpp
 ${SRC_DIR}/piece_test.cpp
 ${SRC_DIR}/move_test.cpp
 ${SRC_DIR}/move_generator_test.cpp
+${SRC_DIR}/perft_test.cpp
+${SRC_DIR}/elephant_test_util_funcs.cpp
 ${SRC_DIR}/elephant_test_utils.h)

@@ -1001,7 +1001,7 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
     board.PlacePiece(k, e7);
     board.PlacePiece(R, e2);
 
-    u64 expected = ~universe;    
+    u64 expected = ~universe;
     expected |= INT64_C(1) << e2.index();
 
     // do
@@ -1048,5 +1048,69 @@ TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
     EXPECT_EQ(expected, result);
 }
 
+TEST_F(BitboardFixture, White_Queen_Threaten_Blocked_by_Pawns)
+{
+    Bitboard board;
+    auto Q = WHITEQUEEN;
+    auto P = WHITEPAWN;
+    
+
+    // setup
+    board.PlacePiece(Q, d1);
+    board.PlacePiece(P, c2);
+    board.PlacePiece(P, d2);
+    board.PlacePiece(P, e2);    
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << c2.index();
+    expected |= INT64_C(1) << d2.index();
+    expected |= INT64_C(1) << e2.index();
+    expected |= INT64_C(1) << a1.index();
+    expected |= INT64_C(1) << b1.index();
+    expected |= INT64_C(1) << c1.index();
+    expected |= INT64_C(1) << e1.index();
+    expected |= INT64_C(1) << f1.index();
+    expected |= INT64_C(1) << g1.index();
+    expected |= INT64_C(1) << h1.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(d1, Q);  
+
+    // validate
+    EXPECT_EQ(expected, threat);
+}
+
+// 8 [ r ][ xn][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ xp][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Rook_Threaten_Starting_Pos)
+{
+    // this test is not done yet wip. Had to leave.
+    Bitboard board;
+    auto r = BLACKROOK;
+    auto p = BLACKPAWN;
+    auto n = BLACKKNIGHT;
+
+    // setup
+    board.PlacePiece(r, a8);
+    board.PlacePiece(p, a7);
+    board.PlacePiece(n, b8);    
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a7.index();
+    expected |= INT64_C(1) << b8.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(a8, r);
+
+    // validate
+    EXPECT_EQ(expected, threat);
+}
 
 } // namespace ElephantTest

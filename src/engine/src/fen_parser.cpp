@@ -54,7 +54,8 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
     if (ranks.size() != 8)
         return false;
 
-    auto boardItr = outputContext.editChessboard().begin();
+    auto& board = outputContext.editChessboard();
+    auto boardItr = board.begin();
     while (!ranks.empty())
     {        
         const char* rdr = ranks.back().c_str();
@@ -79,8 +80,11 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
             }
             else
             {
-                if (!(*boardItr).editPiece().fromString(value))
+                ChessPiece piece;
+                if (!piece.fromString(value))
                     return false;
+
+                board.PlacePiece(piece, (*boardItr).readPosition());
                 ++boardItr;
             }
 

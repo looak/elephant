@@ -18,7 +18,7 @@ MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate p
 		if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
 			result.EnPassants++;
 		if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
-			result.Castles++;		
+			result.Castles++;
 		if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
 			result.Checks++;
 		if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)

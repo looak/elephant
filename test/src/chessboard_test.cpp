@@ -351,6 +351,69 @@ TEST_F(ChessboardFixture, KingsNotChecked)
     EXPECT_FALSE(result);
 }
 
+TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
+{
+    Chessboard board;
+    auto k = BLACKKING;
+    auto q = BLACKQUEEN;
+    auto b = BLACKBISHOP;
+    auto n = BLACKKNIGHT;
+    auto r = BLACKROOK;
+    auto p = BLACKPAWN;
+
+    board.editCastlingState() = 15;
+    // setup
+    board.PlacePiece(r, a8);
+    board.PlacePiece(n, b8);
+    board.PlacePiece(b, c8);
+    board.PlacePiece(q, d8);
+    board.PlacePiece(k, e8);
+    board.PlacePiece(b, f8);
+    board.PlacePiece(n, g8);
+    board.PlacePiece(r, h8);
+    
+    board.PlacePiece(p, a7);
+    board.PlacePiece(p, b7);
+    board.PlacePiece(p, c7);
+    board.PlacePiece(p, d7);
+    board.PlacePiece(p, e7);
+    board.PlacePiece(p, f7);
+    board.PlacePiece(p, g7);
+    board.PlacePiece(p, h7);    
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << b8.index();
+    expected |= INT64_C(1) << c8.index();
+    expected |= INT64_C(1) << d8.index();
+    expected |= INT64_C(1) << e8.index();
+    expected |= INT64_C(1) << f8.index();
+    expected |= INT64_C(1) << g8.index();
+
+    expected |= INT64_C(1) << a7.index();
+    expected |= INT64_C(1) << b7.index();
+    expected |= INT64_C(1) << c7.index();
+    expected |= INT64_C(1) << d7.index();
+    expected |= INT64_C(1) << e7.index();
+    expected |= INT64_C(1) << f7.index();
+    expected |= INT64_C(1) << g7.index();
+    expected |= INT64_C(1) << h7.index();
+    
+    expected |= INT64_C(1) << a6.index();
+    expected |= INT64_C(1) << b6.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << d6.index();
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << f6.index();
+    expected |= INT64_C(1) << g6.index();
+    expected |= INT64_C(1) << h6.index();
+
+    // do
+    u64 threat = board.GetThreatenedMask(Set::BLACK);
+
+    // validate
+    EXPECT_EQ(expected, threat);
+}
+
 ////////////////////////////////////////////////////////////////
 
 } // namespace ElephantTest

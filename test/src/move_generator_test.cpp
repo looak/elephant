@@ -424,6 +424,76 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
     EXPECT_EQ(0, count.Checkmates);
 }
 
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][ P ][ P ][ P ][   ][   ][   ]
+// 1 [   ][   ][   ][ Q ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+
+TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
+{
+    // setup
+    testContext.editToPlay() = Set::WHITE;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(WHITEQUEEN, d1);
+    board.PlacePiece(WHITEPAWN, c2);
+    board.PlacePiece(WHITEPAWN, d2);
+    board.PlacePiece(WHITEPAWN, e2);
+
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    MoveCount::Predicate predicate = [](const Move& mv) 
+    {
+        static ChessPiece Q = WHITEQUEEN;
+        if (mv.Piece == Q)
+            return true;
+        
+        return false;
+    };
+    // verify
+    auto count =  moveGenerator.CountMoves(result, predicate);
+    EXPECT_EQ(7, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+
+    MoveCount::Predicate pawnPredicate = [](const Move& mv) 
+    {
+        static ChessPiece P = WHITEPAWN;
+        if (mv.Piece == P)
+            return true;
+        
+        return false;
+    };
+
+    count =  moveGenerator.CountMoves(result, pawnPredicate);
+    EXPECT_EQ(6, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+
+    count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(13, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
 
 
 

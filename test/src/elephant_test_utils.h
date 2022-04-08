@@ -1,7 +1,11 @@
 #pragma once
 
+class Chessboard;
 namespace ElephantTest
 { 
+    bool PrintBoard(const Chessboard& board);
+
+
     #define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
     #define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)
     #define BLACKBISHOP ChessPiece(Set::BLACK, PieceType::BISHOP)
