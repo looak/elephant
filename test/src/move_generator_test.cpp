@@ -248,6 +248,35 @@ TEST_F(MoveGeneratorFixture, CheckGuardedPiece)
     EXPECT_EQ(3, result.size());
 }
 
+// 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][ r ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][ n ][   ][   ]
+// 2 [   ][   ][   ][ n ][   ][   ][ P ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+// f2, d1
+TEST_F(MoveGeneratorFixture, CheckGuardedPiece_OnlyValidMovesAreToMoveKing)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(BLACKROOK, e7);
+    board.PlacePiece(BLACKKNIGHT, d2);
+    board.PlacePiece(BLACKKNIGHT, f3);
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(WHITEPAWN, g2);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(2, result.size());
+}
+
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]

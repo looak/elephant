@@ -170,6 +170,7 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
     u64 allMat = MaterialCombined();
     u64 knightMat = m_material[opSet][1];
     u64 ret = ~universe;
+    u8 checks = 0;
     
     if (slideMat > 0)
     {
@@ -200,7 +201,12 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
             // necessarily pinned, but if there are any more pieces between king and sliding piece
             // they won't be pinned.
             if (mvMask & slideMat && matCount <= 2)
+            {
                 ret |= mvMask;
+                if (matCount == 1)
+                    checks++;
+            }
+
         }
     }
 
@@ -223,7 +229,10 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
 
             u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, nResolve);
             if (mvMask & knightMat)
+            {
                 ret |= mvMask;
+                checks++;
+            }
         }
     }
 
@@ -235,16 +244,28 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
-            ret |= (sqrMak & m_material[opSet][0]);
+            sqrMak &= m_material[opSet][0];
+            if (sqrMak > 0)
+            {
+                ret |= sqrMak;
+                checks++;
+            }
         }
         pawnSqr = Notation(target.file - 1, target.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
-            ret |= (sqrMak & m_material[opSet][0]);
+            sqrMak &= m_material[opSet][0];            
+            if (sqrMak > 0)
+            {
+                ret |= sqrMak;
+                checks++;
+            }
         }
     }
 
+    if (checks > 1)
+        return 0;
     return ret;
 }
 

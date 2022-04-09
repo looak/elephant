@@ -1093,7 +1093,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves)
     // do
     u64 threat = board.GetThreatenedSquares(h7, R);
     u64 kingMask = board.GetKingMask(k, e7);
-    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, false, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1125,7 +1125,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
     // do
     u64 threat = board.GetThreatenedSquares(h5, R);
     u64 kingMask = board.GetKingMask(k, e5);
-    u64 result = board.GetAvailableMoves(f5, p, 0, 0, threat, true, kingMask);
+    u64 result = board.GetAvailableMoves(f5, p, 0, 0, threat, false, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
