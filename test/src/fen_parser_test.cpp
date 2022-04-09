@@ -156,6 +156,21 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     }
 }
 
+TEST_F(FenParserFixture, PerftPositionThree)
+{
+	std::string fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    bool result = FENParser::deserialize(fen.c_str(), testContext);
+
+    EXPECT_TRUE(result);
+    PrintBoard(testContext.readChessboard());
+    EXPECT_EQ(0, testContext.readPly());
+    EXPECT_EQ(1, testContext.readMoveCount());
+    EXPECT_EQ(Set::WHITE, testContext.readToPlay());
+    EXPECT_EQ(Notation(), testContext.readChessboard().readEnPassant());
+    EXPECT_EQ(0x00, testContext.readChessboard().readCastlingState());
+
+}
+
 ////////////////////////////////////////////////////////////////
 
 } // namespace ElephantTest

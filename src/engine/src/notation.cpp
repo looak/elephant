@@ -52,3 +52,9 @@ bool Notation::operator!=(const Notation& rhs) const
 {
 	return !(*this == rhs);
 }
+
+bool Notation::operator<(const Notation& rhs) const
+{
+	return index() < rhs.index();
+}
+

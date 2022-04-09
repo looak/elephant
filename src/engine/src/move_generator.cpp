@@ -1,12 +1,14 @@
 #include "move_generator.h"
 #include "game_context.h"
+#include <sstream>
+#include <utility>
 
 MoveCount 
 MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
 {
     MoveCount result;
 
-    for(auto mv : moves)
+    for(auto&& mv : moves)
     {
         if (!predicate(mv))
             continue;
@@ -30,6 +32,36 @@ MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate p
     return result;
 }
 
+std::map<PieceKey, std::vector<Move>> 
+MoveGenerator::OrganizeMoves(const std::vector<Move>& moves) const
+{
+    std::map<PieceKey, std::vector<Move>> ret;
+
+    for (auto&& mv : moves)
+    {
+        PieceKey key = { mv.Piece, Notation(mv.SourceSquare) };
+        if (!ret.contains(key))
+            ret.insert(std::make_pair(key, std::vector<Move>()));
+        
+        ret.at(key).push_back(mv);
+    }
+
+    return ret;
+}
+
+std::vector<std::string> 
+MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
+{
+    std::vector<std::string> ret;
+    // for (auto&& mv : moves)
+    // {
+    //     std::ostringstream notation;
+    //     notation << "something";
+
+    // }
+    return ret;
+}
+
 std::vector<Move> 
 MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 {
@@ -42,31 +74,24 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 
     u64 kingMask = board.GetKingMask(currentSet);
 
-    if (isChecked)
-    {
-        // checking if we can block the check.
-        if (kingMask > 0)
-            threatenedMask &= kingMask;
-    }
-
     auto&& itr = board.begin();
     while (itr != board.end())
     {       
-        auto piece = (*itr).readPiece();
+        const auto& piece = (*itr).readPiece();
         if (piece.getSet() == currentSet && piece.getType() != PieceType::NON)
         {
             bool isPinnedOrChecked = isChecked;
             u64 threatCopy = threatenedMask;
             const auto& pos = (*itr).readPosition();
-            // are we pinned
-            u64 sqrMask = UINT64_C(1) << pos.index();
-            if (sqrMask & kingMask)
-            {
-                threatCopy &= kingMask;
-                isPinnedOrChecked = true;
-            }
+            // // are we pinned
+            // u64 sqrMask = UINT64_C(1) << pos.index();
+            // if (sqrMask & kingMask)
+            // {
+            //     threatCopy &= kingMask;
+            //     isPinnedOrChecked = true;
+            // }
 
-            auto moves = board.GetAvailableMoves(pos, piece, threatCopy, isPinnedOrChecked);
+            auto moves = board.GetAvailableMoves(pos, piece, threatCopy, isPinnedOrChecked, kingMask);
             retMoves.insert(retMoves.end(), moves.begin(), moves.end());
         }
 

@@ -683,6 +683,29 @@ TEST_F(BitboardFixture, White_Pawn_Move_b2)
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ N ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, White_Pawn_Move_b2_blocked)
+{
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto N = WHITEKNIGHT;
+    board.PlacePiece(N, c3);
+
+    // setup
+    u64 expected = ~universe;
+
+    u64 result = board.GetAvailableMoves(c2, P);
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ p ][ . ][ . ][ . ]
 // 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
 // 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
@@ -972,10 +995,9 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Block_Check)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-
     u64 kingMask = board.GetKingMask(k, e7);
-    threat &= kingMask;
-    u64 result = board.GetAvailableMoves(c3, r, 0, 0, threat, true);
+    u64 result = board.GetAvailableMoves(c3, r, 0, 0, threat, true, kingMask);
+
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1006,10 +1028,9 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-
     u64 kingMask = board.GetKingMask(k, e7);
-    threat &= kingMask;
-    u64 result = board.GetAvailableMoves(c2, r, 0, 0, threat, true);
+    u64 result = board.GetAvailableMoves(c2, r, 0, 0, threat, true, kingMask);
+
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1039,11 +1060,173 @@ TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-
     u64 kingMask = board.GetKingMask(k, e7);
-    threat &= kingMask;
+    u64 result = board.GetAvailableMoves(c1, r, 0, 0, threat, true, kingMask);
 
-    u64 result = board.GetAvailableMoves(c1, r, 0, 0, threat, true);
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ k ][ p ][ . ][ R ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves)
+{
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(p, f7);
+    board.PlacePiece(k, e7);
+    board.PlacePiece(R, h7);
+
+    u64 expected = ~universe;
+
+    // do
+    u64 threat = board.GetThreatenedSquares(h7, R);
+    u64 kingMask = board.GetKingMask(k, e7);
+    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ K ][ P ][ . ][ r ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
+{
+    Bitboard board;
+    auto p = WHITEPAWN;
+    auto k = WHITEKING;
+    auto R = BLACKROOK;
+
+    // setup
+    board.PlacePiece(p, f5);
+    board.PlacePiece(k, e5);
+    board.PlacePiece(R, h5);
+
+    u64 expected = ~universe;
+
+    // do
+    u64 threat = board.GetThreatenedSquares(h5, R);
+    u64 kingMask = board.GetKingMask(k, e5);
+    u64 result = board.GetAvailableMoves(f5, p, 0, 0, threat, true, kingMask);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ p ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ R ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Block_Check)
+{
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(p, f7);
+    board.PlacePiece(k, e6);
+    board.PlacePiece(R, h6);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << f6.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(h6, R);
+    u64 kingMask = board.GetKingMask(k, e6);
+    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ p ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ K ][ . ][ R ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Capture_Check)
+{
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(p, f7);
+    board.PlacePiece(k, e6);
+    board.PlacePiece(R, g6);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << f6.index();
+    expected |= INT64_C(1) << g6.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(g6, R);
+    u64 kingMask = board.GetKingMask(k, e6);
+    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ p ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ k ][ . ][ R ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Block_Check_DoubleMove)
+{
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(p, f7);
+    board.PlacePiece(k, e5);
+    board.PlacePiece(R, g5);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << f5.index();
+
+    // do
+    u64 threat = board.GetThreatenedSquares(g5, R);
+    u64 kingMask = board.GetKingMask(k, e5);
+    u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1111,6 +1294,36 @@ TEST_F(BitboardFixture, Black_Rook_Threaten_Starting_Pos)
 
     // validate
     EXPECT_EQ(expected, threat);
+}
+
+// 8 [ k ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ xP][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, KingMask_Pawns)
+{
+    // this test is not done yet wip. Had to leave.
+    Bitboard board;
+    auto k = BLACKKING;
+    auto P = WHITEPAWN;
+
+    // setup
+    board.PlacePiece(k, a8);
+    board.PlacePiece(P, b7);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << b7.index();
+
+    // do
+    u64 kingMask = board.GetKingMask(k, a8);
+
+    // validate
+    EXPECT_EQ(expected, kingMask);
 }
 
 } // namespace ElephantTest

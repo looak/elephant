@@ -351,7 +351,7 @@ Chessboard::GetThreatenedMask(Set set) const
 }
 
 std::vector<Move> 
-Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked) const
+Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -360,7 +360,7 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 	if (piece == ChessPiece())
 		return moveVector;
 	
-	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask, checked);
+	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask, checked, kingMask);
 	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
 
 	for (signed char rank = 7; rank >= 0; --rank)

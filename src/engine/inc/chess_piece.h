@@ -66,6 +66,7 @@ public:
 
 	bool operator==(const ChessPiece& rhs) const;
 	bool operator!=(const ChessPiece& rhs) const;
+	bool operator<(const ChessPiece& rhs) const;
 
 	PieceType getType() const	{ return static_cast<PieceType>(m_internalState & 0x07); }
 	Set getSet() const 	{ return static_cast<Set>(m_internalState >> 7); }

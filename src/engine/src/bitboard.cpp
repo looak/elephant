@@ -86,10 +86,20 @@ u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding,
     return ret;
 }
 
-u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked) const
+u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const
 {
     u64 ret = ~universe;    
     u64 matComb = mat | opMat;
+
+    // figure out if we're pinned
+    u64 sqrMask = UINT64_C(1) << source.index();    
+    bool pinned = (sqrMask & kingMask);
+    if (checked || pinned)
+    {
+        threatenedMask &= kingMask;
+        threatenedMask |= (opMat & kingMask);
+    }
+
     // Figure out if we're moving a pawn out of it's starting position.
     // Pawn specific modifires and values, starting row to figure out if we can do a double step
     // moveModifier for allowing white & black pawn moves to be represented by one value.
@@ -128,8 +138,11 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
 
         bool sliding = false;
         
-        // check if we are blocked by a friendly piece or a oponent piece.
+        // check if we are blocked by a friendly piece or a oponent piece.      
         ret |= InternalGenerateMask(curSqr, dir, sliding, resolve);
+        
+        if (ret == 0) // we've run into a piece, i.e. we can't do double move.
+            break;
     }
 
     // add attacked squares to potential moves
@@ -142,7 +155,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
     u64 potentialAttacks = GetThreatenedSquares(source, piece);
     ret |= (potentialAttacks & opMat);
 
-    if (checked)
+    if (checked || pinned)
         ret &= threatenedMask;
 
     return ret;
@@ -152,28 +165,84 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
 {    
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
-    u64 opMat = SlidingMaterialCombined(ChessPiece::FlipSet(king.set()));
-
-    bool sliding = true;
-    auto resolve = [&](u64 sqrMask)
-    {
-        if (opMat & sqrMask)
-        {
-            sliding = false;
-        }
-        return true;
-    };
-
+    u8 opSet = ChessPiece::FlipSet(king.set());
+    u64 slideMat = SlidingMaterialCombined(opSet);
+    u64 allMat = MaterialCombined();
+    u64 knightMat = m_material[opSet][1];
     u64 ret = ~universe;
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+    
+    if (slideMat > 0)
     {
-        sliding = true;
-        byte curSqr = target.index();
-		signed short dir = ChessPieceDef::Moves0x88(king.type(), moveIndx);
+        u8 matCount = 0;
+        bool sliding = true;
+        auto resolve = [&](u64 sqrMask)
+        {
+            if (allMat & sqrMask)
+                matCount++;
+            
+            if (slideMat & sqrMask)
+            {
+                sliding = false;
+            }
+            return true;
+        };
 
-        u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);
-        if (mvMask & opMat)
-            ret |= mvMask;
+        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+        {
+            matCount = 0;
+            sliding = true;
+            byte curSqr = target.index();
+            signed short dir = ChessPieceDef::Moves0x88(king.type(), moveIndx);
+
+            u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);
+            // comparing agiainst two here since we'll find the sliding piece causing the pin
+            // and at least one piece in between our king and this piece. This found piece isn't
+            // necessarily pinned, but if there are any more pieces between king and sliding piece
+            // they won't be pinned.
+            if (mvMask & slideMat && matCount <= 2)
+                ret |= mvMask;
+        }
+    }
+
+    if (knightMat > 0)
+    {
+        // figure out if we're checked by a knight
+        bool sliding = false;
+        moveCount = ChessPieceDef::MoveCount((byte)PieceType::KNIGHT);
+        
+        auto nResolve = [&](u64 sqrMask)
+        {
+            return true;
+        };
+
+        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+        {
+            
+            byte curSqr = target.index();
+            signed short dir = ChessPieceDef::Moves0x88((byte)PieceType::KNIGHT, moveIndx);
+
+            u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, nResolve);
+            if (mvMask & knightMat)
+                ret |= mvMask;
+        }
+    }
+
+    if (m_material[opSet][0] > 0)
+    {
+        // figure out if we're checked by a pawn
+        s8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
+        auto pawnSqr = Notation(target.file + 1, target.rank + pawnMod);
+        if (Bitboard::IsValidSquare(pawnSqr))
+        {
+            u64 sqrMak = UINT64_C(1) << pawnSqr.index();
+            ret |= (sqrMak & m_material[opSet][0]);
+        }
+        pawnSqr = Notation(target.file - 1, target.rank + pawnMod);
+        if (Bitboard::IsValidSquare(pawnSqr))
+        {
+            u64 sqrMak = UINT64_C(1) << pawnSqr.index();
+            ret |= (sqrMak & m_material[opSet][0]);
+        }
     }
 
     return ret;
@@ -210,19 +279,25 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notati
     return ret;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened, bool checked) const
+u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened, bool checked, u64 kingMask) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     
     if (piece.getType() == PieceType::PAWN)
-        return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant, threatened, checked);
+        return GetAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant, threatened, checked, kingMask);
     else if(piece.getType() == PieceType::KING)
         return GetAvailableMovesForKing(matComb, threatened, source, piece, castling);
 
-    if (checked)
-        threatened |= opMatComb;
+    // figure out if we're pinned
+    u64 sqrMask = UINT64_C(1) << source.index();    
+    bool pinned = (sqrMask & kingMask);
+    if (checked || pinned)
+    {
+        threatened &= kingMask;
+        threatened |= (opMatComb & kingMask);
+    }
 
     bool sliding = false;
     auto resolve = [&](u64 sqrMask)
@@ -255,7 +330,7 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
 		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
 
         u64 mvMask = 0;
-        if (checked)
+        if (checked || pinned)
             mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve, validChecked);
         else
             mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);       

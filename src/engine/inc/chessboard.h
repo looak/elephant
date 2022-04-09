@@ -56,7 +56,7 @@ public:
 	bool MakeMove(Move& move);
 	bool Checked(Set set) const;
 
-	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked) const;
+	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	u64 GetThreatenedMask(Set set) const;
 	u64 GetKingMask(Set set) const;
 

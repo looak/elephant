@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
+#include <map>
 #include <vector>
 #include <functional>
 #include <optional>
@@ -43,11 +44,27 @@ struct MoveCount
     u32 Moves = 0;
 };
 
+struct PieceKey
+{
+    ChessPiece Piece;
+    Notation SourceSqr;
+
+    bool operator<(const PieceKey& rhs) const 
+    { 
+        if (Piece == rhs.Piece)
+            return SourceSqr < rhs.SourceSqr;
+        
+        return Piece < rhs.Piece;
+    }
+};
+
 class MoveGenerator
 {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
 
     MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
+    std::vector<std::string> MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
+    std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
 };

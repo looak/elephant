@@ -424,6 +424,58 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
     EXPECT_EQ(0, count.Checkmates);
 }
 
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][ b ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][ N ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ R ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// found an edge case where a pinned piece would be allowed to capture
+// a different piece than the one pinning it.
+TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves_ThreateningAPiece)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKBISHOP, e5);
+    board.PlacePiece(WHITEROOK, e1);
+    board.PlacePiece(WHITEKNIGHT, g3);
+    
+    // do 
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    MoveCount::Predicate predicate = [](const Move& mv) 
+    {
+        static ChessPiece b = BLACKBISHOP;
+        if (mv.Piece == b)
+            return true;
+        
+        return false;
+    };
+    // verify
+    auto count =  moveGenerator.CountMoves(result, predicate);
+    EXPECT_EQ(0, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+
+    count =  moveGenerator.CountMoves(result);
+    EXPECT_EQ(5, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]

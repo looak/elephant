@@ -19,6 +19,7 @@
 #include "log.h"
 
 typedef uint8_t u8;
+typedef int8_t s8;
 typedef unsigned char byte;
 typedef unsigned long long u64;
 typedef signed long long i64;

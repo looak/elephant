@@ -160,3 +160,8 @@ bool ChessPiece::operator!=(const ChessPiece& rhs) const
 {
 	return !(*this == rhs);
 }
+
+bool ChessPiece::operator<(const ChessPiece& rhs) const
+{
+	return m_internalState < rhs.m_internalState;
+}
