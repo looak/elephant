@@ -182,4 +182,39 @@ TEST_F(PerftFixture, Position_Three)
 
 ////////////////////////////////////////////////////////////////
 
+/*
+Depth	Nodes		Captures	E.p.	Castles		Promotions	Checks		Checkmates
+1		6			0			0		0			0			0			0
+2		264			87			0		6			48			10			0
+3		9467		1021		4		0			120			38			22
+4		422333		131393		0		7795		60032		15492		5
+5		15833292	2046173		6512	0			329464		200568		50562
+6		706045033	210369132	212		10882006	81102984	26973664	81076
+*/
+TEST_F(PerftFixture, Position_Four)
+{
+    // setup    
+	std::string inputFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    FENParser::deserialize(inputFen.c_str(), m_context);
+    PrintBoard(m_context.readChessboard());
+
+    // do
+    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+
+    // verify
+    auto count = m_moveGenerator.CountMoves(moves);
+    auto orgMoves = m_moveGenerator.OrganizeMoves(moves);
+
+    EXPECT_EQ(6, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+////////////////////////////////////////////////////////////////
+
+
 } // namespace ElephantTest

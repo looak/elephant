@@ -206,7 +206,6 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
                 if (matCount == 1)
                     checks++;
             }
-
         }
     }
 
