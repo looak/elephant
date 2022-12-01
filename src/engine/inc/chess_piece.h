@@ -73,6 +73,9 @@ public:
 	byte type() const		{ return m_internalState & 0x07; }
 	byte set() const 		{ return m_internalState >> 7; }
 
+	bool isValid() const { return type() > 0; }
+	bool isSliding() const { return ChessPieceDef::Slides(type()); }
+
 private:	
 	// [set][moved flag][not used][not used][not used][piece t][piece t][piece t]
 	byte m_internalState;

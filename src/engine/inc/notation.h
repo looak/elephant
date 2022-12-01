@@ -54,4 +54,5 @@ struct Notation
 	bool operator!=(const Notation& rhs) const;
 	bool operator<(const Notation& rhs) const;
 	Notation& operator=(Notation&& other);
+	//Notation& operator=(const Notation& other);
 };

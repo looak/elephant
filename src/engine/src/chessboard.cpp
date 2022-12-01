@@ -208,6 +208,30 @@ Chessboard::VerifyMove(const Move& move) const
 	return true;
 }
 
+bool
+Chessboard::UnmakeMove(const Move& move)
+{
+	// in case move was enpassant capture, piecetarget will be different than movetarget
+	Notation pieceTarget(move.TargetSquare);
+	
+	m_enPassant = Notation();
+	m_enPassantTarget = Notation();
+	
+	m_tiles[move.SourceSquare.index()].editPiece() = m_tiles[move.TargetSquare.index()].readPiece();	
+	// Capture will be 0 or the piece we captured, either way it will reset the target square to the correct value.
+	m_tiles[move.TargetSquare.index()].editPiece() = move.Capture;	
+
+	// unmake bitboard changes
+	m_bitboard.ClearPiece(move.Piece, move.TargetSquare);
+
+	if ((move.Flags & MoveFlag::Capture) == MoveFlag::Capture)
+		m_bitboard.PlacePiece(move.Capture, move.TargetSquare);
+
+	m_bitboard.PlacePiece(move.Piece, move.SourceSquare);
+
+	return true;
+}
+
 bool 
 Chessboard::MakeMove(Move& move)
 {
@@ -225,6 +249,7 @@ Chessboard::MakeMove(Move& move)
 	switch(piece.getType())
 	{
 		case PieceType::PAWN:
+		// updating pieceTarget since if we're capturing enpassant the target will be on a different square.
 		pieceTarget = InternalHandlePawnMove(move);
 		break;
 		
@@ -241,6 +266,7 @@ Chessboard::MakeMove(Move& move)
 	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
 	{
 		move.Flags |= MoveFlag::Capture;
+		move.Capture = m_tiles[pieceTarget.index()].readPiece();
 		// remove captured piece from board.
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
 	}
@@ -329,7 +355,9 @@ u64 Chessboard::GetKingMask(Set set) const
 	u8 indx = static_cast<u8>(set);
 	if (m_kings[indx].first == ChessPiece())
 		return 0;
-	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second);
+
+	u64 opSlidingMask = GetSlidingMask(ChessPiece::FlipSet(set));
+	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, opSlidingMask);
 }
 
 u64
@@ -350,6 +378,23 @@ Chessboard::GetThreatenedMask(Set set) const
 	return mask;
 }
 
+u64 Chessboard::GetSlidingMask(Set set) const
+{
+	u64 mask = ~universe;
+	auto boardItr = begin();
+	while (boardItr != end())
+	{
+		const auto& piece = (*boardItr).readPiece();
+		const auto& pos = (*boardItr).readPosition();
+		if (piece.isValid() && piece.getSet() == set && piece.isSliding())
+			mask |= m_bitboard.GetThreatenedSquares(pos, piece);
+
+		++boardItr;
+	}
+
+	return mask;
+}
+
 std::vector<Move> 
 Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const
 {
@@ -362,6 +407,9 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 	
 	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask, checked, kingMask);
 	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
+
+	if (movesbb == 0)
+		return moveVector;
 
 	for (signed char rank = 7; rank >= 0; --rank)
 	{

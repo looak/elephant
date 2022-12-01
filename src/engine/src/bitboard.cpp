@@ -161,8 +161,15 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
     return ret;
 }
 
-u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
-{    
+/// <summary>
+/// From Kings position, we look at all directions until we hit end of board and see if 
+/// we run into a piece wich is threatening the king or pinning another piece
+/// </summary>
+/// <param name="king"></param>
+/// <param name="target"></param>
+/// <returns></returns>
+u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, u64 opponentSlidingMask) const
+{
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
     u8 opSet = ChessPiece::FlipSet(king.set());
@@ -207,6 +214,10 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target) const
                     checks++;
             }
         }
+        // checking the sliding pieces we've run into are the same diagnoals
+        // as we've identified them being threatning.
+        // this is to avoid false positives for bishops in straight columns or rows.
+        ret &= opponentSlidingMask;
     }
 
     if (knightMat > 0)

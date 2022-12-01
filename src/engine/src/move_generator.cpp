@@ -78,7 +78,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
     while (itr != board.end())
     {       
         const auto& piece = (*itr).readPiece();
-        if (piece.getSet() == currentSet && piece.getType() != PieceType::NON)
+        if (piece.isValid() && piece.getSet() == currentSet)
         {
             bool isPinnedOrChecked = isChecked;
             u64 threatCopy = threatenedMask;

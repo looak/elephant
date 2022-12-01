@@ -38,7 +38,8 @@ public:
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetAttackedSquares(Set set);
 
-	u64 GetKingMask(const ChessPiece& king, const Notation& target) const;
+	// Calculate all directions the king could potentially be threatened or pinned against.
+	u64 GetKingMask(const ChessPiece& king, const Notation& target, u64 opponentSlidingMask) const;
 	u64 GetMaterialCombined(Set set) const;
 
 private:

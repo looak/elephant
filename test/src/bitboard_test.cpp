@@ -984,7 +984,6 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Block_Check)
     auto k = BLACKKING;
     auto R = WHITEROOK;
 
-
     // setup
     board.PlacePiece(r, c3);
     board.PlacePiece(k, e7);
@@ -995,7 +994,7 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Block_Check)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7);
+    u64 kingMask = board.GetKingMask(k, e7, 0);
     u64 result = board.GetAvailableMoves(c3, r, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1028,7 +1027,7 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7);
+    u64 kingMask = board.GetKingMask(k, e7, 0);
     u64 result = board.GetAvailableMoves(c2, r, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1060,7 +1059,7 @@ TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
 
     // do
     u64 threat = board.GetThreatenedSquares(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7);
+    u64 kingMask = board.GetKingMask(k, e7, 0);
     u64 result = board.GetAvailableMoves(c1, r, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1092,7 +1091,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves)
 
     // do
     u64 threat = board.GetThreatenedSquares(h7, R);
-    u64 kingMask = board.GetKingMask(k, e7);
+    u64 kingMask = board.GetKingMask(k, e7, 0);
     u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, false, kingMask);
 
     // validate
@@ -1124,7 +1123,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
 
     // do
     u64 threat = board.GetThreatenedSquares(h5, R);
-    u64 kingMask = board.GetKingMask(k, e5);
+    u64 kingMask = board.GetKingMask(k, e5, 0);
     u64 result = board.GetAvailableMoves(f5, p, 0, 0, threat, false, kingMask);
 
     // validate
@@ -1157,7 +1156,7 @@ TEST_F(BitboardFixture, Pawn_Block_Check)
 
     // do
     u64 threat = board.GetThreatenedSquares(h6, R);
-    u64 kingMask = board.GetKingMask(k, e6);
+    u64 kingMask = board.GetKingMask(k, e6, 0);
     u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1191,7 +1190,7 @@ TEST_F(BitboardFixture, Pawn_Capture_Check)
 
     // do
     u64 threat = board.GetThreatenedSquares(g6, R);
-    u64 kingMask = board.GetKingMask(k, e6);
+    u64 kingMask = board.GetKingMask(k, e6, 0);
     u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1224,7 +1223,7 @@ TEST_F(BitboardFixture, Pawn_Block_Check_DoubleMove)
 
     // do
     u64 threat = board.GetThreatenedSquares(g5, R);
-    u64 kingMask = board.GetKingMask(k, e5);
+    u64 kingMask = board.GetKingMask(k, e5, 0);
     u64 result = board.GetAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
 
     // validate
@@ -1320,7 +1319,7 @@ TEST_F(BitboardFixture, KingMask_Pawns)
     expected |= INT64_C(1) << b7.index();
 
     // do
-    u64 kingMask = board.GetKingMask(k, a8);
+    u64 kingMask = board.GetKingMask(k, a8, 0);
 
     // validate
     EXPECT_EQ(expected, kingMask);

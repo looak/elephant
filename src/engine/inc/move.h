@@ -26,7 +26,7 @@ enum class MoveFlag : byte
     Castle = 4,
     Check = 8,
     EnPassant = 16,
-    Unused2 = 32,
+    Legal = 32,
     Checkmate = 64,
     FirstMove = 128,
     Invalid = 0xff
@@ -58,8 +58,12 @@ public:
 
     Notation TargetSquare;
     Notation SourceSquare;
+
+    Notation EnPassantTargetSquare;
+
     ChessPiece Piece;
     ChessPiece Promote;
+    ChessPiece Capture;
 
     MoveFlag Flags;
 

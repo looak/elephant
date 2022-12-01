@@ -54,11 +54,13 @@ public:
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool MakeMove(Move& move);
+	bool UnmakeMove(const Move& move);
 	bool Checked(Set set) const;
 
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	u64 GetThreatenedMask(Set set) const;
 	u64 GetKingMask(Set set) const;
+	u64 GetSlidingMask(Set set) const;
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
