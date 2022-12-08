@@ -12,7 +12,8 @@ ${ENGINE_INC_DIR}/bitboard.h
 ${ENGINE_INC_DIR}/log.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
-${ENGINE_INC_DIR}/move_generator.h)
+${ENGINE_INC_DIR}/move_generator.h
+${ENGINE_INC_DIR}/hash_zorbist.h)
 
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -25,4 +26,6 @@ ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/log.cpp
-${ENGINE_SRC_DIR}/move_generator.cpp)
+${ENGINE_SRC_DIR}/move_generator.cpp
+${ENGINE_SRC_DIR}/hash_zorbist.cpp)
+
