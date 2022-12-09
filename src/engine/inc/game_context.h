@@ -27,6 +27,7 @@ public:
 
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
+    Chessboard copyChessboard() const { return m_board; }
 
     byte readPly() const { return m_plyCount; }
     byte& editPly() { return m_plyCount; }

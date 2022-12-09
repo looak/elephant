@@ -28,6 +28,7 @@ public:
 	static bool IsValidSquare(const Notation& source);
 public:
 	Bitboard();
+	Bitboard& operator=(const Bitboard& other);
 		
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool ClearPiece(const ChessPiece& piece, const Notation& target);

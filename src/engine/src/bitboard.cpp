@@ -7,6 +7,18 @@
 #define to0x88(sqr) sqr + (sqr & ~7)
 #define fr0x88(sq0x88) (sq0x88 + (sq0x88 & 7)) >> 1
 
+Bitboard::Bitboard()
+{
+    std::memset(&m_material[0][0], 0, sizeof(u64) * 12);
+}
+
+Bitboard& Bitboard::operator=(const Bitboard& other)
+{
+    auto size = sizeof(m_material);
+    std::memset(&m_material[0][0], 0, size);
+    std::memcpy(&m_material[0][0], &other.m_material[0][0], size);
+    return *this;
+}
 
 bool Bitboard::IsValidSquare(signed short currSqr)
 {
@@ -43,11 +55,6 @@ bool Bitboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 	m_material[piece.set()][pieceIndx] |= mask;
 	
 	return true;
-}
-
-Bitboard::Bitboard()
-{
-    std::memset(&m_material[0][0], 0, sizeof(u64)*(2*6));
 }
 
 u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare, Validate valid) const

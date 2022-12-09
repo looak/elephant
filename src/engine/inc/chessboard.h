@@ -31,13 +31,14 @@ public:
 	ChessboardTile() = default;
 	ChessboardTile(Notation&& notation);
 	~ChessboardTile() = default;
-
+	
 	const ChessPiece& readPiece() const { return m_piece; };
 	ChessPiece& editPiece() { return m_piece; };
 
 	const Notation& readPosition() const { return m_position; };
 
 	bool operator==(const ChessboardTile& rhs) const;
+	ChessboardTile& operator=(const ChessboardTile& rhs);
 
 private:
 	Notation& editPosition() { return m_position; };
@@ -52,7 +53,7 @@ public:
 	Chessboard();
 	~Chessboard() = default;
 
-	// Chesboard(const Chessboard& other);
+	Chessboard(const Chessboard& other);
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
 	bool MakeMove(Move& move);

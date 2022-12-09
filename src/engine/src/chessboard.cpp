@@ -16,11 +16,20 @@ ChessboardTile::operator==(const ChessboardTile& rhs) const
 	return result;
 }
 
+ChessboardTile&
+ChessboardTile::operator=(const ChessboardTile& rhs)
+{
+	m_position = Notation(rhs.m_position);
+	m_piece = rhs.m_piece;
+
+	return *this;
+}
+
 Chessboard::Chessboard() :
+	m_hash(0),
 	m_castlingState(0),
 	m_enPassant(Notation()),
-	m_enPassantTarget(Notation()),
-	m_hash(0)
+	m_enPassantTarget(Notation())
 {
 	for (byte r = 0; r < 8; r++)
 	{
@@ -35,6 +44,29 @@ Chessboard::Chessboard() :
 	m_kings[0].second = Notation();
 	m_kings[1].first = ChessPiece();
 	m_kings[1].second = Notation();
+}
+
+Chessboard::Chessboard(const Chessboard& other) :
+	m_hash(other.readHash()),
+	m_castlingState(other.readCastlingState()),
+	m_enPassant(other.readEnPassant()),
+	m_enPassantTarget(other.m_enPassantTarget)
+{
+	auto otherItr = other.begin();
+	auto thisItr = this->begin();
+	while (otherItr != other.end())
+	{
+		*thisItr = *otherItr;
+		otherItr++;
+		thisItr++;
+	}
+
+	m_kings[0].first = other.m_kings[0].first;
+	m_kings[0].second = Notation(other.m_kings[0].second);
+	m_kings[1].first = other.m_kings[1].first;
+	m_kings[1].second = Notation(other.m_kings[1].second);
+
+	m_bitboard = other.m_bitboard;
 }
 
 bool 

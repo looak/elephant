@@ -10,12 +10,146 @@ class ChessboardFixture : public ::testing::Test
 {
 public:
     virtual void SetUp()
-    {
-
+    { 
+        DefaultStartingPosition();
+        GameOfTheCentury_WindmillPosition();
     };
     virtual void TearDown() {};
 
+    
     Chessboard m_emptyChessboard; // by default a board should start empty.
+    Chessboard m_defaultStartingPosition;
+    Chessboard m_gameOfTheCentury;
+
+private:
+    // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+    // 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
+    // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
+    // 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+    //     A    B    C    D    E    F    G    H
+    // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+    void DefaultStartingPosition()
+    {
+        auto K = WHITEKING;
+        auto Q = WHITEQUEEN;
+        auto B = WHITEBISHOP;
+        auto N = WHITEKNIGHT;
+        auto R = WHITEROOK;
+        auto P = WHITEPAWN;
+
+        auto k = BLACKKING;
+        auto q = BLACKQUEEN;
+        auto b = BLACKBISHOP;
+        auto n = BLACKKNIGHT;
+        auto r = BLACKROOK;
+        auto p = BLACKPAWN;
+
+        m_defaultStartingPosition.PlacePiece(R, a1);
+        m_defaultStartingPosition.PlacePiece(N, b1);
+        m_defaultStartingPosition.PlacePiece(B, c1);
+        m_defaultStartingPosition.PlacePiece(Q, d1);
+        m_defaultStartingPosition.PlacePiece(K, e1);
+        m_defaultStartingPosition.PlacePiece(B, f1);
+        m_defaultStartingPosition.PlacePiece(N, g1);
+        m_defaultStartingPosition.PlacePiece(R, h1);
+
+        m_defaultStartingPosition.PlacePiece(P, a2);
+        m_defaultStartingPosition.PlacePiece(P, b2);
+        m_defaultStartingPosition.PlacePiece(P, c2);
+        m_defaultStartingPosition.PlacePiece(P, d2);
+        m_defaultStartingPosition.PlacePiece(P, e2);
+        m_defaultStartingPosition.PlacePiece(P, f2);
+        m_defaultStartingPosition.PlacePiece(P, g2);
+        m_defaultStartingPosition.PlacePiece(P, h2);
+
+        m_defaultStartingPosition.PlacePiece(r, a8);
+        m_defaultStartingPosition.PlacePiece(n, b8);
+        m_defaultStartingPosition.PlacePiece(b, c8);
+        m_defaultStartingPosition.PlacePiece(q, d8);
+        m_defaultStartingPosition.PlacePiece(k, e8);
+        m_defaultStartingPosition.PlacePiece(b, f8);
+        m_defaultStartingPosition.PlacePiece(n, g8);
+        m_defaultStartingPosition.PlacePiece(r, h8);
+
+        m_defaultStartingPosition.PlacePiece(p, a7);
+        m_defaultStartingPosition.PlacePiece(p, b7);
+        m_defaultStartingPosition.PlacePiece(p, c7);
+        m_defaultStartingPosition.PlacePiece(p, d7);
+        m_defaultStartingPosition.PlacePiece(p, e7);
+        m_defaultStartingPosition.PlacePiece(p, f7);
+        m_defaultStartingPosition.PlacePiece(p, g7);
+        m_defaultStartingPosition.PlacePiece(p, h7);
+
+        m_defaultStartingPosition.setCastlingState(15);
+    }
+
+    // https://en.wikipedia.org/wiki/The_Game_of_the_Century_(chess)
+    // "Windmill Position from s.k. game of the century between Donald Bryen as White & Bobby Fischer as Black.
+    // Played at the Marshall Chess Club in New York City on October 17th 1956.
+    // At move 17 Fisher begins a windmill and that is where this board is.
+    
+    // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
+    // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
+    // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]
+    // 5 [   ][ q ][   ][   ][   ][   ][ B ][ Q ]
+    // 4 [   ][ P ][   ][ P ][   ][   ][   ][   ]
+    // 3 [   ][   ][   ][   ][ N ][   ][ R ][   ]
+    // 2 [ P ][   ][   ][   ][   ][ P ][ P ][ P ]
+    // 1 [ R ][   ][   ][   ][ R ][   ][ K ][   ]
+    //     A    B    C    D    E    F    G    H
+    // fen: r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1
+    void GameOfTheCentury_WindmillPosition() 
+    {
+        auto K = WHITEKING;
+        auto Q = WHITEQUEEN;
+        auto B = WHITEBISHOP;
+        auto N = WHITEKNIGHT;
+        auto R = WHITEROOK;
+        auto P = WHITEPAWN;
+
+        auto k = BLACKKING;
+        auto q = BLACKQUEEN;
+        auto b = BLACKBISHOP;
+        auto n = BLACKKNIGHT;
+        auto r = BLACKROOK;
+        auto p = BLACKPAWN;
+
+        m_gameOfTheCentury.PlacePiece(r, a8);
+        m_gameOfTheCentury.PlacePiece(r, e8);
+        m_gameOfTheCentury.PlacePiece(n, f8);
+        m_gameOfTheCentury.PlacePiece(k, g8);
+
+        m_gameOfTheCentury.PlacePiece(p, a7);
+        m_gameOfTheCentury.PlacePiece(b, b7);
+        m_gameOfTheCentury.PlacePiece(p, f7);
+        m_gameOfTheCentury.PlacePiece(p, g7);
+
+        m_gameOfTheCentury.PlacePiece(p, d6);
+        m_gameOfTheCentury.PlacePiece(p, e6);
+        m_gameOfTheCentury.PlacePiece(p, h6);
+
+        m_gameOfTheCentury.PlacePiece(q, b5);
+        m_gameOfTheCentury.PlacePiece(B, g5);
+        m_gameOfTheCentury.PlacePiece(Q, h5);
+
+        m_gameOfTheCentury.PlacePiece(P, b4);
+        m_gameOfTheCentury.PlacePiece(P, d4);
+
+        m_gameOfTheCentury.PlacePiece(N, e3);
+        m_gameOfTheCentury.PlacePiece(R, g3);
+
+        m_gameOfTheCentury.PlacePiece(P, a2);
+        m_gameOfTheCentury.PlacePiece(P, f2);
+        m_gameOfTheCentury.PlacePiece(P, g2);
+        m_gameOfTheCentury.PlacePiece(P, h2);
+
+        m_gameOfTheCentury.PlacePiece(R, e1);
+        m_gameOfTheCentury.PlacePiece(K, g1);
+    }
 
 };
 ////////////////////////////////////////////////////////////////
@@ -555,7 +689,47 @@ TEST_F(ChessboardFixture, ZorbistHashing)
 
 TEST_F(ChessboardFixture, Constructor_Copy)
 {
-    Chessboard board;
+    Chessboard copy(m_defaultStartingPosition);
+
+    u64 copyBoardHash = ZorbistHash::Instance().HashBoard(copy);
+    u64 defaultBoardHash = ZorbistHash::Instance().HashBoard(m_defaultStartingPosition);
+
+    EXPECT_EQ(copyBoardHash, defaultBoardHash);
+    EXPECT_EQ(copyBoardHash, copy.readHash());
+    EXPECT_EQ(defaultBoardHash, m_defaultStartingPosition.readHash());
+
+    Chessboard scndCopy(m_gameOfTheCentury);
+    u64 scndCopyHash = ZorbistHash::Instance().HashBoard(scndCopy);
+    u64 goatGame = ZorbistHash::Instance().HashBoard(m_gameOfTheCentury);
+
+    EXPECT_EQ(goatGame, m_gameOfTheCentury.readHash());
+    EXPECT_EQ(scndCopyHash, scndCopy.readHash());
+    EXPECT_EQ(goatGame, scndCopyHash);
+
+    u64 orgMask = m_gameOfTheCentury.GetKingMask(Set::BLACK);
+    u64 cpyMask = scndCopy.GetKingMask(Set::BLACK);
+    EXPECT_EQ(orgMask, cpyMask);
+
+    orgMask = m_gameOfTheCentury.GetKingMask(Set::WHITE);
+    cpyMask = scndCopy.GetKingMask(Set::WHITE);
+    EXPECT_EQ(orgMask, cpyMask);
+    
+    orgMask = m_gameOfTheCentury.GetSlidingMask(Set::BLACK);
+    cpyMask = scndCopy.GetSlidingMask(Set::BLACK);
+    EXPECT_GT(orgMask, 0);
+    EXPECT_EQ(orgMask, cpyMask);
+
+    orgMask = m_gameOfTheCentury.GetSlidingMask(Set::WHITE);
+    cpyMask = scndCopy.GetSlidingMask(Set::WHITE);
+    EXPECT_EQ(orgMask, cpyMask);
+
+    orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::BLACK);
+    cpyMask = scndCopy.GetThreatenedMask(Set::BLACK);
+    EXPECT_EQ(orgMask, cpyMask);
+
+    orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::WHITE);
+    cpyMask = scndCopy.GetThreatenedMask(Set::WHITE);
+    EXPECT_EQ(orgMask, cpyMask);
 }
 
 ////////////////////////////////////////////////////////////////
