@@ -1,6 +1,7 @@
-﻿#include "chessboard.h"
+#include "chessboard.h"
 #include "move.h"
 #include "log.h"
+#include "hash_zorbist.h"
 
 ChessboardTile::ChessboardTile(Notation&& notation) :
 	m_position(std::move(notation))
@@ -18,7 +19,8 @@ ChessboardTile::operator==(const ChessboardTile& rhs) const
 Chessboard::Chessboard() :
 	m_castlingState(0),
 	m_enPassant(Notation()),
-	m_enPassantTarget(Notation())
+	m_enPassantTarget(Notation()),
+	m_hash(0)
 {
 	for (byte r = 0; r < 8; r++)
 	{
@@ -36,14 +38,19 @@ Chessboard::Chessboard() :
 }
 
 bool 
-Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
+Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite)
 {
 	if (!Bitboard::IsValidSquare(target))
 		return false;
 
 	const auto& tsqrPiece = m_tiles[target.index()].readPiece();
 	if (tsqrPiece != ChessPiece())
-		return false; // already a piece on this square
+	{
+		if (overwrite == true)
+			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, tsqrPiece, target);
+		else
+			return false; // already a piece on this square
+	}
 
 	if (piece.getType() == PieceType::KING)
 	{
@@ -53,6 +60,8 @@ Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target)
 
 	m_tiles[target.index()].editPiece() = piece;
 	m_bitboard.PlacePiece(piece, target);
+
+	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
 	return true;
 }
 
@@ -472,6 +481,27 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 
 	return moveVector;
 }
+
+bool Chessboard::setEnPassant(const Notation& notation)
+{
+	u64 newHash = m_hash;
+	if (Notation::Validate(m_enPassant))
+		newHash = ZorbistHash::Instance().HashEnPassant(newHash, m_enPassant);
+
+	newHash = ZorbistHash::Instance().HashEnPassant(newHash, notation);
+	m_enPassant = Notation(notation);
+	m_hash = newHash;
+	return true;
+}
+
+bool Chessboard::setCastlingState(u8 castlingState)
+{
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
+	m_castlingState = castlingState;
+	return true;
+}
+
 
 const ChessboardTile&
 Chessboard::readTile(const Notation& position) const

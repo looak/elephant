@@ -18,21 +18,31 @@
 #include "defines.h"
 
 class Chessboard;
+struct ChessPiece;
+struct Notation;
 
 struct ZorbistHash
-{
+{ 
+    static const ZorbistHash& Instance();
+
+    u64 HashBoard(const Chessboard& board) const;
+    u64 HashPiecePlacement(const u64& oldHash, const ChessPiece& piece, const Notation& position) const;
+    u64 HashEnPassant(const u64& oldHash, const Notation& position) const;
+    u64 HashCastling(const u64& oldHash, const u8 castlingState) const;
+    
+private:
+
+    void GenerateZorbistTable();
     ZorbistHash()
         : initialized(false)
     {
         GenerateZorbistTable();
     }
-
-    u64 HashBoard(const Chessboard& board);
-        
-private:
-    void GenerateZorbistTable();
+    static ZorbistHash instance;
 
     bool initialized;
     u64 table[64][12];
     u64 black_to_move;
+    u64 castling[4];
+    u64 enpassant[8];
 };

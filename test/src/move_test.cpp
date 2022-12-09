@@ -379,7 +379,7 @@ TEST_F(MoveFixture, Black_King_Castle_QueenSide)
 {   
     auto k = BLACKKING;
     auto r = BLACKROOK;
-    m_chessboard.editCastlingState() = 0x08; // black queen side castling available
+    m_chessboard.setCastlingState(0x08); // black queen side castling available
     m_chessboard.PlacePiece(k, e8);
     m_chessboard.PlacePiece(r, a8);
     Move move(e8, c8); // castle
@@ -425,7 +425,7 @@ TEST_F(MoveFixture, Castling)
     auto R = WHITEROOK;
 
     byte expectedCastling = 0xf; // all castling available
-    m_chessboard.editCastlingState() = expectedCastling;
+    m_chessboard.setCastlingState(expectedCastling);
     m_chessboard.PlacePiece(k, e8);
     m_chessboard.PlacePiece(r, a8);
     m_chessboard.PlacePiece(r, h8);

@@ -37,7 +37,7 @@ bool deserializeCastling(const std::string& castlingStr, GameContext& outputCont
         }
     }
 
-    outputContext.editChessboard().editCastlingState() = castlingState;
+    outputContext.editChessboard().setCastlingState(castlingState);
     return true;
 }
 
@@ -112,12 +112,12 @@ bool deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
 
 bool deserializeEnPassant(const std::string& enPassantStr, GameContext& outputContext)
 {
-    outputContext.editChessboard().editEnPassant() = Notation();
+    outputContext.editChessboard().setEnPassant(Notation());
     if (enPassantStr.size() > 1)
     {
         byte file = enPassantStr[0];
         byte rank = (byte)std::atoi(&enPassantStr[1]);
-        outputContext.editChessboard().editEnPassant() = Notation::BuildPosition(file, rank);
+        outputContext.editChessboard().setEnPassant(Notation::BuildPosition(file, rank));
     }
     return true;
 }

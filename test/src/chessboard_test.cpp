@@ -362,7 +362,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     auto r = BLACKROOK;
     auto p = BLACKPAWN;
 
-    board.editCastlingState() = 15;
+    board.setCastlingState(15);
     // setup
     board.PlacePiece(r, a8);
     board.PlacePiece(n, b8);
@@ -423,10 +423,8 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     Chessboard boardOne;
     Chessboard boardTwo;
     
-    ZorbistHash hash;
-
-    u64 oneHash = hash.HashBoard(boardOne);
-    u64 twoHash = hash.HashBoard(boardTwo);
+    u64 oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    u64 twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
 
     EXPECT_EQ(oneHash, twoHash);
         
@@ -436,18 +434,27 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     auto n = BLACKKNIGHT;
     auto r = BLACKROOK;
     auto p = BLACKPAWN;
+    auto R = WHITEROOK;
 
     // board one
-    boardOne.editCastlingState() = 15;
-    
     boardOne.PlacePiece(r, a8);
+    boardTwo.PlacePiece(R, a8);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+
+    EXPECT_NE(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
+
+    // board one    
     boardOne.PlacePiece(n, b8);
     boardOne.PlacePiece(b, c8);
     boardOne.PlacePiece(q, d8);
     boardOne.PlacePiece(k, e8);
     boardOne.PlacePiece(b, f8);
-    boardOne.PlacePiece(n, g8);
-    
+    boardOne.PlacePiece(n, g8);    
 
     boardOne.PlacePiece(p, a7);
     boardOne.PlacePiece(p, b7);
@@ -459,9 +466,7 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     boardOne.PlacePiece(p, h7);
 
     // board Two
-    boardTwo.editCastlingState() = 15;
-
-    boardTwo.PlacePiece(r, a8);
+    boardTwo.PlacePiece(r, a8, true);
     boardTwo.PlacePiece(n, b8);
     boardTwo.PlacePiece(b, c8);
     boardTwo.PlacePiece(q, d8);
@@ -470,27 +475,80 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     boardTwo.PlacePiece(n, g8);
     boardTwo.PlacePiece(r, h8);
 
-    boardTwo.PlacePiece(p, a7);
-    boardTwo.PlacePiece(p, b7);
-    boardTwo.PlacePiece(p, c7);
-    boardTwo.PlacePiece(p, d7);
-    boardTwo.PlacePiece(p, e7);
-    boardTwo.PlacePiece(p, f7);
-    boardTwo.PlacePiece(p, g7);
     boardTwo.PlacePiece(p, h7);
+    boardTwo.PlacePiece(p, g7);
+    boardTwo.PlacePiece(p, f7);
+    boardTwo.PlacePiece(p, e7);
+    boardTwo.PlacePiece(p, d7);
+    boardTwo.PlacePiece(p, c7);
+    boardTwo.PlacePiece(p, b7);
+    boardTwo.PlacePiece(p, a7);
 
-    oneHash = hash.HashBoard(boardOne);
-    twoHash = hash.HashBoard(boardTwo);
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
 
     EXPECT_NE(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
 
     boardOne.PlacePiece(r, h8);
 
-    oneHash = hash.HashBoard(boardOne);
-    twoHash = hash.HashBoard(boardTwo);
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
 
     EXPECT_EQ(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
 
+    boardTwo.setCastlingState(12);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+
+    EXPECT_NE(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
+
+    boardOne.setCastlingState(12);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+
+    EXPECT_EQ(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
+
+    boardOne.setEnPassant(c7);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+
+    EXPECT_NE(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
+    
+    boardTwo.setEnPassant(c7);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
+    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+
+    EXPECT_EQ(oneHash, twoHash);
+    EXPECT_EQ(boardTwo.readHash(), twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
+
+    boardOne.setEnPassant(e4);
+
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);    
+
+    EXPECT_NE(oneHash, twoHash);
+    EXPECT_EQ(boardOne.readHash(), oneHash);
+    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
 }
 
 ////////////////////////////////////////////////////////////////

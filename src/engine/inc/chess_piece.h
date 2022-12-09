@@ -72,6 +72,7 @@ public:
 	Set getSet() const 	{ return static_cast<Set>(m_internalState >> 7); }
 	byte type() const		{ return m_internalState & 0x07; }
 	byte set() const 		{ return m_internalState >> 7; }
+	byte index() const		{ return type() - 1; }
 
 	bool isValid() const { return type() > 0; }
 	bool isSliding() const { return ChessPieceDef::Slides(type()); }

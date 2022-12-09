@@ -1,4 +1,4 @@
-﻿// Elephant Gambit Chess Engine - a Chess AI
+// Elephant Gambit Chess Engine - a Chess AI
 // Copyright(C) 2021  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
@@ -52,7 +52,9 @@ public:
 	Chessboard();
 	~Chessboard() = default;
 
-	bool PlacePiece(const ChessPiece& piece, const Notation& target);
+	// Chesboard(const Chessboard& other);
+
+	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
 	bool MakeMove(Move& move);
 	bool UnmakeMove(const Move& move);
 	bool Checked(Set set) const;
@@ -65,10 +67,13 @@ public:
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
 
-	Notation& editEnPassant() { return m_enPassant; }
+	bool setEnPassant(const Notation& notation);
+	bool setCastlingState(u8 castlingState);
+
 	const Notation& readEnPassant() const { return m_enPassant; }
-	byte& editCastlingState() { return m_castlingState; }
 	byte readCastlingState() const { return m_castlingState; }
+
+	u64 readHash() const { return m_hash; }
 
 	template<typename T, bool isConst = false>
 	class ChessboardIterator
@@ -139,6 +144,7 @@ private:
 	bool IsCheck(const Move& move) const;
 	bool VerifyMove(const Move& move) const;
 
+	u64 m_hash;
 	std::array<ChessboardTile, 64> m_tiles;
 	Bitboard m_bitboard;
 
