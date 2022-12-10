@@ -379,6 +379,14 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
     return ret;
 }
 
+u64 Bitboard::GetThreatenedSquaresWithMaterial(const Notation& source, const ChessPiece& piece) const
+{
+    u64 retValue = GetThreatenedSquares(source, piece);
+    u64 mask = UINT64_C(1) << source.index();
+    return retValue | mask;
+}
+
+
 u64 Bitboard::GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const
 {
     u64 ret = ~universe;

@@ -37,6 +37,7 @@ public:
 	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
 	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece) const;
 	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
+	u64 GetThreatenedSquaresWithMaterial(const Notation& source, const ChessPiece& piece) const;
 	u64 GetAttackedSquares(Set set);
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
