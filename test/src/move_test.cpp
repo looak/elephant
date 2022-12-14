@@ -86,7 +86,7 @@ TEST_F(MoveFixture, PawnMoves_enpassant_white)
     // do
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
-    EXPECT_EQ(MoveFlag::EnPassant, MoveFlag::EnPassant & move.Flags);
+    EXPECT_NE(MoveFlag::EnPassant, MoveFlag::EnPassant & move.Flags);
     
     // verify
     ChessPiece exp; // default, "empty" piece
@@ -107,7 +107,7 @@ TEST_F(MoveFixture, PawnMoves_enpassant_black)
     // do
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
-    EXPECT_EQ(MoveFlag::EnPassant, MoveFlag::EnPassant & move.Flags);
+    EXPECT_NE(MoveFlag::EnPassant, MoveFlag::EnPassant & move.Flags);
     
     // verify
     ChessPiece exp; // default, "empty" piece
@@ -205,7 +205,7 @@ TEST_F(MoveFixture, EnPassant_Captured)
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
     EXPECT_EQ(P, move.Piece);
-    EXPECT_EQ(MoveFlag::EnPassant, move.Flags);
+    EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
 
     EXPECT_EQ(e3, m_chessboard.readEnPassant());
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
@@ -216,7 +216,8 @@ TEST_F(MoveFixture, EnPassant_Captured)
     result = m_chessboard.MakeMove(epCapture);
     EXPECT_TRUE(result);
     EXPECT_EQ(p, epCapture.Piece);
-    EXPECT_EQ(MoveFlag::Capture, epCapture.Flags);
+    EXPECT_EQ(MoveFlag::Capture, epCapture.Flags & MoveFlag::Capture);
+    EXPECT_EQ(MoveFlag::EnPassant, epCapture.Flags & MoveFlag::EnPassant);
 
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
@@ -247,7 +248,7 @@ TEST_F(MoveFixture, EnPassant_Ignored_ResetFlag)
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
     EXPECT_EQ(P, move.Piece);
-    EXPECT_EQ(MoveFlag::EnPassant, move.Flags);
+    EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
 
     EXPECT_EQ(e3, m_chessboard.readEnPassant());
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
@@ -469,6 +470,132 @@ TEST_F(MoveFixture, Castling)
     EXPECT_EQ(expectedCastling, m_chessboard.readCastlingState());
     EXPECT_EQ(k, m_chessboard.readTile(g8).readPiece());
     EXPECT_EQ(r, m_chessboard.readTile(f8).readPiece());
+}
+
+// 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+// 7 [ p ][ p ][ p ][   ][ p ][ p ][ p ][ p ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][ p ][ P ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [ P ][ P ][   ][   ][ P ][ P ][ P ][ P ]
+// 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+//     A    B    C    D    E    F    G    H
+// 1.d4 d5 2.c4 dxc4
+TEST_F(MoveFixture, BuildMoveSequence_QueensGambitAccepted)
+{
+    std::string movePNG = "1.d4 d5 2.c4 dxc4";
+
+    std::vector<Move> moves;
+    Move::ParsePNG(movePNG, moves);
+}
+
+// https://en.wikipedia.org/wiki/Portable_Game_Notation
+// 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}
+// 4. Ba4 Nf6 5. O - O Be7
+TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky)
+{
+    std::string movePNG = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6";
+    std::vector<Move> moves;
+    Move::ParsePNG(movePNG, moves);
+
+    EXPECT_EQ(moves.size(), 8);
+
+    {
+        const int index = 0;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEPAWN, mv.Piece);
+        EXPECT_EQ(e4, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(nullptr, mv.PrevMove);
+    }
+
+    {
+        const int index = 1;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKPAWN, mv.Piece);
+        EXPECT_EQ(e5, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+    {
+        const int index = 2;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEKNIGHT, mv.Piece);
+        EXPECT_EQ(f3, mv.TargetSquare);
+        EXPECT_EQ(&moves[index+1], mv.NextMove);
+        EXPECT_EQ(&moves[index-1], mv.PrevMove);
+    }
+
+    {
+        const int index = 3;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKKNIGHT, mv.Piece);
+        EXPECT_EQ(c6, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+    {
+        const int index = 4;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEBISHOP, mv.Piece);
+        EXPECT_EQ(b5, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+    {
+        const int index = 5;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKPAWN, mv.Piece);
+        EXPECT_EQ(a6, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+    {
+        const int index = 6;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEBISHOP, mv.Piece);
+        EXPECT_EQ(a4, mv.TargetSquare);
+        EXPECT_EQ(&moves[index + 1], mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+    {
+        const int index = 7;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKKNIGHT, mv.Piece);
+        EXPECT_EQ(f6, mv.TargetSquare);
+        EXPECT_EQ(nullptr, mv.NextMove);
+        EXPECT_EQ(&moves[index - 1], mv.PrevMove);
+    }
+
+}
+TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
+{
+    std::string movePNG = "1. e4 { This is a comment. } e5 2. O - O - O O - O 3. Bxb5 a6{ This opening is called the Ruy Lopez. } 4. Ba4+ Nf6 5. O - O Be7 6. de5 Bxe5+";
+    std::vector<Move> moves;
+    auto comments = Move::ParsePNG(movePNG, moves);
+
+    EXPECT_EQ(2, comments.size());
+    EXPECT_EQ(12, moves.size());
+    EXPECT_EQ(MoveFlag::Castle, moves[2].Flags & MoveFlag::Castle);
+    EXPECT_EQ(MoveFlag::Castle, moves[3].Flags & MoveFlag::Castle);
+    EXPECT_EQ(MoveFlag::Castle, moves[8].Flags & MoveFlag::Castle);
+    EXPECT_EQ(MoveFlag::Castle, moves[3].Flags & MoveFlag::Castle);
+
+
+    EXPECT_EQ(MoveFlag::Capture, moves[4].Flags & MoveFlag::Capture);
+    EXPECT_EQ(MoveFlag::Capture, moves[10].Flags & MoveFlag::Capture);
+    EXPECT_EQ(MoveFlag::Capture, moves[11].Flags & MoveFlag::Capture);
+
+    EXPECT_EQ(MoveFlag::Check, moves[6].Flags & MoveFlag::Check);
+    EXPECT_EQ(MoveFlag::Check, moves[11].Flags & MoveFlag::Check);
+
+    EXPECT_EQ(WHITEPAWN, moves[10].Piece);
 }
 
 }
