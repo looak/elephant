@@ -37,6 +37,8 @@ public:
 
     Set readToPlay() const { return m_toPlay; }
     Set& editToPlay() { return m_toPlay; }
+
+    void PlayMoves(const Move& move);
     
 private:
     Chessboard m_board;

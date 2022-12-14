@@ -27,5 +27,6 @@ ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/log.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
+${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/hash_zorbist.cpp)
 

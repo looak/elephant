@@ -5,6 +5,17 @@ namespace ElephantTest
 { 
     bool PrintBoard(const Chessboard& board);
 
+    // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+    // 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
+    // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+    // 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
+    // 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+    //     A    B    C    D    E    F    G    H
+    // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+    void SetupDefaultStartingPosition(Chessboard& board);
 
     #define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
     #define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)

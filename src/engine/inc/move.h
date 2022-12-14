@@ -17,6 +17,7 @@
 #include "defines.h"
 #include "chess_piece.h"
 #include "notation.h"
+#include <vector>
 
 enum class MoveFlag : byte
 {
@@ -51,10 +52,13 @@ inline MoveFlag& operator|=(MoveFlag& a, MoveFlag b)
 struct Move
 {
 public:
+    Move();
     Move(const Notation& source, const Notation& target);
     Move(const Move& other);
 
     Move& operator=(const Move& other);
+
+    static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
 
     Notation TargetSquare;
     Notation SourceSquare;
@@ -71,3 +75,4 @@ public:
     unsigned short NextMoveCount;
     Move* NextMove;
 };
+

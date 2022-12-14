@@ -36,7 +36,8 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
 {
     auto P = WHITEPAWN;    
     m_chessboard.PlacePiece(P, e2);
-    
+    u64 orgHash = m_chessboard.readHash();
+
     {
         Move move(e2, e3);
 
@@ -51,6 +52,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
         EXPECT_EQ(Notation(), m_chessboard.readEnPassant());
         EXPECT_EQ(P, m_chessboard.readTile(e3).readPiece());
         EXPECT_EQ(ChessPiece(), m_chessboard.readTile(e2).readPiece());
+        EXPECT_NE(orgHash, m_chessboard.readHash());
 
         // unmake move    
         result = m_chessboard.UnmakeMove(move);
@@ -60,6 +62,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
         EXPECT_EQ(ChessPiece(), m_chessboard.readTile(e3).readPiece());
         EXPECT_EQ(P, m_chessboard.readTile(e2).readPiece());
         EXPECT_EQ(Notation(), m_chessboard.readEnPassant());
+        EXPECT_EQ(orgHash, m_chessboard.readHash());
     }
 
     {
@@ -70,12 +73,12 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
 
         // verify
         EXPECT_TRUE(result);
-        EXPECT_EQ(P, move.Piece);
-        EXPECT_EQ(MoveFlag::EnPassant, move.Flags);
+        EXPECT_EQ(P, move.Piece);        
 
         EXPECT_EQ(e3, m_chessboard.readEnPassant());
         EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
         EXPECT_EQ(ChessPiece(), m_chessboard.readTile(e2).readPiece());
+        EXPECT_NE(orgHash, m_chessboard.readHash());
 
         // unmake move    
         result = m_chessboard.UnmakeMove(move);
@@ -85,6 +88,8 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
         EXPECT_EQ(ChessPiece(), m_chessboard.readTile(e4).readPiece());
         EXPECT_EQ(P, m_chessboard.readTile(e2).readPiece());
         EXPECT_EQ(Notation(), m_chessboard.readEnPassant());
+        EXPECT_EQ(orgHash, m_chessboard.readHash());
+
     }
 }
 
@@ -103,21 +108,15 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves_ScandinavianDefense)
     auto P = WHITEPAWN;
     auto p = BLACKPAWN;
     m_chessboard.PlacePiece(P, e2);
-    m_chessboard.PlacePiece(P, d2);
     m_chessboard.PlacePiece(p, d7);
     Move mve4(e2, e4);
-    Move mvd4(d7, d5);
-    Move mvd3(d2, d3);
-    Move dxe4(d5, e4);
-    Move dxe4b(d3, e4);
-
-    // do e4
+    Move mvd5(d7, d5);
+    Move mvexd5(e4, d5);
+    
+    // do move sequence
     m_chessboard.MakeMove(mve4);
-    m_chessboard.MakeMove(mvd4);
-    m_chessboard.MakeMove(mvd3);
-    m_chessboard.MakeMove(dxe4);
-    m_chessboard.MakeMove(dxe4b);   
-
+    m_chessboard.MakeMove(mvd5);
+    m_chessboard.MakeMove(mvexd5);
 }
 ////////////////////////////////////////////////////////////////
 

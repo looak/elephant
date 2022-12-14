@@ -616,6 +616,45 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing)
 
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][ b ][   ][   ][   ][ n ][ r ][ N ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][ P ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
+{
+    // setup
+    testContext.editToPlay() = Set::WHITE;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKBISHOP, b6);
+    board.PlacePiece(BLACKROOK, g6);
+    board.PlacePiece(BLACKKNIGHT, f6);
+    board.PlacePiece(WHITEKNIGHT, h6);
+    board.PlacePiece(WHITEPAWN, g2);
+    board.PlacePiece(WHITEKING, g1);
+
+    // do
+    bool result = board.Checked(Set::WHITE);
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // verify
+    EXPECT_TRUE(result);
+    auto count = moveGenerator.CountMoves(moves);
+    EXPECT_EQ(3, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][ b ][   ][   ][   ][   ][ r ][   ]
 // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 4 [   ][   ][   ][   ][   ][   ][   ][   ]

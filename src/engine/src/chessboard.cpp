@@ -119,6 +119,9 @@ Chessboard::InternalHandlePawnMove(Move& move)
 	// compare target square with en passant - if this is equal we build a "offset target" where the pawn should be.
 	if (pieceTarget == m_enPassant)
 	{
+		// since our move was the same as the enPassant we're capturing this piece in enpassant
+		move.Flags |= MoveFlag::EnPassant;
+
 		pieceTarget = Notation(m_enPassantTarget);
 		if (m_tiles[pieceTarget.index()].readPiece().getType() != PieceType::PAWN)
 			LOG_ERROR() << "No Pawn in expected EnPassant target square!";
@@ -128,10 +131,7 @@ Chessboard::InternalHandlePawnMove(Move& move)
 	m_enPassant = Notation();
 	m_enPassantTarget = Notation();
 
-	if (UpdateEnPassant(move.SourceSquare, move.TargetSquare))
-	{
-		move.Flags |= MoveFlag::EnPassant;
-	}
+	UpdateEnPassant(move.SourceSquare, move.TargetSquare);
 
 	if (IsPromoting(move))
 	{ // edit the source tile piece, since we're using this when we do our internal move.
@@ -271,6 +271,27 @@ Chessboard::UnmakeMove(const Move& move)
 	m_bitboard.PlacePiece(move.Piece, move.SourceSquare);
 
 	return true;
+}
+
+Move
+Chessboard::MakeMove(const Move& move)
+{
+	// figure out the source of this move.	
+	for (auto& tile : m_tiles)
+	{
+		if (move.Piece == tile.readPiece())
+		{
+			u64 availableMoves = m_bitboard.GetAvailableMoves(tile.readPosition(), move.Piece, m_castlingState, m_enPassant.index());
+			u64 targetMask = UINT64_C(1) << move.TargetSquare.index();
+
+			if (availableMoves & targetMask)
+			{
+				Move actualMove(tile.readPosition(), move.TargetSquare);
+				MakeMove(actualMove);
+				return actualMove;
+			}
+		}
+	}
 }
 
 bool 
@@ -466,6 +487,8 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 				move.Flags = MoveFlag::Zero;
 				move.Piece = piece;
 
+				// I don't think I need to check if we're in check here since I'll be doing the move and unmaking it again to verify
+				// this on the board.
 				if (IsCheck(move))
 					move.Flags |= MoveFlag::Check;
 

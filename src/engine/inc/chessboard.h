@@ -57,6 +57,7 @@ public:
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
 	bool MakeMove(Move& move);
+	Move MakeMove(const Move& move);
 	bool UnmakeMove(const Move& move);
 	bool Checked(Set set) const;
 

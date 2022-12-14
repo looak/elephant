@@ -74,6 +74,8 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 
     u64 kingMask = board.GetKingMask(currentSet);
 
+    auto boardCopy = context.copyChessboard();
+
     auto&& itr = board.begin();
     while (itr != board.end())
     {       
@@ -92,7 +94,16 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
             // }
 
             auto moves = board.GetAvailableMoves(pos, piece, threatCopy, isPinnedOrChecked, kingMask);
-            retMoves.insert(retMoves.end(), moves.begin(), moves.end());
+            
+            for (auto mv : moves)
+            {
+                boardCopy.MakeMove(mv);
+                if (!boardCopy.Checked(currentSet))
+                    retMoves.push_back(mv);
+                boardCopy.UnmakeMove(mv);
+            }
+
+            //retMoves.insert(retMoves.end(), moves.begin(), moves.end());
         }
 
         ++itr;
