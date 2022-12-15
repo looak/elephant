@@ -107,7 +107,8 @@ public:
 		ChessboardIterator operator++(int);
 		ChessboardIterator& operator+=(int incre);
 
-		reference operator*() const { return m_chessboard.get(m_position); }
+		reference operator*() const { return get(); }
+		reference get() const { return m_chessboard.get(m_position); }
 
 		bool end() const;
 		byte file() const { return m_position.file; }

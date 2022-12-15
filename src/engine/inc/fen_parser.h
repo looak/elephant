@@ -25,5 +25,5 @@ class FENParser
 {
 public:
     static bool deserialize(const char* input, GameContext& outputContext);
-    static bool serialize(const GameContext& inputContext, std::string fen);
+    static bool serialize(const GameContext& inputContext, std::string& resultFen);
 };

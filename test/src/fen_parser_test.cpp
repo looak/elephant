@@ -125,8 +125,8 @@ TEST_F(FenParserFixture, StartingPosition)
 // At this position, in game 6 Nepomniachtchi resigned.
 TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 {
-    std::string startingPositionFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
-    bool result = FENParser::deserialize(startingPositionFen.c_str(), testContext);
+    std::string gameSixFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
+    bool result = FENParser::deserialize(gameSixFen.c_str(), testContext);
     EXPECT_TRUE(result);
     PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, testContext.readPly());
@@ -154,6 +154,12 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
         ++expitr;
         ++resitr;
     }
+
+    // round trip
+    std::string output;
+    FENParser::serialize(testContext, output);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(gameSixFen, output);
 }
 
 TEST_F(FenParserFixture, PerftPositionThree)

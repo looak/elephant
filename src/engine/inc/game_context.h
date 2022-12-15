@@ -22,7 +22,7 @@ public:
     GameContext() :
         m_toPlay(Set::WHITE),
         m_plyCount(0),
-        m_moveCount(0)
+        m_moveCount(1)
     {}
 
     const Chessboard& readChessboard() const { return m_board; }

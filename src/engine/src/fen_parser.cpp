@@ -170,7 +170,98 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
     return true;
 }
 
-bool FENParser::serialize(const GameContext& inputContext, std::string fen)
+bool FENParser::serialize(const GameContext& inputContext, std::string& resultFen)
 {
+    const auto& board = inputContext.readChessboard();
+    auto itr = board.begin();
+
+    std::vector<std::string> ranks;
+    byte rank = itr.rank();
+    std::string strngBuilder;
+    int emptyFiles = 0;
+    while (itr != board.end())
+    {
+        if ((*itr).readPiece().isValid())
+        {
+            if (emptyFiles > 0)
+            {
+                strngBuilder += std::to_string(emptyFiles);
+                emptyFiles = 0;
+            }
+
+            strngBuilder += itr.get().readPiece().toString();
+        }
+        else
+        {
+            emptyFiles++;
+        }
+
+        itr++;
+
+        if (rank != itr.rank())
+        {
+            if (emptyFiles > 0)
+            {
+                strngBuilder += std::to_string(emptyFiles);
+                emptyFiles = 0;
+            }
+
+            rank = itr.rank();
+            ranks.push_back(strngBuilder);
+            strngBuilder.clear();
+        }
+    }
+
+    auto rankItr = ranks.rbegin();
+    strngBuilder.clear();
+    while (true)
+    {
+        strngBuilder += (*rankItr);
+        rankItr++;
+
+        if (rankItr != ranks.rend())
+            strngBuilder += '/';
+        else
+            break;
+    }
+
+    resultFen = strngBuilder;
+
+    // set to move
+    if (inputContext.readToPlay() == Set::WHITE)
+        resultFen += " w";
+    else
+        resultFen += " b";
+
+    resultFen += ' ';
+
+    if (board.readCastlingState() > 0)
+    {
+        if (board.readCastlingState() & 1)
+            resultFen += "K";
+        if (board.readCastlingState() & 2)
+            resultFen += "Q";
+        if (board.readCastlingState() & 4)
+            resultFen += "k";
+        if (board.readCastlingState() & 8)
+            resultFen += "q";
+    }
+    else
+    {
+        resultFen += '-';
+    }
+
+    resultFen += ' ';
+
+    if (Notation::Validate(board.readEnPassant()))
+        resultFen += Notation::toString(board.readEnPassant());
+    else
+        resultFen += '-';
+
+    resultFen += ' ';
+
+    resultFen += std::to_string(inputContext.readPly()) + " ";
+    resultFen += std::to_string(inputContext.readMoveCount());
+
     return true;
 }
