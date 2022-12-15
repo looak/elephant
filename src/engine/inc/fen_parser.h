@@ -17,6 +17,7 @@
 // This is all based on the Forsyth–Edwards Notation standard for chess
 // board positions. https://en.wikipedia.org/wiki/Forsyth-Edwards_Notation
 #pragma once
+#include <string>
 
 class GameContext;
 
@@ -24,4 +25,5 @@ class FENParser
 {
 public:
     static bool deserialize(const char* input, GameContext& outputContext);
+    static bool serialize(const GameContext& inputContext, std::string fen);
 };

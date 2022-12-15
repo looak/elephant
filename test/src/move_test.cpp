@@ -576,7 +576,7 @@ TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky)
 }
 TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
 {
-    std::string movePNG = "1. e4 { This is a comment. } e5 2. O - O - O O - O 3. Bxb5 a6{ This opening is called the Ruy Lopez. } 4. Ba4+ Nf6 5. O - O Be7 6. de5 Bxe5+";
+    std::string movePNG = "1. e4 { This is a comment. }e5 2. O-O-O O-O 3. Bxb5 a6{ This opening is called the Ruy Lopez. } 4. Ba4+ Nf6 5. O-O Be7 6. de5 Bxe5+";
     std::vector<Move> moves;
     auto comments = Move::ParsePNG(movePNG, moves);
 
@@ -596,6 +596,107 @@ TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
     EXPECT_EQ(MoveFlag::Check, moves[11].Flags & MoveFlag::Check);
 
     EXPECT_EQ(WHITEPAWN, moves[10].Piece);
+}
+
+TEST_F(MoveFixture, BuildMoveSequence_DisambiguatingMoves)
+{
+    std::string movePNG = "9. h3 R1a3 10. d4 Nbd7 23. Rae8 Ne5 24. Qh4e1 25. e1 e2 26. Ra1xa2+ e2";
+    std::vector<Move> moves;
+    Move::ParsePNG(movePNG, moves);
+
+    { // h3
+        const int index = 0;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEPAWN, mv.Piece);
+        EXPECT_EQ(h3, mv.TargetSquare);        
+    }
+
+    { // R1a3
+        const int index = 1;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKROOK, mv.Piece);
+        EXPECT_EQ(a3, mv.TargetSquare);
+        EXPECT_EQ(Notation(9, 0), mv.SourceSquare);
+    }
+
+    { // d4
+        const int index = 2;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEPAWN, mv.Piece);
+        EXPECT_EQ(d4, mv.TargetSquare);        
+    }
+
+    { // Nbd7
+        const int index = 3;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKKNIGHT, mv.Piece);
+        EXPECT_EQ(d7, mv.TargetSquare);
+        EXPECT_EQ(Notation(1, 9), mv.SourceSquare);
+    }
+
+    { // Rae8
+        const int index = 4;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEROOK, mv.Piece);
+        EXPECT_EQ(e8, mv.TargetSquare);
+        EXPECT_EQ(Notation(0, 9), mv.SourceSquare);
+    }
+
+    { // Ne5
+        const int index = 5;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKKNIGHT, mv.Piece);
+        EXPECT_EQ(e5, mv.TargetSquare);
+    }
+
+    { // Qh4e1
+        const int index = 6;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEQUEEN, mv.Piece);
+        EXPECT_EQ(e1, mv.TargetSquare);
+        EXPECT_EQ(h4, mv.SourceSquare);
+    }
+
+    { // e1
+        const int index = 7;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEPAWN, mv.Piece);
+        EXPECT_EQ(e1, mv.TargetSquare);
+    }
+
+    { // e2
+        const int index = 8;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKPAWN, mv.Piece);
+        EXPECT_EQ(e2, mv.TargetSquare);
+    }
+
+    { // Ra1xa2+
+        const int index = 9;
+        const auto& mv = moves[index];
+        EXPECT_EQ(WHITEROOK, mv.Piece);
+        EXPECT_EQ(a2, mv.TargetSquare);
+        EXPECT_EQ(a1, mv.SourceSquare);
+
+        EXPECT_EQ(MoveFlag::Check, moves[index].Flags & MoveFlag::Check);
+        EXPECT_EQ(MoveFlag::Capture, moves[index].Flags & MoveFlag::Capture);
+
+    }
+
+    { // e2
+        const int index = 10;
+        const auto& mv = moves[index];
+        EXPECT_EQ(BLACKPAWN, mv.Piece);
+        EXPECT_EQ(e2, mv.TargetSquare);
+    }
+
+}
+
+TEST_F(MoveFixture, BuildMoveSequence_PawnPromotion)
+{
+    std::string movePNG = "9. e8=Q";
+    std::vector<Move> moves;
+    Move::ParsePNG(movePNG, moves);
 }
 
 }

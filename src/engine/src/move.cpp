@@ -1,4 +1,6 @@
 #include "move.h"
+
+#include <sstream>
 #include <list>
 
 Move::Move(const Notation& source, const Notation& target) :
@@ -78,7 +80,7 @@ void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhi
         mv.Piece = ChessPiece(isWhite ? Set::WHITE : Set::BLACK, PieceType::KING);
         mv.Flags |= MoveFlag::Castle;
         byte rank = isWhite ? 0 : 7;
-        byte file = o_counter == 3 ? 0 : 7; // o_counter == 3 means queen side castling
+        byte file = o_counter == 3 ? 1 : 6; // o_counter == 3 means queen side castling
         mv.TargetSquare = Notation(file, rank);
     }
     else
@@ -96,6 +98,16 @@ void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhi
             mv.Piece = ChessPiece(isWhite ? Set::WHITE : Set::BLACK, PieceType::PAWN);
         }
     }
+}
+
+Notation ReadWholeNotation(const std::string& moveStr, size_t& cursor)
+{
+    byte file = moveStr.at(cursor);
+    byte rank = moveStr.at(cursor + 1);
+   
+    file = file - 'a';
+    rank = rank - '1';
+    return Notation(file, rank);
 }
 
 void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
@@ -117,37 +129,58 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
         character = moveStr.at(cursor);
     }
 
-    byte srcFile = 0;
-    byte file = character - 'a';
-    cursor++;
-    character = moveStr.at(cursor);
-
-    // two lower case non-digit characters in a row are a indication of a pawn capture.
-    // i.e. 1. de4 -> Pawn move from d3 to e4.(or d5 to e4 in case we're a black pawn).
-    bool isPawnCapture = std::isdigit(character) == false;
-    if (isPawnCapture && mv.Piece.getType() == PieceType::PAWN)
+    bool readPosition = false;
+    // when moves need more information to distinguish them, there might be additional characters
+    // at this portion, examples; 1) Rdf8, 2) R1a3, 3) Qh4e1
+    if (isdigit(character))
+    { 
+        byte rank = character - '1';
+        mv.SourceSquare = Notation(9, rank);
+        cursor++;
+    }
+    else
     {
-        srcFile = file;
-        file = character - 'a';
+        // verify if next two are a whole notation or only file.
+        byte scnd = moveStr.at(cursor+1);
+        if (isdigit(scnd))
+        {
+            mv.TargetSquare = ReadWholeNotation(moveStr, cursor);
+            cursor++;
+            readPosition = true;
+        }
+        else
+        {
+            byte file = character - 'a';
+            mv.SourceSquare = Notation(file, 9);
+            // we're a pawn capture if we have two files in a row and our piece is a pwan.
+            // since pawns can only move between files when capturing
+            if (mv.Piece.getType() == PieceType::PAWN)
+                mv.Flags |= MoveFlag::Capture;
+        }
+        cursor++;
+    }
+
+    if (cursor >= moveStr.length())
+        return;
+
+    character = moveStr.at(cursor);
+    // there might be a capture indicator here too
+    if (character == 'x') // we're looking at a capture
+    {
         mv.Flags |= MoveFlag::Capture;
         cursor++;
-
         character = moveStr.at(cursor);
     }
-    // preferably I wouldn't need this check again, but since the pawn code will move the cursor
-    // forward, I need to verify that it's a digit.
-    if (std::isdigit(character) == false)
-    {
-        LOG_ERROR() << "Parsing PNG is not a digit?";
-    }
-                    
-    byte rank = character - '1';
+    if (islower(character))
+    {        
+        auto target = ReadWholeNotation(moveStr, cursor);
+        cursor += 2;
 
-    mv.TargetSquare = Notation(file, rank);
-    if (isPawnCapture) // we're only building a source square if we're a pawn capture.
-        mv.SourceSquare = Notation(srcFile, rank + (isWhite ? -1 : 1));
+        if (readPosition)
+            mv.SourceSquare = mv.TargetSquare;        
+        mv.TargetSquare = target;
 
-    cursor++;
+    }    
 
     // read any checks or checkmate indications
     if (cursor < moveStr.length())
@@ -164,6 +197,19 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
             cursor++;
         }
     }
+}
+
+std::string trim(const std::string& str,
+    const std::string& whitespace = " \t")
+{
+    const auto strBegin = str.find_first_not_of(whitespace);
+    if (strBegin == std::string::npos)
+        return ""; // no content
+
+    const auto strEnd = str.find_last_not_of(whitespace);
+    const auto strRange = strEnd - strBegin + 1;
+
+    return str.substr(strBegin, strRange);
 }
 
 std::vector<std::string> 
@@ -196,8 +242,7 @@ Move::ParsePNG(std::string png, std::vector<Move>& ret)
             endPos--;
 
         token = png.substr(cursor, endPos - cursor);
-        token.erase(remove(token.begin(), token.end(), ' '), token.end());
-        tokens.push_back(token);
+        tokens.push_back(trim(token));
         cursor = endPos;
         endPos = png.find('.', orgEnd);
     }
@@ -205,24 +250,37 @@ Move::ParsePNG(std::string png, std::vector<Move>& ret)
     if (endPos == std::string::npos)
     {
         token = png.substr(cursor, png.size() - cursor);
-        token.erase(remove(token.begin(), token.end(), ' '), token.end());
-        tokens.push_back(token);
+        tokens.push_back(trim(token));
     }
 
     for (auto moveStr : tokens)
     {
+        // split token 
+        std::istringstream ssboard(moveStr);
+        std::vector<std::string> notations;
+        std::string notation;
+        while (std::getline(ssboard, notation, ' '))
+        {
+            notation.erase(remove(notation.begin(), notation.end(), ' '), notation.end());
+            notations.push_back(notation);
+        }
+
         auto& whiteMv = ret.emplace_back();
         bool isWhite = true;
-        cursor = moveStr.find('.');
-        cursor++;
 
-        ParsePiece(moveStr, cursor, whiteMv, isWhite);
-        ParseFileAndRank(moveStr, cursor, whiteMv, isWhite);
+        // white move
+        size_t cursor = 0;
+        ParsePiece(notations[1], cursor, whiteMv, isWhite);
+        ParseFileAndRank(notations[1], cursor, whiteMv, isWhite);
 
-        auto& blackMv = ret.emplace_back();
-        isWhite = false;
-        ParsePiece(moveStr, cursor, blackMv, isWhite);
-        ParseFileAndRank(moveStr, cursor, blackMv, isWhite);
+        if (notations.size() > 2)
+        {
+            auto& blackMv = ret.emplace_back();
+            isWhite = false;
+            cursor = 0;
+            ParsePiece(notations[2], cursor, blackMv, isWhite);
+            ParseFileAndRank(notations[2], cursor, blackMv, isWhite);
+        }
     }
 
     // fixup pointers

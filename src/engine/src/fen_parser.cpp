@@ -169,3 +169,8 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
 
     return true;
 }
+
+bool FENParser::serialize(const GameContext& inputContext, std::string fen)
+{
+    return true;
+}

@@ -171,6 +171,18 @@ TEST_F(FenParserFixture, PerftPositionThree)
 
 }
 
+TEST_F(FenParserFixture, SerializeDefaultPosition)
+{    
+    GameContext context;
+    SetupDefaultStartingPosition(context.editChessboard());
+    std::string output;
+    bool result = FENParser::serialize(context, output);
+
+    const std::string expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    EXPECT_TRUE(result);
+    EXPECT_EQ(expected, output);
+}
+
 ////////////////////////////////////////////////////////////////
 
 } // namespace ElephantTest

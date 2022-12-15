@@ -41,12 +41,12 @@ Notation& Notation::operator=(Notation&& other)
 	return *this;
 }
 
-//Notation& Notation::operator=(const Notation& other)
-//{
-//	file = other.file;
-//	rank = other.rank;
-//	return *this;
-//}
+Notation& Notation::operator=(const Notation& other)
+{
+	file = other.file;
+	rank = other.rank;
+	return *this;
+}
 
 bool Notation::operator==(const Notation& rhs) const
 {

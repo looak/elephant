@@ -588,6 +588,56 @@ TEST_F(BitboardFixture, White_Bishop_Move_c5_blocked)
     EXPECT_EQ(expected, result);
 }
 
+// 8 [ . ][ . ][ x ][ . ][ . ][ x ][ . ][ . ]
+// 7 [ x ][ . ][ x ][ . ][ x ][ . ][ . ][ . ]
+// 6 [ . ][ x ][ x ][ x ][ . ][ . ][ . ][ . ]
+// 5 [ x ][ x ][ q ][ x ][ x ][ x ][ x ][ x ]
+// 4 [ . ][ x ][ x ][ x ][ . ][ . ][ . ][ . ]
+// 3 [ x ][ . ][ x ][ . ][ xB][ . ][ . ][ . ]
+// 2 [ . ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Black_Queen_Moves_Capture_Available)
+{
+    Bitboard board;
+    auto q = BLACKQUEEN;
+    auto B = WHITEBISHOP;
+
+    board.PlacePiece(B, e3);
+    board.PlacePiece(q, c5);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a7.index();
+    expected |= INT64_C(1) << a3.index();
+    expected |= INT64_C(1) << b6.index();
+    expected |= INT64_C(1) << b4.index();
+    expected |= INT64_C(1) << d6.index();
+    expected |= INT64_C(1) << d4.index();
+    expected |= INT64_C(1) << e7.index();
+    expected |= INT64_C(1) << e3.index();
+    expected |= INT64_C(1) << f8.index();
+
+    expected |= INT64_C(1) << a5.index();
+    expected |= INT64_C(1) << b5.index();
+    expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << e5.index();
+    expected |= INT64_C(1) << f5.index();
+    expected |= INT64_C(1) << g5.index();
+    expected |= INT64_C(1) << h5.index();
+
+    expected |= INT64_C(1) << c8.index();
+    expected |= INT64_C(1) << c7.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << c4.index();
+    expected |= INT64_C(1) << c3.index();
+    expected |= INT64_C(1) << c2.index();
+    expected |= INT64_C(1) << c1.index();
+
+    u64 result = board.GetAvailableMoves(c5, q);
+    EXPECT_EQ(expected, result);
+}
+
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]

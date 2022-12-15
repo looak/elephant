@@ -38,6 +38,9 @@ struct Notation
 		rank = index / 8;
 	}
 
+	// when we read algebraic notations we might only have file or rank in some cases.
+	// in those cases the other value will be 9 to identify this as a value which needs to be
+	// looked up.
 	Notation(byte _file, byte _rank) :
 		file(_file),
 		rank(_rank)
@@ -54,5 +57,5 @@ struct Notation
 	bool operator!=(const Notation& rhs) const;
 	bool operator<(const Notation& rhs) const;
 	Notation& operator=(Notation&& other);
-	//Notation& operator=(const Notation& other);
+	Notation& operator=(const Notation& other);
 };
