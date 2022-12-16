@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <array>
+#include "fen_parser.h"
+#include "hash_zorbist.h"
 
 std::string PrintCastlingState(const Chessboard& board)
 {
@@ -50,8 +52,12 @@ bool PrintBoard(const GameContext& context, const Move& move)
     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
     std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
+    std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
     std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
+    std::string output;
+    FENParser::serialize(context, output);
+    std::cout << " > fen: " << output << "\n";
 
     return true;
 }

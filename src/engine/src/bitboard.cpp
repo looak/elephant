@@ -453,6 +453,7 @@ bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
 bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const
 {
     u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant, threatenedMask);
+    movesMask |= GetAttackedSquares(source, piece);
 
     u64 targetMask = UINT64_C(1) << target.index();
 

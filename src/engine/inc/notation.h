@@ -58,4 +58,5 @@ struct Notation
 	bool operator<(const Notation& rhs) const;
 	Notation& operator=(Notation&& other);
 	Notation& operator=(const Notation& other);
+	bool isValid() const { return Validate(*this); }
 };

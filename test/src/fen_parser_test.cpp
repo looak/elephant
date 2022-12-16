@@ -128,7 +128,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     std::string gameSixFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
     bool result = FENParser::deserialize(gameSixFen.c_str(), testContext);
     EXPECT_TRUE(result);
-    PrintBoard(testContext.readChessboard());
+    // PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, testContext.readPly());
     EXPECT_EQ(136, testContext.readMoveCount());
     EXPECT_EQ(Set::BLACK, testContext.readToPlay());
@@ -168,7 +168,7 @@ TEST_F(FenParserFixture, PerftPositionThree)
     bool result = FENParser::deserialize(fen.c_str(), testContext);
 
     EXPECT_TRUE(result);
-    PrintBoard(testContext.readChessboard());
+    // PrintBoard(testContext.readChessboard());
     EXPECT_EQ(0, testContext.readPly());
     EXPECT_EQ(1, testContext.readMoveCount());
     EXPECT_EQ(Set::WHITE, testContext.readToPlay());

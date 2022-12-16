@@ -2,6 +2,7 @@
 #include "game_context.h"
 #include "move.h"
 #include "elephant_test_utils.h"
+#include "hash_zorbist.h"
 
 
 namespace ElephantTest
@@ -78,7 +79,7 @@ void BuildPositionAfterMove18(Chessboard& board)
     board.PlacePiece(r, f8);
     board.PlacePiece(k, g8);
 
-    board.setCastlingState(12);
+    board.setCastlingState(0);
 }
 TEST_F(GameContextFixture, GameReplay_FischerSpasky_ReturnMatch_AfterMove18)
 {
@@ -92,13 +93,24 @@ TEST_F(GameContextFixture, GameReplay_FischerSpasky_ReturnMatch_AfterMove18)
     Move::ParsePNG(movePng, moves);
 
     SetupDefaultStartingPosition(m_context.editChessboard());
+    u64 hashOne = ZorbistHash::Instance().HashBoard(m_context.readChessboard());
+    EXPECT_EQ(m_context.readChessboard().readHash(), hashOne);
+
     m_context.editMoveCount() = 1;
 
-    m_context.PlayMoves(moves[0], true);
+    m_context.PlayMoves(moves[0]);
 
-    PrintBoard(m_context.readChessboard());
+    //PrintBoard(m_context.readChessboard());
     Chessboard board;
     BuildPositionAfterMove18(board);
-    PrintBoard(board);
+    //PrintBoard(board);
+
+    hashOne = ZorbistHash::Instance().HashBoard(m_context.readChessboard());
+    u64 hashTwo = ZorbistHash::Instance().HashBoard(board);
+    
+    EXPECT_EQ(hashOne, hashTwo);
+    EXPECT_EQ(m_context.readChessboard().readHash(), hashOne);
+    EXPECT_EQ(board.readHash(), hashTwo);
+    EXPECT_EQ(m_context.readChessboard().readHash(), board.readHash());
 }
 }

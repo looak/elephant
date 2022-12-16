@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 #include "elephant_test_utils.h"
+#include "fen_parser.h"
+#include "game_context.h"
 #include "move.h"
 #include "chessboard.h"
 #include "chess_piece.h"
+#include "hash_zorbist.h"
 
 
 namespace ElephantTest
@@ -180,6 +183,11 @@ TEST_F(MoveFixture, KingMove_Capture)
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(K, m_chessboard.readTile(d5).readPiece());
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
+
+    u64 hash = ZorbistHash::Instance().HashBoard(m_chessboard);
+    EXPECT_EQ(hash, m_chessboard.readHash());
+
+
 }
 
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -697,6 +705,17 @@ TEST_F(MoveFixture, BuildMoveSequence_PawnPromotion)
     std::string movePNG = "9. e8=Q";
     std::vector<Move> moves;
     Move::ParsePNG(movePNG, moves);
+}
+
+TEST_F(MoveFixture, BrokenMove_QueenShouldBeAbleToCaptureBishopOne7)
+{
+    std::string fen = "r2q1rk1/1b1nBpp1/3p3p/2p1P3/1p2n3/1B3N1P/PP3PP1/RN1QR1K1 w - - 34 18";
+    GameContext context;
+
+    EXPECT_TRUE(FENParser::deserialize(fen.c_str(), context));
+
+    Move move(d8, e7);
+    context.editChessboard().MakeMove(move);
 }
 
 }
