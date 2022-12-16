@@ -1,11 +1,48 @@
 #include "elephant_test_utils.h"
 #include "chessboard.h"
+#include "game_context.h"
 #include <array>
 #include <sstream>
 #include "log.h"
 
 namespace ElephantTest
 {
+//
+//bool PrintBoard(const GameContext& context)
+//{
+//    const Chessboard& board = context.readChessboard();
+//    auto boardItr = board.begin();
+//    std::array<std::stringstream, 8> ranks;
+//
+//    byte prevRank = -1;
+//    do
+//    {
+//        if (prevRank != boardItr.rank())
+//        {
+//            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
+//        }
+//
+//        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+//        prevRank = boardItr.rank();
+//        ++boardItr;
+//
+//    } while (boardItr != board.end());
+//
+//    auto rankItr = ranks.rbegin();
+//    while (rankItr != ranks.rend())
+//    {
+//        LOG_INFO() << (*rankItr).str();
+//        rankItr++;
+//    }
+//
+//    LOG_INFO() << "\n >\n >     A  B  C  D  E  F  G  H\n";
+//    LOG_INFO() << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
+//    LOG_INFO() << " > hash: 0x" << std::hex << board.readHash() << "\n";
+//    LOG_INFO() << " > castling state: " << PrintCastlingState(board) << "\n";
+//    LOG_INFO() << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
+//
+//    return true;
+//}
 
 bool PrintBoard(const Chessboard& board)
 {

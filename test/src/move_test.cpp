@@ -297,7 +297,7 @@ TEST_F(MoveFixture, Pawn_Promotion)
     m_chessboard.PlacePiece(P, e7);
     m_chessboard.PlacePiece(n, d8);
     Move move(e7, e8); // promote
-    move.Promote = WHITEQUEEN;
+    move.PromoteToPiece = WHITEQUEEN;
     
     // do
     bool result = m_chessboard.MakeMove(move);
@@ -328,7 +328,7 @@ TEST_F(MoveFixture, Pawn_Promotion_Capture)
     m_chessboard.PlacePiece(P, e7);
     m_chessboard.PlacePiece(n, d8);
     Move move(e7, d8); // promote
-    move.Promote = WHITEROOK;
+    move.PromoteToPiece = WHITEROOK;
     
     // do
     bool result = m_chessboard.MakeMove(move);
@@ -360,7 +360,7 @@ TEST_F(MoveFixture, Black_Pawn_Promotion_Capture)
     m_chessboard.PlacePiece(p, e2);
     m_chessboard.PlacePiece(Q, d1);
     Move move(e2, d1); // promote
-    move.Promote = BLACKQUEEN;
+    move.PromoteToPiece = BLACKQUEEN;
     
     // do
     bool result = m_chessboard.MakeMove(move);

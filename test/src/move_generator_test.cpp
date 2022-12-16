@@ -146,7 +146,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
         if (move.TargetSquare == b1)
         {
             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
-            if (move.Promote == BLACKQUEEN || move.Promote == BLACKROOK)
+            if (move.PromoteToPiece == BLACKQUEEN || move.PromoteToPiece == BLACKROOK)
                 EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
             else
                 EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);

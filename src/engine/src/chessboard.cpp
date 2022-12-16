@@ -138,7 +138,11 @@ Chessboard::InternalHandlePawnMove(Move& move)
 
 	if (IsPromoting(move))
 	{ // edit the source tile piece, since we're using this when we do our internal move.
-		m_tiles[move.SourceSquare.index()].editPiece() = move.Promote;
+
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare.index());
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare.index());
+
+		m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
 		move.Flags |= MoveFlag::Promotion;
 	}
 
@@ -269,6 +273,13 @@ Chessboard::UnmakeMove(const Move& move)
 	m_enPassant = Notation();
 	m_enPassantTarget = Notation();
 
+	ChessPiece pieceToRmv = move.Piece;
+	ChessPiece pieceToAdd = move.Piece;
+
+	if ((move.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
+		pieceToRmv = move.PromoteToPiece;
+
+
 	if (move.EnPassantTargetSquare.isValid())
 	{
 		byte offset = move.Piece.getSet() == Set::WHITE ? 1 : -1;
@@ -280,15 +291,17 @@ Chessboard::UnmakeMove(const Move& move)
 	auto& sourceTile = m_tiles[move.SourceSquare.index()];
 	auto& targetTile = m_tiles[move.TargetSquare.index()];
 
+
 	// unmake chessboard
-	sourceTile.editPiece() = targetTile.readPiece();
+	sourceTile.editPiece() = pieceToAdd;
 	targetTile.editPiece() = ChessPiece();
 
 	// unmake bitboard
-	m_bitboard.ClearPiece(move.Piece, move.TargetSquare);
-	m_bitboard.PlacePiece(move.Piece, move.SourceSquare);
+	m_bitboard.ClearPiece(pieceToRmv, move.TargetSquare);
+	m_bitboard.PlacePiece(pieceToAdd, move.SourceSquare);
 
-	if (move.Capture.isValid())
+
+	if (move.CapturedPiece.isValid())
 	{
 		if ((move.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
 		{
@@ -296,23 +309,23 @@ Chessboard::UnmakeMove(const Move& move)
 			m_enPassantTarget = Notation(move.TargetSquare.file, move.TargetSquare.rank + offset);
 			m_enPassant = move.TargetSquare;
 
-			m_tiles[m_enPassantTarget.index()].editPiece() = move.Capture;
-			m_bitboard.PlacePiece(move.Capture, m_enPassantTarget);
-			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Capture, m_enPassantTarget);
+			m_tiles[m_enPassantTarget.index()].editPiece() = move.CapturedPiece;
+			m_bitboard.PlacePiece(move.CapturedPiece, m_enPassantTarget);
+			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, m_enPassantTarget);
 			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
 
 		}
 		else
 		{
-			targetTile.editPiece() = move.Capture;
-			m_bitboard.PlacePiece(move.Capture, move.TargetSquare);
-			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Capture, move.TargetSquare);
+			targetTile.editPiece() = move.CapturedPiece;
+			m_bitboard.PlacePiece(move.CapturedPiece, move.TargetSquare);
+			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, move.TargetSquare);
 		}
 	}
 
 	// update hash
-	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.TargetSquare);
-	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare);
+	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, move.TargetSquare);
+	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToAdd, move.SourceSquare);
 
 	return true;
 }
@@ -406,12 +419,12 @@ Chessboard::MakeMove(Move& move)
 	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
 	{
 		move.Flags |= MoveFlag::Capture;
-		move.Capture = m_tiles[pieceTarget.index()].readPiece();
+		move.CapturedPiece = m_tiles[pieceTarget.index()].readPiece();
 		// remove captured piece from board.
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
 		
 		// remove piece from hash
-		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Capture, pieceTarget);
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);
 	}
 
 	if (IsCheck(move))
@@ -476,7 +489,7 @@ Chessboard::IsCheck(const Move& move) const
 	// get threatened squares from new location
 	auto flag = (move.Flags & MoveFlag::Promotion);
 	if (flag == MoveFlag::Promotion)
-		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Promote);
+		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.PromoteToPiece);
 	else
 		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Piece);
 	
@@ -603,22 +616,22 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 				if (piece.getType() == PieceType::PAWN && IsPromoting(move))
 				{
 					move.Flags |= MoveFlag::Promotion;
-					move.Promote = ChessPiece(piece.getSet(), PieceType::QUEEN);
+					move.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::QUEEN);
 
 					Move rookPromote = Move(move);
-					rookPromote.Promote = ChessPiece(piece.getSet(), PieceType::ROOK);
+					rookPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::ROOK);
 					
 					/*if (IsCheck(rookPromote))
 						rookPromote.Flags |= MoveFlag::Check;*/
 
 					Move bishopPromote = Move(move);
-					bishopPromote.Promote = ChessPiece(piece.getSet(), PieceType::BISHOP);
+					bishopPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::BISHOP);
 
 					/*if (IsCheck(bishopPromote))
 						bishopPromote.Flags |= MoveFlag::Check;*/
 
 					Move knightPromote = Move(move);
-					knightPromote.Promote = ChessPiece(piece.getSet(), PieceType::KNIGHT);
+					knightPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::KNIGHT);
 					
 					/*if (IsCheck(knightPromote))
 						knightPromote.Flags |= MoveFlag::Check;

@@ -7,7 +7,7 @@ Move::Move(const Notation& source, const Notation& target) :
     TargetSquare(target),
     SourceSquare(source),
     Piece(ChessPiece()),
-    Promote(ChessPiece()),
+    PromoteToPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
     PrevMove(nullptr),
     NextMoveCount(0),
@@ -19,7 +19,7 @@ Move::Move() :
     TargetSquare(0),
     SourceSquare(0),
     Piece(ChessPiece()),
-    Promote(ChessPiece()),
+    PromoteToPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
     PrevMove(nullptr),
     NextMoveCount(0),
@@ -37,7 +37,7 @@ Move& Move::operator=(const Move& other)
     TargetSquare = Notation(other.TargetSquare);
     SourceSquare = Notation(other.SourceSquare);
     Piece = other.Piece;
-    Promote = other.Promote;
+    PromoteToPiece = other.PromoteToPiece;
     Flags = other.Flags;
     PrevMove = other.PrevMove;
     NextMoveCount = other.NextMoveCount;

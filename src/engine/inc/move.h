@@ -56,6 +56,8 @@ public:
     Move(const Notation& source, const Notation& target);
     Move(const Move& other);
 
+    bool isCapture() { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
+
     Move& operator=(const Move& other);
 
     static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
@@ -66,8 +68,8 @@ public:
     Notation EnPassantTargetSquare;
 
     ChessPiece Piece;
-    ChessPiece Promote;
-    ChessPiece Capture;
+    ChessPiece PromoteToPiece;
+    ChessPiece CapturedPiece;
 
     MoveFlag Flags;
 

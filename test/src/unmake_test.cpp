@@ -168,7 +168,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
         // validate
         if (mv.TargetSquare == e3)
         {
-            EXPECT_EQ(WHITEPAWN, mv.Capture);
+            EXPECT_EQ(WHITEPAWN, mv.CapturedPiece);
             EXPECT_EQ(MoveFlag::Capture, mv.Flags & MoveFlag::Capture);
             EXPECT_EQ(MoveFlag::EnPassant, mv.Flags & MoveFlag::EnPassant);
             founde3 = true;
@@ -176,7 +176,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
         else
         {
             EXPECT_EQ(d3, mv.TargetSquare);
-            EXPECT_EQ(exp, mv.Capture); // no capture
+            EXPECT_EQ(exp, mv.CapturedPiece); // no capture
             EXPECT_EQ(MoveFlag::Zero, mv.Flags);
             foundd3 = true;
         }
@@ -191,31 +191,84 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_TRUE(foundd3);
 }
 
-
-// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 7 [   ][   ][   ][ p ][   ][   ][   ][   ]
+// 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][ P ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 2 [   ][   ][   ][ P ][ P ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-// 1. e4 d5 2. d3 dxe4 3. dxe4
-TEST_F(UnmakeFixture, Pawn_SimpleMoves_ScandinavianDefense)
+// Moves:
+// e8=Q
+TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
 {
     auto P = WHITEPAWN;
-    auto p = BLACKPAWN;
-    m_chessboard.PlacePiece(P, e2);
-    m_chessboard.PlacePiece(p, d7);
-    Move mve4(e2, e4);
-    Move mvd5(d7, d5);
-    Move mvexd5(e4, d5);
+    auto n = BLACKKNIGHT;
+
+    m_chessboard.PlacePiece(P, e7);
+    m_chessboard.PlacePiece(n, d8);
+    Move move(e7, e8); // promote
+    move.PromoteToPiece = WHITEQUEEN;
+    u64 hash = m_chessboard.readHash();
+
+    // do
+    bool result = m_chessboard.MakeMove(move);
+
+    // validate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(P, move.Piece);
+    EXPECT_EQ(MoveFlag::Promotion, move.Flags);
+    EXPECT_NE(hash, m_chessboard.readHash());
+
+    auto Q = WHITEQUEEN;
+    EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+     
+    // undo
+    result = m_chessboard.UnmakeMove(move);
+
+    // validate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(P, m_chessboard.readTile(e7).readPiece());
+    EXPECT_EQ(ChessPiece::None(), m_chessboard.readTile(e8).readPiece());
+    EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
+    EXPECT_EQ(hash, m_chessboard.readHash());
+
+    // setup
+    auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);    
+    std::map<Notation, int> moveMap {{e8, 0}, {d8, 0}};
+    std::map<ChessPiece, int> promoteMap {{WHITEKNIGHT, 0}, {WHITEBISHOP, 0}, {WHITEROOK, 0}, {WHITEQUEEN, 0}};
     
-    // do move sequence
-    m_chessboard.MakeMove(mve4);
-    m_chessboard.MakeMove(mvd5);
-    m_chessboard.MakeMove(mvexd5);
+    // validate
+    EXPECT_EQ(8, moves.size());
+    for (auto mv : moves)
+    {
+        // do
+        result = m_chessboard.MakeMove(mv);
+        EXPECT_TRUE(result);
+
+        EXPECT_TRUE(moveMap.find(mv.TargetSquare) != moveMap.end());
+        moveMap.at(mv.TargetSquare)++;
+
+        EXPECT_TRUE(promoteMap.find(mv.PromoteToPiece) != promoteMap.end());
+        promoteMap.at(mv.PromoteToPiece)++;
+
+        // do
+        m_chessboard.UnmakeMove(mv);
+        EXPECT_EQ(BLACKKNIGHT, m_chessboard.readTile(d8).readPiece());
+        EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e7).readPiece());
+    }
+
+    EXPECT_EQ(4, moveMap[d8]);
+    EXPECT_EQ(4, moveMap[e8]);
+
+    EXPECT_EQ(2, promoteMap[WHITEKNIGHT]);
+    EXPECT_EQ(2, promoteMap[WHITEBISHOP]);
+    EXPECT_EQ(2, promoteMap[WHITEROOK]);
+    EXPECT_EQ(2, promoteMap[WHITEQUEEN]);
+
+
 }
 ////////////////////////////////////////////////////////////////
 

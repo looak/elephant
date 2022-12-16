@@ -56,6 +56,7 @@ struct ChessPiece
 public:
 	static Set FlipSet(Set source);
 	static byte FlipSet(byte source);
+	static ChessPiece None() { return ChessPiece(); }
 
 public:
 	ChessPiece();
@@ -73,6 +74,7 @@ public:
 	byte type() const		{ return m_internalState & 0x07; }
 	byte set() const 		{ return m_internalState >> 7; }
 	byte index() const		{ return type() - 1; }
+	byte raw() const		{ return m_internalState; }
 
 	bool isValid() const { return type() > 0; }
 	bool isSliding() const { return ChessPieceDef::Slides(type()); }
