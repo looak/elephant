@@ -156,7 +156,7 @@ private:
 TEST_F(ChessboardFixture, Empty)
 {
     ChessPiece expectedPiece; // empty, default, 0;
-
+    
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 0, 0 }).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 7, 7 }).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 3, 3 }).readPiece());
@@ -166,6 +166,13 @@ TEST_F(ChessboardFixture, Empty)
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).readPiece());
     EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).readPiece());
+
+    // checking all tiles that they are empty
+    for (int i = 0; i < 64; i++)
+    {
+        auto piece = m_emptyChessboard.readPieceAt(i);
+        EXPECT_EQ(expectedPiece, piece);        
+    }
 
     EXPECT_EQ(0, m_emptyChessboard.readCastlingState());
 }

@@ -153,21 +153,21 @@ private:
 	bool VerifyMove(const Move& move) const;
 
 	u64 m_hash;
-	
+		
 	union {
 		ChessboardTile m_tiles[64];
 		ChessboardTile m_tiles8x8[8][8];
-		struct 
+		struct
 		{
-			ChessboardTile m_a1, m_b1, m_c1, m_d1, m_e1, m_f1, m_g1, m_h1;
-			ChessboardTile m_a2, m_b2, m_c2, m_d2, m_e2, m_f2, m_g2, m_h2;
-			ChessboardTile m_a3, m_b3, m_c3, m_d3, m_e3, m_f3, m_g3, m_h3;
-			ChessboardTile m_a4, m_b4, m_c4, m_d4, m_e4, m_f4, m_g4, m_h4;
-			ChessboardTile m_a5, m_b5, m_c5, m_d5, m_e5, m_f5, m_g5, m_h5;
-			ChessboardTile m_a6, m_b6, m_c6, m_d6, m_e6, m_f6, m_g6, m_h6;
-			ChessboardTile m_a7, m_b7, m_c7, m_d7, m_e7, m_f7, m_g7, m_h7;
-			ChessboardTile m_a8, m_b8, m_c8, m_d8, m_e8, m_f8, m_g8, m_h8;
-		} m_individualTiles;
+			ChessboardTile A1, B1, C1, D1, E1, F1, G1, H1;
+			ChessboardTile A2, B2, C2, D2, E2, F2, G2, H2;
+			ChessboardTile A3, B3, C3, D3, E3, F3, G3, H3;
+			ChessboardTile A4, B4, C4, D4, E4, F4, G4, H4;
+			ChessboardTile A5, B5, C5, D5, E5, F5, G5, H5;
+			ChessboardTile A6, B6, C6, D6, E6, F6, G6, H6;
+			ChessboardTile A7, B7, C7, D7, E7, F7, G7, H7;
+			ChessboardTile A8, B8, C8, D8, E8, F8, G8, H8;
+		} m_tilesNamed;
 	};
 	
 	Bitboard m_bitboard;

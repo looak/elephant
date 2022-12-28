@@ -256,8 +256,8 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
 
         // do
         m_chessboard.UnmakeMove(mv);
-        EXPECT_EQ(BLACKKNIGHT, m_chessboard.readTile(d8).readPiece());
-        EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e7).readPiece());
+        EXPECT_EQ(BLACKKNIGHT, m_chessboard.readPieceAt(d8));
+        EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(e7));
     }
 
     EXPECT_EQ(4, moveMap[d8]);
@@ -403,8 +403,8 @@ TEST_F(UnmakeFixture, Castling)
     EXPECT_EQ(K, m_chessboard.readTile(e1).readPiece());
     EXPECT_EQ(r, m_chessboard.readTile(a8).readPiece());
     EXPECT_EQ(r, m_chessboard.readTile(h8).readPiece());
-    EXPECT_EQ(R, m_chessboard.readTile(a8).readPiece());
-    EXPECT_EQ(R, m_chessboard.readTile(h8).readPiece());
+    EXPECT_EQ(R, m_chessboard.readTile(a1).readPiece());
+    EXPECT_EQ(R, m_chessboard.readTile(h1).readPiece());
     EXPECT_EQ(orgHash, hash);
 }
 
@@ -426,7 +426,6 @@ TEST_F(UnmakeFixture, Unmake_BishopMove)
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(a8));
 	EXPECT_EQ(b, m_chessboard.readPieceAt(h1));
 	EXPECT_NE(hash, m_chessboard.readHash());
-	hash = m_chessboard.readHash();
 
 	// unmake
 	m_chessboard.UnmakeMove(move);

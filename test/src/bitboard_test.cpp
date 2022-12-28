@@ -1395,7 +1395,7 @@ TEST_F(BitboardFixture, White_Knight_Move)
     expected |= INT64_C(1) << d5.index();
 
     // do
-    u64 result = board.GetAvailableMoves(c3, N, 0, 0, 0, false, 0);
+     u64 result = board.GetAvailableMoves(c3, N, 0, 0, 0, false, 0);
 
     // validate
     EXPECT_EQ(expected, result);

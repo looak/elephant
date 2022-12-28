@@ -30,7 +30,9 @@ struct Notation
 		rank(0xF)
 	{}
 
-	constexpr Notation(byte index)
+	constexpr Notation(byte index) :
+		file(0xF),
+		rank(0xF)
 	{
 		if (index > 127)
 			LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";

@@ -80,6 +80,23 @@ public:
 	bool isSliding() const { return ChessPieceDef::Slides(type()); }
 
 private:	
-	// [set][moved flag][not used][not used][not used][piece t][piece t][piece t]
-	byte m_internalState;
+	// [set][not used][not used][not used][not used][piece t][piece t][piece t]
+	union
+	{
+		byte m_internalState;
+		struct
+		{
+			// technically we only use 3 bits to identify the piece type but to get the correct offset to the
+			// set bit we have set this to 7.
+			PieceType m_type : 7;				
+			Set m_set : 1;
+		};
+		
+		struct
+		{
+			byte m_typeValue : 7;
+			byte m_setValue : 1;
+		};
+	};
+	//byte m_internalState;
 };

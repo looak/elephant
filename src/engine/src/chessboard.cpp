@@ -51,6 +51,79 @@ Chessboard::Chessboard() :
 	m_kings[0].second = Notation();
 	m_kings[1].first = ChessPiece();
 	m_kings[1].second = Notation();
+
+	// verify tiles & tiles named have the same position
+	LOG_ERROR_EXPR(m_tilesNamed.A1.m_position == Notation(0, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.A2.m_position == Notation(0, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.A3.m_position == Notation(0, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.A4.m_position == Notation(0, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.A5.m_position == Notation(0, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.A6.m_position == Notation(0, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.A7.m_position == Notation(0, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.A8.m_position == Notation(0, 7));
+
+	LOG_ERROR_EXPR(m_tilesNamed.B1.m_position == Notation(1, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.B2.m_position == Notation(1, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.B3.m_position == Notation(1, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.B4.m_position == Notation(1, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.B5.m_position == Notation(1, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.B6.m_position == Notation(1, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.B7.m_position == Notation(1, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.B8.m_position == Notation(1, 7));
+	
+	LOG_ERROR_EXPR(m_tilesNamed.C1.m_position == Notation(2, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.C2.m_position == Notation(2, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.C3.m_position == Notation(2, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.C4.m_position == Notation(2, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.C5.m_position == Notation(2, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.C6.m_position == Notation(2, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.C7.m_position == Notation(2, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.C8.m_position == Notation(2, 7));
+	
+	LOG_ERROR_EXPR(m_tilesNamed.D1.m_position == Notation(3, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.D2.m_position == Notation(3, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.D3.m_position == Notation(3, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.D4.m_position == Notation(3, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.D5.m_position == Notation(3, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.D6.m_position == Notation(3, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.D7.m_position == Notation(3, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.D8.m_position == Notation(3, 7));
+
+	LOG_ERROR_EXPR(m_tilesNamed.E1.m_position == Notation(4, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.E2.m_position == Notation(4, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.E3.m_position == Notation(4, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.E4.m_position == Notation(4, 3));		
+	LOG_ERROR_EXPR(m_tilesNamed.E5.m_position == Notation(4, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.E6.m_position == Notation(4, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.E7.m_position == Notation(4, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.E8.m_position == Notation(4, 7));		
+
+	LOG_ERROR_EXPR(m_tilesNamed.F1.m_position == Notation(5, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.F2.m_position == Notation(5, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.F3.m_position == Notation(5, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.F4.m_position == Notation(5, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.F5.m_position == Notation(5, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.F6.m_position == Notation(5, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.F7.m_position == Notation(5, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.F8.m_position == Notation(5, 7));
+	
+	LOG_ERROR_EXPR(m_tilesNamed.G1.m_position == Notation(6, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.G2.m_position == Notation(6, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.G3.m_position == Notation(6, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.G4.m_position == Notation(6, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.G5.m_position == Notation(6, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.G6.m_position == Notation(6, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.G7.m_position == Notation(6, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.G8.m_position == Notation(6, 7));
+	
+	LOG_ERROR_EXPR(m_tilesNamed.H1.m_position == Notation(7, 0));
+	LOG_ERROR_EXPR(m_tilesNamed.H2.m_position == Notation(7, 1));
+	LOG_ERROR_EXPR(m_tilesNamed.H3.m_position == Notation(7, 2));
+	LOG_ERROR_EXPR(m_tilesNamed.H4.m_position == Notation(7, 3));
+	LOG_ERROR_EXPR(m_tilesNamed.H5.m_position == Notation(7, 4));
+	LOG_ERROR_EXPR(m_tilesNamed.H6.m_position == Notation(7, 5));
+	LOG_ERROR_EXPR(m_tilesNamed.H7.m_position == Notation(7, 6));
+	LOG_ERROR_EXPR(m_tilesNamed.H8.m_position == Notation(7, 7));
 }
 
 Chessboard::Chessboard(const Chessboard& other) :
@@ -290,7 +363,7 @@ Chessboard::UnmakeMove(const Move& move)
 	ChessPiece pieceToRmv = move.Piece;
 	ChessPiece pieceToAdd = move.Piece;
 
-	if ((move.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
+	if (move.isPromotion())
 		pieceToRmv = move.PromoteToPiece;
 
 	if (move.PrevCastlingState != 0)
@@ -308,7 +381,7 @@ Chessboard::UnmakeMove(const Move& move)
 		if (move.TargetSquare.file == 2) // queen side
 		{
 			rookOrigin = Notation(a_file, move.SourceSquare.rank);
-			rookPlacement = Notation(c_file, move.SourceSquare.rank);
+			rookPlacement = Notation(d_file, move.SourceSquare.rank);
 		}
 		else // king side
 		{
@@ -328,11 +401,12 @@ Chessboard::UnmakeMove(const Move& move)
 		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
 	}
 	
-	auto& targetTile = m_tiles[move.TargetSquare.index()];
-
+	// move pieces back to where they were before we re add any possible captured piecs.
+	InternalUnmakeMove(move.SourceSquare, move.TargetSquare, pieceToRmv, pieceToAdd);
+	
 	if (move.CapturedPiece.isValid())
 	{
-		if ((move.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
+		if (move.isEnPassant())
 		{
 			byte offset = move.Piece.getSet() == Set::WHITE ? -1 : 1;
 			m_enPassantTarget = Notation(move.TargetSquare.file, move.TargetSquare.rank + offset);
@@ -346,13 +420,11 @@ Chessboard::UnmakeMove(const Move& move)
 		}
 		else
 		{
-			targetTile.editPiece() = move.CapturedPiece;
+			m_tiles[move.TargetSquare.index()].editPiece() = move.CapturedPiece;
 			m_bitboard.PlacePiece(move.CapturedPiece, move.TargetSquare);
 			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, move.TargetSquare);
 		}
 	}
-
-	InternalUnmakeMove(move.SourceSquare, move.TargetSquare, pieceToRmv, pieceToAdd);
 
 	return true;
 }
