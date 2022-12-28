@@ -6,6 +6,8 @@
 Move::Move(const Notation& source, const Notation& target) :
     TargetSquare(target),
     SourceSquare(source),
+    EnPassantTargetSquare(InvalidNotation),
+    PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
@@ -18,6 +20,8 @@ Move::Move(const Notation& source, const Notation& target) :
 Move::Move() :
     TargetSquare(0),
     SourceSquare(0),
+    EnPassantTargetSquare(InvalidNotation),
+    PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
@@ -42,8 +46,14 @@ Move& Move::operator=(const Move& other)
     PrevMove = other.PrevMove;
     NextMoveCount = other.NextMoveCount;
     NextMove = other.NextMove;
+    PrevCastlingState = other.PrevCastlingState;
 
     return *this;
+}
+
+Move::Move(Move&& other)
+{
+	*this = std::move(other);
 }
 
 void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)

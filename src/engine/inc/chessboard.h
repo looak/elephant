@@ -28,7 +28,7 @@ struct ChessboardTile
 {
 	friend class Chessboard;
 public:
-	ChessboardTile() = default;
+	ChessboardTile();
 	ChessboardTile(Notation&& notation);
 	~ChessboardTile() = default;
 	
@@ -61,6 +61,8 @@ public:
 	bool UnmakeMove(const Move& move);
 	bool Checked(Set set) const;
 
+	
+
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	u64 GetThreatenedMask(Set set) const;
@@ -69,6 +71,7 @@ public:
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
+	ChessPiece readPieceAt(Notation notation) const;
 
 	bool setEnPassant(const Notation& notation);
 	bool setCastlingState(u8 castlingState);
@@ -138,6 +141,7 @@ private:
 	void InternalHandleKingRookMove(Move& move);
 	bool UpdateEnPassant(const Notation& source, const Notation& target);
 	void InternalMakeMove(const Notation& source, const Notation& target);
+	void InternalUnmakeMove(const Notation& source, const Notation& target, const ChessPiece& pieceToRmv, const ChessPiece& pieceToAdd);
 	int getTileIndex(byte file, byte rank);
 
 	ChessboardTile& get(const Notation& position) { return editTile(position); }
@@ -149,7 +153,23 @@ private:
 	bool VerifyMove(const Move& move) const;
 
 	u64 m_hash;
-	std::array<ChessboardTile, 64> m_tiles;
+	
+	union {
+		ChessboardTile m_tiles[64];
+		ChessboardTile m_tiles8x8[8][8];
+		struct 
+		{
+			ChessboardTile m_a1, m_b1, m_c1, m_d1, m_e1, m_f1, m_g1, m_h1;
+			ChessboardTile m_a2, m_b2, m_c2, m_d2, m_e2, m_f2, m_g2, m_h2;
+			ChessboardTile m_a3, m_b3, m_c3, m_d3, m_e3, m_f3, m_g3, m_h3;
+			ChessboardTile m_a4, m_b4, m_c4, m_d4, m_e4, m_f4, m_g4, m_h4;
+			ChessboardTile m_a5, m_b5, m_c5, m_d5, m_e5, m_f5, m_g5, m_h5;
+			ChessboardTile m_a6, m_b6, m_c6, m_d6, m_e6, m_f6, m_g6, m_h6;
+			ChessboardTile m_a7, m_b7, m_c7, m_d7, m_e7, m_f7, m_g7, m_h7;
+			ChessboardTile m_a8, m_b8, m_c8, m_d8, m_e8, m_f8, m_g8, m_h8;
+		} m_individualTiles;
+	};
+	
 	Bitboard m_bitboard;
 
 	// caching kings and their locations

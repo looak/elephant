@@ -1376,4 +1376,29 @@ TEST_F(BitboardFixture, KingMask_Pawns)
     EXPECT_EQ(expected, kingMask);
 }
 
+TEST_F(BitboardFixture, White_Knight_Move)
+{
+    Bitboard board;
+    auto N = WHITEKNIGHT;
+
+    // setup
+    board.PlacePiece(N, c3);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << b1.index();
+    expected |= INT64_C(1) << d1.index();
+    expected |= INT64_C(1) << a2.index();
+    expected |= INT64_C(1) << e2.index();
+    expected |= INT64_C(1) << a4.index();
+    expected |= INT64_C(1) << e4.index();
+    expected |= INT64_C(1) << b5.index();
+    expected |= INT64_C(1) << d5.index();
+
+    // do
+    u64 result = board.GetAvailableMoves(c3, N, 0, 0, 0, false, 0);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
 } // namespace ElephantTest

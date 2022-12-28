@@ -170,7 +170,7 @@ TEST_F(MoveFixture, KingMove_Capture)
     m_chessboard.PlacePiece(K, e4);
     m_chessboard.PlacePiece(q, d5);
     Move move(e4, d5);
-
+        
     EXPECT_EQ(K, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(q, m_chessboard.readTile(d5).readPiece());
 
@@ -179,15 +179,13 @@ TEST_F(MoveFixture, KingMove_Capture)
     EXPECT_TRUE(result);
     EXPECT_EQ(K, move.Piece);
     EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
-
+        
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(K, m_chessboard.readTile(d5).readPiece());
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
 
     u64 hash = ZorbistHash::Instance().HashBoard(m_chessboard);
     EXPECT_EQ(hash, m_chessboard.readHash());
-
-
 }
 
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -716,6 +714,46 @@ TEST_F(MoveFixture, BrokenMove_QueenShouldBeAbleToCaptureBishopOne7)
 
     Move move(d8, e7);
     context.editChessboard().MakeMove(move);
+}
+
+TEST_F(MoveFixture, MoveFlags)
+{
+    Move move;
+    
+	move.setPromotion(true);
+	EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
+	EXPECT_EQ(true, move.isPromotion());
+
+    move.setPromotion(false);
+	EXPECT_EQ(MoveFlag::Zero, move.Flags & MoveFlag::Promotion);
+	EXPECT_EQ(false, move.isPromotion());
+
+	move.setCapture(true);
+	EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+	EXPECT_EQ(true, move.isCapture());
+
+	move.setCapture(false);
+	EXPECT_EQ(MoveFlag::Zero, move.Flags & MoveFlag::Capture);
+	EXPECT_EQ(false, move.isCapture());    
+}
+
+TEST_F(MoveFixture, WhitePawnPromotion)
+{
+    std::string fen = "8/7P/8/8/8/8/8/8 w - - 0 1";
+    GameContext context;
+
+    EXPECT_TRUE(FENParser::deserialize(fen.c_str(), context));
+
+	EXPECT_EQ(WHITEPAWN, context.readChessboard().readPieceAt(h7));
+
+    Move move(h7, h8);
+    move.setPromotion(true);
+    move.PromoteToPiece = WHITEQUEEN;
+
+    bool result = context.editChessboard().MakeMove(move);
+	EXPECT_TRUE(result);
+    EXPECT_EQ(WHITEQUEEN, context.readChessboard().readTile(h8.index()).readPiece());
+
 }
 
 }

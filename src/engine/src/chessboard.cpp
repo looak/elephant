@@ -3,6 +3,12 @@
 #include "log.h"
 #include "hash_zorbist.h"
 
+ChessboardTile::ChessboardTile()
+	: m_position(InvalidNotation),
+	m_piece(ChessPiece())
+{	
+}
+
 ChessboardTile::ChessboardTile(Notation&& notation) :
 	m_position(std::move(notation))
 {
@@ -37,6 +43,7 @@ Chessboard::Chessboard() :
 		{
 			Notation pos(r,f);
 			m_tiles[pos.index()].editPosition() = std::move(pos);
+			m_tiles[pos.index()].editPiece() = ChessPiece();
 		}
 	}
 
@@ -171,6 +178,7 @@ Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& r
 		}
 	}
 	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+	move.PrevCastlingState = m_castlingState;
 	casltingMask &= m_castlingState;
 	m_castlingState ^= casltingMask;
 	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
@@ -204,6 +212,7 @@ Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const
 		}
 
 		m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+		move.PrevCastlingState = m_castlingState;
 		mask &= m_castlingState;
 		m_castlingState ^= mask;
 		m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
@@ -264,6 +273,11 @@ Chessboard::VerifyMove(const Move& move) const
 	return true;
 }
 
+ChessPiece Chessboard::readPieceAt(Notation notation) const
+{
+	return m_tiles[notation.index()].readPiece();
+}
+
 bool
 Chessboard::UnmakeMove(const Move& move)
 {
@@ -279,6 +293,32 @@ Chessboard::UnmakeMove(const Move& move)
 	if ((move.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
 		pieceToRmv = move.PromoteToPiece;
 
+	if (move.PrevCastlingState != 0)
+	{
+		m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+		m_hash = ZorbistHash::Instance().HashCastling(m_hash, move.PrevCastlingState);
+		m_castlingState = move.PrevCastlingState;
+	}
+
+	if (move.isCastling())
+	{ // move back rook to it's origin since the rest of this code will deal with the king.
+		ChessPiece rook(move.Piece.getSet(), PieceType::ROOK);
+		Notation rookOrigin;
+		Notation rookPlacement;
+		if (move.TargetSquare.file == 2) // queen side
+		{
+			rookOrigin = Notation(a_file, move.SourceSquare.rank);
+			rookPlacement = Notation(c_file, move.SourceSquare.rank);
+		}
+		else // king side
+		{
+			rookOrigin = Notation(h_file, move.SourceSquare.rank);
+			rookPlacement = Notation(f_file, move.SourceSquare.rank);
+		}
+		// move rook
+		InternalUnmakeMove(rookOrigin, rookPlacement, rook, rook);
+
+	}
 
 	if (move.EnPassantTargetSquare.isValid())
 	{
@@ -288,18 +328,7 @@ Chessboard::UnmakeMove(const Move& move)
 		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
 	}
 	
-	auto& sourceTile = m_tiles[move.SourceSquare.index()];
 	auto& targetTile = m_tiles[move.TargetSquare.index()];
-
-
-	// unmake chessboard
-	sourceTile.editPiece() = pieceToAdd;
-	targetTile.editPiece() = ChessPiece();
-
-	// unmake bitboard
-	m_bitboard.ClearPiece(pieceToRmv, move.TargetSquare);
-	m_bitboard.PlacePiece(pieceToAdd, move.SourceSquare);
-
 
 	if (move.CapturedPiece.isValid())
 	{
@@ -312,7 +341,7 @@ Chessboard::UnmakeMove(const Move& move)
 			m_tiles[m_enPassantTarget.index()].editPiece() = move.CapturedPiece;
 			m_bitboard.PlacePiece(move.CapturedPiece, m_enPassantTarget);
 			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, m_enPassantTarget);
-			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
+			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);			
 
 		}
 		else
@@ -323,11 +352,26 @@ Chessboard::UnmakeMove(const Move& move)
 		}
 	}
 
-	// update hash
-	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, move.TargetSquare);
-	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToAdd, move.SourceSquare);
+	InternalUnmakeMove(move.SourceSquare, move.TargetSquare, pieceToRmv, pieceToAdd);
 
 	return true;
+}
+
+void Chessboard::InternalUnmakeMove(const Notation& source, const Notation& target, const ChessPiece& pieceToRmv, const ChessPiece& pieceToAdd)
+{
+	auto& sourceTile = m_tiles[source.index()];
+	auto& targetTile = m_tiles[target.index()];
+	// unmake chessboard
+	sourceTile.editPiece() = pieceToAdd;
+	targetTile.editPiece() = ChessPiece();
+
+	// unmake bitboard
+	m_bitboard.ClearPiece(pieceToRmv, target);
+	m_bitboard.PlacePiece(pieceToAdd, source);
+
+	// update hash
+	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, target);
+	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToAdd, source);
 }
 
 Move
@@ -486,9 +530,8 @@ bool
 Chessboard::IsCheck(const Move& move) const
 {
 	u64 threatened = ~universe;
-	// get threatened squares from new location
-	auto flag = (move.Flags & MoveFlag::Promotion);
-	if (flag == MoveFlag::Promotion)
+	// get threatened squares from new location	
+	if (move.isPromotion())
 		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.PromoteToPiece);
 	else
 		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Piece);

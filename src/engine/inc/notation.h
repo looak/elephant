@@ -19,7 +19,7 @@
 #include <string>
 
 struct Notation
-{
+{	
 	static Notation BuildPosition(byte file, byte rank);
 	static bool Validate(const Notation& notation);
 	static std::string toString(const Notation& notation);
@@ -30,7 +30,7 @@ struct Notation
 		rank(0xF)
 	{}
 
-	Notation(byte index)
+	constexpr Notation(byte index)
 	{
 		if (index > 127)
 			LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
@@ -60,3 +60,5 @@ struct Notation
 	Notation& operator=(const Notation& other);
 	bool isValid() const { return Validate(*this); }
 };
+
+constexpr Notation InvalidNotation(127);

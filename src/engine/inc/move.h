@@ -19,7 +19,7 @@
 #include "notation.h"
 #include <vector>
 
-enum class MoveFlag : byte
+enum MoveFlag : byte
 {
     Zero = 0,
     Capture = 1,
@@ -55,9 +55,16 @@ public:
     Move();
     Move(const Notation& source, const Notation& target);
     Move(const Move& other);
+	Move(Move&& other);
+    
+    bool isCapture() const { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
+    bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
+	bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
+	bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
 
-    bool isCapture() { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
-
+	void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
+	void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
+        
     Move& operator=(const Move& other);
 
     static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
@@ -66,6 +73,7 @@ public:
     Notation SourceSquare;
 
     Notation EnPassantTargetSquare;
+    byte PrevCastlingState;
 
     ChessPiece Piece;
     ChessPiece PromoteToPiece;

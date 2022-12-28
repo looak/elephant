@@ -26,3 +26,12 @@ typedef signed long long i64;
 typedef unsigned long u32;
 
 const u64 universe = 0xffffffffffffffffULL;
+
+#define a_file 0
+#define b_file 1
+#define c_file 2
+#define d_file 3
+#define e_file 4
+#define f_file 5
+#define g_file 6
+#define h_file 7
