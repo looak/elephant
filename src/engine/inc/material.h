@@ -20,28 +20,6 @@
 #include <vector>
 #include <array>
 
-struct ChessPieceInfo
-{
-public:
-	ChessPieceInfo() = default; // = delete; // no default constructor
-	ChessPieceInfo(const ChessPiece& piece);
-	ChessPieceInfo(const ChessPiece& piece, const Notation& notation);
-	ChessPieceInfo(const ChessPieceInfo& other);
-	ChessPieceInfo(ChessPieceInfo&& other);
-	
-	ChessPieceInfo& operator=(ChessPieceInfo&& other);
-	ChessPieceInfo& operator=(const ChessPieceInfo& other);
-
-	const ChessPiece& readPiece() const;
-	const Notation& readPosition() const;
-
-	Notation& editPosition() { return m_position; }
-	
-private:
-	ChessPiece	m_piece;
-	Notation	m_position;
-};
-
 class Material
 {
 public:
@@ -55,6 +33,7 @@ public:
 	void AddPiece(const ChessPiece& piece, const Notation& position);
 	void RemovePiece(const ChessPiece& piece, const Notation& position);
 	void MovePiece(const ChessPiece& piece, const Notation& source, const Notation& target);
+	void PromotePiece(const ChessPiece& newPiece, const Notation& position);
 	
 	/**
 	* Unmakes a chess piece move by removing the piece from the target location and adding it back to the source location.
@@ -75,7 +54,7 @@ public:
 	u32 getPieceCount(const ChessPiece& piece) const;
 	
 private:
-	typedef std::array<std::vector<ChessPieceInfo>, (size_t)PieceType::KING> MaterialGrid;
+	typedef std::array<std::vector<Notation>, (size_t)PieceType::KING> MaterialGrid;
 
 	MaterialGrid m_material;
 };

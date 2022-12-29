@@ -144,6 +144,12 @@ public:
 	ConstIterator end() const;
 
 private:
+	/**
+	* Internal helper function for handling the movement of a pawn chess piece.
+	*
+	* @param move The move being made.
+	* @return The updated target location for the pawn, in case we double moved the piece and target differ.
+	*/
 	Notation InternalHandlePawnMove(Move& move);
 	void InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove);
 	void InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);

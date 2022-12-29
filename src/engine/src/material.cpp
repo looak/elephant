@@ -1,46 +1,5 @@
 #include "material.h"
 
-ChessPieceInfo::ChessPieceInfo(const ChessPiece& piece)
-	: m_piece(piece)
-{}
-ChessPieceInfo::ChessPieceInfo(const ChessPiece& piece, const Notation& notation)
-	: m_piece(piece), m_position(notation)
-{}
-
-ChessPieceInfo::ChessPieceInfo(const ChessPieceInfo& other)
-	: m_piece(other.m_piece)
-{}
-
-
-ChessPieceInfo::ChessPieceInfo(ChessPieceInfo&& other)
-{
-	*this = std::move(other);
-}
-
-ChessPieceInfo& ChessPieceInfo::operator=(ChessPieceInfo&& other)
-{
-	m_piece = std::move(other.m_piece);
-	m_position = std::move(other.m_position);	
-	return *this;	
-}
-
-ChessPieceInfo& ChessPieceInfo::operator=(const ChessPieceInfo& other)
-{
-	m_piece = other.m_piece;
-	m_position = other.m_position;
-	return *this;
-}
-
-const ChessPiece& ChessPieceInfo::readPiece() const
-{
-	return m_piece;
-}
-
-const Notation& ChessPieceInfo::readPosition() const
-{
-	return m_position;
-}
-
 Material::Material()
 {}
 
@@ -67,17 +26,15 @@ Material& Material::operator=(Material&& other)
 
 void Material::AddPiece(const ChessPiece& piece, const Notation& position)
 {
-	m_material[piece.index()].push_back(ChessPieceInfo(piece, position));
+	m_material[piece.index()].push_back(position);
 }
 
 void Material::RemovePiece(const ChessPiece& piece, const Notation& position)
 {
 	// find piece by position
 	auto& pieces = m_material[piece.index()];
-	auto it = std::find_if(pieces.begin(), pieces.end(), [&position](const ChessPieceInfo& info) {
-		return info.readPosition() == position;
-		});
-		
+	auto it = std::find_if(pieces.begin(), pieces.end(), [&position](const Notation& n) { return n == position; });
+			
 	FATAL_ASSERT(it != pieces.end()) << "Piece not found - this should not happen";	
 	// erase piece from vector
 	pieces.erase(it);	
@@ -87,26 +44,32 @@ void Material::MovePiece(const ChessPiece& piece, const Notation& source, const 
 {
 	// find piece by position
 	auto& pieces = m_material[piece.index()];
-	auto it = std::find_if(pieces.begin(), pieces.end(), [&source](const ChessPieceInfo& info) {
-		return info.readPosition() == source;
-		});
-	
+	auto it = std::find_if(pieces.begin(), pieces.end(), [&source](const Notation& n) { return n == source; });
+		
 	FATAL_ASSERT(it != pieces.end()) << "Piece not found - this should not happen";
 
 	// update piece position
-	it->editPosition() = target;	
+	(*it) = target;
+}
+
+void Material::PromotePiece(const ChessPiece& piece, const Notation& position)
+{
+	// find piece by position
+	auto& positions = m_material[0];
+	auto it = std::find_if(positions.begin(), positions.end(), [&position](const Notation& n) { return n == position; });
+
+	FATAL_ASSERT(it != positions.end()) << "Piece not found - this should not happen";
+	
+	// since we need to remove the position from the pawn list we need to add it first to the new piece list
+	// other wise we'll end up with a broken reference.
+	AddPiece(piece, *it);
+	RemovePiece(ChessPiece(piece.getSet(), PieceType::PAWN), *it);
+
 }
 
 std::vector<Notation> Material::getPlacementsOfPiece(const ChessPiece& piece) const
 {
-	// build array of positions from material of piece
-	std::vector<Notation> positions;
-	const auto& pieces = m_material[piece.index()];
-	for (const auto& piece : pieces)
-	{
-		positions.push_back(piece.readPosition());
-	}
-	return positions;
+	return m_material[piece.index()];
 }
 
 void 
@@ -134,11 +97,8 @@ u32 Material::getValue() const
 	u32 value = 0;
 	for (u32 i = 0; i < m_material.size(); ++i)
 	{
-		const auto& pieces = m_material[i];
-		for (const auto& piece : pieces)
-		{
-			value += ChessPieceDef::Value(piece.readPiece().type());
-		}
+		const auto& positions = m_material[i];
+		value += positions.size() * ChessPieceDef::Value(i+1);
 	}
 	return value;
 }

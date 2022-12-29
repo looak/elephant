@@ -227,6 +227,7 @@ Chessboard::InternalHandlePawnMove(Move& move)
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare.index());
 
 		m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
+		m_material[move.Piece.set()].PromotePiece(move.PromoteToPiece, move.SourceSquare);
 		move.Flags |= MoveFlag::Promotion;
 	}
 
