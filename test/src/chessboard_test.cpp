@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 #include "chessboard.h"
 #include "elephant_test_utils.h"
 #include "hash_zorbist.h"
@@ -466,8 +467,9 @@ TEST_F(ChessboardFixture, KingCheckedByOpRook)
     b.PlacePiece(WHITEKING, e1);
     b.PlacePiece(BLACKROOK, e8);
 
-    bool result = b.Checked(Set::WHITE);
-    EXPECT_TRUE(result);
+    auto [checked, count] = b.IsInCheck(Set::WHITE);
+    EXPECT_TRUE(checked);
+    EXPECT_EQ(1, count);
 }
 
 TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
@@ -476,8 +478,9 @@ TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEROOK, f1);
 
-    bool result = b.Checked(Set::BLACK);
-    EXPECT_FALSE(result);
+    auto [checked, count] = b.IsInCheck(Set::WHITE);
+    EXPECT_FALSE(checked);
+    EXPECT_EQ(0, count);
 }
 
 TEST_F(ChessboardFixture, KingsNotChecked)
@@ -486,11 +489,49 @@ TEST_F(ChessboardFixture, KingsNotChecked)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEKING, e1);
 
-    bool result = b.Checked(Set::BLACK);
-    EXPECT_FALSE(result);
+    auto result = b.IsInCheck(Set::WHITE);
+    EXPECT_FALSE(std::get<0>(result));
+    EXPECT_EQ(0, std::get<1>(result));
 
-    result = b.Checked(Set::WHITE);
-    EXPECT_FALSE(result);
+    result = b.IsInCheck(Set::WHITE);
+    EXPECT_FALSE(std::get<0>(result));
+    EXPECT_EQ(0, std::get<1>(result));
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][ r ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][ b ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
+{
+    Chessboard board;
+    auto b = BLACKBISHOP;
+    auto r = BLACKROOK;
+    auto k = BLACKKING;
+    auto K = WHITEKING;
+
+    board.PlacePiece(b, e3);
+    board.PlacePiece(r, g8);
+    board.PlacePiece(k, e8);
+    board.PlacePiece(K, g1);
+
+    auto result = board.IsInCheck(Set::BLACK);
+    EXPECT_TRUE(std::get<0>(result));
+    EXPECT_EQ(2, std::get<1>(result));
+
+    result = board.IsInCheck(Set::WHITE);
+    EXPECT_FALSE(std::get<0>(result));
+    EXPECT_EQ(0, std::get<1>(result));
+
+    EXPECT_TRUE(board.IsInCheckmate(Set::BLACK));
+    EXPECT_FALSE(board.IsInCheckmate(Set::WHITE));
+    EXPECT_FALSE(board.IsInStalemate(Set::BLACK));
+    EXPECT_FALSE(board.IsInStalemate(Set::WHITE));
 }
 
 TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
@@ -737,6 +778,139 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::WHITE);
     cpyMask = scndCopy.GetThreatenedMask(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
+
+    const Material* orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);
+	const Material* cpyMat = &scndCopy.readMaterial(Set::BLACK);
+	EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
+	EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
+
+	orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
+    cpyMat = &scndCopy.readMaterial(Set::WHITE);
+    EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
+    EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
+
+    orgMat = &m_defaultStartingPosition.readMaterial(Set::BLACK);
+    cpyMat = &copy.readMaterial(Set::BLACK);
+    EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
+    EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
+    
+	EXPECT_EQ(8u, orgMat->getPieceCount(WHITEPAWN));
+	EXPECT_EQ(2u, orgMat->getPieceCount(WHITEKNIGHT));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
+
+	EXPECT_EQ(e1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+}
+
+////////////////////////////////////////////////////////////////
+
+bool NotationCompare(const Notation& lhs, const Notation& rhs)
+{
+	return lhs.index() < rhs.index();
+}
+
+bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo)
+{
+    std::sort(listOne.begin(), listOne.end(), NotationCompare);
+	std::sort(listTwo.begin(), listTwo.end(), NotationCompare);
+    
+	if (listOne.size() != listTwo.size())
+	{
+		return false;
+	}
+
+	for (size_t i = 0; i < listOne.size(); ++i)
+	{
+		if (listOne[i] != listTwo[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+TEST_F(ChessboardFixture, ValidateMaterial)
+{
+    const auto* orgMat = &m_defaultStartingPosition.readMaterial(Set::WHITE);
+
+    EXPECT_EQ(8u, orgMat->getPieceCount(WHITEPAWN));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEKNIGHT));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
+    
+	EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b2, c2, d2, e2, f2, g2, h2 }, orgMat->getPlacementsOfPiece(WHITEPAWN)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ a1, h1 }, orgMat->getPlacementsOfPiece(WHITEROOK)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ b1, g1 }, orgMat->getPlacementsOfPiece(WHITEKNIGHT)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ c1, f1 }, orgMat->getPlacementsOfPiece(WHITEBISHOP)));
+
+    EXPECT_EQ(d1, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
+    EXPECT_EQ(e1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+
+    orgMat = &m_defaultStartingPosition.readMaterial(Set::BLACK);
+
+	EXPECT_EQ(8u, orgMat->getPieceCount(BLACKPAWN));
+	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKKNIGHT));
+	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKBISHOP));
+	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
+	EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
+	EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
+
+	EXPECT_TRUE(VerifyListsContainSameNotations({ a7, b7, c7, d7, e7, f7, g7, h7 }, orgMat->getPlacementsOfPiece(BLACKPAWN)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ a8, h8 }, orgMat->getPlacementsOfPiece(BLACKROOK)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ b8, g8 }, orgMat->getPlacementsOfPiece(BLACKKNIGHT)));
+	EXPECT_TRUE(VerifyListsContainSameNotations({ c8, f8 }, orgMat->getPlacementsOfPiece(BLACKBISHOP)));
+
+	EXPECT_EQ(d8, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
+	EXPECT_EQ(e8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
+
+    
+    // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
+    // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
+    // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]
+    // 5 [   ][ q ][   ][   ][   ][   ][ B ][ Q ]
+    // 4 [   ][ P ][   ][ P ][   ][   ][   ][   ]
+    // 3 [   ][   ][   ][   ][ N ][   ][ R ][   ]
+    // 2 [ P ][   ][   ][   ][   ][ P ][ P ][ P ]
+    // 1 [ R ][   ][   ][   ][ R ][   ][ K ][   ]
+    //     A    B    C    D    E    F    G    H
+	orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
+    
+    EXPECT_EQ(6u, orgMat->getPieceCount(WHITEPAWN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKNIGHT));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
+
+    EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b4, d4, f2, g2, h2 }, orgMat->getPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({ e1, g3 }, orgMat->getPlacementsOfPiece(WHITEROOK)));
+    
+    EXPECT_EQ(g5, orgMat->getPlacementsOfPiece(WHITEBISHOP)[0]);
+    EXPECT_EQ(e3, orgMat->getPlacementsOfPiece(WHITEKNIGHT)[0]);
+    EXPECT_EQ(h5, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
+    EXPECT_EQ(g1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+
+    orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);    
+
+    EXPECT_EQ(6u, orgMat->getPieceCount(BLACKPAWN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKNIGHT));
+    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKBISHOP));
+    EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
+    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
+    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
+
+    EXPECT_TRUE(VerifyListsContainSameNotations({ a7, d6, e6, f7, g7, h6 }, orgMat->getPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({ a8, e8 }, orgMat->getPlacementsOfPiece(BLACKROOK)));
+
+    EXPECT_EQ(b7, orgMat->getPlacementsOfPiece(BLACKBISHOP)[0]);
+    EXPECT_EQ(f8, orgMat->getPlacementsOfPiece(BLACKKNIGHT)[0]);
+    EXPECT_EQ(b5, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
+    EXPECT_EQ(g8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
 }
 
 ////////////////////////////////////////////////////////////////

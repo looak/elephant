@@ -28,6 +28,10 @@ signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
+signed short ChessPieceDef::m_value[6] = {
+	100, 300, 300, 500, 900, 10000
+};
+
 byte ChessPieceDef::MoveCount(byte pIndex)
 {
 	pIndex -= 1;
@@ -50,6 +54,12 @@ signed short ChessPieceDef::Attacks0x88(byte pIndex, byte mIndex)
 {
 	pIndex -= 1;
 	return m_attacks0x88[pIndex][mIndex];
+}
+
+signed short ChessPieceDef::Value(byte pIndex)
+{
+	pIndex -= 1;
+	return m_value[pIndex];
 }
 
 Set ChessPiece::FlipSet(Set source)
@@ -75,6 +85,10 @@ ChessPiece::ChessPiece(Set _set, PieceType _type) :
 	m_internalState |= (byte)_set << 7;
 	m_internalState |= (byte)_type;
 }
+
+ChessPiece::ChessPiece(const ChessPiece& _piece) :
+	m_internalState(_piece.m_internalState)
+{}
 
 char ChessPiece::toString() const
 {

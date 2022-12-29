@@ -599,11 +599,11 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool result = board.Checked(Set::WHITE);
+    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    EXPECT_TRUE(result);
+    EXPECT_TRUE(checked);
     auto count =  moveGenerator.CountMoves(moves);
     EXPECT_EQ(3, count.Moves);
     EXPECT_EQ(0, count.Captures);
@@ -638,11 +638,11 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool result = board.Checked(Set::WHITE);
+    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    EXPECT_TRUE(result);
+    EXPECT_TRUE(checked);
     auto count = moveGenerator.CountMoves(moves);
     EXPECT_EQ(3, count.Moves);
     EXPECT_EQ(0, count.Captures);
@@ -675,10 +675,10 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool result = board.Checked(Set::WHITE);
+    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
 
     // verify
-    EXPECT_TRUE(result);
+    EXPECT_TRUE(checked);
 
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);

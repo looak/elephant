@@ -69,7 +69,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
     auto currentSet = context.readToPlay();
     const auto& board = context.readChessboard();
 
-    bool isChecked = board.Checked(currentSet);
+    auto [isChecked, checkCount] = board.IsInCheck(currentSet);
     u64 threatenedMask = board.GetThreatenedMask(ChessPiece::FlipSet(currentSet));
 
     u64 kingMask = board.GetKingMask(currentSet);
@@ -98,7 +98,8 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
             for (auto mv : moves)
             {
                 boardCopy.MakeMove(mv);
-                if (!boardCopy.Checked(currentSet))
+                auto [cpyChecked, cpyCount] = board.IsInCheck(currentSet);
+                if (cpyChecked == false)
                     retMoves.push_back(mv);
                 boardCopy.UnmakeMove(mv);
             }

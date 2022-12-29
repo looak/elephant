@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2021  Alexander Loodin Ek
+// Copyright(C) 2021-2022  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "bitboard.h"
 #include "chess_piece.h"
 #include "notation.h"
+#include "material.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -46,7 +47,12 @@ private:
 	Notation m_position;
 	ChessPiece m_piece;
 };
-
+/**
+ * The Chessboard class represents a chess board and its current state.
+ * It provides functions for moving and placing chess pieces, as well as tracking the state of the game.
+ *
+ * @author Alexander Loodin Ek
+ */
 class Chessboard
 {
 public:
@@ -59,10 +65,11 @@ public:
 	bool MakeMove(Move& move);
 	Move MakeMove(const Move& move);
 	bool UnmakeMove(const Move& move);
-	bool Checked(Set set) const;
-
 	
-
+	std::tuple<bool, int> IsInCheck(Set set) const;
+	bool IsInCheckmate(Set set) const;
+	bool IsInStalemate(Set set) const;
+	
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	u64 GetThreatenedMask(Set set) const;
@@ -80,6 +87,8 @@ public:
 	byte readCastlingState() const { return m_castlingState; }
 
 	u64 readHash() const { return m_hash; }
+
+	const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
 
 	template<typename T, bool isConst = false>
 	class ChessboardIterator
@@ -179,6 +188,8 @@ private:
 	byte m_castlingState;
 	Notation m_enPassant;
 	Notation m_enPassantTarget;
+
+	Material m_material[(size_t)Set::NR_OF_SETS];
 };
 
 template<typename T, bool isConst>

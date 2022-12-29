@@ -40,6 +40,12 @@ struct Notation
 		rank = index / 8;
 	}
 
+	Notation(const Notation& other)
+	{
+		file = other.file;
+		rank = other.rank;
+	}
+
 	// when we read algebraic notations we might only have file or rank in some cases.
 	// in those cases the other value will be 9 to identify this as a value which needs to be
 	// looked up.
@@ -49,7 +55,6 @@ struct Notation
 	{}
 
 	Notation(Notation&& other) = default;
-	explicit Notation(const Notation& other) = default;
 
 	byte file : 4;
 	byte rank : 4;

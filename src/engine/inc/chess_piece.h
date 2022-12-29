@@ -42,12 +42,14 @@ public:
 	static bool 			Slides(byte pIndex);
 	static signed short 	Moves0x88(byte pIndex, byte mIndex);
 	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
+	static signed short		Value(byte pIndex);
 
 private:
 	static byte m_moveCount[6];
 	static bool m_slides[6];
 	static signed short m_moves0x88[6][8];
 	static signed short m_attacks0x88[6][8];
+	static signed short m_value[6];
 };
 
 
@@ -61,6 +63,7 @@ public:
 public:
 	ChessPiece();
 	ChessPiece(Set _set, PieceType _type);
+	ChessPiece(const ChessPiece& _piece);
 
 	char toString() const;
 	bool fromString(char piece);

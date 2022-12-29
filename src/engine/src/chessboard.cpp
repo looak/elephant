@@ -147,6 +147,8 @@ Chessboard::Chessboard(const Chessboard& other) :
 	m_kings[1].second = Notation(other.m_kings[1].second);
 
 	m_bitboard = other.m_bitboard;
+	m_material[0] = other.m_material[0];
+	m_material[1] = other.m_material[1];
 }
 
 bool 
@@ -172,7 +174,9 @@ Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target, bool ove
 
 	m_tiles[target.index()].editPiece() = piece;
 	m_bitboard.PlacePiece(piece, target);
-
+		
+	m_material[piece.set()].AddPiece(piece, target);
+	
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
 	return true;
 }
@@ -322,6 +326,8 @@ Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
 
 	m_bitboard.ClearPiece(piece, source);
 	m_bitboard.PlacePiece(piece, target);
+
+	m_material[piece.set()].MovePiece(piece, source, target);
 	
 	// update hash
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
@@ -414,14 +420,18 @@ Chessboard::UnmakeMove(const Move& move)
 
 			m_tiles[m_enPassantTarget.index()].editPiece() = move.CapturedPiece;
 			m_bitboard.PlacePiece(move.CapturedPiece, m_enPassantTarget);
+			m_material[move.CapturedPiece.set()].AddPiece(move.CapturedPiece, m_enPassantTarget);
+
 			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, m_enPassantTarget);
-			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);			
+			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);		
 
 		}
 		else
 		{
 			m_tiles[move.TargetSquare.index()].editPiece() = move.CapturedPiece;
 			m_bitboard.PlacePiece(move.CapturedPiece, move.TargetSquare);
+			m_material[move.CapturedPiece.set()].AddPiece(move.CapturedPiece, move.TargetSquare);
+
 			m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, move.TargetSquare);
 		}
 	}
@@ -440,6 +450,9 @@ void Chessboard::InternalUnmakeMove(const Notation& source, const Notation& targ
 	// unmake bitboard
 	m_bitboard.ClearPiece(pieceToRmv, target);
 	m_bitboard.PlacePiece(pieceToAdd, source);
+
+	// unmake material	
+	m_material[pieceToAdd.set()].UnmakePieceMove(pieceToAdd, pieceToRmv, source, target);
 
 	// update hash
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, target);
@@ -579,22 +592,35 @@ Chessboard::IsPromoting(const Move& move) const
 	return false;
 }
 
-bool
-Chessboard::Checked(Set set) const
+std::tuple<bool, int>
+Chessboard::IsInCheck(Set set) const
 {
+	std::tuple<bool, int> result = { false, 0 };
 	u8 indx = static_cast<u8>(set);
 	auto king = m_kings[indx];
 
 	if (king.first == ChessPiece())
-		return false;
+		return result;
 
 	Set op = ChessPiece::FlipSet(set);
 	u64 threatMask = GetThreatenedMask(op);
 	u64 kingMask = UINT64_C(1) << king.second.index();
 
 	if (threatMask & kingMask)
-		return true;
+		return { true, 1 };
 	
+	return result;
+}
+
+bool
+Chessboard::IsInCheckmate(Set set) const
+{	
+	return false;
+}
+
+bool
+Chessboard::IsInStalemate(Set set) const
+{
 	return false;
 }
 
@@ -670,7 +696,7 @@ u64 Chessboard::GetSlidingMask(Set set) const
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	bool isChecked = Checked(currentSet);
+	auto [isChecked, checkCount] = IsInCheck(currentSet);
 	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(currentSet));
 
 	u64 kingMask = GetKingMask(currentSet);
