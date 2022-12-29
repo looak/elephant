@@ -64,7 +64,6 @@ void Material::PromotePiece(const ChessPiece& piece, const Notation& position)
 	// other wise we'll end up with a broken reference.
 	AddPiece(piece, *it);
 	RemovePiece(ChessPiece(piece.getSet(), PieceType::PAWN), *it);
-
 }
 
 std::vector<Notation> Material::getPlacementsOfPiece(const ChessPiece& piece) const

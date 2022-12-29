@@ -788,20 +788,6 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     cpyMat = &scndCopy.readMaterial(Set::WHITE);
     EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
     EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
-
-    orgMat = &m_defaultStartingPosition.readMaterial(Set::BLACK);
-    cpyMat = &copy.readMaterial(Set::BLACK);
-    EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
-    EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
-    
-	EXPECT_EQ(8u, orgMat->getPieceCount(WHITEPAWN));
-	EXPECT_EQ(2u, orgMat->getPieceCount(WHITEKNIGHT));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
-
-	EXPECT_EQ(e1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -867,8 +853,7 @@ TEST_F(ChessboardFixture, ValidateMaterial)
 
 	EXPECT_EQ(d8, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
 	EXPECT_EQ(e8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
-
-    
+        
     // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
     // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
     // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]

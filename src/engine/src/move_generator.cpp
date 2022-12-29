@@ -98,7 +98,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
             for (auto mv : moves)
             {
                 boardCopy.MakeMove(mv);
-                auto [cpyChecked, cpyCount] = board.IsInCheck(currentSet);
+                auto [cpyChecked, cpyCount] = boardCopy.IsInCheck(currentSet);
                 if (cpyChecked == false)
                     retMoves.push_back(mv);
                 boardCopy.UnmakeMove(mv);
