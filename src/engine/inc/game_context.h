@@ -29,20 +29,26 @@ public:
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }
 
-    byte readPly() const { return m_plyCount; }
-    byte& editPly() { return m_plyCount; }
+    u32 readPly() const { return m_plyCount; }
+    u32& editPly() { return m_plyCount; }
 
-    byte readMoveCount() const { return m_moveCount; }
-    byte& editMoveCount() { return m_moveCount; }
+    u32 readMoveCount() const { return m_moveCount; }
+    u32& editMoveCount() { return m_moveCount; }
 
     Set readToPlay() const { return m_toPlay; }
     Set& editToPlay() { return m_toPlay; }
+
+    bool MakeMove(Move& move);
+    bool UnmakeMove(const Move& move);
 
     void PlayMoves(const Move& move, bool print = false);
     
 private:
     Chessboard m_board;
     Set m_toPlay;
-    byte m_plyCount;
-    byte m_moveCount;
+    u32 m_plyCount;    
+    u32 m_moveCount;
+    u32 m_fiftyMoveRule;
+    
+    
 };

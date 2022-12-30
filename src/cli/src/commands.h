@@ -26,6 +26,9 @@ void ExitHelpCommand(const std::string& command);
 bool PrintCommand(std::list<std::string>& tokens, GameContext& context);
 void PrintHelpCommand(const std::string& command);
 
+bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context);
+void DivideDepthCommandHelp(const std::string& command);
+
 //static CommandsMap aliases = {
 //    {"h", { HelpCommand, HelpHelpCommand } },
 //    //{"m", { MoveCommand, MoveHelpCommand } },
@@ -38,7 +41,7 @@ static CommandsMap options = {
     { "help", { HelpCommand, HelpHelpCommand } },
     { "print", { PrintCommand, PrintHelpCommand } },
     // {"move", { MoveCommand, MoveHelpCommand } },
-    // {"divide", {DivideDepthCommand, DivideDepthCommandHelp } },
+     {"divide", {DivideDepthCommand, DivideDepthCommandHelp } },
     // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
     { "exit", { ExitCommand, ExitHelpCommand } }
     // {"about", { AboutCommand, AboutHelpCommand } }

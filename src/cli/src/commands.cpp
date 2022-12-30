@@ -1,9 +1,11 @@
 #include "commands.h"
 #include "commands_print.h"
 #include "commands_utils.h"
+#include "chessboard.h"
 #include "game_context.h"
 #include "fen_parser.h"
-
+#include "move.h"
+#include "move_generator.h"
 #include <vector>
 
 namespace CliCommands
@@ -105,6 +107,57 @@ void ExitHelpCommand(const std::string& command)
 {
     std::string helpText("Shutsdown Cli & Engine");
     std::cout << AddLineDivider(command, helpText);
+}
+
+bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    if (tokens.empty() == false)
+    {
+        std::string token = tokens.front();
+        int depth = std::stoi(token);
+        
+        // validate depth
+		if (depth < 1 || depth > 10)
+		{
+			std::cout << " > Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
+			return false;
+		}
+
+		MoveGenerator generator;
+        
+        auto moves = context.readChessboard().GetAvailableMoves(context.readToPlay());
+        int total = 0;
+		for (auto&& move : moves)
+		{
+            std::cout << " > " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
+            context.MakeMove(move);
+            int result = generator.Perft(context, depth -1);
+            total += result;
+			std::cout << result << std::endl;
+            context.UnmakeMove(move);
+		}
+        
+        std::cout << "\n > Total: " << total << "\n\n";
+    }
+    else
+    {
+        std::cout << " > Elephant Gambit CLI Commands:" << std::endl;
+        for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
+        {
+            iter->second.second(iter->first);
+            std::cout << std::endl;
+        }
+    }
+
+    return true;
+}
+
+void DivideDepthCommandHelp(const std::string& command)
+{
+    std::ostringstream ssCommand;
+    ssCommand << command << " <depth>";
+	std::string helpText("Divide given board by depth.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
 } // CliCommands

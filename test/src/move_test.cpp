@@ -170,10 +170,14 @@ TEST_F(MoveFixture, KingMove_Capture)
     m_chessboard.PlacePiece(K, e4);
     m_chessboard.PlacePiece(q, d5);
     Move move(e4, d5);
+
+	auto& blkMat = m_chessboard.readMaterial(Set::BLACK);
         
     EXPECT_EQ(K, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(q, m_chessboard.readTile(d5).readPiece());
-
+    EXPECT_EQ(1, blkMat.getPieceCount(BLACKQUEEN));
+	EXPECT_EQ(d5, blkMat.getPlacementsOfPiece(BLACKQUEEN)[0]);
+    
     // do
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
@@ -183,6 +187,7 @@ TEST_F(MoveFixture, KingMove_Capture)
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(K, m_chessboard.readTile(d5).readPiece());
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
+	EXPECT_EQ(0, blkMat.getPieceCount(BLACKQUEEN));
 
     u64 hash = ZorbistHash::Instance().HashBoard(m_chessboard);
     EXPECT_EQ(hash, m_chessboard.readHash());
@@ -207,6 +212,11 @@ TEST_F(MoveFixture, EnPassant_Captured)
     m_chessboard.PlacePiece(p, d4);
     Move move(e2, e4);
 
+    auto& blkMat = m_chessboard.readMaterial(Set::BLACK);
+    auto& whtMat = m_chessboard.readMaterial(Set::WHITE);
+    EXPECT_EQ(1, blkMat.getPieceCount(BLACKPAWN));
+	EXPECT_EQ(1, whtMat.getPieceCount(WHITEPAWN));
+
     // do
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
@@ -224,6 +234,9 @@ TEST_F(MoveFixture, EnPassant_Captured)
     EXPECT_EQ(p, epCapture.Piece);
     EXPECT_EQ(MoveFlag::Capture, epCapture.Flags & MoveFlag::Capture);
     EXPECT_EQ(MoveFlag::EnPassant, epCapture.Flags & MoveFlag::EnPassant);
+	EXPECT_EQ(1, blkMat.getPieceCount(BLACKPAWN));
+    EXPECT_EQ(0, whtMat.getPieceCount(BLACKPAWN));
+	EXPECT_EQ(e3, blkMat.getPlacementsOfPiece(BLACKPAWN)[0]);
 
     ChessPiece exp; // default, "empty" piece
     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());

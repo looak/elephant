@@ -234,9 +234,10 @@ Chessboard::InternalHandlePawnMove(Move& move)
 	return pieceTarget;
 }
 
-void 
+bool 
 Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove)
 {
+	bool castling = false;
 	byte casltingMask = 3 << (2 * move.Piece.set());
 	if (m_castlingState & casltingMask)
 	{
@@ -246,13 +247,14 @@ Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& r
 			targetRook = Notation(0, targetRank);
 			rookMove = Notation(3, targetRank);
 			move.Flags |= MoveFlag::Castle;
-			
+			castling = true;
 		}
 		else if (move.TargetSquare.file == 6) // we are in g file.
 		{
 			targetRook = Notation(7, targetRank);
 			rookMove = Notation(5, targetRank);
 			move.Flags |= MoveFlag::Castle;
+			castling = true;
 		}
 	}
 	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
@@ -260,6 +262,8 @@ Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& r
 	casltingMask &= m_castlingState;
 	m_castlingState ^= casltingMask;
 	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+
+	return castling;
 }
 
 void 
@@ -304,7 +308,8 @@ Chessboard::InternalHandleKingRookMove(Move& move)
 	switch(move.Piece.getType())
 	{
 		case PieceType::KING:
-		InternalHandleKingMove(move, targetRook, rookMove);
+			if (InternalHandleKingMove(move, targetRook, rookMove) == false)
+				break;
 		
 		case PieceType::ROOK:
 		InternalHandleRookMove(move, targetRook, rookMove);
@@ -345,7 +350,7 @@ Chessboard::VerifyMove(const Move& move) const
 	if (piece == ChessPiece())
 		return false;
 
-	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(move.Piece.getSet()));
+	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(piece.getSet()));
 
 	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index(), threatenedMask) == false)
 		return false;
@@ -397,7 +402,6 @@ Chessboard::UnmakeMove(const Move& move)
 		}
 		// move rook
 		InternalUnmakeMove(rookOrigin, rookPlacement, rook, rook);
-
 	}
 
 	if (move.EnPassantTargetSquare.isValid())
@@ -410,6 +414,9 @@ Chessboard::UnmakeMove(const Move& move)
 	
 	// move pieces back to where they were before we re add any possible captured piecs.
 	InternalUnmakeMove(move.SourceSquare, move.TargetSquare, pieceToRmv, pieceToAdd);
+
+	if(move.Piece.getType() == PieceType::KING)
+		m_kings[(size_t)move.Piece.getSet()].second = move.SourceSquare;
 	
 	if (move.CapturedPiece.isValid())
 	{
@@ -454,7 +461,7 @@ void Chessboard::InternalUnmakeMove(const Notation& source, const Notation& targ
 
 	// unmake material	
 	m_material[pieceToAdd.set()].UnmakePieceMove(pieceToAdd, pieceToRmv, source, target);
-
+	
 	// update hash
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, target);
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToAdd, source);
@@ -500,6 +507,7 @@ Chessboard::MakeMove(const Move& move)
 			if (availableMoves & targetMask)
 			{
 				Move actualMove(tile.readPosition(), move.TargetSquare);
+				actualMove.PromoteToPiece = move.PromoteToPiece;
 				MakeMove(actualMove);
 				return actualMove;
 			}
@@ -552,6 +560,8 @@ Chessboard::MakeMove(Move& move)
 		move.CapturedPiece = m_tiles[pieceTarget.index()].readPiece();
 		// remove captured piece from board.
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
+
+		m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
 		
 		// remove piece from hash
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);
@@ -600,15 +610,29 @@ Chessboard::IsInCheck(Set set) const
 	u8 indx = static_cast<u8>(set);
 	auto king = m_kings[indx];
 
+	// why would king be invalid?
 	if (king.first == ChessPiece())
 		return result;
-
+	
 	Set op = ChessPiece::FlipSet(set);
-	u64 threatMask = GetThreatenedMask(op);
 	u64 kingMask = UINT64_C(1) << king.second.index();
 
-	if (threatMask & kingMask)
-		return { true, 1 };
+	// for each piece on the board check if it can attack the king.
+	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
+	{
+		ChessPiece currentPiece(op, (PieceType)i);
+		
+		const auto& positions = m_material[(size_t)op].getPlacementsOfPiece(currentPiece);
+		for (auto& pos : positions)
+		{
+			u64 threatMask = m_bitboard.GetThreatenedSquares(pos, currentPiece);
+			if (threatMask & kingMask)
+			{
+				std::get<0>(result) = true;
+				std::get<1>(result) += 1;
+			}
+		}
+	}
 	
 	return result;
 }
@@ -646,6 +670,12 @@ Chessboard::IsCheck(const Move& move) const
 		return true;
 	
 	return false;
+}
+
+const Notation&
+Chessboard::readKingPosition(Set set) const
+{
+	return m_kings[static_cast<u8>(set)].second;
 }
 
 u64 Chessboard::GetKingMask(Set set) const
@@ -692,7 +722,6 @@ u64 Chessboard::GetSlidingMask(Set set) const
 
 	return mask;
 }
-
 
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
@@ -749,8 +778,8 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 				/*if (IsCheck(move))
 					move.Flags |= MoveFlag::Check;*/
 
-				/*if (sqrMask & attacked)
-					move.Flags |= MoveFlag::Capture;*/
+				if (sqrMask & attacked)
+					move.Flags |= MoveFlag::Capture;
 
 				if (move.Piece.getType() == PieceType::KING && IsMoveCastling(move))
 					move.Flags |= MoveFlag::Castle;

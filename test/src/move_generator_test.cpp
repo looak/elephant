@@ -655,7 +655,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
 
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 6 [   ][ b ][   ][   ][   ][   ][ r ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][ r ][   ]
 // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -669,7 +669,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
-    board.PlacePiece(BLACKBISHOP, b6);
+    //board.PlacePiece(BLACKBISHOP, b6);
     board.PlacePiece(BLACKROOK, g6);
     board.PlacePiece(WHITEPAWN, g2);
     board.PlacePiece(WHITEKING, g1);
@@ -678,7 +678,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
 
     // verify
-    EXPECT_TRUE(checked);
+    EXPECT_FALSE(checked);
 
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);

@@ -63,6 +63,8 @@ class MoveGenerator
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
 
+	int Perft(GameContext& context, int depth);
+
     MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::vector<std::string> MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;

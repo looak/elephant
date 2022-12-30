@@ -72,9 +72,12 @@ public:
 	
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
-	u64 GetThreatenedMask(Set set) const;
+	
+	u64 GetThreatenedMask(Set set) const;	
 	u64 GetKingMask(Set set) const;
 	u64 GetSlidingMask(Set set) const;
+
+	const Notation& readKingPosition(Set set) const;
 
 	const ChessboardTile& readTile(const Notation& position) const;
 	ChessboardTile& editTile(const Notation& position);
@@ -148,11 +151,18 @@ private:
 	* Internal helper function for handling the movement of a pawn chess piece.
 	*
 	* @param move The move being made.
-	* @return The updated target location for the pawn, in case we double moved the piece and target differ.
-	*/
+	* @return The updated target location for the pawn, in case we double moved the piece and target differ.*/	
 	Notation InternalHandlePawnMove(Move& move);
 	void InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove);
-	void InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);
+	
+	/**
+	* Internal helper function for handling the movement of a king chess piece.
+	*
+	* @param move The move being made.
+	* @param targetRook The position of the rook that will be involved in the castle move (if any).
+	* @param rookMove The position that the rook will move to during the castle move (if any).
+	* @return True if the move is a castle move, false otherwise. */
+	bool InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);
 	void InternalHandleKingRookMove(Move& move);
 	bool UpdateEnPassant(const Notation& source, const Notation& target);
 	void InternalMakeMove(const Notation& source, const Notation& target);

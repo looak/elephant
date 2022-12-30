@@ -520,15 +520,15 @@ TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
     board.PlacePiece(k, e8);
     board.PlacePiece(K, g1);
 
-    auto result = board.IsInCheck(Set::BLACK);
+    auto result = board.IsInCheck(Set::WHITE);
     EXPECT_TRUE(std::get<0>(result));
     EXPECT_EQ(2, std::get<1>(result));
 
-    result = board.IsInCheck(Set::WHITE);
+    result = board.IsInCheck(Set::BLACK);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 
-    EXPECT_TRUE(board.IsInCheckmate(Set::BLACK));
+    EXPECT_FALSE(board.IsInCheckmate(Set::BLACK));
     EXPECT_FALSE(board.IsInCheckmate(Set::WHITE));
     EXPECT_FALSE(board.IsInStalemate(Set::BLACK));
     EXPECT_FALSE(board.IsInStalemate(Set::WHITE));

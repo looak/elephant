@@ -3,6 +3,31 @@
 #include <sstream>
 #include <utility>
 
+int MoveGenerator::Perft(GameContext& context, int depth)
+{
+    if (depth == 0)
+    {
+        return 1;
+    }
+
+    int count = 0;
+
+    auto moves = GeneratePossibleMoves(context);
+    count = moves.size();
+
+    if (depth > 1)
+    {
+        for (auto mv : moves)
+        {
+            FATAL_ASSERT(context.MakeMove(mv));
+			count += Perft(context, depth - 1);
+            context.UnmakeMove(mv);
+        }
+    }
+
+    return count; 
+}
+
 MoveCount 
 MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
 {
@@ -76,39 +101,34 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 
     auto boardCopy = context.copyChessboard();
 
-    auto&& itr = board.begin();
-    while (itr != board.end())
-    {       
-        const auto& piece = (*itr).readPiece();
-        if (piece.isValid() && piece.getSet() == currentSet)
+    const auto& material = board.readMaterial(currentSet);
+    for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
+    {
+        ChessPiece p(currentSet, (PieceType)i);
+        for (auto&& piecePos : material.getPlacementsOfPiece(p))
         {
-            bool isPinnedOrChecked = isChecked;
-            u64 threatCopy = threatenedMask;
-            const auto& pos = (*itr).readPosition();
-            // // are we pinned
-            // u64 sqrMask = UINT64_C(1) << pos.index();
-            // if (sqrMask & kingMask)
-            // {
-            //     threatCopy &= kingMask;
-            //     isPinnedOrChecked = true;
-            // }
-
-            auto moves = board.GetAvailableMoves(pos, piece, threatCopy, isPinnedOrChecked, kingMask);
-            
-            for (auto mv : moves)
+			auto moves = board.GetAvailableMoves(piecePos, p, threatenedMask, isChecked, kingMask);
+            // validate our moves since in some situations we can generate illegal moves when the king is checked.
+            //if (isChecked)
             {
-                boardCopy.MakeMove(mv);
-                auto [cpyChecked, cpyCount] = boardCopy.IsInCheck(currentSet);
-                if (cpyChecked == false)
-                    retMoves.push_back(mv);
-                boardCopy.UnmakeMove(mv);
-            }
+                for (auto&& mv : moves)
+                {
+                    if (boardCopy.MakeMove(mv))
+                    {
+                        auto [cpyChecked, cpyCount] = boardCopy.IsInCheck(currentSet);
+                        if (!cpyChecked)
+                            retMoves.push_back(mv);
 
-            //retMoves.insert(retMoves.end(), moves.begin(), moves.end());
+                        boardCopy.UnmakeMove(mv);
+                    }
+                }
+            }/*
+            else
+            {
+                retMoves.insert(retMoves.end(), moves.begin(), moves.end());
+            }*/
         }
-
-        ++itr;
     }
-
+    
     return retMoves;
 }
