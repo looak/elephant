@@ -64,19 +64,21 @@ bool PrintBoard(const GameContext& context, const Move& move)
 
 bool GameContext::MakeMove(Move& move)
 {	
-	m_board.MakeMove(move);
+	auto actualMove = m_board.PlayMove(move);
     
-    if (move.Piece.getSet() == Set::BLACK)
+    if (actualMove.Piece.getSet() == Set::BLACK)
 	    m_moveCount++;
     
-	if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
+	if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
 		m_fiftyMoveRule = 0;
 	else
 		m_fiftyMoveRule++;
     
 	m_plyCount++;
 
-	m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;    
+	m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    
+    move = actualMove;
     
 	return true;
 }
@@ -108,7 +110,7 @@ void GameContext::PlayMoves(const Move& move, bool print)
 	const Move* mv = &move;
 	while (mv != nullptr)
 	{
-		Move madeMove = m_board.MakeMove(*mv);
+		Move madeMove = m_board.PlayMove(*mv);
 		if (print)
             PrintBoard(*this, madeMove);
 

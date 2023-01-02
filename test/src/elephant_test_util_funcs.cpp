@@ -3,6 +3,7 @@
 #include "game_context.h"
 #include <array>
 #include <sstream>
+#include <algorithm>
 #include "log.h"
 
 namespace ElephantTest
@@ -128,6 +129,32 @@ void SetupDefaultStartingPosition(Chessboard& board)
     board.PlacePiece(p, h7);
 
     board.setCastlingState(15);
+}
+
+bool NotationCompare(const Notation& lhs, const Notation& rhs)
+{
+    return lhs.index() < rhs.index();
+}
+
+bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo)
+{
+    std::sort(listOne.begin(), listOne.end(), NotationCompare);
+    std::sort(listTwo.begin(), listTwo.end(), NotationCompare);
+
+    if (listOne.size() != listTwo.size())
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < listOne.size(); ++i)
+    {
+        if (listOne[i] != listTwo[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }; // namespace ElephantTest

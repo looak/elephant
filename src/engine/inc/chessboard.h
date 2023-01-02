@@ -63,7 +63,16 @@ public:
 
 	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
 	bool MakeMove(Move& move);
-	Move MakeMove(const Move& move);
+
+	/**
+	* Makes the specified move on the chessboard. The move may be a partial move generated from a Portable Game Notation (PGN) string,
+	* in which case it may not include the full move and we need the context of the chessboard to disambiguate the move.
+	*
+	* @param move The move to make.
+	* @return The actual move that was made, which may be different from the input move if the input move was ambiguous.
+	*         If the move could not be made, an invalid move is returned.
+	*/
+	Move PlayMove(const Move& move);
 	bool UnmakeMove(const Move& move);
 	
 	std::tuple<bool, int> IsInCheck(Set set) const;
@@ -146,6 +155,7 @@ public:
 	ConstIterator begin() const;
 	ConstIterator end() const;
 
+
 private:
 	/**
 	* Internal helper function for handling the movement of a pawn chess piece.
@@ -175,7 +185,7 @@ private:
 	bool IsMoveCastling(const Move& move) const;
 	bool IsPromoting(const Move& move) const;
 	bool IsCheck(const Move& move) const;
-	bool VerifyMove(const Move& move) const;
+	bool VerifyMove(const Move& move) const;	
 
 	u64 m_hash;
 		

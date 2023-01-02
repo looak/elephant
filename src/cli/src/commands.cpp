@@ -152,7 +152,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
     return true;
 }
 
-void DivideDepthCommandHelp(const std::string& command)
+void DivideDepthHelpCommand(const std::string& command)
 {
     std::ostringstream ssCommand;
     ssCommand << command << " <depth>";
@@ -160,4 +160,37 @@ void DivideDepthCommandHelp(const std::string& command)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
+bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
+{
+	if (tokens.empty() == false)
+	{
+		std::string token = tokens.front();
+		Move move = Move::FromString(token, context.readToPlay() == Set::WHITE);
+		
+		if (!context.MakeMove(move))
+		{
+			std::cout << " > Invalid move: " << token << std::endl;
+		}
+	}
+	else
+	{
+		std::cout << " > Elephant Gambit CLI Commands:" << std::endl;
+		for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
+		{
+			iter->second.second(iter->first);
+			std::cout << std::endl;
+		}
+	}
+
+	return true;
+}
+
+void MoveHelpCommand(const std::string& command)
+{
+    std::ostringstream ssCommand;
+    ssCommand << command << " <move>";
+    std::string helpText("Makes a move on the current board.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+
+}
 } // CliCommands

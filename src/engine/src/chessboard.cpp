@@ -468,24 +468,20 @@ void Chessboard::InternalUnmakeMove(const Notation& source, const Notation& targ
 }
 
 Move
-Chessboard::MakeMove(const Move& move)
+Chessboard::PlayMove(const Move& move)
 {
 	auto boarditr = begin();
 	int increment = 1;
-	// figure out the source of this move.
-	/*if (Notation::Validate(move.SourceSquare))
-	{
-		u64 availableMoves = m_bitboard.GetAvailableMoves(move.SourceSquare, move.Piece, m_castlingState, m_enPassant.index());
-		u64 targetMask = UINT64_C(1) << move.TargetSquare.index();
 
-		if (availableMoves & targetMask)
-		{
-			Move actualMove(move.SourceSquare, move.TargetSquare);
-			MakeMove(actualMove);
-			return actualMove;
-		}
+	if (!move.isAmbiguous())
+	{
+		Move actualMove(move.SourceSquare, move.TargetSquare);
+		actualMove.PromoteToPiece = move.PromoteToPiece;
+		MakeMove(actualMove);
+		return actualMove;
 	}
-	else*/ if (move.SourceSquare.file == 9) // the move is ambigious and we have extra information about it.
+	
+	if (move.SourceSquare.file == 9) // the move is ambigious and we have extra information about it.
 	{
 		boarditr += (move.SourceSquare.rank * 8);
 	}
@@ -562,6 +558,7 @@ Chessboard::MakeMove(Move& move)
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
 
 		m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
+		m_bitboard.ClearPiece(move.CapturedPiece, pieceTarget);
 		
 		// remove piece from hash
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);

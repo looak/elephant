@@ -1,6 +1,10 @@
 #pragma once
+#include <vector>
 
 class Chessboard;
+struct Notation;
+
+
 namespace ElephantTest
 { 
     bool PrintBoard(const Chessboard& board);
@@ -16,6 +20,10 @@ namespace ElephantTest
     //     A    B    C    D    E    F    G    H
     // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
     void SetupDefaultStartingPosition(Chessboard& board);
+
+    bool NotationCompare(const Notation& lhs, const Notation& rhs);
+
+    bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo);
 
     #define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
     #define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)

@@ -29,7 +29,7 @@ enum MoveFlag : byte
     EnPassant = 16,
     Legal = 32,
     Checkmate = 64,
-    FirstMove = 128,
+	Ambiguous = 128, // Used for disambiguation of moves
     Invalid = 0xff
 };
 
@@ -62,13 +62,16 @@ public:
 	bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
 	bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
 	bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
+	bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
 
 	void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
 	void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
+	void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
         
     Move& operator=(const Move& other);
 
     static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
+    static Move FromString(std::string moveStr, bool isWhiteMove);
 
     Notation TargetSquare;
     Notation SourceSquare;

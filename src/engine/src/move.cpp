@@ -10,6 +10,7 @@ Move::Move(const Notation& source, const Notation& target) :
     PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
+	CapturedPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
     PrevMove(nullptr),
     NextMoveCount(0),
@@ -24,6 +25,7 @@ Move::Move() :
     PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
+	CapturedPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
     PrevMove(nullptr),
     NextMoveCount(0),
@@ -47,6 +49,7 @@ Move& Move::operator=(const Move& other)
     NextMoveCount = other.NextMoveCount;
     NextMove = other.NextMove;
     PrevCastlingState = other.PrevCastlingState;
+    CapturedPiece = other.CapturedPiece;
 
     return *this;
 }
@@ -187,7 +190,10 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
         cursor += 2;
 
         if (readPosition)
-            mv.SourceSquare = mv.TargetSquare;        
+        {
+            mv.SourceSquare = mv.TargetSquare;
+            mv.setAmbiguous(false);
+        }
         mv.TargetSquare = target;
 
     }    
@@ -276,6 +282,7 @@ Move::ParsePNG(std::string png, std::vector<Move>& ret)
         }
 
         auto& whiteMv = ret.emplace_back();
+        whiteMv.setAmbiguous(true);
         bool isWhite = true;
 
         // white move
@@ -286,6 +293,7 @@ Move::ParsePNG(std::string png, std::vector<Move>& ret)
         if (notations.size() > 2)
         {
             auto& blackMv = ret.emplace_back();
+            blackMv.setAmbiguous(true);
             isWhite = false;
             cursor = 0;
             ParsePiece(notations[2], cursor, blackMv, isWhite);
@@ -307,4 +315,15 @@ Move::ParsePNG(std::string png, std::vector<Move>& ret)
     }
 
     return comments;
+}
+
+Move Move::FromString(std::string movestr, bool isWhiteMove)
+{
+	Move mv;
+    mv.setAmbiguous(true);
+
+	size_t cursor = 0;
+	ParsePiece(movestr, cursor, mv, isWhiteMove);
+	ParseFileAndRank(movestr, cursor, mv, isWhiteMove);
+	return mv;
 }
