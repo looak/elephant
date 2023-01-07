@@ -17,7 +17,7 @@ bool Board(const Chessboard& board, const std::string& input)
     {
         if (prevRank != boardItr.rank())
         {
-            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
+            ranks[boardItr.rank()] << "\n " << (int)(boardItr.rank() + 1) << "  ";
         }
         
         ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
@@ -33,7 +33,7 @@ bool Board(const Chessboard& board, const std::string& input)
         rankItr++;
     }
 
-    std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
+    std::cout << "\n\n     A  B  C  D  E  F  G  H\n";
 
     return true;
 }
@@ -46,7 +46,7 @@ void BoardHelp(int option, const std::string& command)
 
 bool HelpCommand(const Chessboard&, const std::string& input)
 {
-    std::cout << " > Elephant Gambit CLI print Commands:" << std::endl;
+    std::cout << " Elephant Gambit CLI print Commands:" << std::endl;
     for (PrintCommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
     {
         options.at(iter->first).second(0, iter->first);

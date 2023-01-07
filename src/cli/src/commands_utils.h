@@ -4,7 +4,7 @@
 #include <exception>
 #include <stdexcept>
 
-static const std::string whitespace = " > ............................. ";
+static const std::string whitespace = " ............................... ";
 static const size_t lineLength = 28;
 static std::string AddLineDivider(std::string command, std::string helpText)
 {
@@ -13,7 +13,7 @@ static std::string AddLineDivider(std::string command, std::string helpText)
         throw new std::range_error("AddLineDevider is too short!");
 
     std::stringstream output;
-    output << " > " << command << ' ';
+    output << " # " << command << ' ';
     while (lengthLeft > 0)
     {
         output << '.';

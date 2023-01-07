@@ -134,6 +134,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     EXPECT_EQ(Set::BLACK, testContext.readToPlay());
     EXPECT_EQ(Notation(), testContext.readChessboard().readEnPassant());
     EXPECT_EQ(0x00, testContext.readChessboard().readCastlingState());
+    
 
     Chessboard expected;
     expected.editTile(g1).editPiece() = BLACKQUEEN;

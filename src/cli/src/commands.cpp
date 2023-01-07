@@ -20,7 +20,7 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
 
     bool ret = FENParser::deserialize(fen.c_str(), context);
     if (!ret)
-        std::cout << " > Invalid FEN: " << fen;
+        std::cout << " Invalid FEN: " << fen;
 
     return ret;
 }
@@ -54,12 +54,12 @@ bool HelpCommand(std::list<std::string>& tokens, GameContext& context)
         else
         {
             std::string invalidInput = token.length() > 0 ? token : "Not a Value!";
-            std::cout << " > Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+            std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
         }
     }
     else
     {
-        std::cout << " > Elephant Gambit CLI Commands:" << std::endl;
+        std::cout << " Elephant Gambit CLI Commands:" << std::endl;
         for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
         {
             iter->second.second(iter->first);
@@ -79,7 +79,7 @@ bool PrintCommand(std::list<std::string>& tokens, GameContext& context)
     else if (CliPrintCommands::options.find(tokens.front()) == CliPrintCommands::options.end())
     {
         std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-        std::cout << " > Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+        std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
     }
     else
     {
@@ -119,7 +119,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
         // validate depth
 		if (depth < 1 || depth > 10)
 		{
-			std::cout << " > Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
+			std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
 			return false;
 		}
 
@@ -129,7 +129,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
         int total = 0;
 		for (auto&& move : moves)
 		{
-            std::cout << " > " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
+            std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
             context.MakeMove(move);
             int result = generator.Perft(context, depth -1);
             total += result;
@@ -137,11 +137,11 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
             context.UnmakeMove(move);
 		}
         
-        std::cout << "\n > Total: " << total << "\n\n";
+        std::cout << "\n Total: " << total << "\n\n";
     }
     else
     {
-        std::cout << " > Elephant Gambit CLI Commands:" << std::endl;
+        std::cout << " Elephant Gambit CLI Commands:" << std::endl;
         for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
         {
             iter->second.second(iter->first);
@@ -169,12 +169,12 @@ bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 		
 		if (!context.MakeMove(move))
 		{
-			std::cout << " > Invalid move: " << token << std::endl;
+			std::cout << " Invalid move: " << token << std::endl;
 		}
 	}
 	else
 	{
-		std::cout << " > Elephant Gambit CLI Commands:" << std::endl;
+		std::cout << " Elephant Gambit CLI Commands:" << std::endl;
 		for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
 		{
 			iter->second.second(iter->first);

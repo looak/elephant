@@ -30,11 +30,11 @@ void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& t
 void Application::Run()
 {
 	GameContext context;
-	LOG_INFO() << "test";
+	//LOG_INFO() << "test";
 
 	while (1)
 	{
-		std::cout << std::endl << " > ";
+		std::cout << "\n\n > ";
 		std::string buffer = "";
 		std::getline(std::cin, buffer);
 		std::list<std::string> tokens;
@@ -48,10 +48,16 @@ void Application::Run()
 			
 			command->second.first(tokens, context);
 		}
+		else if (tokens.size() == 1)
+		{
+			// attempt to make a move with token
+			auto moveCommand = CliCommands::options.find("move");
+			moveCommand->second.first(tokens, context);
+		}
 		else
 		{
 			std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-			std::cout << " > Invalid command: " << invalidInput << ", help for all commands!" <<std::endl;
+			std::cout << " Invalid command: " << invalidInput << ", help for all commands!" <<std::endl;
 		}
 	}
 }

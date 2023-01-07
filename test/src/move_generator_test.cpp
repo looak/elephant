@@ -854,4 +854,39 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
     EXPECT_EQ(orgHash, testContext.readChessboard().readHash());    
 }
 
+TEST_F(MoveGeneratorFixture, KnightMovements)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, a4);
+    board.PlacePiece(BLACKKNIGHT, b6);
+    board.PlacePiece(WHITEKING, f1);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // verify
+    MoveCount::Predicate predicate = [](const Move& mv)
+    {
+        static ChessPiece P = BLACKKNIGHT;
+        if (mv.Piece == P)
+            return true;
+
+        return false;
+    };
+
+    auto count = moveGenerator.CountMoves(moves, predicate);
+    EXPECT_EQ(8, count.Moves);
+    EXPECT_EQ(0, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(0, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
+
+//TEST_F(MoveGeneratorFixture, )
+
+
 } // namespace ElephantTest
