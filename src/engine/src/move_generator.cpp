@@ -108,6 +108,8 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
         for (auto&& piecePos : material.getPlacementsOfPiece(p))
         {
 			auto moves = board.GetAvailableMoves(piecePos, p, threatenedMask, isChecked, kingMask);
+            /*retMoves.insert(retMoves.end(), moves.begin(), moves.end());
+            continue;*/
             // validate our moves since in some situations we can generate illegal moves when the king is checked.
             //if (isChecked)
             {

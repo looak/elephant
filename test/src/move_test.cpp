@@ -491,6 +491,36 @@ TEST_F(MoveFixture, Castling)
     EXPECT_EQ(r, m_chessboard.readTile(f8).readPiece());
 }
 
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][ N ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// O-O-O
+TEST_F(MoveFixture, Black_King_Castle_QueenSide_BlockedByKnight)
+{   
+    auto k = BLACKKING;
+    auto r = BLACKROOK;
+    auto N = WHITEKNIGHT;
+    m_chessboard.setCastlingState(0x08); // black queen side castling available
+    m_chessboard.PlacePiece(k, e8);
+    m_chessboard.PlacePiece(r, a8);
+    m_chessboard.PlacePiece(N, d6);
+    Move move(e8, c8); // castle
+
+    // do
+    bool result = m_chessboard.MakeMove(move);
+    EXPECT_FALSE(result);
+    
+    EXPECT_EQ(k, m_chessboard.readTile(e8).readPiece());
+    EXPECT_EQ(r, m_chessboard.readTile(a8).readPiece());
+}
+
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
 // 7 [ p ][ p ][ p ][   ][ p ][ p ][ p ][ p ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]

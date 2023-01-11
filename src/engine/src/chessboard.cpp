@@ -750,7 +750,10 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 	if (piece == ChessPiece())
 		return moveVector;
 	
-	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, m_castlingState, m_enPassant.index(), threatenedMask, checked, kingMask);
+	// castling not available when in check
+	byte castlingState = checked ? 0 : m_castlingState;
+
+	u64 movesbb = m_bitboard.GetAvailableMoves(source, piece, castlingState, m_enPassant.index(), threatenedMask, checked, kingMask);
 	u64 attacked = m_bitboard.GetAttackedSquares(source, piece);
 
 	if (movesbb == 0)
