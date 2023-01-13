@@ -312,7 +312,7 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notati
         ret |= InternalGenerateMask(curSqr, dir, sliding, resolve);
     }
     
-    ret |= Castling(piece.set(), castling);
+    ret |= Castling(piece.set(), castling, threatenedMask);
 
     return ret;
 }
@@ -460,7 +460,7 @@ bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, cons
     return movesMask & targetMask;
 }
 
-u64 Bitboard::Castling(byte set, byte castling) const
+u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
 {
    	u64 retVal = ~universe;
 	byte rank = 0;
@@ -476,7 +476,7 @@ u64 Bitboard::Castling(byte set, byte castling) const
     if (castling == 0) 
         return retVal;
     
-    u64 attacked = 0; //GetAttackedSquares(ChessPiece::FlipSet((PieceSet)set));
+    u64 attacked = threatenedMask; //GetAttackedSquares(ChessPiece::FlipSet((PieceSet)set));
 	u64 combMat = MaterialCombined();
 
     // check king side
@@ -500,7 +500,7 @@ u64 Bitboard::Castling(byte set, byte castling) const
         byte csqr = bsqr + 1;
         byte dsqr = csqr + 1;
         u64 mask = ~universe;
-        mask |= UINT64_C(1) << bsqr;
+        //mask |= UINT64_C(1) << bsqr;
         mask |= UINT64_C(1) << csqr;
         mask |= UINT64_C(1) << dsqr;
 
