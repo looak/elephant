@@ -744,7 +744,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
+    bool checked = board.IsInCheck(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
@@ -783,7 +783,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
+    bool checked = board.IsInCheck(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
@@ -820,7 +820,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    auto [checked, checkCount] = board.IsInCheck(Set::WHITE);
+    bool checked = board.IsInCheck(Set::WHITE);
 
     // verify
     EXPECT_FALSE(checked);
@@ -1031,7 +1031,44 @@ TEST_F(MoveGeneratorFixture, KnightMovements)
     EXPECT_EQ(0, count.Checkmates);
 }
 
-//TEST_F(MoveGeneratorFixture, )
+TEST_F(MoveGeneratorFixture, ScholarsMate)
+{
+    // setup
+    std::string fen = "r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4";
+	FENParser::deserialize(fen.c_str(), testContext);
+    
+    // verify
+    EXPECT_TRUE(testContext.readChessboard().IsInCheckmate(Set::BLACK));
+}
+
+TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
+{
+    // setup
+    std::string fen = "r1bqkbnr/ppp2ppp/2np4/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 2 4";
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // verify
+    MoveCount::Predicate predicate = [](const Move& mv)
+    {
+        static ChessPiece P = WHITEQUEEN;
+        if (mv.Piece == P)
+            return true;
+
+        return false;
+    };
+
+    auto count = moveGenerator.CountMoves(moves, predicate);
+    EXPECT_EQ(13, count.Moves);
+    EXPECT_EQ(3, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(1, count.Checks);
+    EXPECT_EQ(1, count.Checkmates);
+}
 
 
 } // namespace ElephantTest

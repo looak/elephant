@@ -62,6 +62,14 @@ bool PrintBoard(const GameContext& context, const Move& move)
     return true;
 }
 
+void GameContext::Reset()
+{
+	m_board.Reset();
+	m_moveCount = 0;
+	m_plyCount = 0;
+    m_fiftyMoveRule = 0;
+}
+
 bool GameContext::MakeMove(Move& move)
 {	
 	auto actualMove = m_board.PlayMove(move);

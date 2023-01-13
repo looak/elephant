@@ -39,6 +39,11 @@ bool Bitboard::IsValidSquare(const Notation& source)
     return Bitboard::IsValidSquare(source.index());
 }
 
+void Bitboard::Clear()
+{
+	std::memset(&m_material[0][0], 0, sizeof(u64) * 12);
+}
+
 bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
 {
     u64 mask = UINT64_C(1) << target.index();

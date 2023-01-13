@@ -24,6 +24,15 @@ Material& Material::operator=(Material&& other)
 	return *this;
 }
 
+void Material::Clear()
+{
+	// for each piece
+	for (auto& pieceList : m_material)
+	{
+		pieceList.clear();
+	}
+}
+
 void Material::AddPiece(const ChessPiece& piece, const Notation& position)
 {
 	m_material[piece.index()].push_back(position);

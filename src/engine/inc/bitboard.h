@@ -29,7 +29,9 @@ public:
 public:
 	Bitboard();
 	Bitboard& operator=(const Bitboard& other);
-		
+	
+	void Clear();
+	
 	bool PlacePiece(const ChessPiece& piece, const Notation& target);
 	bool ClearPiece(const ChessPiece& piece, const Notation& target);
 	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const;

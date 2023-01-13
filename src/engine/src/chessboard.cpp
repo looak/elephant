@@ -151,6 +151,27 @@ Chessboard::Chessboard(const Chessboard& other) :
 	m_material[1] = other.m_material[1];
 }
 
+void
+Chessboard::Clear()
+{
+	for (auto& tile : m_tiles)
+	{
+		tile.editPiece() = ChessPiece();
+	}
+
+	m_hash = 0;
+	m_castlingState = 0;
+	m_enPassant = 0;
+	m_enPassantTarget = Notation();
+	m_kings[0].first = ChessPiece();
+	m_kings[0].second = Notation();
+	m_kings[1].first = ChessPiece();
+	m_kings[1].second = Notation();
+	m_bitboard.Clear();
+	m_material[0].Clear();
+	m_material[1].Clear();
+}
+
 bool 
 Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite)
 {
@@ -564,12 +585,20 @@ Chessboard::MakeMove(Move& move)
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);
 	}
 
-	if (IsCheck(move))
-		move.Flags |= MoveFlag::Check;
-
 	// do move
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
-
+	
+	// check if we checkmated or checked the op set after we have made the move	
+	Set opSet = ChessPiece::FlipSet(move.Piece.getSet());
+	if (IsInCheckmate(opSet))
+	{
+		move.Flags |= MoveFlag::Checkmate;
+	}
+	else if (IsInCheck(opSet))
+	{
+		move.Flags |= MoveFlag::Check;
+	}
+	
 	return true;
 }
 
@@ -601,7 +630,7 @@ Chessboard::IsPromoting(const Move& move) const
 }
 
 std::tuple<bool, int>
-Chessboard::IsInCheck(Set set) const
+Chessboard::IsInCheckCount(Set set) const
 {
 	std::tuple<bool, int> result = { false, 0 };
 	u8 indx = static_cast<u8>(set);
@@ -635,14 +664,33 @@ Chessboard::IsInCheck(Set set) const
 }
 
 bool
+Chessboard::IsInCheck(Set set) const
+{
+	auto [check, count] = IsInCheckCount(set);
+	return check;
+}
+
+bool
 Chessboard::IsInCheckmate(Set set) const
 {	
+	if (IsInCheck(set))
+	{
+		auto moves = GetAvailableMoves(set);
+		if (moves.size() == 0)
+			return true;
+	}
 	return false;
 }
 
 bool
 Chessboard::IsInStalemate(Set set) const
 {
+	if (!IsInCheck(set))
+	{
+		auto moves = GetAvailableMoves(set);
+		if (moves.size() == 0)
+			return true;
+	}
 	return false;
 }
 
@@ -723,7 +771,7 @@ u64 Chessboard::GetSlidingMask(Set set) const
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	auto [isChecked, checkCount] = IsInCheck(currentSet);
+	bool isChecked = IsInCheck(currentSet);
 	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(currentSet));
 
 	u64 kingMask = GetKingMask(currentSet);

@@ -25,6 +25,8 @@ public:
         m_moveCount(1)
     {}
 
+    void Reset();
+
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }

@@ -467,7 +467,7 @@ TEST_F(ChessboardFixture, KingCheckedByOpRook)
     b.PlacePiece(WHITEKING, e1);
     b.PlacePiece(BLACKROOK, e8);
 
-    auto [checked, count] = b.IsInCheck(Set::WHITE);
+    auto [checked, count] = b.IsInCheckCount(Set::WHITE);
     EXPECT_TRUE(checked);
     EXPECT_EQ(1, count);
 }
@@ -478,7 +478,7 @@ TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEROOK, f1);
 
-    auto [checked, count] = b.IsInCheck(Set::WHITE);
+    auto [checked, count] = b.IsInCheckCount(Set::WHITE);
     EXPECT_FALSE(checked);
     EXPECT_EQ(0, count);
 }
@@ -489,11 +489,11 @@ TEST_F(ChessboardFixture, KingsNotChecked)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEKING, e1);
 
-    auto result = b.IsInCheck(Set::WHITE);
+    auto result = b.IsInCheckCount(Set::WHITE);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 
-    result = b.IsInCheck(Set::WHITE);
+    result = b.IsInCheckCount(Set::WHITE);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 }
@@ -520,11 +520,11 @@ TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
     board.PlacePiece(k, e8);
     board.PlacePiece(K, g1);
 
-    auto result = board.IsInCheck(Set::WHITE);
+    auto result = board.IsInCheckCount(Set::WHITE);
     EXPECT_TRUE(std::get<0>(result));
     EXPECT_EQ(2, std::get<1>(result));
 
-    result = board.IsInCheck(Set::BLACK);
+    result = board.IsInCheckCount(Set::BLACK);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 

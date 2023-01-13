@@ -27,6 +27,8 @@ public:
 	Material(const Material& other);
 	Material(Material&& other);
 
+	void Clear();
+
 	Material& operator=(const Material& other);
 	Material& operator=(Material&& other);
 

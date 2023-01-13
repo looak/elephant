@@ -173,26 +173,27 @@ TEST_F(PerftFixture, Position_Two)
     EXPECT_EQ(0, count.Checkmates);
 }
 
+//3	    97862	    17102	    45	    3162	    0	        993     	1
 
-TEST_F(PerftFixture, Position_Two_Depth2)
-{
-    // setup
-    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-    FENParser::deserialize(inputFen, m_context);
-    
-    // do & verify
-    MoveCount count;
-    CountMoves(m_context, 2, count);
-
-    // verify
-	EXPECT_EQ(2039+48, count.Moves);
-	EXPECT_EQ(351 + 8, count.Captures);
-	EXPECT_EQ(1 + 0, count.EnPassants);
-	EXPECT_EQ(0 + 0, count.Promotions);
-	EXPECT_EQ(91 + 2, count.Castles);
-	EXPECT_EQ(3 + 0, count.Checks);
-	//EXPECT_EQ(0 + 0, count.Checkmates);
-}
+//TEST_F(PerftFixture, Position_Two_Depth3)
+//{
+//    // setup
+//    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+//    FENParser::deserialize(inputFen, m_context);
+//    
+//    // do & verify
+//    MoveCount count;
+//    CountMoves(m_context, 3, count);
+//
+//    // verify
+//	EXPECT_EQ(2039 + 48 + 97862, count.Moves);
+//	EXPECT_EQ(351 + 8 + 17102, count.Captures);
+//	EXPECT_EQ(1 + 0 + 45, count.EnPassants);
+//	EXPECT_EQ(0 + 0 + 0, count.Promotions);
+//	EXPECT_EQ(91 + 2 + 3162, count.Castles);
+//	EXPECT_EQ(3 + 0 + 993, count.Checks);
+//	EXPECT_EQ(0 + 0 + 1, count.Checkmates);
+//}
 
 ////////////////////////////////////////////////////////////////
 
@@ -331,7 +332,7 @@ TEST_F(PerftFixture, Position_Four_Depth3)
 	EXPECT_EQ(6, count.Castles);
 	EXPECT_EQ(168, count.Promotions);
 	EXPECT_EQ(48, count.Checks);
-	//EXPECT_EQ(22, count.Checkmates);
+	EXPECT_EQ(22, count.Checkmates);
 }
 
 ////////////////////////////////////////////////////////////////

@@ -61,6 +61,7 @@ public:
 
 	Chessboard(const Chessboard& other);
 
+	void Clear();
 	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
 	bool MakeMove(Move& move);
 
@@ -75,7 +76,8 @@ public:
 	Move PlayMove(const Move& move);
 	bool UnmakeMove(const Move& move);
 	
-	std::tuple<bool, int> IsInCheck(Set set) const;
+	std::tuple<bool, int> IsInCheckCount(Set set) const;
+	bool IsInCheck(Set set) const;
 	bool IsInCheckmate(Set set) const;
 	bool IsInStalemate(Set set) const;
 	

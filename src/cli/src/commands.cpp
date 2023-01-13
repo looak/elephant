@@ -18,6 +18,8 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
     for (auto&& str : tokens)
         fen += str + " ";
 
+    context.Reset();
+
     bool ret = FENParser::deserialize(fen.c_str(), context);
     if (!ret)
         std::cout << " Invalid FEN: " << fen;
