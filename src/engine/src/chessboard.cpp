@@ -296,30 +296,36 @@ Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const
 	}
 	else
 	{
-		byte mask = 0;
-		// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-		switch(move.SourceSquare.index())
-		{
-			case 63: // H8 Black King Side Rook
-				mask |= 0x04;
-				break;
-			case 56: // A8 Black Queen Side Rook
-				mask |= 0x08;
-				break;
-			case 7: // H1 White King Side Rook
-				mask |= 0x01;
-				break;
-			case 0: // A1 White Queen Side Rook
-				mask |= 0x02;
-				break;
-		}
-
-		m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
-		move.PrevCastlingState = m_castlingState;
-		mask &= m_castlingState;
-		m_castlingState ^= mask;
-		m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+		InternalHandleRookMovedOrCaptured(move, move.SourceSquare);
 	}
+}
+
+void
+Chessboard::InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare)
+{
+	byte mask = 0;
+	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
+	switch (rookSquare.index())
+	{
+	case 63: // H8 Black King Side Rook
+		mask |= 0x04;
+		break;
+	case 56: // A8 Black Queen Side Rook
+		mask |= 0x08;
+		break;
+	case 7: // H1 White King Side Rook
+		mask |= 0x01;
+		break;
+	case 0: // A1 White Queen Side Rook
+		mask |= 0x02;
+		break;
+	}
+
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+	move.PrevCastlingState = m_castlingState;
+	mask &= m_castlingState;
+	m_castlingState ^= mask;
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
 }
 
 void 
@@ -577,6 +583,9 @@ Chessboard::MakeMove(Move& move)
 		move.CapturedPiece = m_tiles[pieceTarget.index()].readPiece();
 		// remove captured piece from board.
 		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
+		
+		if (move.CapturedPiece.getType() == PieceType::ROOK)
+			InternalHandleRookMovedOrCaptured(move, move.TargetSquare);
 
 		m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
 		m_bitboard.ClearPiece(move.CapturedPiece, pieceTarget);
@@ -729,7 +738,7 @@ u64 Chessboard::GetKingMask(Set set) const
 	if (m_kings[indx].first == ChessPiece())
 		return 0;
 
-	u64 opSlidingMask = GetSlidingMask(ChessPiece::FlipSet(set));
+	u64 opSlidingMask = GetSlidingMaskWithMaterial(ChessPiece::FlipSet(set));
 	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, opSlidingMask);
 }
 
@@ -751,18 +760,18 @@ Chessboard::GetThreatenedMask(Set set) const
 	return mask;
 }
 
-u64 Chessboard::GetSlidingMask(Set set) const
+u64 Chessboard::GetSlidingMaskWithMaterial(Set set) const
 {
 	u64 mask = ~universe;
-	auto boardItr = begin();
-	while (boardItr != end())
-	{
-		const auto& piece = (*boardItr).readPiece();
-		const auto& pos = (*boardItr).readPosition();
-		if (piece.isValid() && piece.getSet() == set && piece.isSliding())
-			mask |= m_bitboard.GetThreatenedSquares(pos, piece);
 
-		++boardItr;
+	for (auto pieceType : { PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN })
+	{
+		ChessPiece piece(set, pieceType);
+		const auto& positions = m_material[piece.set()].getPlacementsOfPiece(piece);
+		for (auto& pos : positions)
+		{
+			mask |= m_bitboard.GetThreatenedSquaresWithMaterial(pos, piece);			
+		}
 	}
 
 	return mask;
@@ -777,14 +786,19 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 	u64 kingMask = GetKingMask(currentSet);
 
 	std::vector<Move> result;
-	for (auto tile : m_tiles)
+
+	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
 	{
-		if (tile.readPiece().isValid() && tile.readPiece().getSet() == currentSet)
+		ChessPiece currentPiece(currentSet, (PieceType)i);
+		const auto& positions = m_material[(size_t)currentSet].getPlacementsOfPiece(currentPiece);
+
+		for (auto pos : positions)
 		{
-			auto moves = GetAvailableMoves(tile.readPosition(), tile.readPiece(), threatenedMask, isChecked, kingMask);
-			result.insert(result.end(),moves.begin(), moves.end());
+			auto moves = GetAvailableMoves(pos, currentPiece, threatenedMask, isChecked, kingMask);
+			result.insert(result.end(), moves.begin(), moves.end());
 		}
 	}
+	
 	return result;
 }
 

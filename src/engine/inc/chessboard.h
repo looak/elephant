@@ -25,6 +25,19 @@
 
 struct Move;
 
+// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
+enum CastlingState
+{
+	CASTLING_NONE = 0x00,
+	CASTLING_WHITE_KINGSIDE = 0x01,
+	CASTLING_WHITE_QUEENSIDE = 0x02,
+	CASTLING_WHITE_ALL = 0x03,
+	CASTLING_BLACK_KINGSIDE = 0x04,
+	CASTLING_BLACK_QUEENSIDE = 0x08,
+	CASTLING_BLACK_ALL = 0x0C,
+	CASTLING_ALL = 0x0f
+};
+
 struct ChessboardTile
 {
 	friend class Chessboard;
@@ -86,7 +99,7 @@ public:
 	
 	u64 GetThreatenedMask(Set set) const;	
 	u64 GetKingMask(Set set) const;
-	u64 GetSlidingMask(Set set) const;
+	u64 GetSlidingMaskWithMaterial(Set set) const;
 
 	const Notation& readKingPosition(Set set) const;
 
@@ -166,6 +179,7 @@ private:
 	* @return The updated target location for the pawn, in case we double moved the piece and target differ.*/	
 	Notation InternalHandlePawnMove(Move& move);
 	void InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove);
+	void InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare);
 	
 	/**
 	* Internal helper function for handling the movement of a king chess piece.

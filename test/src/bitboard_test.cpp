@@ -1401,4 +1401,107 @@ TEST_F(BitboardFixture, White_Knight_Move)
     EXPECT_EQ(expected, result);
 }
 
+// 8 [ R ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ b ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Bishop_BlockCheck)
+{
+    Bitboard board;
+    
+    // setup
+    board.PlacePiece(WHITEROOK, a8);
+	board.PlacePiece(BLACKBISHOP, b7);
+    board.PlacePiece(BLACKKING, e8);
+    
+    u64 expected = ~universe;
+	expected |= INT64_C(1) << a8.index();
+	expected |= INT64_C(1) << c8.index();
+
+ 
+    u64 threatMask = board.GetThreatenedSquaresWithMaterial(a8, WHITEROOK);
+	u64 kingMask = board.GetKingMask(BLACKKING, e8, threatMask);
+
+	// do
+	u64 result = board.GetAvailableMoves(b7, BLACKBISHOP, 0, 0, threatMask, true, kingMask);
+
+	// validate
+	EXPECT_EQ(expected, result);       
+}
+
+// 8 [ r ][ B ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Castling_BlockedByOpponentPieceInBetween)
+{
+    Bitboard board;
+
+    //setup
+    board.PlacePiece(BLACKROOK, a8);
+    board.PlacePiece(WHITEBISHOP, b8);
+    board.PlacePiece(BLACKKING, e8);
+    
+    // queen side castling available
+    byte castling = 8;
+    
+	u64 expected = ~universe;
+	expected |= INT64_C(1) << d8.index();
+    expected |= INT64_C(1) << f8.index();
+	expected |= INT64_C(1) << d7.index();
+	expected |= INT64_C(1) << e7.index();
+	expected |= INT64_C(1) << f7.index();
+
+	// do
+	u64 result = board.GetAvailableMoves(e8, BLACKKING, castling, 0, 0, false, 0);
+
+	// validate
+	EXPECT_EQ(expected, result);
+}
+
+// 8 [ r ][ n ][ . ][ . ][ k ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Castling_BlockedByOwnPieceInBetween)
+{
+    Bitboard board;
+
+    //setup
+    board.PlacePiece(BLACKROOK, a8);
+    board.PlacePiece(BLACKKNIGHT, b8);
+    board.PlacePiece(BLACKKING, e8);
+
+    // queen side castling available
+    byte castling = 8+4;
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << d8.index();
+    expected |= INT64_C(1) << f8.index();
+    expected |= INT64_C(1) << g8.index();
+    expected |= INT64_C(1) << d7.index();
+    expected |= INT64_C(1) << e7.index();
+    expected |= INT64_C(1) << f7.index();
+
+    // do
+    u64 result = board.GetAvailableMoves(e8, BLACKKING, castling, 0, 0, false, 0);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
 } // namespace ElephantTest

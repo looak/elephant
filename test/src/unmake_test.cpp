@@ -699,6 +699,38 @@ TEST_F(UnmakeFixture, Unmake_KingMoves)
 	EXPECT_EQ(orgHash, m_chessboard.readHash());
 }
 
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][ B ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
+{
+    m_chessboard.PlacePiece(WHITEBISHOP, d5);
+    m_chessboard.PlacePiece(BLACKKING, e8);
+    m_chessboard.PlacePiece(BLACKROOK, a8);
+    m_chessboard.setCastlingState(CastlingState::CASTLING_BLACK_QUEENSIDE);
+    u64 hash = m_chessboard.readHash();
+
+    Move move(d5, a8);
+    bool result = m_chessboard.MakeMove(move);
+    EXPECT_TRUE(result);
+    EXPECT_EQ(CastlingState::CASTLING_NONE, m_chessboard.readCastlingState());
+    EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(a8));
+    EXPECT_NE(hash, m_chessboard.readHash());
+
+	m_chessboard.UnmakeMove(move);
+	EXPECT_EQ(CastlingState::CASTLING_BLACK_QUEENSIDE, m_chessboard.readCastlingState());
+	EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(d5));
+	EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(e8));
+	EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
+	EXPECT_EQ(hash, m_chessboard.readHash());
+}
+
 ////////////////////////////////////////////////////////////////
 
 } // namespace ElephantTest

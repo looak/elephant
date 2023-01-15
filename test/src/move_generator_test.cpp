@@ -1070,5 +1070,53 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     EXPECT_EQ(1, count.Checkmates);
 }
 
+// 8 [ r ][   ][   ][ k ][   ][   ][   ][ r ]
+// 7 [   ][ b ][   ][   ][   ][   ][ b ][ q ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][ B ]
+// 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
+//     A    B    C    D    E    F    G    H
+// r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1
+// after Rxa8 bishop should have two available moves
+TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
+{
+    std::string fen = "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1";
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // setup
+	Move move(a1, a8);
+    // this result can be true when no move was made.
+    bool result = testContext.MakeMove(move);
+    
+    // verify
+    EXPECT_TRUE(result);
+	EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
+	EXPECT_TRUE(testContext.readChessboard().IsInCheck(testContext.readToPlay()));
+
+	auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+    
+	auto predicate = [](const Move& mv)
+	{
+		static ChessPiece b = BLACKBISHOP;
+		if (mv.Piece == b)
+			return true;
+
+		return false;
+	};
+
+	auto count = moveGenerator.CountMoves(moves, predicate);
+	EXPECT_EQ(2, count.Moves);
+	EXPECT_EQ(1, count.Captures);
+	EXPECT_EQ(0, count.EnPassants);
+	EXPECT_EQ(0, count.Promotions);
+	EXPECT_EQ(0, count.Castles);
+	EXPECT_EQ(0, count.Checks);
+	EXPECT_EQ(0, count.Checkmates);
+    
+}
+
 
 } // namespace ElephantTest

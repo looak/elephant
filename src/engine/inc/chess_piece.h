@@ -43,6 +43,7 @@ public:
 	static signed short 	Moves0x88(byte pIndex, byte mIndex);
 	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
 	static signed short		Value(byte pIndex);
+	static const PieceType* SlidingTypes() { return &m_slidingPieceTypes[0]; }
 
 private:
 	static byte m_moveCount[6];
@@ -50,6 +51,7 @@ private:
 	static signed short m_moves0x88[6][8];
 	static signed short m_attacks0x88[6][8];
 	static signed short m_value[6];
+	static PieceType m_slidingPieceTypes[3];
 };
 
 

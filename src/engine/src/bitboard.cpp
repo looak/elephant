@@ -504,12 +504,16 @@ u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
         byte bsqr = (rank * 8) + 1;
         byte csqr = bsqr + 1;
         byte dsqr = csqr + 1;
-        u64 mask = ~universe;
-        //mask |= UINT64_C(1) << bsqr;
-        mask |= UINT64_C(1) << csqr;
-        mask |= UINT64_C(1) << dsqr;
+        u64 threatMask = ~universe;
+        u64 blockedMask = ~universe;
+        threatMask |= UINT64_C(1) << csqr;
+        threatMask |= UINT64_C(1) << dsqr;
 
-        if (!(attacked & mask) && !(combMat & mask))
+        blockedMask |= threatMask;
+        blockedMask |= UINT64_C(1) << bsqr;
+
+
+        if (!(attacked & threatMask) && !(combMat & blockedMask))
             retVal |= UINT64_C(1) << csqr;
     }
     return retVal;

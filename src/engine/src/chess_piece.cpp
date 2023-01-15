@@ -32,6 +32,10 @@ signed short ChessPieceDef::m_value[6] = {
 	100, 300, 300, 500, 900, 10000
 };
 
+PieceType ChessPieceDef::m_slidingPieceTypes[3] = {
+	PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN
+};
+
 byte ChessPieceDef::MoveCount(byte pIndex)
 {
 	pIndex -= 1;

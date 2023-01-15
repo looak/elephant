@@ -762,13 +762,13 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     cpyMask = scndCopy.GetKingMask(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
     
-    orgMask = m_gameOfTheCentury.GetSlidingMask(Set::BLACK);
-    cpyMask = scndCopy.GetSlidingMask(Set::BLACK);
+    orgMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::BLACK);
+    cpyMask = scndCopy.GetSlidingMaskWithMaterial(Set::BLACK);
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.GetSlidingMask(Set::WHITE);
-    cpyMask = scndCopy.GetSlidingMask(Set::WHITE);
+    orgMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::WHITE);
+    cpyMask = scndCopy.GetSlidingMaskWithMaterial(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
 
     orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::BLACK);
