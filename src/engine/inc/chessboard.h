@@ -28,14 +28,57 @@ struct Move;
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState
 {
-	CASTLING_NONE = 0x00,
-	CASTLING_WHITE_KINGSIDE = 0x01,
-	CASTLING_WHITE_QUEENSIDE = 0x02,
-	CASTLING_WHITE_ALL = 0x03,
-	CASTLING_BLACK_KINGSIDE = 0x04,
-	CASTLING_BLACK_QUEENSIDE = 0x08,
-	CASTLING_BLACK_ALL = 0x0C,
-	CASTLING_ALL = 0x0f
+	NONE = 0x00,
+	WHITE_KINGSIDE = 0x01,
+	WHITE_QUEENSIDE = 0x02,
+	WHITE_ALL = WHITE_KINGSIDE | WHITE_QUEENSIDE,
+	BLACK_KINGSIDE = 0x04,
+	BLACK_QUEENSIDE = 0x08,
+	BLACK_ALL = BLACK_KINGSIDE | BLACK_QUEENSIDE,
+	ALL = WHITE_ALL | BLACK_ALL
+};
+
+struct CastlingStateInfo
+{
+public:
+	CastlingStateInfo() = default;
+	
+	bool hasAll() const { return m_innerState == ALL; }
+	bool hasAny() const { return m_innerState != NONE; }
+	bool hasWhite() const { return m_innerState & WHITE_ALL; }
+	bool hasBlack() const { return m_innerState & BLACK_ALL; }
+	bool hasWhiteKingSide() const { return m_innerState & WHITE_KINGSIDE; }
+	bool hasWhiteQueenSide() const { return m_innerState & WHITE_QUEENSIDE; }
+	bool hasBlackKingSide() const { return m_innerState & BLACK_KINGSIDE; }
+	bool hasBlackQueenSide() const { return m_innerState & BLACK_QUEENSIDE; }
+
+	void clear() { m_innerState = NONE; }
+	void unsetWhite() { m_innerState &= ~WHITE_ALL; }
+	void unsetBlack() { m_innerState &= ~BLACK_ALL; }
+	void unsetWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
+	void unsetWhiteQueenSide() { m_innerState &= ~WHITE_QUEENSIDE; }
+	void unsetBlackKingSide() { m_innerState &= ~BLACK_KINGSIDE; }
+	void unsetBlackQueenSide() { m_innerState &= ~BLACK_QUEENSIDE; }
+	
+	void setAll() { m_innerState = ALL; }
+	void setWhite() { m_innerState |= WHITE_ALL; }
+	void setBlack() { m_innerState |= BLACK_ALL; }
+	void setWhiteKingSide() { m_innerState |= WHITE_KINGSIDE; }
+	void setWhiteQueenSide() { m_innerState |= WHITE_QUEENSIDE; }
+	void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
+	void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
+		
+private:
+	union {
+		byte m_innerState;
+		struct
+		{
+			bool m_whiteKingSide : 1;
+			bool m_whiteQueenSide : 1;
+			bool m_blackKingSide : 1;
+			bool m_blackQueenSide : 1;
+		};
+	};	
 };
 
 struct ChessboardTile
@@ -108,11 +151,14 @@ public:
 	ChessPiece readPieceAt(Notation notation) const;
 
 	bool setEnPassant(const Notation& notation);
-	bool setCastlingState(u8 castlingState);
 
 	const Notation& readEnPassant() const { return m_enPassant; }
+	
+	bool setCastlingState(u8 castlingState);
 	byte readCastlingState() const { return m_castlingState; }
-
+	const CastlingStateInfo& readCastlingStateInfo() const { return m_castlingInfo; }
+	CastlingStateInfo& editCastlingState() { return m_castlingInfo; }
+	
 	u64 readHash() const { return m_hash; }
 
 	const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
@@ -180,6 +226,7 @@ private:
 	Notation InternalHandlePawnMove(Move& move);
 	void InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove);
 	void InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare);
+	void UpdateCastlingState(Move& move, byte mask);
 	
 	/**
 	* Internal helper function for handling the movement of a king chess piece.
@@ -226,8 +273,13 @@ private:
 	// caching kings and their locations
 	std::pair<ChessPiece, Notation> m_kings[2];
 
-	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-	byte m_castlingState;
+	union
+	{
+		// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
+		byte m_castlingState;
+		CastlingStateInfo m_castlingInfo;
+	};
+	
 	Notation m_enPassant;
 	Notation m_enPassantTarget;
 

@@ -301,6 +301,19 @@ Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const
 }
 
 void
+Chessboard::UpdateCastlingState(Move& move, byte mask)
+{
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+	// in a situation where rook captures rook from original positions we don't need to store
+	// we don't want to overwrite the original prev written while doing our move castling state.
+	if (move.PrevCastlingState == CastlingState::NONE)
+		move.PrevCastlingState = m_castlingState;
+	mask &= m_castlingState;
+	m_castlingState ^= mask;
+	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
+}
+
+void
 Chessboard::InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare)
 {
 	byte mask = 0;
@@ -309,23 +322,21 @@ Chessboard::InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSq
 	{
 	case 63: // H8 Black King Side Rook
 		mask |= 0x04;
+		UpdateCastlingState(move, mask);
 		break;
 	case 56: // A8 Black Queen Side Rook
 		mask |= 0x08;
+		UpdateCastlingState(move, mask);
 		break;
 	case 7: // H1 White King Side Rook
 		mask |= 0x01;
+		UpdateCastlingState(move, mask);
 		break;
 	case 0: // A1 White Queen Side Rook
 		mask |= 0x02;
+		UpdateCastlingState(move, mask);
 		break;
 	}
-
-	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
-	move.PrevCastlingState = m_castlingState;
-	mask &= m_castlingState;
-	m_castlingState ^= mask;
-	m_hash = ZorbistHash::Instance().HashCastling(m_hash, m_castlingState);
 }
 
 void 

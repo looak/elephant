@@ -138,8 +138,8 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 			std::cout << result << std::endl;
             context.UnmakeMove(move);
 		}
-        
-        std::cout << "\n Total: " << total << "\n\n";
+        std::cout << "\n Moves: " << moves.size() << "\n";
+        std::cout << " Total: " << total << "\n";
     }
     else
     {

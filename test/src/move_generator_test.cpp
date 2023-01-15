@@ -1114,8 +1114,44 @@ TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
 	EXPECT_EQ(0, count.Promotions);
 	EXPECT_EQ(0, count.Castles);
 	EXPECT_EQ(0, count.Checks);
-	EXPECT_EQ(0, count.Checkmates);
+	EXPECT_EQ(0, count.Checkmates);    
+}
+
+TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
+{
+    // setup
+    std::string fen = "1B2k2r/1b4bq/8/8/8/8/r7/R3K2R w KQ - 2 2";
+	FENParser::deserialize(fen.c_str(), testContext);
     
+    // verify
+	auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+    
+	auto count = moveGenerator.CountMoves(moves);
+	EXPECT_EQ(23, count.Moves);
+
+    auto predicate = [](const Move& mv)
+    {
+        static ChessPiece b = WHITEKING;
+        if (mv.Piece == b)
+            return true;
+
+        return false;
+    };
+    
+    count = moveGenerator.CountMoves(moves, predicate);
+    EXPECT_EQ(4, count.Moves);
+    
+    auto predicateRook = [](const Move& mv)
+    {
+        static ChessPiece b = WHITEROOK;
+        if (mv.Piece == b)
+            return true;
+
+        return false;
+    };
+
+	count = moveGenerator.CountMoves(moves, predicateRook);
+    EXPECT_EQ(4+8, count.Moves);
 }
 
 

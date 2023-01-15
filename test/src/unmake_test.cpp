@@ -595,6 +595,99 @@ TEST_F(UnmakeFixture, Castling)
     EXPECT_EQ(R, m_chessboard.readTile(h1).readPiece());
     EXPECT_EQ(orgHash, hash);
 }
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][ b ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(UnmakeFixture, Castling_Captures)
+{
+    auto k = BLACKKING;
+    auto r = BLACKROOK;
+    auto b = BLACKBISHOP;
+    auto K = WHITEKING;
+    auto R = WHITEROOK;
+
+    byte expectedCastling = 0xf; // all castling available
+    m_chessboard.editCastlingState().setAll();
+	EXPECT_EQ(expectedCastling, m_chessboard.readCastlingState());
+    EXPECT_TRUE(m_chessboard.readCastlingStateInfo().hasAll());
+	auto& castlingState = m_chessboard.editCastlingState();
+    m_chessboard.PlacePiece(k, e8);
+    m_chessboard.PlacePiece(r, a8);
+    m_chessboard.PlacePiece(r, h8);
+    m_chessboard.PlacePiece(b, f3);
+
+    m_chessboard.PlacePiece(K, e1);
+    m_chessboard.PlacePiece(R, a1);
+    m_chessboard.PlacePiece(R, h1);
+
+	u64 orgHash = m_chessboard.readHash();
+    
+	Move Bxh1(f3, h1);
+	bool result = m_chessboard.MakeMove(Bxh1);
+    EXPECT_TRUE(result);
+	EXPECT_NE(orgHash, m_chessboard.readHash());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+	EXPECT_EQ(CastlingState::BLACK_ALL | CastlingState::WHITE_QUEENSIDE, m_chessboard.readCastlingState());
+	EXPECT_EQ(BLACKBISHOP, m_chessboard.readPieceAt(h1));
+    
+    m_chessboard.UnmakeMove(Bxh1);
+	EXPECT_EQ(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasAll());
+	EXPECT_EQ(CastlingState::BLACK_ALL | CastlingState::WHITE_ALL, m_chessboard.readCastlingState());
+	EXPECT_EQ(BLACKBISHOP, m_chessboard.readPieceAt(f3));
+	EXPECT_EQ(WHITEROOK, m_chessboard.readPieceAt(h1));
+
+	Move Rxa8(a1, a8);
+	result = m_chessboard.MakeMove(Rxa8);
+	EXPECT_TRUE(result);
+	EXPECT_NE(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+	EXPECT_TRUE(castlingState.hasBlackKingSide());
+	EXPECT_FALSE(castlingState.hasBlackQueenSide());
+	EXPECT_EQ(CastlingState::BLACK_KINGSIDE | CastlingState::WHITE_KINGSIDE, m_chessboard.readCastlingState());
+	EXPECT_EQ(WHITEROOK, m_chessboard.readPieceAt(a8));
+
+	m_chessboard.UnmakeMove(Rxa8);
+	EXPECT_EQ(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasAll());
+	EXPECT_EQ(CastlingState::BLACK_ALL | CastlingState::WHITE_ALL, m_chessboard.readCastlingState());
+	EXPECT_EQ(WHITEROOK, m_chessboard.readPieceAt(a1));
+	EXPECT_EQ(WHITEROOK, m_chessboard.readPieceAt(h1));
+	EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
+    
+    Move Rxa1(a8, a1);
+	result = m_chessboard.MakeMove(Rxa1);
+	EXPECT_TRUE(result);
+	EXPECT_NE(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasWhiteKingSide());
+	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+	EXPECT_FALSE(castlingState.hasBlackQueenSide());
+    
+    m_chessboard.UnmakeMove(Rxa1);
+	EXPECT_EQ(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasAll());
+
+	Move Rxh1(h8, h1);
+	result = m_chessboard.MakeMove(Rxh1);
+	EXPECT_TRUE(result);
+	EXPECT_NE(orgHash, m_chessboard.readHash());
+	EXPECT_FALSE(castlingState.hasWhiteKingSide());
+	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+	EXPECT_FALSE(castlingState.hasBlackKingSide());
+	EXPECT_TRUE(castlingState.hasBlackQueenSide());
+    
+	m_chessboard.UnmakeMove(Rxh1);
+	EXPECT_EQ(orgHash, m_chessboard.readHash());
+	EXPECT_TRUE(castlingState.hasAll());    
+}
 
 TEST_F(UnmakeFixture, Unmake_BishopMove)
 {
@@ -713,22 +806,40 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     m_chessboard.PlacePiece(WHITEBISHOP, d5);
     m_chessboard.PlacePiece(BLACKKING, e8);
     m_chessboard.PlacePiece(BLACKROOK, a8);
-    m_chessboard.setCastlingState(CastlingState::CASTLING_BLACK_QUEENSIDE);
+    m_chessboard.setCastlingState(CastlingState::BLACK_QUEENSIDE);
+	const auto& blackMaterial = m_chessboard.readMaterial(Set::BLACK);
+	const auto& whiteMaterial = m_chessboard.readMaterial(Set::WHITE);
+    
     u64 hash = m_chessboard.readHash();
-
+    EXPECT_EQ(2, blackMaterial.getCount());
+	EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
+	EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKROOK));
+    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(1, whiteMaterial.getCount());
+    
     Move move(d5, a8);
     bool result = m_chessboard.MakeMove(move);
     EXPECT_TRUE(result);
-    EXPECT_EQ(CastlingState::CASTLING_NONE, m_chessboard.readCastlingState());
+    EXPECT_EQ(CastlingState::NONE, m_chessboard.readCastlingState());
     EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(a8));
     EXPECT_NE(hash, m_chessboard.readHash());
-
-	m_chessboard.UnmakeMove(move);
-	EXPECT_EQ(CastlingState::CASTLING_BLACK_QUEENSIDE, m_chessboard.readCastlingState());
+    EXPECT_EQ(1, blackMaterial.getCount());
+	EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
+	EXPECT_EQ(0, blackMaterial.getPieceCount(BLACKROOK));
+    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(1, whiteMaterial.getCount());
+    
+	EXPECT_TRUE(m_chessboard.UnmakeMove(move));
+	EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_chessboard.readCastlingState());
 	EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(d5));
 	EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(e8));
 	EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
 	EXPECT_EQ(hash, m_chessboard.readHash());
+	EXPECT_EQ(2, blackMaterial.getCount());
+	EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
+	EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKROOK));
+    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
+    EXPECT_EQ(1, whiteMaterial.getCount());
 }
 
 ////////////////////////////////////////////////////////////////
