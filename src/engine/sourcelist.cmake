@@ -16,6 +16,7 @@ ${ENGINE_INC_DIR}/material.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/move_generator.h
 ${ENGINE_INC_DIR}/notation.h
+${ENGINE_INC_DIR}/uci.h
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -34,3 +35,5 @@ ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 )
+
+set(ENGINE_SOURCE_ALL ${ENGINE_SOURCE} ${ENGINE_SOURCE_INCLUDE})
