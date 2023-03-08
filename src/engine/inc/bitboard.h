@@ -43,7 +43,7 @@ public:
 	u64 GetAttackedSquares(Set set);
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
-	u64 GetKingMask(const ChessPiece& king, const Notation& target, u64 opponentSlidingMask) const;
+	u64 GetKingMask(const ChessPiece& king, const Notation& target, const std::pair<u64, u64>& opponentSlidingMask) const;
 	u64 GetMaterialCombined(Set set) const;
 
 private:
