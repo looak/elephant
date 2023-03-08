@@ -66,6 +66,11 @@ signed short ChessPieceDef::Value(byte pIndex)
 	return m_value[pIndex];
 }
 
+bool ChessPieceDef::IsDiagonalMove(signed short mvValue)
+{
+	return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17);
+}
+
 Set ChessPiece::FlipSet(Set source)
 {
 	int retValue = !(int)source;

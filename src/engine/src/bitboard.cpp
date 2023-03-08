@@ -175,23 +175,27 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
 
 /// <summary>
 /// From Kings position, we look at all directions until we hit end of board and see if 
-/// we run into a piece wich is threatening the king or pinning another piece
+/// we run into a piece which is threatening the king or pinning another piece
 /// </summary>
 /// <param name="king"></param>
 /// <param name="target"></param>
 /// <returns></returns>
-u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, u64 opponentSlidingMask) const
+u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, const std::pair<u64, u64>& opponentSlidingMask) const
 {
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
     u8 opSet = ChessPiece::FlipSet(king.set());
     u64 slideMat = SlidingMaterialCombined(opSet);
+    const u64 c_slideMat = slideMat;
+    u64 diagnoalMat = opponentSlidingMask.second;
+	u64 orthogonalMat = opponentSlidingMask.first;
+	u64 combMask = opponentSlidingMask.first | opponentSlidingMask.second;
     u64 allMat = MaterialCombined();
     u64 knightMat = m_material[opSet][1];
     u64 ret = ~universe;
     u8 checks = 0;
     
-    if (slideMat > 0)
+    if (c_slideMat > 0)
     {
         u8 matCount = 0;
         bool sliding = true;
@@ -206,16 +210,25 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, u64 op
             }
             return true;
         };
-
+        
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
-        {
+        {            
             matCount = 0;
             sliding = true;
             byte curSqr = target.index();
             signed short dir = ChessPieceDef::Moves0x88(king.type(), moveIndx);
+            bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
+			
+            if (diagonal)
+				slideMat = diagnoalMat & c_slideMat;
+            else
+				slideMat = orthogonalMat & c_slideMat;
+
+			if (slideMat == 0)
+				continue;			
 
             u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, resolve);
-            // comparing agiainst two here since we'll find the sliding piece causing the pin
+            // comparing against two here since we'll find the sliding piece causing the pin
             // and at least one piece in between our king and this piece. This found piece isn't
             // necessarily pinned, but if there are any more pieces between king and sliding piece
             // they won't be pinned.
@@ -229,7 +242,8 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, u64 op
         // checking the sliding pieces we've run into are the same diagnoals
         // as we've identified them being threatning.
         // this is to avoid false positives for bishops in straight columns or rows.
-        ret &= opponentSlidingMask;
+        
+        ret &= combMask;
     }
 
     if (knightMat > 0)

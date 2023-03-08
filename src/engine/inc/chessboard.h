@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <utility>
 
 struct Move;
 
@@ -142,7 +143,17 @@ public:
 	
 	u64 GetThreatenedMask(Set set) const;	
 	u64 GetKingMask(Set set) const;
-	u64 GetSlidingMaskWithMaterial(Set set) const;
+	/**
+	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces
+	 * (rooks, bishops, and queens) of a specified set (black or white) on the current board, taking into account the
+	 * current material on the board. The first bitboard represents squares that are threatened by sliding pieces moving
+	 * orthogonally, and the second represents squares that are threatened by sliding pieces moving diagonally.
+	 *
+	 * @param set The set of pieces (black or white) to consider.
+	 * @return A pair of bitboards representing the squares that are threatened by sliding pieces moving orthogonally and
+	 *         diagonally, respectively.
+	 */
+	std::pair<u64,u64> GetSlidingMaskWithMaterial(Set set) const;
 
 	const Notation& readKingPosition(Set set) const;
 

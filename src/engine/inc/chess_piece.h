@@ -44,6 +44,7 @@ public:
 	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
 	static signed short		Value(byte pIndex);
 	static const PieceType* SlidingTypes() { return &m_slidingPieceTypes[0]; }
+	static bool 			IsDiagonalMove(signed short mvValue);
 
 private:
 	static byte m_moveCount[6];

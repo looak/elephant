@@ -749,8 +749,8 @@ u64 Chessboard::GetKingMask(Set set) const
 	if (m_kings[indx].first == ChessPiece())
 		return 0;
 
-	u64 opSlidingMask = GetSlidingMaskWithMaterial(ChessPiece::FlipSet(set));
-	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, opSlidingMask);
+	auto slidingPair = GetSlidingMaskWithMaterial(ChessPiece::FlipSet(set));
+	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
 }
 
 u64
@@ -771,21 +771,36 @@ Chessboard::GetThreatenedMask(Set set) const
 	return mask;
 }
 
-u64 Chessboard::GetSlidingMaskWithMaterial(Set set) const
+std::pair<u64,u64> Chessboard::GetSlidingMaskWithMaterial(Set set) const
 {
-	u64 mask = ~universe;
+	// probably not the correct term, but essentially orthogonal will represent all "right angle" moves
+	// the queen will be represented in both of these but half and half.
+	u64 orthogonal = ~universe;
+	u64 diagonal = ~universe;
 
-	for (auto pieceType : { PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN })
+	for (auto pieceType : { PieceType::ROOK, PieceType::QUEEN })
 	{
 		ChessPiece piece(set, pieceType);
+		ChessPiece rook(set, PieceType::ROOK);
 		const auto& positions = m_material[piece.set()].getPlacementsOfPiece(piece);
 		for (auto& pos : positions)
-		{
-			mask |= m_bitboard.GetThreatenedSquaresWithMaterial(pos, piece);			
+		{	
+			orthogonal |= m_bitboard.GetThreatenedSquaresWithMaterial(pos, rook);
 		}
 	}
 
-	return mask;
+	for (auto pieceType : { PieceType::BISHOP, PieceType::QUEEN })
+	{
+		ChessPiece piece(set, pieceType);
+		ChessPiece bishop(set, PieceType::BISHOP);
+		const auto& positions = m_material[piece.set()].getPlacementsOfPiece(piece);
+		for (auto& pos : positions)
+		{
+			diagonal |= m_bitboard.GetThreatenedSquaresWithMaterial(pos, bishop);
+		}
+	}
+
+	return std::make_pair(orthogonal, diagonal);
 }
 
 std::vector<Move>
