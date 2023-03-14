@@ -44,9 +44,9 @@ void Material::RemovePiece(const ChessPiece& piece, const Notation& position)
 	auto& pieces = m_material[piece.index()];
 	auto it = std::find_if(pieces.begin(), pieces.end(), [&position](const Notation& n) { return n == position; });
 			
-	FATAL_ASSERT(it != pieces.end()) << "Piece not found - this should not happen";	
+	FATAL_ASSERT(it == pieces.end()) << "Piece not found - this should not happen";	
 	// erase piece from vector
-	pieces.erase(it);	
+	pieces.erase(it);
 }
 
 void Material::MovePiece(const ChessPiece& piece, const Notation& source, const Notation& target)
@@ -55,7 +55,7 @@ void Material::MovePiece(const ChessPiece& piece, const Notation& source, const 
 	auto& pieces = m_material[piece.index()];
 	auto it = std::find_if(pieces.begin(), pieces.end(), [&source](const Notation& n) { return n == source; });
 		
-	FATAL_ASSERT(it != pieces.end()) << "Piece not found - this should not happen";
+	FATAL_ASSERT(it == pieces.end()) << "Piece not found - this should not happen";
 
 	// update piece position
 	(*it) = target;

@@ -217,6 +217,26 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions		Checks		Checkmates
 6		11030083	940350		33325	0			7552			452473		2733
 7		178633661	14519036	294874	0			140024			12797406	87
 */
+TEST_F(PerftFixture, Position_Three_Depth4)
+{
+    // setup
+    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    FENParser::deserialize(inputFen.c_str(), m_context);
+
+    // do & verify
+    MoveCount count;
+    CountMoves(m_context, 4, count);
+
+    // verify
+	EXPECT_EQ(191 + 14 + 2812 + 43238, count.Moves);
+	EXPECT_EQ(14 + 1 + 209 + 3348, count.Captures);
+	EXPECT_EQ(10 + 2 + 267 + 1680, count.Checks);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(2 + 123, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+    EXPECT_EQ(0 + 17, count.Checkmates);
+}
+
 TEST_F(PerftFixture, Position_Three)
 {
     // setup
@@ -257,23 +277,6 @@ TEST_F(PerftFixture, Position_Three)
     EXPECT_EQ(0, count.Castles);
     EXPECT_EQ(1, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
-}
-
-TEST_F(PerftFixture, Position_Three_Depth2)
-{
-    // setup
-    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-    FENParser::deserialize(inputFen.c_str(), m_context);
-
-    // do & verify
-    MoveCount count;
-    CountMoves(m_context, 2, count);
-
-    // verify
-	EXPECT_EQ(191 + 14, count.Moves);
-	EXPECT_EQ(14 + 1, count.Captures);
-	EXPECT_EQ(10 + 2, count.Checks);
-    
 }
 
 ////////////////////////////////////////////////////////////////

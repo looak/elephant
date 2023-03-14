@@ -28,7 +28,6 @@
 #define LOG_WARNING() Log::LogWarningImpl(__FILENAME__, __LINE__)
 #define FATAL_ASSERT(expr) Log::AssertImpl(expr, __FILENAME__, __FUNCTION__, __LINE__)
 
-
 class BaseMessage
 {
 public:
@@ -69,6 +68,41 @@ public:
 	{		
 		std::cout << " > message: " << value;
 		std::cout << std::endl;
+		return *this;
+	}
+};
+
+
+class AssertMessage : public BaseMessage
+{
+private:
+
+	bool m_asserted = false;
+public:
+
+	void setAssert(bool value) { m_asserted = value; }
+	BaseMessage& operator<<(const char* stream) override
+	{
+		if (stream != nullptr)
+			std::cout << " > message: " << stream;
+		std::cout << std::endl;
+		assert(m_asserted);
+		return *this;
+	}
+
+	BaseMessage& operator<<(const char stream) override
+	{		
+		std::cout << " > message: " << stream;
+		std::cout << std::endl;
+		assert(m_asserted);
+		return *this;
+	}
+	
+	BaseMessage& operator<<(int value) override
+	{		
+		std::cout << " > message: " << value;
+		std::cout << std::endl;
+		assert(m_asserted);
 		return *this;
 	}
 };
@@ -125,15 +159,16 @@ public:
 
 	static BaseMessage& AssertImpl(int expression, const char* file, const char* function, const int line)
 	{
+		s_assertMessage.setAssert(expression);
 		if (expression == 0)
 		{
 			std::cout << "[FATAL ASRT] " << file << ":" << line << " > " << function;
-			assert(expression);
 		}
-		return s_emptyMessage;
+		return s_assertMessage;
 	}
 
 private:
 	static EmptyMessage s_emptyMessage;
 	static LogMessage s_logMessage;
+	static AssertMessage s_assertMessage;
 };
