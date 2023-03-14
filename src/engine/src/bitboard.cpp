@@ -454,21 +454,6 @@ u64 Bitboard::GetAttackedSquares(const Notation& source, const ChessPiece& piece
     return ret & opMatComb;
 }
 
-bool Bitboard::IsValidPawnMove(byte srcSqr, byte trgSqr, byte set)
-{
-    // move modifier to help us determine given move is valid for set.
-    int8_t moveModifier = 1;
-    if (set == (byte)Set::WHITE)
-    {
-        moveModifier = -1;
-    }
-    
-    if (!IsValidSquare(trgSqr))
-        return false;
-
-    return false;
-}
-
 bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const
 {
     u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant, threatenedMask);

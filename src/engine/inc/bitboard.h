@@ -54,7 +54,6 @@ typedef std::function<u64(u64 sqrMask)> Validate;
 	u64 MaterialCombined() const;
 	u64 SlidingMaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-	bool IsValidPawnMove(byte srcSqr, byte trgSqr, byte set);
 	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
 	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const;
 

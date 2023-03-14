@@ -1,4 +1,4 @@
-#include "chessboard.h"
+﻿#include "chessboard.h"
 #include "move.h"
 #include "log.h"
 #include "hash_zorbist.h"
@@ -549,6 +549,8 @@ Chessboard::PlayMove(const Move& move)
 
 		boarditr += increment;
 	}
+	
+	return Move();
 }
 
 bool 
