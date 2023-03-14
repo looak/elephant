@@ -13,8 +13,8 @@
 
 Application::Application()
 {
-	std::cout << " Elephant Chess Engine 2021" << std::endl
-		<< " Version: " << 0;
+	MESSAGE() << " Elephant Chess Engine 2021-2023";
+	MESSAGE() << " Version: " << "0\n";
 }
 
 void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
@@ -30,7 +30,6 @@ void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& t
 void Application::Run()
 {
 	GameContext context;
-	//LOG_INFO() << "test";
 
 	while (1)
 	{
