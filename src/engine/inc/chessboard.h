@@ -116,7 +116,7 @@ public:
 	Chessboard();
 	~Chessboard() = default;
 
-	Chessboard(const Chessboard& other);
+	Chessboard(const Chessboard& other); 
 
 	void Clear();
 	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
@@ -135,8 +135,8 @@ public:
 	
 	std::tuple<bool, int> IsInCheckCount(Set set) const;
 	bool IsInCheck(Set set) const;
-	bool IsInCheckmate(Set set) const;
-	bool IsInStalemate(Set set) const;
+	bool isCheckmated(Set set) const;
+	bool isStalemated(Set set) const;
 	
 	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;

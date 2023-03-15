@@ -131,3 +131,8 @@ void GameContext::PlayMoves(const Move& move, bool print)
         mv = mv->NextMove;
 	}
 }
+
+bool GameContext::endOfGame() const
+{
+    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) || m_board.isStalemated(Set::WHITE) || m_board.isStalemated(Set::BLACK);
+}

@@ -1,5 +1,5 @@
 # Elephant Gambit Chess Engine - a Chess AI
-# Copyright (C) 2021  Alexander Loodin Ek
+# Copyright (C) 2021-2023  Alexander Loodin Ek
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,21 @@ set(SRC_DIR "src")
 set(INC_DIR "src/inc")
 
 set(TEST_SOURCE ${TEST_SOURCE}
-${SRC_DIR}/elephant_test.cpp
+# Main/Entry test file
+${SRC_DIR}/elephant_test.cpp 
+
+# Test files
 ${SRC_DIR}/bitboard_test.cpp
+${SRC_DIR}/checkmate_test.cpp
 ${SRC_DIR}/chessboard_test.cpp
 ${SRC_DIR}/fen_parser_test.cpp
-${SRC_DIR}/piece_test.cpp
+${SRC_DIR}/game_context_test.cpp
 ${SRC_DIR}/move_test.cpp
 ${SRC_DIR}/move_generator_test.cpp
 ${SRC_DIR}/perft_test.cpp
+${SRC_DIR}/piece_test.cpp
 ${SRC_DIR}/unmake_test.cpp
-${SRC_DIR}/game_context_test.cpp
-${SRC_DIR}/elephant_test_util_funcs.cpp
+
+# Utility files
+${SRC_DIR}/elephant_test_util_funcs.cpp 
 ${SRC_DIR}/elephant_test_utils.h)

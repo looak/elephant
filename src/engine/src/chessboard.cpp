@@ -612,7 +612,7 @@ Chessboard::MakeMove(Move& move)
 	
 	// check if we checkmated or checked the op set after we have made the move	
 	Set opSet = ChessPiece::FlipSet(move.Piece.getSet());
-	if (IsInCheckmate(opSet))
+	if (isCheckmated(opSet))
 	{
 		move.Flags |= MoveFlag::Checkmate;
 	}
@@ -693,7 +693,7 @@ Chessboard::IsInCheck(Set set) const
 }
 
 bool
-Chessboard::IsInCheckmate(Set set) const
+Chessboard::isCheckmated(Set set) const
 {	
 	if (IsInCheck(set))
 	{
@@ -705,7 +705,7 @@ Chessboard::IsInCheckmate(Set set) const
 }
 
 bool
-Chessboard::IsInStalemate(Set set) const
+Chessboard::isStalemated(Set set) const
 {
 	if (!IsInCheck(set))
 	{

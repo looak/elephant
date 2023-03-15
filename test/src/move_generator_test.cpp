@@ -1038,7 +1038,7 @@ TEST_F(MoveGeneratorFixture, ScholarsMate)
 	FENParser::deserialize(fen.c_str(), testContext);
     
     // verify
-    EXPECT_TRUE(testContext.readChessboard().IsInCheckmate(Set::BLACK));
+    EXPECT_TRUE(testContext.readChessboard().isCheckmated(Set::BLACK));
 }
 
 TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)

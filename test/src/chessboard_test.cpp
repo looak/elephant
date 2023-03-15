@@ -35,57 +35,7 @@ private:
     // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
     void DefaultStartingPosition()
     {
-        auto K = WHITEKING;
-        auto Q = WHITEQUEEN;
-        auto B = WHITEBISHOP;
-        auto N = WHITEKNIGHT;
-        auto R = WHITEROOK;
-        auto P = WHITEPAWN;
-
-        auto k = BLACKKING;
-        auto q = BLACKQUEEN;
-        auto b = BLACKBISHOP;
-        auto n = BLACKKNIGHT;
-        auto r = BLACKROOK;
-        auto p = BLACKPAWN;
-
-        m_defaultStartingPosition.PlacePiece(R, a1);
-        m_defaultStartingPosition.PlacePiece(N, b1);
-        m_defaultStartingPosition.PlacePiece(B, c1);
-        m_defaultStartingPosition.PlacePiece(Q, d1);
-        m_defaultStartingPosition.PlacePiece(K, e1);
-        m_defaultStartingPosition.PlacePiece(B, f1);
-        m_defaultStartingPosition.PlacePiece(N, g1);
-        m_defaultStartingPosition.PlacePiece(R, h1);
-
-        m_defaultStartingPosition.PlacePiece(P, a2);
-        m_defaultStartingPosition.PlacePiece(P, b2);
-        m_defaultStartingPosition.PlacePiece(P, c2);
-        m_defaultStartingPosition.PlacePiece(P, d2);
-        m_defaultStartingPosition.PlacePiece(P, e2);
-        m_defaultStartingPosition.PlacePiece(P, f2);
-        m_defaultStartingPosition.PlacePiece(P, g2);
-        m_defaultStartingPosition.PlacePiece(P, h2);
-
-        m_defaultStartingPosition.PlacePiece(r, a8);
-        m_defaultStartingPosition.PlacePiece(n, b8);
-        m_defaultStartingPosition.PlacePiece(b, c8);
-        m_defaultStartingPosition.PlacePiece(q, d8);
-        m_defaultStartingPosition.PlacePiece(k, e8);
-        m_defaultStartingPosition.PlacePiece(b, f8);
-        m_defaultStartingPosition.PlacePiece(n, g8);
-        m_defaultStartingPosition.PlacePiece(r, h8);
-
-        m_defaultStartingPosition.PlacePiece(p, a7);
-        m_defaultStartingPosition.PlacePiece(p, b7);
-        m_defaultStartingPosition.PlacePiece(p, c7);
-        m_defaultStartingPosition.PlacePiece(p, d7);
-        m_defaultStartingPosition.PlacePiece(p, e7);
-        m_defaultStartingPosition.PlacePiece(p, f7);
-        m_defaultStartingPosition.PlacePiece(p, g7);
-        m_defaultStartingPosition.PlacePiece(p, h7);
-
-        m_defaultStartingPosition.setCastlingState(15);
+       SetupDefaultStartingPosition(m_defaultStartingPosition);
     }
 
     // https://en.wikipedia.org/wiki/The_Game_of_the_Century_(chess)
@@ -528,10 +478,10 @@ TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 
-    EXPECT_FALSE(board.IsInCheckmate(Set::BLACK));
-    EXPECT_FALSE(board.IsInCheckmate(Set::WHITE));
-    EXPECT_FALSE(board.IsInStalemate(Set::BLACK));
-    EXPECT_FALSE(board.IsInStalemate(Set::WHITE));
+    EXPECT_FALSE(board.isCheckmated(Set::BLACK));
+    EXPECT_FALSE(board.isCheckmated(Set::WHITE));
+    EXPECT_FALSE(board.isStalemated(Set::BLACK));
+    EXPECT_FALSE(board.isStalemated(Set::WHITE));
 }
 
 TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)

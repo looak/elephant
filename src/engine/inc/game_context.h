@@ -44,6 +44,8 @@ public:
     bool UnmakeMove(const Move& move);
 
     void PlayMoves(const Move& move, bool print = false);
+
+    bool endOfGame() const;
     
 private:
     Chessboard m_board;
