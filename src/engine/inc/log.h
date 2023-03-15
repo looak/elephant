@@ -23,23 +23,36 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
+// @brief Logs an error message with the file name, function name and line number.
 #define LOG_ERROR() \
-switch(0) case 0: default: LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
+switch(0) case 0: default: LoggingInternals::LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
 
+// @brief Logs an error message with the file name, function name and line number if the expression evaluates to false.
 #define LOG_ERROR_EXPR(expr) \
-switch(0) case 0: default: if(expr != 0){ int ___noop = 5; (void)___noop;} else LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
+if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
 
+// @brief Logs an info message with the file name and line number.
 #define LOG_INFO() \
-switch(0) case 0: default: LogMessage("[     INFO ] ", __FILENAME__, __LINE__)
+switch(0) case 0: default: LoggingInternals::LogMessage("[     INFO ] ", __FILENAME__, __LINE__)
+
+// @brief Logs a warning message with the file name and line number.
 #define LOG_WARNING() \
-switch(0) case 0: default: LogMessage("[  WARNING ] ", __FILENAME__, __LINE__)
+switch(0) case 0: default: LoggingInternals::LogMessage("[  WARNING ] ", __FILENAME__, __LINE__)
+
+// @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line number if it fails.
 #define FATAL_ASSERT(expr) \
-switch(0) case 0: default: if(expr != 0){ int ___noop = 5; (void)___noop;} else AssertMessage(#expr, "[FATAL ASRT] ", __FILENAME__, __LINE__)
+if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::AssertMessage(#expr, "[FATAL ASRT] ", __FILENAME__, __LINE__)
 
+// @brief Logs a basic message without any prefix or suffix.
 #define MESSAGE() \
-switch(0) case 0: default: LogMessage()
+switch(0) case 0: default: LoggingInternals::BasicMessage()
 
-class BaseMessage
+namespace LoggingInternals
+{
+
+typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
+
+class MessageStream
 {
 private:
   	// The type of basic IO manipulators (endl, ends, and flush) for
@@ -48,14 +61,14 @@ private:
 
 	const std::unique_ptr< ::std::stringstream> m_stream;
 
-	void operator=(const BaseMessage& other);
+	void operator=(const MessageStream& other);
 
 public:
-	BaseMessage() :
+	MessageStream() :
 	  m_stream(new ::std::stringstream)
 	{}
 
-	BaseMessage(const BaseMessage& msg) :
+	MessageStream(const MessageStream& msg) :
 	  m_stream(new ::std::stringstream)
 	{
 		*m_stream << msg.getString();		
@@ -67,14 +80,14 @@ public:
 	}
 
 	template<typename T>
-	BaseMessage& operator<<(const T& t)
+	MessageStream& operator<<(const T& t)
 	{
 		*m_stream << t;
 		return *this;
 	}
 
 	template<typename T>
-	inline BaseMessage& operator<<(T* const& pointer)
+	inline MessageStream& operator<<(T* const& pointer)
 	{
 		if(pointer == nullptr)
 			*m_stream << "(nullptr)";
@@ -85,14 +98,14 @@ public:
 	}
 
 	template<typename T>
-	inline BaseMessage& operator<<(BasicNarrowIoManip value)
+	inline MessageStream& operator<<(BasicNarrowIoManip value)
 	{
 		*m_stream << value;
 		return *this;
 	}
 
 	// bool implementation
-	inline BaseMessage& operator<<(bool value)
+	inline MessageStream& operator<<(bool value)
 	{
 		*m_stream << (value ? "true" : "false");
 		return *this;
@@ -102,7 +115,7 @@ public:
 class LogMessage
 {	
 private:
-	void AppendMessage(const BaseMessage& message)
+	void AppendMessage(const MessageStream& message)
 	{
 		if (m_userMessage.get() == nullptr) m_userMessage.reset(new ::std::string);
 
@@ -135,19 +148,61 @@ public:
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
 		else
 			std::cerr << m_message->c_str() << std::endl;
+		
+		m_message.reset();
+		m_userMessage.reset();
 	}
 
 	template <typename T>
 	inline LogMessage& operator<<(const T& value)
 	{
-		AppendMessage(BaseMessage() << value);
+		AppendMessage(MessageStream() << value);
 		return *this;
 	}
 
 	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
 	inline LogMessage& operator<<(BasicNarrowIoManip value)
 	{
-		AppendMessage(BaseMessage() << value);
+		AppendMessage(MessageStream() << value);
+		return *this;
+	}
+
+};
+
+class BasicMessage
+{
+private:
+	void AppendMessage(const MessageStream& message)
+	{
+		if (m_message.get() == nullptr) m_message.reset(new ::std::string);
+
+		m_message->append(message.getString().c_str());
+	}
+
+	std::unique_ptr<std::string> m_message;
+
+public:
+	BasicMessage()
+	{}
+
+	~BasicMessage()
+	{
+		if (m_message.get() != nullptr)
+			std::cout << m_message->c_str() << "\n";
+
+		m_message.reset();
+	}
+
+	template <typename T>
+	inline BasicMessage& operator<<(const T& value)
+	{
+		AppendMessage(MessageStream() << value);
+		return *this;
+	}
+
+	inline BasicMessage& operator<<(BasicNarrowIoManip value)
+	{
+		AppendMessage(MessageStream() << value);
 		return *this;
 	}
 
@@ -169,7 +224,11 @@ public:
 		else
 			std::cerr << m_message->c_str() << "\n";
 
+		m_message.reset();
+		m_userMessage.reset();
+
 		abort();
 	}
-
 };
+
+}; // namespace LoggingInternals

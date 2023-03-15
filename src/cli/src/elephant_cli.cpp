@@ -30,10 +30,10 @@ void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& t
 void Application::Run()
 {
 	GameContext context;
-
+		
 	while (1)
 	{
-		std::cout << "\n\n > ";
+		std::cout << " > ";
 		std::string buffer = "";
 		std::getline(std::cin, buffer);
 		std::list<std::string> tokens;
