@@ -59,7 +59,7 @@ private:
   	// narrow streams.
   	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
 
-	const std::unique_ptr< ::std::stringstream> m_stream;
+	std::unique_ptr< ::std::stringstream> m_stream;
 
 	void operator=(const MessageStream& other);
 
@@ -72,6 +72,15 @@ public:
 	  m_stream(new ::std::stringstream)
 	{
 		*m_stream << msg.getString();		
+	}
+
+	~MessageStream()
+	{
+		m_stream->flush();
+		std::stringstream* ssptr = m_stream.release();
+		if(ssptr != nullptr)		
+			delete ssptr;
+		
 	}
 
 	std::string getString() const
@@ -149,8 +158,13 @@ public:
 		else
 			std::cerr << m_message->c_str() << std::endl;
 		
-		m_message.reset();
-		m_userMessage.reset();
+		std::string* strPtr = m_message.release();
+		if (strPtr != nullptr)
+			delete strPtr;
+		
+		strPtr = m_userMessage.release();
+		if (strPtr != nullptr)
+			delete strPtr;
 	}
 
 	template <typename T>
@@ -190,7 +204,10 @@ public:
 		if (m_message.get() != nullptr)
 			std::cout << m_message->c_str() << "\n";
 
-		m_message.reset();
+		std::string* strPtr = m_message.release();
+		if (strPtr != nullptr)
+			delete strPtr;
+		
 	}
 
 	template <typename T>
@@ -224,9 +241,14 @@ public:
 		else
 			std::cerr << m_message->c_str() << "\n";
 
-		m_message.reset();
-		m_userMessage.reset();
-
+		std::string* strPtr = m_message.release();
+		if (strPtr != nullptr)
+			delete strPtr;
+		
+		strPtr = m_userMessage.release();
+		if (strPtr != nullptr)
+			delete strPtr;
+		
 		abort();
 	}
 };
