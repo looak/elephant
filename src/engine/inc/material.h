@@ -49,7 +49,7 @@ public:
 	*/
 	void UnmakePieceMove(const ChessPiece& pieceToAdd, const ChessPiece& pieceToRemove, const Notation& source, const Notation& target);
 		
-	std::vector<Notation> getPlacementsOfPiece(const ChessPiece& piece) const;
+	const std::vector<Notation>& getPlacementsOfPiece(const ChessPiece& piece) const;
 
 	u32 getValue() const;
 	u32 getCount() const;

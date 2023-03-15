@@ -112,6 +112,15 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     m_chessboard.PlacePiece(p, d4);
     Move move(e2, e4);
 
+	const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).getPlacementsOfPiece(WHITEPAWN);
+	const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).getPlacementsOfPiece(BLACKPAWN);
+
+    // validate
+	EXPECT_EQ(1, whitePawns.size());
+	EXPECT_EQ(1, blackPawns.size());
+	EXPECT_EQ(e2, whitePawns[0]);
+	EXPECT_EQ(d4, blackPawns[0]);
+    
     // do
     bool result = m_chessboard.MakeMove(move);
 
@@ -123,6 +132,11 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(e3, m_chessboard.readEnPassant());
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+
+    EXPECT_EQ(1, whitePawns.size());
+    EXPECT_EQ(1, blackPawns.size());
+    EXPECT_EQ(e4, whitePawns[0]);
+    EXPECT_EQ(d4, blackPawns[0]);    
 
     // setup
     Move epCapture(d4, e3);
@@ -141,6 +155,10 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(e3).readPiece());
 
+    EXPECT_EQ(0, whitePawns.size());
+    EXPECT_EQ(1, blackPawns.size());    
+    EXPECT_EQ(e3, blackPawns[0]);
+
 
     // do
     result = m_chessboard.UnmakeMove(epCapture);
@@ -151,6 +169,11 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
     EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
+
+    EXPECT_EQ(1, whitePawns.size());
+    EXPECT_EQ(1, blackPawns.size());
+    EXPECT_EQ(e4, whitePawns[0]);
+    EXPECT_EQ(d4, blackPawns[0]);
 
     // setup
     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);

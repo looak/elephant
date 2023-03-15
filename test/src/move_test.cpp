@@ -318,6 +318,13 @@ TEST_F(MoveFixture, Pawn_Promotion)
 
     auto Q = WHITEQUEEN;
     EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+
+    auto placements = m_chessboard.readMaterial(Set::WHITE).getPlacementsOfPiece(WHITEQUEEN);
+	EXPECT_EQ(1, placements.size());
+	EXPECT_EQ(e8, placements[0]);
+
+	auto pawns = m_chessboard.readMaterial(Set::WHITE).getPlacementsOfPiece(WHITEPAWN);
+	EXPECT_EQ(0, pawns.size());
 }
 
 // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
