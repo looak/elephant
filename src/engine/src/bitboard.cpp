@@ -34,7 +34,7 @@ bool Bitboard::IsValidSquare(signed short currSqr)
     return (sq0x88 & 0x88) == 0;
 }
 
-bool Bitboard::IsValidSquare(const Notation& source)
+bool Bitboard::IsValidSquare(Notation source)
 { 
     return Bitboard::IsValidSquare(source.index());
 }
@@ -44,7 +44,7 @@ void Bitboard::Clear()
 	std::memset(&m_material[0][0], 0, sizeof(u64) * 12);
 }
 
-bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
+bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
     u8 pieceIndx = piece.type() - 1;
@@ -53,7 +53,7 @@ bool Bitboard::ClearPiece(const ChessPiece& piece, const Notation& target)
 	return true;
 }
 
-bool Bitboard::PlacePiece(const ChessPiece& piece, const Notation& target)
+bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
     u8 pieceIndx = piece.type() - 1;
@@ -98,7 +98,7 @@ u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding,
     return ret;
 }
 
-u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const
+u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const
 {
     u64 ret = ~universe;    
     u64 matComb = mat | opMat;
@@ -180,7 +180,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& sourc
 /// <param name="king"></param>
 /// <param name="target"></param>
 /// <returns></returns>
-u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, const std::pair<u64, u64>& opponentSlidingMask) const
+u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64, u64>& opponentSlidingMask) const
 {
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
@@ -305,7 +305,7 @@ u64 Bitboard::GetKingMask(const ChessPiece& king, const Notation& target, const 
     return ret;
 }
 
-u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const
+u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const
 {
     u64 ret = ~universe;
 
@@ -336,7 +336,7 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notati
     return ret;
 }
 
-u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling, byte enPassant, u64 threatened, bool checked, u64 kingMask) const
+u64 Bitboard::GetAvailableMoves(Notation source, ChessPiece piece, byte castling, byte enPassant, u64 threatened, bool checked, u64 kingMask) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
@@ -398,7 +398,7 @@ u64 Bitboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece,
     return ret;
 }
 
-u64 Bitboard::GetThreatenedSquaresWithMaterial(const Notation& source, const ChessPiece& piece) const
+u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece) const
 {
     u64 retValue = GetThreatenedSquares(source, piece);
     u64 mask = UINT64_C(1) << source.index();
@@ -406,7 +406,7 @@ u64 Bitboard::GetThreatenedSquaresWithMaterial(const Notation& source, const Che
 }
 
 
-u64 Bitboard::GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const
+u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
@@ -447,14 +447,14 @@ u64 Bitboard::GetThreatenedSquares(const Notation& source, const ChessPiece& pie
     return ret;
 }
 
-u64 Bitboard::GetAttackedSquares(const Notation& source, const ChessPiece& piece) const
+u64 Bitboard::GetAttackedSquares(Notation source, ChessPiece piece) const
 {
     u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
     u64 ret = GetThreatenedSquares(source, piece);
     return ret & opMatComb;
 }
 
-bool Bitboard::IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const
+bool Bitboard::IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, byte enPassant, u64 threatenedMask) const
 {
     u64 movesMask = GetAvailableMoves(source, piece, castling, enPassant, threatenedMask);
     movesMask |= GetAttackedSquares(source, piece);

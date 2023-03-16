@@ -21,7 +21,7 @@ namespace ElephantTest
     // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
     void SetupDefaultStartingPosition(Chessboard& board);
 
-    bool NotationCompare(const Notation& lhs, const Notation& rhs);
+    bool NotationCompare(Notation lhs, Notation rhs);
 
     bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo);
 

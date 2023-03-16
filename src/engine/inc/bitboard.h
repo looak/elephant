@@ -25,25 +25,25 @@ class Bitboard
 {
 public:
 	static bool IsValidSquare(signed short currSqr);
-	static bool IsValidSquare(const Notation& source);
+	static bool IsValidSquare(Notation source);
 public:
 	Bitboard();
 	Bitboard& operator=(const Bitboard& other);
 	
 	void Clear();
 	
-	bool PlacePiece(const ChessPiece& piece, const Notation& target);
-	bool ClearPiece(const ChessPiece& piece, const Notation& target);
-	bool IsValidMove(const Notation& source, const ChessPiece& piece, const Notation& target, byte castling, byte enPassant, u64 threatenedMask) const;
+	bool PlacePiece(ChessPiece piece, Notation target);
+	bool ClearPiece(ChessPiece piece, Notation target);
+	bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, byte enPassant, u64 threatenedMask) const;
 
-	u64 GetAvailableMoves(const Notation& source, const ChessPiece& piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
-	u64 GetAttackedSquares(const Notation& source, const ChessPiece& piece) const;
-	u64 GetThreatenedSquares(const Notation& source, const ChessPiece& piece) const;
-	u64 GetThreatenedSquaresWithMaterial(const Notation& source, const ChessPiece& piece) const;
+	u64 GetAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
+	u64 GetAttackedSquares(Notation source, ChessPiece piece) const;
+	u64 GetThreatenedSquares(Notation source, ChessPiece piece) const;
+	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece) const;
 	u64 GetAttackedSquares(Set set);
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
-	u64 GetKingMask(const ChessPiece& king, const Notation& target, const std::pair<u64, u64>& opponentSlidingMask) const;
+	u64 GetKingMask(ChessPiece king, Notation target, const std::pair<u64, u64>& opponentSlidingMask) const;
 	u64 GetMaterialCombined(Set set) const;
 
 private:
@@ -54,8 +54,8 @@ typedef std::function<u64(u64 sqrMask)> Validate;
 	u64 MaterialCombined() const;
 	u64 SlidingMaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, const Notation& source, const ChessPiece& piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
-	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, const Notation& source, const ChessPiece& piece, byte castling) const;
+	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
+	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
 
 	u64 InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask){ return sqrMask; }) const;
 

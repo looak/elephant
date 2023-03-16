@@ -25,35 +25,34 @@ class Material
 public:
 	Material();
 	Material(const Material& other);
-	Material(Material&& other);
 
 	void Clear();
 
 	Material& operator=(const Material& other);
-	Material& operator=(Material&& other);
 
-	void AddPiece(const ChessPiece& piece, const Notation& position);
-	void RemovePiece(const ChessPiece& piece, const Notation& position);
-	void MovePiece(const ChessPiece& piece, const Notation& source, const Notation& target);
-	void PromotePiece(const ChessPiece& newPiece, const Notation& position);
+	void AddPiece(ChessPiece piece, Notation position);
+	void RemovePiece(ChessPiece piece, Notation position);
+	void MovePiece(ChessPiece piece, Notation source, Notation target);
+	void PromotePiece(ChessPiece piece, Notation position);
 	
 	/**
+	* @brief
 	* Unmakes a chess piece move by removing the piece from the target location and adding it back to the source location.
 	* Note: In this function, the "source" and "target" arguments are backwards compared to other methods, since this function is used to undo a previous move.
 	* Note: pieceToAdd and pieceToRemove can be different in the case where we are unmaking a promotion
 	*
-	* @param pieceToAdd The chess piece to add to the source location.
-	* @param pieceToRemove The chess piece to remove from the target location.
-	* @param source The source location on the chess board where the pieceToAdd should be placed.
-	* @param target The target location on the chess board where the pieceToRemove should be removed from.
+	* @param pieceToAdd		The chess piece to add to the source location.
+	* @param pieceToRemove	The chess piece to remove from the target location.
+	* @param source			The source location on the chess board where the pieceToAdd should be placed.
+	* @param target			The target location on the chess board where the pieceToRemove should be removed from.
 	*/
-	void UnmakePieceMove(const ChessPiece& pieceToAdd, const ChessPiece& pieceToRemove, const Notation& source, const Notation& target);
+	void UnmakePieceMove(ChessPiece pieceToAdd, ChessPiece pieceToRemove, Notation source, Notation target);
 		
-	const std::vector<Notation>& getPlacementsOfPiece(const ChessPiece& piece) const;
+	const std::vector<Notation>& getPlacementsOfPiece(ChessPiece piece) const;
 
 	u32 getValue() const;
 	u32 getCount() const;
-	u32 getPieceCount(const ChessPiece& piece) const;
+	u32 getPieceCount(ChessPiece piece) const;
 	
 private:
 	typedef std::array<std::vector<Notation>, (size_t)PieceType::KING> MaterialGrid;

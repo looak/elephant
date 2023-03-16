@@ -131,7 +131,7 @@ void SetupDefaultStartingPosition(Chessboard& board)
     board.setCastlingState(15);
 }
 
-bool NotationCompare(const Notation& lhs, const Notation& rhs)
+bool NotationCompare(Notation lhs, Notation rhs)
 {
     return lhs.index() < rhs.index();
 }

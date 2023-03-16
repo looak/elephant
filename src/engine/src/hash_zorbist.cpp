@@ -80,13 +80,13 @@ u64 ZorbistHash::HashBoard(const Chessboard& board) const
 	return hash;
 }
 
-u64 ZorbistHash::HashPiecePlacement(const u64& oldHash, const ChessPiece& piece, const Notation& position) const
+u64 ZorbistHash::HashPiecePlacement(const u64& oldHash, ChessPiece piece, Notation position) const
 {	
 	u8 pieceIndx = piece.index() + (piece.set() * 6);
 	return oldHash ^ table[position.index()][pieceIndx];
 }
 
-u64 ZorbistHash::HashEnPassant(const u64& oldHash, const Notation& position) const
+u64 ZorbistHash::HashEnPassant(const u64& oldHash, Notation position) const
 {
 	return oldHash ^ enpassant[position.file];
 }

@@ -90,10 +90,10 @@ public:
 	ChessboardTile(Notation&& notation);
 	~ChessboardTile() = default;
 	
-	const ChessPiece& readPiece() const { return m_piece; };
+	ChessPiece readPiece() const { return m_piece; };
 	ChessPiece& editPiece() { return m_piece; };
 
-	const Notation& readPosition() const { return m_position; };
+	Notation readPosition() const { return m_position; };
 
 	bool operator==(const ChessboardTile& rhs) const;
 	ChessboardTile& operator=(const ChessboardTile& rhs);
@@ -119,7 +119,7 @@ public:
 	Chessboard(const Chessboard& other); 
 
 	void Clear();
-	bool PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite = false);
+	bool PlacePiece(ChessPiece piece, Notation target, bool overwrite = false);
 	bool MakeMove(Move& move);
 
 	/**
@@ -138,10 +138,10 @@ public:
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
 	
-	std::vector<Move> GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const;
+	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, bool checked, u64 kingMask) const;
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	
-	u64 GetThreatenedMask(Set set) const;	
+	u64 GetThreatenedMask(Set set) const;
 	u64 GetKingMask(Set set) const;
 	/**
 	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces
@@ -155,15 +155,15 @@ public:
 	 */
 	std::pair<u64,u64> GetSlidingMaskWithMaterial(Set set) const;
 
-	const Notation& readKingPosition(Set set) const;
+	Notation readKingPosition(Set set) const;
 
-	const ChessboardTile& readTile(const Notation& position) const;
-	ChessboardTile& editTile(const Notation& position);
+	const ChessboardTile& readTile(Notation position) const;
+	ChessboardTile& editTile(Notation position);
 	ChessPiece readPieceAt(Notation notation) const;
 
-	bool setEnPassant(const Notation& notation);
+	bool setEnPassant(Notation notation);
 
-	const Notation& readEnPassant() const { return m_enPassant; }
+	Notation readEnPassant() const { return m_enPassant; }
 	
 	bool setCastlingState(u8 castlingState);
 	byte readCastlingState() const { return m_castlingState; }
@@ -235,8 +235,8 @@ private:
 	* @param move The move being made.
 	* @return The updated target location for the pawn, in case we double moved the piece and target differ.*/	
 	Notation InternalHandlePawnMove(Move& move);
-	void InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove);
-	void InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare);
+	void InternalHandleRookMove(Move& move, Notation targetRook, Notation rookMove);
+	void InternalHandleRookMovedOrCaptured(Move& move, Notation rookSquare);
 	void UpdateCastlingState(Move& move, byte mask);
 	
 	/**
@@ -248,13 +248,13 @@ private:
 	* @return True if the move is a castle move, false otherwise. */
 	bool InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);
 	void InternalHandleKingRookMove(Move& move);
-	bool UpdateEnPassant(const Notation& source, const Notation& target);
-	void InternalMakeMove(const Notation& source, const Notation& target);
-	void InternalUnmakeMove(const Notation& source, const Notation& target, const ChessPiece& pieceToRmv, const ChessPiece& pieceToAdd);
+	bool UpdateEnPassant(Notation source, Notation target);
+	void InternalMakeMove(Notation source, Notation target);
+	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 	int getTileIndex(byte file, byte rank);
 
-	ChessboardTile& get(const Notation& position) { return editTile(position); }
-	const ChessboardTile& get(const Notation& position) const { return readTile(position); }
+	ChessboardTile& get(Notation position) { return editTile(position); }
+	const ChessboardTile& get(Notation position) const { return readTile(position); }
 
 	bool IsMoveCastling(const Move& move) const;
 	bool IsPromoting(const Move& move) const;

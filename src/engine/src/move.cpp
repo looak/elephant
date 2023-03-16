@@ -3,7 +3,7 @@
 #include <sstream>
 #include <list>
 
-Move::Move(const Notation& source, const Notation& target) :
+Move::Move(Notation source, Notation target) :
     TargetSquare(target),
     SourceSquare(source),
     EnPassantTargetSquare(InvalidNotation),

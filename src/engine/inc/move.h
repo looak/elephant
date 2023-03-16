@@ -53,7 +53,7 @@ struct Move
 {
 public:
     Move();
-    Move(const Notation& source, const Notation& target);
+    Move(Notation source, Notation target);
     Move(const Move& other);
 	Move(Move&& other);
     

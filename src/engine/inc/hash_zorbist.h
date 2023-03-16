@@ -26,8 +26,8 @@ struct ZorbistHash
     static const ZorbistHash& Instance();
 
     u64 HashBoard(const Chessboard& board) const;
-    u64 HashPiecePlacement(const u64& oldHash, const ChessPiece& piece, const Notation& position) const;
-    u64 HashEnPassant(const u64& oldHash, const Notation& position) const;
+    u64 HashPiecePlacement(const u64& oldHash, ChessPiece piece, Notation position) const;
+    u64 HashEnPassant(const u64& oldHash, Notation position) const;
     u64 HashCastling(const u64& oldHash, const u8 castlingState) const;
     
 private:

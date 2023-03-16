@@ -173,7 +173,7 @@ Chessboard::Clear()
 }
 
 bool 
-Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target, bool overwrite)
+Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 {
 	if (!Bitboard::IsValidSquare(target))
 		return false;
@@ -203,7 +203,7 @@ Chessboard::PlacePiece(const ChessPiece& piece, const Notation& target, bool ove
 }
 
 bool 
-Chessboard::UpdateEnPassant(const Notation& source, const Notation& target)
+Chessboard::UpdateEnPassant(Notation source, Notation target)
 {
 	signed char dif = source.rank - target.rank;
 	if (abs(dif) == 2) // we made a enpassant move
@@ -288,7 +288,7 @@ Chessboard::InternalHandleKingMove(Move& move, Notation& targetRook, Notation& r
 }
 
 void 
-Chessboard::InternalHandleRookMove(Move& move, const Notation& targetRook, const Notation& rookMove)
+Chessboard::InternalHandleRookMove(Move& move, Notation targetRook, Notation rookMove)
 {  	
 	if (move.Piece.getType() == PieceType::KING && targetRook != Notation())
 	{
@@ -314,7 +314,7 @@ Chessboard::UpdateCastlingState(Move& move, byte mask)
 }
 
 void
-Chessboard::InternalHandleRookMovedOrCaptured(Move& move, const Notation& rookSquare)
+Chessboard::InternalHandleRookMovedOrCaptured(Move& move, Notation rookSquare)
 {
 	byte mask = 0;
 	// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
@@ -358,7 +358,7 @@ Chessboard::InternalHandleKingRookMove(Move& move)
 }
 
 void 
-Chessboard::InternalMakeMove(const Notation& source, const Notation& target)
+Chessboard::InternalMakeMove(Notation source, Notation target)
 {
 	ChessPiece piece = m_tiles[source.index()].editPiece();
 	
@@ -485,7 +485,7 @@ Chessboard::UnmakeMove(const Move& move)
 	return true;
 }
 
-void Chessboard::InternalUnmakeMove(const Notation& source, const Notation& target, const ChessPiece& pieceToRmv, const ChessPiece& pieceToAdd)
+void Chessboard::InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd)
 {
 	auto& sourceTile = m_tiles[source.index()];
 	auto& targetTile = m_tiles[target.index()];
@@ -739,7 +739,7 @@ Chessboard::IsCheck(const Move& move) const
 	return false;
 }
 
-const Notation&
+Notation
 Chessboard::readKingPosition(Set set) const
 {
 	return m_kings[static_cast<u8>(set)].second;
@@ -831,7 +831,7 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 }
 
 std::vector<Move> 
-Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u64 threatenedMask, bool checked, u64 kingMask) const
+Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, bool checked, u64 kingMask) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -913,7 +913,7 @@ Chessboard::GetAvailableMoves(const Notation& source, const ChessPiece& piece, u
 	return moveVector;
 }
 
-bool Chessboard::setEnPassant(const Notation& notation)
+bool Chessboard::setEnPassant(Notation notation)
 {
 	u64 newHash = m_hash;
 	if (Notation::Validate(m_enPassant))
@@ -935,13 +935,13 @@ bool Chessboard::setCastlingState(u8 castlingState)
 
 
 const ChessboardTile&
-Chessboard::readTile(const Notation& position) const
+Chessboard::readTile(Notation position) const
 {
 	return m_tiles[position.index()];
 }
 
 ChessboardTile& 
-Chessboard::editTile(const Notation& position)
+Chessboard::editTile(Notation position)
 {
 	return m_tiles[position.index()];
 }
