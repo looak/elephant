@@ -1154,5 +1154,29 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
     EXPECT_EQ(4+8, count.Moves);
 }
 
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][ P ][   ]
+// 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
+//     A    B    C    D    E    F    G    H
+
+TEST_F(MoveGeneratorFixture, KingCheckedByRook)
+{
+    // setup
+    testContext.editToPlay() = Set::BLACK;
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, b4);    
+    board.PlacePiece(WHITEROOK, h4);
+    board.PlacePiece(WHITEKING, f1);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+    
+    EXPECT_EQ(6, moves.size());
+}
 
 } // namespace ElephantTest

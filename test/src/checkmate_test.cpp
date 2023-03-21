@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
 
-#include "game_context.h"
 #include "chessboard.h"
 #include "elephant_test_utils.h"
 #include "fen_parser.h"
+#include "game_context.h"
+#include "move.h"
 
 namespace ElephantTest
 {
@@ -47,13 +48,25 @@ private:
 //    A  B  C  D  E  F  G  H
 // 3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1
 // Black to move, checkmate in 1 move.
-TEST_F(CheckmateFixture, BackrankCheckmate_Black_Checkmate)
+TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
 {
-    std::string fen("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");        
+    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");        
 	FENParser::deserialize(fen.c_str(), m_context);
+
+    Chessboard& boardEditor = m_context.editChessboard();
 
     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
+    
+    Move move(d8, d1);
+    EXPECT_TRUE(boardEditor.MakeMove(move));
+
+    EXPECT_TRUE(move.isCheckmate());
+
+    EXPECT_TRUE(m_context.readChessboard().isCheckmated(Set::WHITE));
+    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
+    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
+    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));    
 }
 
 } // namespace ElephantTest

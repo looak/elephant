@@ -61,8 +61,9 @@ public:
     bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
 	bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
 	bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
+    bool isCheckmate() const { return MoveFlag::Checkmate == (Flags & MoveFlag::Checkmate); }
 	bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
-	bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }	
+	bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
 
 	void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
 	void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }

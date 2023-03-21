@@ -1541,4 +1541,46 @@ TEST_F(BitboardFixture, KingMask_BishopAndQueenNotThreatening)
     // validate
     EXPECT_EQ(expected, result);
 }
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ r ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ K ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, ThreatenedMask_KingisPierced)
+{
+    Bitboard board;
+
+    //setup
+    board.PlacePiece(BLACKROOK, g7);
+    board.PlacePiece(WHITEKING, g2);
+
+    u64 orthogonal = ~universe;
+    orthogonal |= board.GetThreatenedSquaresWithMaterial(g7, BLACKROOK, /*pierce king*/ true );
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a7.index();
+    expected |= INT64_C(1) << b7.index();
+    expected |= INT64_C(1) << c7.index();
+    expected |= INT64_C(1) << d7.index();
+    expected |= INT64_C(1) << e7.index();
+    expected |= INT64_C(1) << f7.index();
+    expected |= INT64_C(1) << g7.index();
+    expected |= INT64_C(1) << h7.index();
+    expected |= INT64_C(1) << g8.index();
+    expected |= INT64_C(1) << g6.index();
+    expected |= INT64_C(1) << g5.index();
+    expected |= INT64_C(1) << g4.index();
+    expected |= INT64_C(1) << g3.index();
+    expected |= INT64_C(1) << g2.index();    
+    expected |= INT64_C(1) << g1.index();
+
+    // validate
+    EXPECT_EQ(expected, orthogonal);
+}
+
 } // namespace ElephantTest

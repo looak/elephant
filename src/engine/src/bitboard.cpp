@@ -300,6 +300,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64,
         }
     }
 
+    // if we're checked by more than one piece we have to move and generating this mask doesn't matter.
     if (checks > 1)
         return 0;
     return ret;
@@ -398,19 +399,25 @@ u64 Bitboard::GetAvailableMoves(Notation source, ChessPiece piece, byte castling
     return ret;
 }
 
-u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece) const
+u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing) const
 {
-    u64 retValue = GetThreatenedSquares(source, piece);
+    u64 retValue = GetThreatenedSquares(source, piece, pierceKing);
     u64 mask = UINT64_C(1) << source.index();
     return retValue | mask;
 }
 
 
-u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece) const
+u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing) const
 {
     u64 ret = ~universe;
+    auto opSet = ChessPiece::FlipSet(piece.set());
     u64 matComb = MaterialCombined(piece.set());
-    u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set()));
+    u64 opMatComb = MaterialCombined(opSet);
+
+    // removing king from opmaterial so it doesn't stop our sliding.
+    if (pierceKing)
+        opMatComb &= ~m_material[opSet][5];
+
     signed char moveMod = 1;
     if (piece.getSet() == Set::WHITE)
         moveMod = -1;

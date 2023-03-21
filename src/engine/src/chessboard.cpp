@@ -765,7 +765,7 @@ Chessboard::GetThreatenedMask(Set set) const
 		const auto& piece = (*boardItr).readPiece();
 		const auto& pos = (*boardItr).readPosition();
 		if (piece != ChessPiece() && piece.getSet() == set)
-			mask |= m_bitboard.GetThreatenedSquares(pos, piece);
+			mask |= m_bitboard.GetThreatenedSquares(pos, piece, true);
 
 		++boardItr;
 	}

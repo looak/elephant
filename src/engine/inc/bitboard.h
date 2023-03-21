@@ -38,9 +38,10 @@ public:
 
 	u64 GetAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
 	u64 GetAttackedSquares(Notation source, ChessPiece piece) const;
-	u64 GetThreatenedSquares(Notation source, ChessPiece piece) const;
-	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece) const;
 	u64 GetAttackedSquares(Set set);
+
+	u64 GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
+	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
 	u64 GetKingMask(ChessPiece king, Notation target, const std::pair<u64, u64>& opponentSlidingMask) const;
