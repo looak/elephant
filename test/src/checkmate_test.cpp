@@ -69,4 +69,27 @@ TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
     EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));    
 }
 
+// 8 [k][ ][ ][ ][ ][ ][ ][ ]
+// 7 [ ][ ][Q][ ][ ][ ][ ][ ]
+// 6 [ ][K][ ][ ][ ][ ][ ][ ]
+// 5 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 4 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 3 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 2 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 1 [ ][ ][ ][ ][ ][ ][ ][ ]
+//    A  B  C  D  E  F  G  H
+// k7/2Q5/1K6/8/8/8/8/8 b - - 0 1
+// Black to move but they're in stalemate.
+
+TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
+{
+    std::string fen("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");        
+    FENParser::deserialize(fen.c_str(), m_context);
+
+    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
+    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
+    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
+    EXPECT_TRUE(m_context.readChessboard().isStalemated(Set::BLACK));
+}
+
 } // namespace ElephantTest
