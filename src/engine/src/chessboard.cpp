@@ -611,14 +611,16 @@ Chessboard::MakeMove(Move& move)
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
 	
 	// check if we checkmated or checked the op set after we have made the move	
-	Set opSet = ChessPiece::FlipSet(move.Piece.getSet());
-	if (isCheckmated(opSet))
-	{
-		move.Flags |= MoveFlag::Checkmate;
-	}
-	else if (IsInCheck(opSet))
+	Set opSet = ChessPiece::FlipSet(move.Piece.getSet());	
+	if (isChecked(opSet))
 	{
 		move.Flags |= MoveFlag::Check;
+		
+		if (isCheckmated(opSet))
+		{
+			move.Flags = (MoveFlag)(move.Flags & ~MoveFlag::Check);
+			move.Flags |= MoveFlag::Checkmate;
+		}
 	}
 	
 	return true;
@@ -686,7 +688,7 @@ Chessboard::IsInCheckCount(Set set) const
 }
 
 bool
-Chessboard::IsInCheck(Set set) const
+Chessboard::isChecked(Set set) const
 {
 	auto [check, count] = IsInCheckCount(set);
 	return check;
@@ -695,7 +697,7 @@ Chessboard::IsInCheck(Set set) const
 bool
 Chessboard::isCheckmated(Set set) const
 {	
-	if (IsInCheck(set))
+	if (isChecked(set))
 	{
 		auto moves = GetAvailableMoves(set);
 		if (moves.size() == 0)
@@ -707,7 +709,7 @@ Chessboard::isCheckmated(Set set) const
 bool
 Chessboard::isStalemated(Set set) const
 {
-	if (!IsInCheck(set))
+	if (!isChecked(set))
 	{
 		auto moves = GetAvailableMoves(set);
 		if (moves.size() == 0)
@@ -808,7 +810,7 @@ std::pair<u64,u64> Chessboard::GetSlidingMaskWithMaterial(Set set) const
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	bool isChecked = IsInCheck(currentSet);
+	bool checked = isChecked(currentSet);
 	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(currentSet));
 
 	u64 kingMask = GetKingMask(currentSet);
@@ -822,7 +824,7 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 
 		for (auto pos : positions)
 		{
-			auto moves = GetAvailableMoves(pos, currentPiece, threatenedMask, isChecked, kingMask);
+			auto moves = GetAvailableMoves(pos, currentPiece, threatenedMask, checked, kingMask);
 			result.insert(result.end(), moves.begin(), moves.end());
 		}
 	}

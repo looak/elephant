@@ -134,7 +134,7 @@ public:
 	bool UnmakeMove(const Move& move);
 	
 	std::tuple<bool, int> IsInCheckCount(Set set) const;
-	bool IsInCheck(Set set) const;
+	bool isChecked(Set set) const;
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
 	

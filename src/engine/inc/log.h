@@ -80,7 +80,6 @@ public:
 		std::stringstream* ssptr = m_stream.release();
 		if(ssptr != nullptr)		
 			delete ssptr;
-		
 	}
 
 	std::string getString() const

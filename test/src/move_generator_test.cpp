@@ -744,7 +744,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool checked = board.IsInCheck(Set::WHITE);
+    bool checked = board.isChecked(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
@@ -783,7 +783,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool checked = board.IsInCheck(Set::WHITE);
+    bool checked = board.isChecked(Set::WHITE);
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
@@ -820,7 +820,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     board.PlacePiece(WHITEKING, g1);
 
     // do
-    bool checked = board.IsInCheck(Set::WHITE);
+    bool checked = board.isChecked(Set::WHITE);
 
     // verify
     EXPECT_FALSE(checked);
@@ -1094,7 +1094,7 @@ TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
     // verify
     EXPECT_TRUE(result);
 	EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
-	EXPECT_TRUE(testContext.readChessboard().IsInCheck(testContext.readToPlay()));
+	EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
 
 	auto moves = moveGenerator.GeneratePossibleMoves(testContext);
     
