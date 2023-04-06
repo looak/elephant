@@ -127,7 +127,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 
 		MoveGenerator generator;
         
-        auto moves = context.readChessboard().GetAvailableMoves(context.readToPlay());
+        auto moves = generator.GeneratePossibleMoves(context);
         int total = 0;
 		for (auto&& move : moves)
 		{
@@ -138,6 +138,8 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 			std::cout << result << std::endl;
             context.UnmakeMove(move);
 		}
+        total += moves.size();
+        
         std::cout << "\n Moves: " << moves.size() << "\n";
         std::cout << " Total: " << total << "\n";
     }

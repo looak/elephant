@@ -127,7 +127,14 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     // validate
     EXPECT_TRUE(result);
     EXPECT_EQ(P, move.Piece);
+    /**
+     * En passant is a special pawn capture move in chess where a pawn captures an opposing pawn
+     * that has just advanced two squares from its starting position, as if it had only advanced
+     * one square. The capturing pawn moves diagonally to the square that the opposing pawn passed
+     * over, and the captured pawn is removed from the board.
+    */
     EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
+    EXPECT_FALSE(move.isEnPassant());
 
     EXPECT_EQ(e3, m_chessboard.readEnPassant());
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());

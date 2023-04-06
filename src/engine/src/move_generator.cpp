@@ -49,7 +49,10 @@ MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate p
 		if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
 			result.Checks++;
 		if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)
+        {
+            result.Checks++;
 			result.Checkmates++;
+        }
 
         result.Moves++;
     }
@@ -107,7 +110,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
         ChessPiece p(currentSet, (PieceType)i);
         for (auto&& piecePos : material.getPlacementsOfPiece(p))
         {
-			auto moves = board.GetAvailableMoves(piecePos, p, threatenedMask, isChecked, kingMask);
+            auto moves = board.GetAvailableMoves(piecePos, p, threatenedMask, isChecked, kingMask);
             /*retMoves.insert(retMoves.end(), moves.begin(), moves.end());
             continue;*/
             // validate our moves since in some situations we can generate illegal moves when the king is checked.
@@ -128,6 +131,12 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
             {
                 retMoves.insert(retMoves.end(), moves.begin(), moves.end());
             }*/
+
+            // validate all moves are sane
+            for (auto&& mv : retMoves)
+            {
+                FATAL_ASSERT(mv.Piece.isValid());
+            }
         }
     }
     

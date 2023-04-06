@@ -108,8 +108,9 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
     bool pinned = (sqrMask & kingMask);
     if (checked || pinned)
     {
-        threatenedMask &= kingMask;
-        threatenedMask |= (opMat & kingMask);
+        threatenedMask = kingMask;
+        //threatenedMask &= kingMask;
+        //threatenedMask |= (opMatComb & kingMask);
     }
 
     // Figure out if we're moving a pawn out of it's starting position.
@@ -189,7 +190,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64,
     const u64 c_slideMat = slideMat;
     u64 diagnoalMat = opponentSlidingMask.second;
 	u64 orthogonalMat = opponentSlidingMask.first;
-	u64 combMask = opponentSlidingMask.first | opponentSlidingMask.second;
+	//u64 combMask = opponentSlidingMask.first | opponentSlidingMask.second;
     u64 allMat = MaterialCombined();
     u64 knightMat = m_material[opSet][1];
     u64 ret = ~universe;
@@ -243,7 +244,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64,
         // as we've identified them being threatning.
         // this is to avoid false positives for bishops in straight columns or rows.
         
-        ret &= combMask;
+        // ret &= combMask;
     }
 
     if (knightMat > 0)
@@ -353,8 +354,9 @@ u64 Bitboard::GetAvailableMoves(Notation source, ChessPiece piece, byte castling
     bool pinned = (sqrMask & kingMask);
     if (checked || pinned)
     {
-        threatened &= kingMask;
-        threatened |= (opMatComb & kingMask);
+        threatened = kingMask;
+        //threatened &= kingMask;
+        //threatened |= (opMatComb & kingMask);
     }
 
     bool sliding = false;

@@ -26,11 +26,10 @@ enum MoveFlag : byte
     Promotion = 2,
     Castle = 4,
     Check = 8,
-    EnPassant = 16,
-    Legal = 32,
-    Checkmate = 64,
-	Ambiguous = 128, // Used for disambiguation of moves
-    Invalid = 0xff
+    EnPassant = 16,    
+    Checkmate = 32,
+	Ambiguous = 64, // Used for disambiguation of moves
+    Invalid = 128
 };
 
 inline MoveFlag operator|(MoveFlag a, MoveFlag b)
@@ -47,6 +46,18 @@ inline MoveFlag& operator|=(MoveFlag& a, MoveFlag b)
 { 
     a = a | b;
     return a;
+}
+
+inline MoveFlag& operator&=(MoveFlag& a, MoveFlag b)
+{
+	a = a & b;
+	return a;
+}
+
+inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
+{
+	a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
+	return a;
 }
 
 struct Move

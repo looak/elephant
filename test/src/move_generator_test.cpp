@@ -1066,7 +1066,7 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     EXPECT_EQ(0, count.EnPassants);
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(0, count.Castles);
-    EXPECT_EQ(1, count.Checks);
+    EXPECT_EQ(2, count.Checks);
     EXPECT_EQ(1, count.Checkmates);
 }
 
@@ -1160,7 +1160,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
 // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
 // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 2 [   ][   ][   ][   ][   ][   ][ P ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
 //     A    B    C    D    E    F    G    H
 
@@ -1177,6 +1177,29 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
     
     EXPECT_EQ(6, moves.size());
+}
+
+// 8 [ ][ ][ ][q][k][ ][ ][ ]
+// 7 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 6 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 5 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 4 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 3 [ ][ ][ ][ ][ ][ ][ ][ ]
+// 2 [ ][ ][ ][ ][ ][P][P][P]
+// 1 [ ][ ][ ][R][ ][ ][K][ ]
+//    A  B  C  D  E  F  G  H
+TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
+{
+    // setup
+    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
+	FENParser::deserialize(fen.c_str(), testContext);
+
+    Move Qxd1(d8, d1);
+    testContext.MakeMove(Qxd1);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+    EXPECT_EQ(0, moves.size());
 }
 
 } // namespace ElephantTest

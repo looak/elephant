@@ -8,6 +8,13 @@
 namespace ElephantTest
 {
 ////////////////////////////////////////////////////////////////
+
+/**
+ * @file checkmate_test.cpp
+ * @brief Fixture for testing bitboard functionality. 
+ * Naming convention as of April 2023: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
+ * @author Alexander Loodin Ek 
+ */
 class BitboardFixture : public ::testing::Test
 {
 public:
@@ -1080,6 +1087,44 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
     u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
     u64 kingMask = board.GetKingMask(k, e7, { threatWithmat, 0 });
     u64 result = board.GetAvailableMoves(c2, r, 0, 0, threatWithmat, true, kingMask);
+
+    // validate
+    EXPECT_EQ(expected, result);
+}
+
+/**
+* 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+* 7 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+* 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+* 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+* 4 [ . ][ . ][ . ][ . ][ r ][ . ][ . ][ . ]
+* 3 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+* 2 [ . ][ . ][ . ][ . ][ xR][ . ][ . ][ . ]
+* 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+*     A    B    C    D    E    F    G    H
+* @brief Even though the rook is pinned, it is able to move along the threatened squares. */
+TEST_F(BitboardFixture, PinnedPiece_Black_AbleToMoveAlongThreatenedSquares)
+{
+    Bitboard board;
+    auto r = BLACKROOK;
+    auto k = BLACKKING;
+    auto R = WHITEROOK;
+
+    // setup
+    board.PlacePiece(r, e4);
+    board.PlacePiece(k, e7);
+    board.PlacePiece(R, e2);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << e2.index();
+    expected |= INT64_C(1) << e3.index();
+    expected |= INT64_C(1) << e5.index();
+    expected |= INT64_C(1) << e6.index();
+
+    // do
+    u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
+    u64 kingMask = board.GetKingMask(k, e7, { threatWithmat, 0 });
+    u64 result = board.GetAvailableMoves(e4, r, 0, 0, threatWithmat, true, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);

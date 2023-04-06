@@ -753,6 +753,7 @@ u64 Chessboard::GetKingMask(Set set) const
 	if (m_kings[indx].first == ChessPiece())
 		return 0;
 
+	// might not need to get sliding masks, only material here?
 	auto slidingPair = GetSlidingMaskWithMaterial(ChessPiece::FlipSet(set));
 	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
 }
