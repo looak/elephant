@@ -84,6 +84,7 @@ public:
 
     static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
     static Move FromString(std::string moveStr, bool isWhiteMove);
+    static Move Invalid() { return Move(); }
 
     Notation TargetSquare;
     Notation SourceSquare;
