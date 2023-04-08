@@ -26,7 +26,7 @@ Move::Move() :
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
 	CapturedPiece(ChessPiece()),
-    Flags(MoveFlag::Zero),
+    Flags(MoveFlag::Invalid),
     PrevMove(nullptr),
     NextMoveCount(0),
     NextMove(nullptr)
@@ -50,6 +50,7 @@ Move& Move::operator=(const Move& other)
     NextMove = other.NextMove;
     PrevCastlingState = other.PrevCastlingState;
     CapturedPiece = other.CapturedPiece;
+    EnPassantTargetSquare = other.EnPassantTargetSquare;
 
     return *this;
 }

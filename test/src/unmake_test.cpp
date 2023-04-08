@@ -165,8 +165,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(0, whitePawns.size());
     EXPECT_EQ(1, blackPawns.size());    
     EXPECT_EQ(e3, blackPawns[0]);
-
-
+    
     // do
     result = m_chessboard.UnmakeMove(epCapture);
 
@@ -184,8 +183,8 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
 
     // setup
     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
-    bool founde3 = false;
-    bool foundd3 = false;
+    bool found_e3 = false;
+    bool found_d3 = false;
 
     // validate
     EXPECT_EQ(2, moves.size());
@@ -201,14 +200,14 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
             EXPECT_EQ(WHITEPAWN, mv.CapturedPiece);
             EXPECT_EQ(MoveFlag::Capture, mv.Flags & MoveFlag::Capture);
             EXPECT_EQ(MoveFlag::EnPassant, mv.Flags & MoveFlag::EnPassant);
-            founde3 = true;
+            found_e3 = true;
         }
         else
         {
             EXPECT_EQ(d3, mv.TargetSquare);
             EXPECT_EQ(exp, mv.CapturedPiece); // no capture
             EXPECT_EQ(MoveFlag::Zero, mv.Flags);
-            foundd3 = true;
+            found_d3 = true;
         }
 
         // do
@@ -217,8 +216,58 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     }
 
     // validate
-    EXPECT_TRUE(founde3);
-    EXPECT_TRUE(foundd3);
+    EXPECT_TRUE(found_e3);
+    EXPECT_TRUE(found_d3);
+}
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ p ][   ][   ][ p ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][ P ][   ][   ][ P ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H */
+TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
+{
+    // setup
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+    
+    m_chessboard.PlacePiece(P, c2);
+    m_chessboard.PlacePiece(P, f2);
+	m_chessboard.PlacePiece(p, d4);    
+	m_chessboard.PlacePiece(p, g4);
+    
+
+    const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).getPlacementsOfPiece(WHITEPAWN);
+    const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).getPlacementsOfPiece(BLACKPAWN);
+
+	// do
+    auto whiteMoves = m_chessboard.GetAvailableMoves(Set::WHITE);
+
+    for (auto wmv : whiteMoves)
+    {
+        m_chessboard.MakeMove(wmv);
+        auto blackMoves = m_chessboard.GetAvailableMoves(Set::WHITE);
+
+        for (auto bmv : blackMoves)
+        {
+            m_chessboard.MakeMove(bmv);
+            m_chessboard.UnmakeMove(bmv);
+        }
+
+        m_chessboard.UnmakeMove(wmv);
+    }
+
+    // validate
+    EXPECT_EQ(2, whitePawns.size());
+	EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), c2));
+	EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), f2));
+	EXPECT_EQ(2, blackPawns.size());
+	EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), d4));	
+	EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), g4));    
 }
 
 // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]

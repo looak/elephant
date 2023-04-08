@@ -1154,16 +1154,16 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
     EXPECT_EQ(4+8, count.Moves);
 }
 
-// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
-// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
-//     A    B    C    D    E    F    G    H
-
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
+*     A    B    C    D    E    F    G    H */
 TEST_F(MoveGeneratorFixture, KingCheckedByRook)
 {
     // setup
@@ -1179,15 +1179,16 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
     EXPECT_EQ(6, moves.size());
 }
 
-// 8 [ ][ ][ ][q][k][ ][ ][ ]
-// 7 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 6 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 5 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 4 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 3 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 2 [ ][ ][ ][ ][ ][P][P][P]
-// 1 [ ][ ][ ][R][ ][ ][K][ ]
-//    A  B  C  D  E  F  G  H
+/**
+* 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
+* 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
+*     A    B    C    D    E    F    G    H */
 TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
 {
     // setup
@@ -1200,6 +1201,25 @@ TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
     EXPECT_EQ(0, moves.size());
+}
+/**
+* 8 [   ][   ][ k ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ p ][   ][   ][ p ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][ P ][   ][   ][ P ][   ][   ]
+* 1 [   ][   ][ K ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H */
+TEST_F(MoveGeneratorFixture, EnPassantMoves_Both_UndoCaptureAndUndo)
+{
+    // setup
+    std::string fen("2k5/8/8/8/3p2p1/8/2P2P2/2K5 w - - 0 1");
+    
+	FENParser::deserialize(fen.c_str(), testContext);
+
+	moveGenerator.Perft(testContext, 3);
 }
 
 } // namespace ElephantTest

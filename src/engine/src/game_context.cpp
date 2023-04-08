@@ -86,8 +86,10 @@ bool GameContext::MakeMove(Move& move)
 
 	m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
     
+    FATAL_ASSERT(actualMove.Piece.isValid());
     move = actualMove;
-    
+    FATAL_ASSERT(move.Piece.isValid());
+
 	return true;
 }
 

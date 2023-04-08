@@ -1,4 +1,4 @@
-﻿#include "chessboard.h"
+#include "chessboard.h"
 #include "move.h"
 #include "log.h"
 #include "hash_zorbist.h"
@@ -515,8 +515,10 @@ Chessboard::PlayMove(const Move& move)
 	{
 		Move actualMove(move.SourceSquare, move.TargetSquare);
 		actualMove.PromoteToPiece = move.PromoteToPiece;
-		MakeMove(actualMove);
-		return actualMove;
+		if (MakeMove(actualMove))
+			return actualMove;
+		else // somethings gone wrong, return invalid move.
+			return Move::Invalid();
 	}
 	
 	if (move.SourceSquare.file == 9) // the move is ambigious and we have extra information about it.
@@ -550,7 +552,7 @@ Chessboard::PlayMove(const Move& move)
 		boarditr += increment;
 	}
 	
-	return Move();
+	return Move::Invalid();
 }
 
 bool 
@@ -622,6 +624,7 @@ Chessboard::MakeMove(Move& move)
 			move.Flags |= MoveFlag::Checkmate;
 		}
 	}
+	FATAL_ASSERT(move.Piece.isValid());
 	
 	return true;
 }

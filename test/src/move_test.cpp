@@ -46,6 +46,9 @@ TEST_F(MoveFixture, InvalidMoves)
     result = m_chessboard.MakeMove(move);
     EXPECT_FALSE(result);
     EXPECT_EQ(move.Flags, MoveFlag::Invalid);
+
+    Move invalidMove;
+    EXPECT_TRUE(invalidMove.isInvalid());
 }
 
 TEST_F(MoveFixture, PawnMoves)

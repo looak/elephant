@@ -34,7 +34,7 @@ public:
                 FATAL_ASSERT(context.MakeMove(cpy));
                 FATAL_ASSERT(cpy.Piece.isValid());
                 CountMoves(context, depth - 1, count, divide, predicate);
-                context.UnmakeMove(mv);
+                context.UnmakeMove(cpy);
             }
         }
         
