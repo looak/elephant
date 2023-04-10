@@ -181,16 +181,15 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
 /// <param name="king"></param>
 /// <param name="target"></param>
 /// <returns></returns>
-u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64, u64>& opponentSlidingMask) const
+u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& opponentSlidingMask) const
 {
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
     u8 opSet = ChessPiece::FlipSet(king.set());
     u64 slideMat = SlidingMaterialCombined(opSet);
     const u64 c_slideMat = slideMat;
-    u64 diagnoalMat = opponentSlidingMask.second;
-	u64 orthogonalMat = opponentSlidingMask.first;
-	//u64 combMask = opponentSlidingMask.first | opponentSlidingMask.second;
+    u64 diagnoalMat = opponentSlidingMask.diagonal;
+	u64 orthogonalMat = opponentSlidingMask.orthogonal;
     u64 allMat = MaterialCombined();
     u64 knightMat = m_material[opSet][1];
     u64 ret = ~universe;
@@ -240,11 +239,6 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const std::pair<u64,
                     checks++;
             }
         }
-        // checking the sliding pieces we've run into are the same diagnoals
-        // as we've identified them being threatning.
-        // this is to avoid false positives for bishops in straight columns or rows.
-        
-        // ret &= combMask;
     }
 
     if (knightMat > 0)
@@ -408,6 +402,10 @@ u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece
     return retValue | mask;
 }
 
+u64 Bitboard::GetMaterial(ChessPiece piece) const
+{
+    return m_material[piece.set()][piece.type()];
+}
 
 u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing) const
 {

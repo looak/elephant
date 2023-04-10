@@ -1222,4 +1222,28 @@ TEST_F(MoveGeneratorFixture, EnPassantMoves_Both_UndoCaptureAndUndo)
 	moveGenerator.Perft(testContext, 3);
 }
 
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ p ][ P ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][ K ][   ][ R ][   ][   ][ B ][   ]
+*     A    B    C    D    E    F    G    H 
+8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1
+Pawn is pinned by white rook in this scenario*/
+TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
+{
+    // setup
+    std::string fen("8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1");
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(7, moves.size());
+}
+
 } // namespace ElephantTest

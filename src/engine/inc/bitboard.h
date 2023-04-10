@@ -21,6 +21,12 @@
 
 struct Notation;
 
+struct MaterialMask
+{
+	u64 orthogonal;
+	u64 diagonal;
+};
+
 class Bitboard
 {
 public:
@@ -44,8 +50,9 @@ public:
 	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
-	u64 GetKingMask(ChessPiece king, Notation target, const std::pair<u64, u64>& opponentSlidingMask) const;
+	u64 GetKingMask(ChessPiece king, Notation target, const MaterialMask& opponentSlidingMask) const;
 	u64 GetMaterialCombined(Set set) const;
+	u64 GetMaterial(ChessPiece piece) const;
 
 private:
 typedef std::function<bool(u64 sqrMask)> ResolveMask;

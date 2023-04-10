@@ -1,5 +1,6 @@
 #include "commands_print.h"
 #include "commands_utils.h"
+#include "game_context.h"
 #include "chessboard.h"
 #include <iostream>
 #include <sstream>
@@ -7,8 +8,9 @@
 
 namespace CliPrintCommands
 {
-bool Board(const Chessboard& board, const std::string& input)
+bool Board(const GameContext& context, const std::string& input)
 {
+	const auto& board = context.readChessboard();
     auto boardItr = board.begin();
     std::array<std::stringstream, 8> ranks;
         
@@ -33,7 +35,10 @@ bool Board(const Chessboard& board, const std::string& input)
         rankItr++;
     }
 
+    auto ep = board.readEnPassant();
     std::cout << "\n\n     A  B  C  D  E  F  G  H\n";
+    std::cout << " move: " << context.readMoveCount() << "\tturn: " << (context.readToPlay() == Set::WHITE ? "White\n" : "Black\n");
+    std::cout << " castling: " << board.readCastlingStateInfo().toString() << "\ten passant: " << (ep.isValid() ? ep.toString() : "-") << "\n\n";
 
     return true;
 }
@@ -44,7 +49,7 @@ void BoardHelp(int option, const std::string& command)
     std::cout << AddLineDivider(command, helpText);
 }
 
-bool HelpCommand(const Chessboard&, const std::string& input)
+bool HelpCommand(const GameContext&, const std::string& input)
 {
     std::cout << " Elephant Gambit CLI print Commands:" << std::endl;
     for (PrintCommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)

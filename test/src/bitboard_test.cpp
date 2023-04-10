@@ -1369,7 +1369,6 @@ TEST_F(BitboardFixture, White_Queen_Threaten_Blocked_by_Pawns)
 //     A    B    C    D    E    F    G    H
 TEST_F(BitboardFixture, Black_Rook_Threaten_Starting_Pos)
 {
-    // this test is not done yet wip. Had to leave.
     Bitboard board;
     auto r = BLACKROOK;
     auto p = BLACKPAWN;
@@ -1402,7 +1401,6 @@ TEST_F(BitboardFixture, Black_Rook_Threaten_Starting_Pos)
 //     A    B    C    D    E    F    G    H
 TEST_F(BitboardFixture, KingMask_Pawns)
 {
-    // this test is not done yet wip. Had to leave.
     Bitboard board;
     auto k = BLACKKING;
     auto P = WHITEPAWN;

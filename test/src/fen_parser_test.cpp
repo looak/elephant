@@ -190,6 +190,23 @@ TEST_F(FenParserFixture, SerializeDefaultPosition)
     EXPECT_EQ(expected, output);
 }
 
+TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
+{
+	GameContext context;
+    std::string fen("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 5 19");
+	FENParser::deserialize(fen.c_str(), context);
+
+    EXPECT_EQ(5, context.readPly());
+	EXPECT_EQ(19, context.readMoveCount());
+	EXPECT_EQ(Set::BLACK, context.readToPlay());
+	EXPECT_EQ(d3, context.readChessboard().readEnPassant());
+        
+    std::string output;
+	bool result = FENParser::serialize(context, output);
+    EXPECT_EQ(fen, output);
+    EXPECT_TRUE(result);
+}
+
 ////////////////////////////////////////////////////////////////
 
 } // namespace ElephantTest

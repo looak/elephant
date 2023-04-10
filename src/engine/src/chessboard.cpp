@@ -1,4 +1,4 @@
-#include "chessboard.h"
+﻿#include "chessboard.h"
 #include "move.h"
 #include "log.h"
 #include "hash_zorbist.h"
@@ -208,7 +208,7 @@ Chessboard::UpdateEnPassant(Notation source, Notation target)
 	signed char dif = source.rank - target.rank;
 	if (abs(dif) == 2) // we made a enpassant move
 	{
-		dif *= .5f;
+		dif = (signed char)((float)dif * .5f);
 		m_enPassant = Notation(source.file, source.rank - dif);
 		m_enPassantTarget = Notation(target);
 		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
@@ -656,10 +656,10 @@ Chessboard::IsPromoting(const Move& move) const
 	return false;
 }
 
-std::tuple<bool, int>
-Chessboard::IsInCheckCount(Set set) const
+std::tuple<bool, int, u64>
+Chessboard::calcualteCheckedCount(Set set) const
 {
-	std::tuple<bool, int> result = { false, 0 };
+	std::tuple<bool, int, u64> result = { false, 0, 0 };
 	u8 indx = static_cast<u8>(set);
 	auto king = m_kings[indx];
 
@@ -678,11 +678,12 @@ Chessboard::IsInCheckCount(Set set) const
 		const auto& positions = m_material[(size_t)op].getPlacementsOfPiece(currentPiece);
 		for (auto& pos : positions)
 		{
-			u64 threatMask = m_bitboard.GetThreatenedSquares(pos, currentPiece);
+			u64 threatMask = m_bitboard.GetThreatenedSquaresWithMaterial(pos, currentPiece);
 			if (threatMask & kingMask)
 			{
 				std::get<0>(result) = true;
 				std::get<1>(result) += 1;
+				std::get<2>(result) |= threatMask;
 			}
 		}
 	}
@@ -693,7 +694,7 @@ Chessboard::IsInCheckCount(Set set) const
 bool
 Chessboard::isChecked(Set set) const
 {
-	auto [check, count] = IsInCheckCount(set);
+	auto [check, count, mask] = calcualteCheckedCount(set);
 	return check;
 }
 
@@ -765,21 +766,45 @@ u64
 Chessboard::GetThreatenedMask(Set set) const
 {
 	u64 mask = ~universe;
-	auto boardItr = begin();
-	while (boardItr != end())
-	{
-		const auto& piece = (*boardItr).readPiece();
-		const auto& pos = (*boardItr).readPosition();
-		if (piece != ChessPiece() && piece.getSet() == set)
-			mask |= m_bitboard.GetThreatenedSquares(pos, piece, true);
 
-		++boardItr;
+	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
+	{
+		ChessPiece currentPiece(set, (PieceType)i);
+		const auto& positions = m_material[(size_t)set].getPlacementsOfPiece(currentPiece);
+
+		for (auto& pos : positions)
+		{
+			u64 threatMask = m_bitboard.GetThreatenedSquares(pos, currentPiece, true);
+			mask |= threatMask;
+		}
 	}
 
 	return mask;
 }
 
-std::pair<u64,u64> Chessboard::GetSlidingMaskWithMaterial(Set set) const
+MaterialMask
+Chessboard::GetMaterialMask(Set set) const
+{
+	u64 orthogonal = ~universe;
+	u64 diagonal = ~universe;
+
+	for (auto pieceType : { PieceType::ROOK, PieceType::QUEEN })
+	{
+		ChessPiece piece(set, pieceType);
+		orthogonal |= m_bitboard.GetMaterial(piece);
+	}
+
+	for (auto pieceType : { PieceType::BISHOP, PieceType::QUEEN })
+	{
+		ChessPiece piece(set, pieceType);	
+		diagonal |= m_bitboard.GetMaterial(piece);
+	}
+	
+	return { orthogonal, diagonal };
+}
+
+MaterialMask
+Chessboard::GetSlidingMaskWithMaterial(Set set) const
 {
 	// probably not the correct term, but essentially orthogonal will represent all "right angle" moves
 	// the queen will be represented in both of these but half and half.
@@ -808,16 +833,19 @@ std::pair<u64,u64> Chessboard::GetSlidingMaskWithMaterial(Set set) const
 		}
 	}
 
-	return std::make_pair(orthogonal, diagonal);
+	return { orthogonal, diagonal };
 }
 
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	bool checked = isChecked(currentSet);
-	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(currentSet));
+	auto [checked, chkCount, checkedMask] = calcualteCheckedCount(currentSet);
+	Set opSet = ChessPiece::FlipSet(currentSet);
+	u64 threatenedMask = GetThreatenedMask(opSet);
 
 	u64 kingMask = GetKingMask(currentSet);
+	if (checked)
+		kingMask &= checkedMask;
 
 	std::vector<Move> result;
 
@@ -825,10 +853,34 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 	{
 		ChessPiece currentPiece(currentSet, (PieceType)i);
 		const auto& positions = m_material[(size_t)currentSet].getPlacementsOfPiece(currentPiece);
+		u64 modKingMask = kingMask;
+
+		// figure out if pawn is putting king in check and if the pawn is the same file as enpassant
+		if (currentPiece.getType() == PieceType::PAWN && checked && m_enPassant.isValid())
+		{
+			const unsigned char setModifier = currentSet == Set::WHITE ? 0 : 1;
+			bool kingRankCheck = m_kings[currentPiece.set()].second.rank == (3 + setModifier);
+			
+			if (kingRankCheck) // can't be checked by double move unless king is on this rank
+			{
+				//auto opPawns = m_material[(size_t)opSet].getPlacementsOfPiece(ChessPiece(opSet, PieceType::PAWN));
+				// auto it = std::find_if(opPawns.begin(), opPawns.end(), [&](const Notation& pos) {
+				// 	return pos.file == m_enPassant.file;
+				// });
+
+				int fileDiff = m_kings[currentPiece.set()].second.file - m_enPassant.file;
+				bool doubleMovedPawnCheck = std::abs(fileDiff) == 1;
+
+				if (doubleMovedPawnCheck)
+				{
+					modKingMask = kingMask | (UINT64_C(1) << m_enPassant.index());
+				}
+			}
+		}
 
 		for (auto pos : positions)
 		{
-			auto moves = GetAvailableMoves(pos, currentPiece, threatenedMask, checked, kingMask);
+			auto moves = GetAvailableMoves(pos, currentPiece, threatenedMask, checked, modKingMask);
 			result.insert(result.end(), moves.begin(), moves.end());
 		}
 	}
@@ -975,4 +1027,23 @@ Chessboard::ConstIterator
 Chessboard::end() const
 {
 	return Chessboard::ConstIterator(*this, Notation(s_endPos));
+}
+
+std::string
+CastlingStateInfo::toString() const
+{
+	std::string result;
+	if (hasWhiteKingSide())
+		result += "K";
+	if (hasWhiteQueenSide())
+		result += "Q";
+	if (hasBlackKingSide())
+		result += "k";
+	if (hasBlackQueenSide())
+		result += "q";
+
+	if (result.empty())
+		result = "-";
+	
+	return result;
 }

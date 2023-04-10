@@ -18,8 +18,16 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
     for (auto&& str : tokens)
         fen += str + " ";
 
-    context.Reset();
+    // if fen is empty we want to serialize current context.
+    if (fen.empty())
+    {
+        std::string output;
+		bool result = FENParser::serialize(context, output);
+		std::cout << " " << (result ? output : "Serializing failed!") << "\n";
+        return result;
+    }
 
+    context.Reset();
     bool ret = FENParser::deserialize(fen.c_str(), context);
     if (!ret)
         std::cout << " Invalid FEN: " << fen;
@@ -76,7 +84,7 @@ bool PrintCommand(std::list<std::string>& tokens, GameContext& context)
 {  
     if (tokens.size() == 0)
     {
-        CliPrintCommands::options.at("board").first(context.readChessboard(), "");
+        CliPrintCommands::options.at("board").first(context, "");
     }
     else if (CliPrintCommands::options.find(tokens.front()) == CliPrintCommands::options.end())
     {
@@ -85,7 +93,7 @@ bool PrintCommand(std::list<std::string>& tokens, GameContext& context)
     }
     else
     {
-        CliPrintCommands::options.at(tokens.front()).first(context.readChessboard(), tokens.back());
+        CliPrintCommands::options.at(tokens.front()).first(context, tokens.back());
     }
 
     return true;

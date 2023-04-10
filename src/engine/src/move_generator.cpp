@@ -97,48 +97,23 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
     auto currentSet = context.readToPlay();
     const auto& board = context.readChessboard();
 
-    auto isChecked = board.isChecked(currentSet);
-    u64 threatenedMask = board.GetThreatenedMask(ChessPiece::FlipSet(currentSet));
-
-    u64 kingMask = board.GetKingMask(currentSet);
-
+    auto moves = board.GetAvailableMoves(currentSet);
     auto boardCopy = context.copyChessboard();
 
-    const auto& material = board.readMaterial(currentSet);
-    for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
+    for (auto&& mv : moves)
     {
-        ChessPiece p(currentSet, (PieceType)i);
-        for (auto&& piecePos : material.getPlacementsOfPiece(p))
+        if (boardCopy.MakeMove(mv))
         {
-            auto moves = board.GetAvailableMoves(piecePos, p, threatenedMask, isChecked, kingMask);
-            /*retMoves.insert(retMoves.end(), moves.begin(), moves.end());
-            continue;*/
-            // validate our moves since in some situations we can generate illegal moves when the king is checked.
-            //if (isChecked)
-            {
-                for (auto&& mv : moves)
-                {
-                    if (boardCopy.MakeMove(mv))
-                    {
-                        if (!boardCopy.isChecked(currentSet))
-                            retMoves.push_back(mv);
+            if (!boardCopy.isChecked(currentSet))
+                retMoves.push_back(mv);
 
-                        boardCopy.UnmakeMove(mv);
-                    }
-                }
-            }/*
-            else
-            {
-                retMoves.insert(retMoves.end(), moves.begin(), moves.end());
-            }*/
-
-            // validate all moves are sane
-            for (auto&& mv : retMoves)
-            {
-                FATAL_ASSERT(mv.Piece.isValid());
-            }
+            boardCopy.UnmakeMove(mv);
         }
     }
-    
+
+    // validate all moves are sane
+    for (auto&& mv : retMoves)
+        FATAL_ASSERT(mv.Piece.isValid());
+
     return retMoves;
 }

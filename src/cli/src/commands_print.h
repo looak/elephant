@@ -4,19 +4,19 @@
 #include <string>
 #include <functional>
 
-class Chessboard;
+class GameContext;
 
 namespace CliPrintCommands
 {
 
-typedef std::function<bool(const Chessboard&, const std::string&)> CommandFunction;
+typedef std::function<bool(const GameContext&, const std::string&)> CommandFunction;
 typedef std::function<void(int, const std::string&)> HelpCommandFunction;
 typedef std::map<std::string, std::pair<CommandFunction, HelpCommandFunction>> PrintCommandsMap;
 
-bool Board(const Chessboard& board, const std::string& input);
+bool Board(const GameContext& context, const std::string& input);
 void BoardHelp(int option, const std::string& command);
 
-bool HelpCommand(const Chessboard& board, const std::string& input);
+bool HelpCommand(const GameContext& context, const std::string& input);
 void HelpCommandHelp(int option, const std::string& command);
 
 static PrintCommandsMap options = {

@@ -860,4 +860,100 @@ TEST_F(MoveFixture, BishopThreatensRook_ShouldStillAllowCastle)
     EXPECT_NE(hash, m_chessboard.readHash());
 }
 
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][ k ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][ P ][ p ][   ][   ][   ][   ]
+* 4 [   ][   ][ K ][   ][   ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H 
+* fen: 8/1k6/8/2Pp4/2K5/8/8/8 w - d6 5 4*/
+TEST_F(MoveFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable)
+{
+    m_chessboard.PlacePiece(BLACKKING, b7);
+    m_chessboard.PlacePiece(BLACKPAWN, d5);
+    m_chessboard.PlacePiece(WHITEPAWN, c5);
+    m_chessboard.PlacePiece(WHITEKING, c4);
+
+    m_chessboard.setEnPassant(d6);
+
+    EXPECT_TRUE(m_chessboard.isChecked(Set::WHITE));
+
+    auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
+
+    EXPECT_EQ(8, moves.size());
 }
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ p ][ P ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][ K ][   ][   ][ R ][   ][ B ][   ]
+*     A    B    C    D    E    F    G    H 
+8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
+Pawn is guarded by white rook in this scenario*/
+TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
+{
+    m_chessboard.PlacePiece(BLACKKING, d5);
+    m_chessboard.PlacePiece(BLACKPAWN, d4);
+    m_chessboard.PlacePiece(WHITEKING, b1);
+    m_chessboard.PlacePiece(WHITEPAWN, e4);
+    m_chessboard.PlacePiece(WHITEROOK, e1);
+    m_chessboard.PlacePiece(WHITEBISHOP, g1);
+
+    m_chessboard.setEnPassant(e3);
+
+    EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
+    EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
+
+    auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+
+    EXPECT_EQ(7, moves.size());
+}
+
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ p ][ P ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][ K ][   ][ R ][   ][   ][ B ][   ]
+*     A    B    C    D    E    F    G    H 
+8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
+Pawn is pinned by white rook in this scenario*/
+// The piece being pinned needs to take precedence over the en passant capture.
+// Currently it doesn't, so this test is disabled.
+// TODO: Fix this test.
+// TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
+// {
+//     m_chessboard.PlacePiece(BLACKKING, d5);
+//     m_chessboard.PlacePiece(BLACKPAWN, d4);
+//     m_chessboard.PlacePiece(WHITEKING, b1);
+//     m_chessboard.PlacePiece(WHITEPAWN, e4);
+//     m_chessboard.PlacePiece(WHITEROOK, d1);
+//     m_chessboard.PlacePiece(WHITEBISHOP, g1);
+
+//     m_chessboard.setEnPassant(e3);
+
+//     EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
+//     EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
+
+//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+
+//     EXPECT_EQ(6, moves.size());
+//     auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) {
+//         return mv.Piece == BLACKPAWN;
+//     });
+
+//     EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
+// }
+
+} // namespace ElephantTests

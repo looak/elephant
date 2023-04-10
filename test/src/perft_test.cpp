@@ -16,7 +16,7 @@ public:
     };
     virtual void TearDown() {};
 
-	MoveCount CountMoves(GameContext& context, int depth, MoveCount& count, bool divide = false, MoveCount::Predicate predicate = [](const Move& mv) { return true; })
+	MoveCount CountMoves(GameContext& context, int depth, MoveCount& count, MoveCount::Predicate predicate = [](const Move& mv) { return true; })
 	{		
 		if (depth == 0)
 		{
@@ -33,13 +33,46 @@ public:
                 Move cpy(mv);
                 FATAL_ASSERT(context.MakeMove(cpy));
                 FATAL_ASSERT(cpy.Piece.isValid());
-                CountMoves(context, depth - 1, count, divide, predicate);
+                CountMoves(context, depth - 1, count, predicate);
                 context.UnmakeMove(cpy);
             }
         }
         
         return count;
 	}
+
+    unsigned int CountMovesAtDepth(GameContext& context, int depth)
+    {
+        if (depth == 0)
+        {
+            return 0;
+        }
+        else
+        if (depth == 1)
+        {
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            return moves.size();
+        }
+        else
+        {
+            unsigned int count = 0;
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            for (auto mv : moves)
+            {            
+                context.MakeMove(mv);                
+                count += CountMovesAtDepth(context, depth - 1);
+                context.UnmakeMove(mv);
+            }
+
+            return count;
+        }
+    }
+    
+    void Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
+    {
+        FENParser::deserialize(fen.c_str(), m_context);
+        EXPECT_EQ(expectedValue, CountMovesAtDepth(m_context, atDepth));
+    }
 
     GameContext m_context;
     MoveGenerator m_moveGenerator;
@@ -218,26 +251,26 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions		Checks		Checkmates
 5		674624		52051		1165	0			0				52950		0
 6		11030083	940350		33325	0			7552			452473		2733
 7		178633661	14519036	294874	0			140024			12797406	87
-*/
-// TEST_F(PerftFixture, Position_Three_Depth4)
-// {
-//     // setup
-//     std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-//     FENParser::deserialize(inputFen.c_str(), m_context);
-
-//     // do & verify
-//     MoveCount count;
-//     CountMoves(m_context, 4, count);
-
-//     // verify
-//     EXPECT_EQ(191 + 14 + 2812 + 43238, count.Moves);
-//     EXPECT_EQ(14 + 1 + 209 + 3348, count.Captures);
-//     EXPECT_EQ(10 + 2 + 267 + 1680, count.Checks);
-//     EXPECT_EQ(0, count.Castles);
-//     EXPECT_EQ(2 + 123, count.EnPassants);
-//     EXPECT_EQ(0, count.Promotions);
-//     EXPECT_EQ(0 + 17, count.Checkmates);
-// }
+//*/
+//TEST_F(PerftFixture, Position_Three_Depth5)
+//{
+//    // setup
+//    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+//    FENParser::deserialize(inputFen.c_str(), m_context);
+//
+//    // do & verify
+//    MoveCount count;
+//    CountMoves(m_context, 5, count);
+//
+//    // verify
+//    EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
+//    EXPECT_EQ(14 + 1 + 209 + 3348 + 52051, count.Captures);
+//    EXPECT_EQ(0, count.Castles);
+//    EXPECT_EQ(2 + 123 + 1165, count.EnPassants);
+//    EXPECT_EQ(0, count.Promotions);
+//    EXPECT_EQ(10 + 2 + 267 + 1680 + 52950, count.Checks);
+//    EXPECT_EQ(0 + 17 + 0, count.Checkmates);
+//}
 
 TEST_F(PerftFixture, Position_Three)
 {
@@ -338,6 +371,21 @@ TEST_F(PerftFixture, Position_Four_Depth3)
 	EXPECT_EQ(168, count.Promotions);
 	EXPECT_EQ(48, count.Checks);
 	EXPECT_EQ(22, count.Checkmates);
+}
+
+TEST_F(PerftFixture, Catching_IllegalEnPassant)
+{    
+	Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
+}
+
+TEST_F(PerftFixture, Catching_IllegalEnPassantTwo)
+{
+	Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
+}
+
+TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
+{
+    Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
 }
 
 ////////////////////////////////////////////////////////////////

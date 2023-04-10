@@ -68,6 +68,8 @@ public:
 	void setWhiteQueenSide() { m_innerState |= WHITE_QUEENSIDE; }
 	void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
 	void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
+
+	std::string toString() const;
 		
 private:
 	union {
@@ -133,7 +135,7 @@ public:
 	Move PlayMove(const Move& move);
 	bool UnmakeMove(const Move& move);
 	
-	std::tuple<bool, int> IsInCheckCount(Set set) const;
+	std::tuple<bool, int, u64> calcualteCheckedCount(Set set) const;
 	bool isChecked(Set set) const;
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
@@ -153,7 +155,8 @@ public:
 	 * @return A pair of bitboards representing the squares that are threatened by sliding pieces moving orthogonally and
 	 *         diagonally, respectively.
 	 */
-	std::pair<u64,u64> GetSlidingMaskWithMaterial(Set set) const;
+	MaterialMask GetSlidingMaskWithMaterial(Set set) const;
+	MaterialMask GetMaterialMask(Set set) const;
 
 	Notation readKingPosition(Set set) const;
 
@@ -291,7 +294,9 @@ private:
 		CastlingStateInfo m_castlingInfo;
 	};
 	
+	// when a pawn moves 2 squares, this is the square it can be captured on
 	Notation m_enPassant;
+	// the square the pawn moved to when it moved 2 squares
 	Notation m_enPassantTarget;
 
 	Material m_material[(size_t)Set::NR_OF_SETS];

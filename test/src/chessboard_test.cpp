@@ -417,7 +417,7 @@ TEST_F(ChessboardFixture, KingCheckedByOpRook)
     b.PlacePiece(WHITEKING, e1);
     b.PlacePiece(BLACKROOK, e8);
 
-    auto [checked, count] = b.IsInCheckCount(Set::WHITE);
+    auto [checked, count, mask] = b.calcualteCheckedCount(Set::WHITE);
     EXPECT_TRUE(checked);
     EXPECT_EQ(1, count);
 }
@@ -428,7 +428,7 @@ TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEROOK, f1);
 
-    auto [checked, count] = b.IsInCheckCount(Set::WHITE);
+    auto [checked, count, mask] = b.calcualteCheckedCount(Set::WHITE);
     EXPECT_FALSE(checked);
     EXPECT_EQ(0, count);
 }
@@ -439,11 +439,11 @@ TEST_F(ChessboardFixture, KingsNotChecked)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEKING, e1);
 
-    auto result = b.IsInCheckCount(Set::WHITE);
+    auto result = b.calcualteCheckedCount(Set::WHITE);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 
-    result = b.IsInCheckCount(Set::WHITE);
+    result = b.calcualteCheckedCount(Set::WHITE);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 }
@@ -470,11 +470,11 @@ TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
     board.PlacePiece(k, e8);
     board.PlacePiece(K, g1);
 
-    auto result = board.IsInCheckCount(Set::WHITE);
+    auto result = board.calcualteCheckedCount(Set::WHITE);
     EXPECT_TRUE(std::get<0>(result));
     EXPECT_EQ(2, std::get<1>(result));
 
-    result = board.IsInCheckCount(Set::BLACK);
+    result = board.calcualteCheckedCount(Set::BLACK);
     EXPECT_FALSE(std::get<0>(result));
     EXPECT_EQ(0, std::get<1>(result));
 
@@ -714,16 +714,16 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     
     auto orgSlidingMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::BLACK);
     auto cpySlidingMask = scndCopy.GetSlidingMaskWithMaterial(Set::BLACK);
-	orgMask = orgSlidingMask.first | orgSlidingMask.second;
-	cpyMask = cpySlidingMask.first | cpySlidingMask.second;
+	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
+	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);
 
     orgSlidingMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::WHITE);
     cpySlidingMask = scndCopy.GetSlidingMaskWithMaterial(Set::WHITE);
-    orgMask = orgSlidingMask.first | orgSlidingMask.second;
-    cpyMask = cpySlidingMask.first | cpySlidingMask.second;
+	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
+	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     EXPECT_EQ(orgMask, cpyMask);
 
     orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::BLACK);
