@@ -979,6 +979,10 @@ bool Chessboard::setEnPassant(Notation notation)
 
 	newHash = ZorbistHash::Instance().HashEnPassant(newHash, notation);
 	m_enPassant = Notation(notation);
+	// calculate enPassantTarget
+	byte targetRank = m_enPassant.rank == 2 ? 3 : 4;
+	m_enPassantTarget = Notation(m_enPassant.file, targetRank);
+	
 	m_hash = newHash;
 	return true;
 }

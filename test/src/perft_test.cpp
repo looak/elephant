@@ -388,6 +388,61 @@ TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
     Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
 }
 
+TEST_F(PerftFixture, Catching_ShortCastlingCheck)
+{
+    Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6);
+}
+
+TEST_F(PerftFixture, Catching_LongCastlingGivesCheck)
+{
+    Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6);
+}
+
+TEST_F(PerftFixture, Catching_CastlingRights)
+{
+    Catching_TestFunction("r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4);
+}
+
+TEST_F(PerftFixture, Catching_CastlingPrevented)
+{
+    Catching_TestFunction("r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4);
+}
+
+TEST_F(PerftFixture, Catching_PromoteOutOfCheck)
+{
+    Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6);
+}
+
+TEST_F(PerftFixture, Catching_DiscoveredCheck)
+{
+    Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5);
+}
+
+TEST_F(PerftFixture, Catching_PromoteToGiveCheck)
+{
+    Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6);
+}
+
+TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck)
+{
+    Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6);
+}
+
+TEST_F(PerftFixture, Catching_SelfStalemate)
+{
+    Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6);
+}
+
+TEST_F(PerftFixture, Catching_StalemateAndCheckmate)
+{
+    Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7);
+}
+
+TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
+{
+    Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
+}
+
 ////////////////////////////////////////////////////////////////
 
 

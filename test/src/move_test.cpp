@@ -956,4 +956,35 @@ Pawn is pinned by white rook in this scenario*/
 //     EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
 // }
 
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][ p ][ P ][   ][   ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][ K ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H 
+* fen: 8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1
+*/
+TEST_F(MoveFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
+{
+    m_chessboard.PlacePiece(BLACKKING, b6);
+    m_chessboard.PlacePiece(BLACKPAWN, c4);
+    m_chessboard.PlacePiece(BLACKBISHOP, c5);
+
+    m_chessboard.PlacePiece(WHITEKING, f2);
+    m_chessboard.PlacePiece(WHITEPAWN, d4);
+
+    m_chessboard.setEnPassant(d3);
+
+    EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
+    EXPECT_FALSE(m_chessboard.isChecked(Set::BLACK));
+
+    auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+
+    EXPECT_EQ(15, moves.size());
+}
+
 } // namespace ElephantTests
