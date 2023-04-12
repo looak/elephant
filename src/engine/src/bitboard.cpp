@@ -47,8 +47,7 @@ void Bitboard::Clear()
 bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
-    u8 pieceIndx = piece.type() - 1;
-	m_material[piece.set()][pieceIndx] ^= mask;
+	m_material[piece.set()][piece.index()] ^= mask;
 	
 	return true;
 }
@@ -56,8 +55,7 @@ bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
-    u8 pieceIndx = piece.type() - 1;
-	m_material[piece.set()][pieceIndx] |= mask;
+	m_material[piece.set()][piece.index()] |= mask;
 	
 	return true;
 }
@@ -404,7 +402,7 @@ u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece
 
 u64 Bitboard::GetMaterial(ChessPiece piece) const
 {
-    return m_material[piece.set()][piece.type()];
+    return m_material[piece.set()][piece.index()];
 }
 
 u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing) const

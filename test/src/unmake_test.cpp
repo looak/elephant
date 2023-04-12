@@ -239,7 +239,6 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
     m_chessboard.PlacePiece(P, f2);
 	m_chessboard.PlacePiece(p, d4);    
 	m_chessboard.PlacePiece(p, g4);
-    
 
     const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).getPlacementsOfPiece(WHITEPAWN);
     const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).getPlacementsOfPiece(BLACKPAWN);
@@ -266,8 +265,8 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
 	EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), c2));
 	EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), f2));
 	EXPECT_EQ(2, blackPawns.size());
-	EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), d4));	
-	EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), g4));    
+    EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), d4));
+	EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), g4));
 }
 
 // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
@@ -291,7 +290,9 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
     Move move(e7, e8); // promote
     move.PromoteToPiece = WHITEQUEEN;
     u64 hash = m_chessboard.readHash();
-
+    
+    const auto& bitboard = m_chessboard.readBitboard();
+        
     // do
     bool result = m_chessboard.MakeMove(move);
 
@@ -300,10 +301,13 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
     EXPECT_EQ(P, move.Piece);
     EXPECT_EQ(MoveFlag::Promotion, move.Flags);
     EXPECT_NE(hash, m_chessboard.readHash());
+    u64 pawnMask = bitboard.GetMaterial(WHITEPAWN);
+    EXPECT_EQ(0, pawnMask);
 
     auto Q = WHITEQUEEN;
     EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
-     
+    EXPECT_NE(0, bitboard.GetMaterial(WHITEQUEEN));
+
     // undo
     result = m_chessboard.UnmakeMove(move);
 
@@ -313,6 +317,9 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
     EXPECT_EQ(ChessPiece::None(), m_chessboard.readTile(e8).readPiece());
     EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
     EXPECT_EQ(hash, m_chessboard.readHash());
+    
+    EXPECT_EQ(0, bitboard.GetMaterial(WHITEQUEEN));
+	EXPECT_NE(0, bitboard.GetMaterial(WHITEPAWN));
 
     // setup
     auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);    

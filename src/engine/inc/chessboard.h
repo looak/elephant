@@ -176,6 +176,7 @@ public:
 	u64 readHash() const { return m_hash; }
 
 	const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
+	const Bitboard& readBitboard() const { return m_bitboard; }
 
 	template<typename T, bool isConst = false>
 	class ChessboardIterator

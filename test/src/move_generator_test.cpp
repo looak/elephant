@@ -1246,4 +1246,32 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvaila
     EXPECT_EQ(7, moves.size());
 }
 
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ P ][   ][   ][   ][   ]
+* 3 [   ][   ][ p ][   ][   ][ K ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H 
+* fen: 8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2*/
+TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
+{
+    // setup
+    std::string fen("8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2");
+	FENParser::deserialize(fen.c_str(), testContext);
+    
+	// do
+	auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    auto pawnMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == c2; });
+    ASSERT_NE(moves.end(), pawnMv);
+    EXPECT_EQ(BLACKPAWN, pawnMv->Piece);
+    EXPECT_EQ(c3, pawnMv->SourceSquare);
+}
+
+
+
 } // namespace ElephantTest

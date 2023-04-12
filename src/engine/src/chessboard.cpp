@@ -249,6 +249,8 @@ Chessboard::InternalHandlePawnMove(Move& move)
 
 		m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
 		m_material[move.Piece.set()].PromotePiece(move.PromoteToPiece, move.SourceSquare);
+		m_bitboard.ClearPiece(move.Piece, move.SourceSquare);
+		m_bitboard.PlacePiece(move.PromoteToPiece, move.SourceSquare);
 		move.Flags |= MoveFlag::Promotion;
 	}
 
@@ -591,7 +593,7 @@ Chessboard::MakeMove(Move& move)
 		m_enPassant = Notation();
 		m_enPassantTarget = Notation();
 	}
-
+	// handle capture
 	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
 	{
 		move.Flags |= MoveFlag::Capture;
