@@ -3,7 +3,8 @@
 #include <sstream>
 #include <utility>
 
-int MoveGenerator::Perft(GameContext& context, int depth)
+int 
+MoveGenerator::Perft(GameContext& context, int depth)
 {
     if (depth == 0)
     {
@@ -20,38 +21,38 @@ int MoveGenerator::Perft(GameContext& context, int depth)
         for (auto mv : moves)
         {
             FATAL_ASSERT(context.MakeMove(mv));
-			count += Perft(context, depth - 1);
+            count += Perft(context, depth - 1);
             context.UnmakeMove(mv);
         }
     }
 
-    return count; 
+    return count;
 }
 
-MoveCount 
+MoveCount
 MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
 {
     MoveCount result;
 
-    for(auto&& mv : moves)
+    for (auto&& mv : moves)
     {
         if (!predicate(mv))
             continue;
 
         if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
-			result.Captures++;				
-		if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
-			result.Promotions++;
-		if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
-			result.EnPassants++;
-		if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
-			result.Castles++;
-		if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
-			result.Checks++;
-		if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)
+            result.Captures++;
+        if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
+            result.Promotions++;
+        if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
+            result.EnPassants++;
+        if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
+            result.Castles++;
+        if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
+            result.Checks++;
+        if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate)
         {
             result.Checks++;
-			result.Checkmates++;
+            result.Checkmates++;
         }
 
         result.Moves++;
@@ -60,7 +61,7 @@ MoveGenerator::CountMoves(const std::vector<Move>& moves, MoveCount::Predicate p
     return result;
 }
 
-std::map<PieceKey, std::vector<Move>> 
+std::map<PieceKey, std::vector<Move>>
 MoveGenerator::OrganizeMoves(const std::vector<Move>& moves) const
 {
     std::map<PieceKey, std::vector<Move>> ret;
@@ -70,14 +71,14 @@ MoveGenerator::OrganizeMoves(const std::vector<Move>& moves) const
         PieceKey key = { mv.Piece, Notation(mv.SourceSquare) };
         if (!ret.contains(key))
             ret.insert(std::make_pair(key, std::vector<Move>()));
-        
+
         ret.at(key).push_back(mv);
     }
 
     return ret;
 }
 
-std::vector<std::string> 
+std::vector<std::string>
 MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
 {
     std::vector<std::string> ret;
@@ -90,7 +91,7 @@ MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predic
     return ret;
 }
 
-std::vector<Move> 
+std::vector<Move>
 MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 {
     std::vector<Move> retMoves;

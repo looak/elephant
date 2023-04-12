@@ -64,64 +64,64 @@ bool PrintBoard(const GameContext& context, const Move& move)
 
 void GameContext::Reset()
 {
-	m_board.Clear();
-	m_moveCount = 0;
-	m_plyCount = 0;
+    m_board.Clear();
+    m_moveCount = 0;
+    m_plyCount = 0;
     m_fiftyMoveRule = 0;
 }
 
 bool GameContext::MakeMove(Move& move)
-{	
-	auto actualMove = m_board.PlayMove(move);
-    
-    if (actualMove.Piece.getSet() == Set::BLACK)
-	    m_moveCount++;
-    
-	if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
-		m_fiftyMoveRule = 0;
-	else
-		m_fiftyMoveRule++;
-    
-	m_plyCount++;
+{
+    auto actualMove = m_board.PlayMove(move);
 
-	m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-    
+    if (actualMove.Piece.getSet() == Set::BLACK)
+        m_moveCount++;
+
+    if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
+        m_fiftyMoveRule = 0;
+    else
+        m_fiftyMoveRule++;
+
+    m_plyCount++;
+
+    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+
     FATAL_ASSERT(actualMove.Piece.isValid());
     move = actualMove;
     FATAL_ASSERT(move.Piece.isValid());
 
-	return true;
+    return true;
 }
 
 bool GameContext::UnmakeMove(const Move& move)
 {
-	if (m_board.UnmakeMove(move))
-	{
-		if (move.Piece.getSet() == Set::BLACK)
-			m_moveCount--;
+    if (m_board.UnmakeMove(move))
+    {
+        if (move.Piece.getSet() == Set::BLACK)
+            m_moveCount--;
 
-		if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-			m_fiftyMoveRule = 0;
-		else
-			m_fiftyMoveRule--;
+        if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
+            m_fiftyMoveRule = 0;
+        else
+            m_fiftyMoveRule--;
 
-		m_plyCount--;
+        m_plyCount--;
 
-		m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+        m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
 
-		return true;
-	}
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 void GameContext::PlayMoves(const Move& move, bool print)
 {
-	const Move* mv = &move;
-	while (mv != nullptr)
-	{
-		Move madeMove = m_board.PlayMove(*mv);
-		if (print)
+    const Move* mv = &move;
+    while (mv != nullptr)
+    {
+        Move madeMove = m_board.PlayMove(*mv);
+        if (print)
             PrintBoard(*this, madeMove);
 
         m_plyCount++;
@@ -131,7 +131,7 @@ void GameContext::PlayMoves(const Move& move, bool print)
             m_moveCount++;
 
         mv = mv->NextMove;
-	}
+    }
 }
 
 bool GameContext::endOfGame() const

@@ -57,7 +57,7 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
     auto& board = outputContext.editChessboard();
     auto boardItr = board.begin();
     while (!ranks.empty())
-    {        
+    {
         const char* rdr = ranks.back().c_str();
         while (*rdr != '\0')
         {
@@ -134,7 +134,7 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
 
     if (tokens.size() != 6)
         return false;
-    
+
     if (!deserializeBoard(tokens.front(), outputContext))
         return false;
 
@@ -144,7 +144,7 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
         return false;
 
     tokens.pop_front();
-    
+
     if (!deserializeCastling(tokens.front(), outputContext))
         return false;
 
@@ -157,7 +157,7 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
 
     byte plyCount = std::atoi(&tokens.front()[0]);
     tokens.pop_front();
-    
+
     byte moveCount = std::atoi(&tokens.front()[0]);
     tokens.pop_front();
 
