@@ -64,10 +64,6 @@ u64 Bitboard::InternalGenerateMask(byte curSqr, signed short dir, bool& sliding,
 {
     u64 ret = ~universe;
 
-    bool dirCheck = dir < INT8_MAX || dir > INT8_MIN;
-    if (!dirCheck)
-        LOG_ERROR() << "dir is out of bounds\n";
-
     do
     {
         // build a 0x88 square out of current square.
@@ -127,7 +123,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
     startRow = (sq0x88 >> 4) == row ? 0 : -1;
 
     // remove one move count if piece is a pawn and we are not on start row.
-    byte moveCount = ChessPieceDef::MoveCount(piece.type()) + startRow;
+    byte moveCount = ChessPieceDef::MoveCount(piece.index()) + startRow;
 
     auto resolve = [&](u64 sqrMask)
     {
@@ -140,7 +136,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {        
         byte curSqr = source.index();
-		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
+		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
         dir *= moveMod;
 
         bool sliding = false;
@@ -177,7 +173,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
 /// <returns></returns>
 u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& opponentSlidingMask) const
 {
-    byte moveCount = ChessPieceDef::MoveCount(king.type());
+    byte moveCount = ChessPieceDef::MoveCount(king.index());
 
     u8 bishop = 2;
     u8 rook = 3;
@@ -216,7 +212,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
             matCount = 0;
             sliding = true;
             byte curSqr = target.index();
-            signed short dir = ChessPieceDef::Moves0x88(king.type(), moveIndx);
+            signed short dir = ChessPieceDef::Moves0x88(king.index(), moveIndx);
             bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
 			
             if (diagonal)
@@ -245,7 +241,8 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
     {
         // figure out if we're checked by a knight
         bool sliding = false;
-        moveCount = ChessPieceDef::MoveCount((byte)PieceType::KNIGHT);
+        static const ChessPiece knight(Set::WHITE, PieceType::KNIGHT);
+        moveCount = ChessPieceDef::MoveCount(knight.index());
         
         auto nResolve = [&](u64 sqrMask)
         {
@@ -256,7 +253,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
         {
             
             byte curSqr = target.index();
-            signed short dir = ChessPieceDef::Moves0x88((byte)PieceType::KNIGHT, moveIndx);
+            signed short dir = ChessPieceDef::Moves0x88(knight.index(), moveIndx);
 
             u64 mvMask = InternalGenerateMask(curSqr, dir, sliding, nResolve);
             if (mvMask & knightMat)
@@ -305,7 +302,7 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation sou
 {
     u64 ret = ~universe;
 
-    byte moveCount = ChessPieceDef::MoveCount(piece.type());
+    byte moveCount = ChessPieceDef::MoveCount(piece.index());
 
     auto resolve = [&](u64 sqrMask) {
         // check if we are blocked by a friendly piece or a oponent piece.
@@ -321,7 +318,7 @@ u64 Bitboard::GetAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation sou
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
         byte curSqr = source.index();
-		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
+		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
 
         bool sliding = false;
         ret |= InternalGenerateMask(curSqr, dir, sliding, resolve);
@@ -372,12 +369,12 @@ u64 Bitboard::GetAvailableMoves(Notation source, ChessPiece piece, byte castling
         return sqrMask;            
     };
 
-    byte moveCount = ChessPieceDef::MoveCount(piece.type());
+    byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
-        sliding = ChessPieceDef::Slides(piece.type());
+        sliding = ChessPieceDef::Slides(piece.index());
         byte curSqr = source.index();
-		signed short dir = ChessPieceDef::Moves0x88(piece.type(), moveIndx);
+		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
 
         u64 mvMask = 0;
         if (checked || pinned)
@@ -437,12 +434,12 @@ u64 Bitboard::GetThreatenedSquares(Notation source, ChessPiece piece, bool pierc
         return true;
     };
 
-    byte moveCount = ChessPieceDef::MoveCount(piece.type());
+    byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
-        sliding = ChessPieceDef::Slides(piece.type());
+        sliding = ChessPieceDef::Slides(piece.index());
         byte curSqr = source.index();
-		signed short dir = ChessPieceDef::Attacks0x88(piece.type(), moveIndx);
+		signed short dir = ChessPieceDef::Attacks0x88(piece.index(), moveIndx);
         dir *= moveMod;
         ret |= InternalGenerateMask(curSqr, dir, sliding, resolve);
     }

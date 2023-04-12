@@ -2,15 +2,15 @@
 #include "log.h"
 #include <iostream>
 
-byte ChessPieceDef::m_moveCount[6] = {
+const byte ChessPieceDef::m_moveCount[6] = {
 	2, 8, 4, 4, 8, 8
 };
 
-bool ChessPieceDef::m_slides[6] = {
+const bool ChessPieceDef::m_slides[6] = {
 	false, false, true, true, true, false,
 };
 
-signed short ChessPieceDef::m_moves0x88[6][8] = {
+const signed short ChessPieceDef::m_moves0x88[6][8] = {
 	{ -16, -32, 0, 0, 0, 0, 0, 0 },
 	{ -33, -31, -18, -14, 14, 18, 31, 33 },
 	{ -17, -15, 15, 17, 0, 0, 0, 0 },
@@ -19,7 +19,7 @@ signed short ChessPieceDef::m_moves0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-signed short ChessPieceDef::m_attacks0x88[6][8] = {
+const signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -15, -17, 0, 0, 0, 0, 0, 0 },
 	{ -33, -31, -18, -14, 14, 18, 31, 33 },
 	{ -17, -15, 15, 17, 0, 0, 0, 0 },
@@ -28,48 +28,13 @@ signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-signed short ChessPieceDef::m_value[6] = {
+const signed short ChessPieceDef::m_value[6] = {
 	100, 300, 300, 500, 900, 10000
 };
 
-PieceType ChessPieceDef::m_slidingPieceTypes[3] = {
+const PieceType ChessPieceDef::m_slidingPieceTypes[3] = {
 	PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN
 };
-
-byte ChessPieceDef::MoveCount(byte pIndex)
-{
-	pIndex -= 1;
-	return m_moveCount[pIndex];
-}
-
-bool ChessPieceDef::Slides(byte pIndex)
-{
-	pIndex -= 1;
-	return m_slides[pIndex];
-}
-
-signed short ChessPieceDef::Moves0x88(byte pIndex, byte mIndex)
-{
-	pIndex -= 1;
-	return m_moves0x88[pIndex][mIndex];
-}
-
-signed short ChessPieceDef::Attacks0x88(byte pIndex, byte mIndex)
-{
-	pIndex -= 1;
-	return m_attacks0x88[pIndex][mIndex];
-}
-
-signed short ChessPieceDef::Value(byte pIndex)
-{
-	pIndex -= 1;
-	return m_value[pIndex];
-}
-
-bool ChessPieceDef::IsDiagonalMove(signed short mvValue)
-{
-	return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17);
-}
 
 Set ChessPiece::FlipSet(Set source)
 {

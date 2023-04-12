@@ -38,21 +38,21 @@ enum class Set : byte
 class ChessPieceDef
 {
 public:
-	static byte			 	MoveCount(byte pIndex);
-	static bool 			Slides(byte pIndex);
-	static signed short 	Moves0x88(byte pIndex, byte mIndex);
-	static signed short 	Attacks0x88(byte pIndex, byte mIndex);
-	static signed short		Value(byte pIndex);
-	static const PieceType* SlidingTypes() { return &m_slidingPieceTypes[0]; }
-	static bool 			IsDiagonalMove(signed short mvValue);
+	static inline byte	 			MoveCount(byte pIndex) { return m_moveCount[pIndex]; };
+	static inline bool 				Slides(byte pIndex) { return m_slides[pIndex]; }
+	static inline signed short 		Moves0x88(byte pIndex, byte mIndex) { return m_moves0x88[pIndex][mIndex]; }
+	static inline signed short 		Attacks0x88(byte pIndex, byte mIndex) { return m_attacks0x88[pIndex][mIndex]; }
+	static inline signed short		Value(byte pIndex) { return m_value[pIndex]; }
+	static inline const PieceType* 	SlidingTypes() { return &m_slidingPieceTypes[0]; }
+	static inline bool				IsDiagonalMove(signed short mvValue) { return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17); }
 
 private:
-	static byte m_moveCount[6];
-	static bool m_slides[6];
-	static signed short m_moves0x88[6][8];
-	static signed short m_attacks0x88[6][8];
-	static signed short m_value[6];
-	static PieceType m_slidingPieceTypes[3];
+	static const byte m_moveCount[6];
+	static const bool m_slides[6];
+	static const signed short m_moves0x88[6][8];
+	static const signed short m_attacks0x88[6][8];
+	static const signed short m_value[6];
+	static const PieceType m_slidingPieceTypes[3];
 };
 
 
@@ -83,7 +83,7 @@ public:
 	byte raw() const		{ return m_internalState; }
 
 	bool isValid() const { return type() != 0; }
-	bool isSliding() const { return ChessPieceDef::Slides(type()); }
+	bool isSliding() const { return ChessPieceDef::Slides(index()); }
 
 private:	
 	// [set][not used][not used][not used][not used][piece t][piece t][piece t]
