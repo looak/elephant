@@ -116,7 +116,7 @@ TEST_F(PerftFixture, Position_Start)
         CountMoves(m_context, 3, count);
         EXPECT_EQ(9322, count.Moves);
     }
- /*   breaking
+
     {
         MoveCount count;
         CountMoves(m_context, 4, count);
@@ -127,7 +127,7 @@ TEST_F(PerftFixture, Position_Start)
         MoveCount count;
         CountMoves(m_context, 5, count);
         EXPECT_EQ(5072212, count.Moves);
-    }*/
+    }
 }
 ////////////////////////////////////////////////////////////////
 
@@ -251,26 +251,26 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions		Checks		Checkmates
 5		674624		52051		1165	0			0				52950		0
 6		11030083	940350		33325	0			7552			452473		2733
 7		178633661	14519036	294874	0			140024			12797406	87
-//*/
-//TEST_F(PerftFixture, Position_Three_Depth5)
-//{
-//    // setup
-//    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-//    FENParser::deserialize(inputFen.c_str(), m_context);
-//
-//    // do & verify
-//    MoveCount count;
-//    CountMoves(m_context, 5, count);
-//
-//    // verify
-//    EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
-//    EXPECT_EQ(14 + 1 + 209 + 3348 + 52051, count.Captures);
-//    EXPECT_EQ(0, count.Castles);
-//    EXPECT_EQ(2 + 123 + 1165, count.EnPassants);
-//    EXPECT_EQ(0, count.Promotions);
-//    EXPECT_EQ(10 + 2 + 267 + 1680 + 52950, count.Checks);
-//    EXPECT_EQ(0 + 17 + 0, count.Checkmates);
-//}
+*/
+TEST_F(PerftFixture, Position_Three_Depth5)
+{
+   // setup
+   std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+   FENParser::deserialize(inputFen.c_str(), m_context);
+
+   // do & verify
+   MoveCount count;
+   CountMoves(m_context, 5, count);
+
+   // verify
+   EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
+   EXPECT_EQ(14 + 1 + 209 + 3348 + 52051, count.Captures);
+   EXPECT_EQ(0, count.Castles);
+   EXPECT_EQ(2 + 123 + 1165, count.EnPassants);
+   EXPECT_EQ(0, count.Promotions);
+   EXPECT_EQ(10 + 2 + 267 + 1680 + 52950, count.Checks);
+   EXPECT_EQ(0 + 17 + 0, count.Checkmates);
+}
 
 TEST_F(PerftFixture, Position_Three)
 {
@@ -441,6 +441,14 @@ TEST_F(PerftFixture, Catching_StalemateAndCheckmate)
 TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
 {
     Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
+}
+
+/* This test takes a long time to run, so it is disabled by default    
+https://www.chessprogramming.net/perfect-perft/
+*/
+TEST_F(PerftFixture, DISABLED_Catching_TwoHundrarMillionNodes)
+{
+     Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 193690690, 5);
 }
 
 ////////////////////////////////////////////////////////////////
