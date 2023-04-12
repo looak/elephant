@@ -183,9 +183,15 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
 {
     byte moveCount = ChessPieceDef::MoveCount(king.type());
 
+    u8 bishop = 2;
+    u8 rook = 3;
+    u8 queen = 4;
+    //m_material[set][bishop] | m_material[set][rook] | m_material[set][queen];
+
     u8 opSet = ChessPiece::FlipSet(king.set());
     u64 slideMat = SlidingMaterialCombined(opSet);
-    const u64 c_slideMat = slideMat;
+    const u64 c_diagnoalMat = m_material[opSet][bishop] | m_material[opSet][queen];
+    const u64 c_orthogonalMat = m_material[opSet][rook] | m_material[opSet][queen];
     u64 diagnoalMat = opponentSlidingMask.diagonal;
 	u64 orthogonalMat = opponentSlidingMask.orthogonal;
     u64 allMat = MaterialCombined();
@@ -193,7 +199,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
     u64 ret = ~universe;
     u8 checks = 0;
     
-    if (c_slideMat > 0)
+    if (c_diagnoalMat > 0 || c_orthogonalMat > 0)
     {
         u8 matCount = 0;
         bool sliding = true;
@@ -218,9 +224,9 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
             bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
 			
             if (diagonal)
-				slideMat = diagnoalMat & c_slideMat;
+				slideMat = diagnoalMat & c_diagnoalMat;
             else
-				slideMat = orthogonalMat & c_slideMat;
+				slideMat = orthogonalMat & c_orthogonalMat;
 
 			if (slideMat == 0)
 				continue;			

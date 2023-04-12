@@ -39,6 +39,9 @@ void Application::Run()
 		std::list<std::string> tokens;
 		extractArgsFromCommand(buffer, tokens);
 
+		if (tokens.size() == 0)
+			continue;
+
 		auto&& command = CliCommands::options.find(tokens.front());
 		if(tokens.size() > 0 && command != CliCommands::options.end())
 		{
