@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2021  Alexander Loodin Ek
+// Copyright(C) 2021-2023  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,6 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
+
+/**
+ * @file bitboard.h
+ * @brief Backend of this chess engine. Represents the chessboard as a 64bit 
+ * integer where each bit represents a square on the board. By using this 
+ * representation we can optimize the move generation and evaluation of the
+ * board. The board is built up by 12 bitboards, one for each piece type.
+ * 
+ * @author Alexander Loodin Ek 
+ */
 #pragma once
 #include <functional>
 #include "defines.h"
@@ -44,7 +54,6 @@ public:
 
 	u64 GetAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
 	u64 GetAttackedSquares(Notation source, ChessPiece piece) const;
-	u64 GetAttackedSquares(Set set);
 
 	u64 GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
 	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;

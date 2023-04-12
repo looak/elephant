@@ -105,11 +105,7 @@ u64 Bitboard::GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Ches
     u64 sqrMask = UINT64_C(1) << source.index();    
     bool pinned = (sqrMask & kingMask);
     if (checked || pinned)
-    {
         threatenedMask = kingMask;
-        //threatenedMask &= kingMask;
-        //threatenedMask |= (opMatComb & kingMask);
-    }
 
     // Figure out if we're moving a pawn out of it's starting position.
     // Pawn specific modifires and values, starting row to figure out if we can do a double step
@@ -351,11 +347,7 @@ u64 Bitboard::GetAvailableMoves(Notation source, ChessPiece piece, byte castling
     u64 sqrMask = UINT64_C(1) << source.index();    
     bool pinned = (sqrMask & kingMask);
     if (checked || pinned)
-    {
         threatened = kingMask;
-        //threatened &= kingMask;
-        //threatened |= (opMatComb & kingMask);
-    }
 
     bool sliding = false;
     auto resolve = [&](u64 sqrMask)
@@ -491,7 +483,7 @@ u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
     if (castling == 0) 
         return retVal;
     
-    u64 attacked = threatenedMask; //GetAttackedSquares(ChessPiece::FlipSet((PieceSet)set));
+    u64 attacked = threatenedMask; 
 	u64 combMat = MaterialCombined();
 
     // check king side
