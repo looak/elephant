@@ -82,7 +82,7 @@ public:
 	byte index() const		{ return type() - 1; }
 	byte raw() const		{ return m_internalState; }
 
-	bool isValid() const { return type() != 0; }
+	bool isValid() const { return type() > 0; }
 	bool isSliding() const { return ChessPieceDef::Slides(index()); }
 
 private:	

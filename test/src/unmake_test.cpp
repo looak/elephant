@@ -249,7 +249,7 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
     for (auto wmv : whiteMoves)
     {
         m_chessboard.MakeMove(wmv);
-        auto blackMoves = m_chessboard.GetAvailableMoves(Set::WHITE);
+        auto blackMoves = m_chessboard.GetAvailableMoves(Set::BLACK);
 
         for (auto bmv : blackMoves)
         {
