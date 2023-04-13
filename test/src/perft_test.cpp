@@ -23,7 +23,7 @@ public:
 			return MoveCount();
 		}
         
-		auto moves = m_moveGenerator.GeneratePossibleMoves(context);        
+		auto moves = m_moveGenerator.GeneratePossibleMoves(context, true);        
 		count += m_moveGenerator.CountMoves(moves, predicate);
              
         if (depth > 1)
@@ -280,7 +280,7 @@ TEST_F(PerftFixture, Position_Three)
     PrintBoard(m_context.readChessboard());
 
     // do
-    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context, true);
 
     // verify
     auto count = m_moveGenerator.CountMoves(moves);

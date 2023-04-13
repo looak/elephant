@@ -558,6 +558,46 @@ Chessboard::PlayMove(const Move& move)
 }
 
 bool
+Chessboard::MakeMoveUnchecked(Move& move)
+{
+	const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
+	move.Flags = MoveFlag::Zero;
+	move.Piece = piece;
+
+	auto pieceTarget = Notation(move.TargetSquare);
+
+	// storing enpassant target square so we can unmake this.
+	move.EnPassantTargetSquare = m_enPassantTarget;
+
+	switch (piece.getType())
+	{
+	case PieceType::PAWN:
+		// updating pieceTarget since if we're capturing enpassant the target will be on a different square.
+		pieceTarget = InternalHandlePawnMove(move);
+		break;
+
+	case PieceType::KING:
+	case PieceType::ROOK:
+		InternalHandleKingRookMove(move);
+
+	default:
+		// reset enpassant cached values
+		if (Notation::Validate(m_enPassant))
+			m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
+
+		m_enPassant = Notation();
+		m_enPassantTarget = Notation();
+	}
+
+	InternalHandleCapture(move, pieceTarget);
+
+	// do move
+	InternalMakeMove(move.SourceSquare, move.TargetSquare);
+
+	return true;
+}
+
+bool
 Chessboard::MakeMove(Move& move)
 {
 	move.Flags = MoveFlag::Invalid;
@@ -593,23 +633,8 @@ Chessboard::MakeMove(Move& move)
 		m_enPassant = Notation();
 		m_enPassantTarget = Notation();
 	}
-	// handle capture
-	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
-	{
-		move.Flags |= MoveFlag::Capture;
-		move.CapturedPiece = m_tiles[pieceTarget.index()].readPiece();
-		// remove captured piece from board.
-		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
-
-		if (move.CapturedPiece.getType() == PieceType::ROOK)
-			InternalHandleRookMovedOrCaptured(move, move.TargetSquare);
-
-		m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
-		m_bitboard.ClearPiece(move.CapturedPiece, pieceTarget);
-
-		// remove piece from hash
-		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);
-	}
+	
+	InternalHandleCapture(move, pieceTarget);
 
 	// do move
 	InternalMakeMove(move.SourceSquare, move.TargetSquare);
@@ -629,6 +654,28 @@ Chessboard::MakeMove(Move& move)
 	FATAL_ASSERT(move.Piece.isValid());
 
 	return true;
+}
+
+void 
+Chessboard::InternalHandleCapture(Move& move, Notation pieceTarget)
+{
+	// handle capture
+	if (m_tiles[pieceTarget.index()].readPiece() != ChessPiece())
+	{
+		move.Flags |= MoveFlag::Capture;
+		move.CapturedPiece = m_tiles[pieceTarget.index()].readPiece();
+		// remove captured piece from board.
+		m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
+
+		if (move.CapturedPiece.getType() == PieceType::ROOK)
+			InternalHandleRookMovedOrCaptured(move, move.TargetSquare);
+
+		m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
+		m_bitboard.ClearPiece(move.CapturedPiece, pieceTarget);
+
+		// remove piece from hash
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, pieceTarget);
+	}
 }
 
 bool
@@ -721,29 +768,6 @@ Chessboard::isStalemated(Set set) const
 		if (moves.size() == 0)
 			return true;
 	}
-	return false;
-}
-
-bool
-Chessboard::IsCheck(const Move& move) const
-{
-	u64 threatened = ~universe;
-	// get threatened squares from new location	
-	if (move.isPromotion())
-		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.PromoteToPiece);
-	else
-		threatened = m_bitboard.GetThreatenedSquares(move.TargetSquare, move.Piece);
-
-	auto opSet = ChessPiece::FlipSet(move.Piece.set());
-
-	if (!m_bitboard.IsValidSquare(m_kings[opSet].second))
-		return false;
-
-	u64 kingMask = UINT64_C(1) << m_kings[opSet].second.index();
-
-	if (threatened & kingMask)
-		return true;
-
 	return false;
 }
 
@@ -865,11 +889,6 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 
 			if (kingRankCheck) // can't be checked by double move unless king is on this rank
 			{
-				//auto opPawns = m_material[(size_t)opSet].getPlacementsOfPiece(ChessPiece(opSet, PieceType::PAWN));
-				// auto it = std::find_if(opPawns.begin(), opPawns.end(), [&](const Notation& pos) {
-				// 	return pos.file == m_enPassant.file;
-				// });
-
 				int fileDiff = m_kings[currentPiece.set()].second.file - m_enPassant.file;
 				bool doubleMovedPawnCheck = std::abs(fileDiff) == 1;
 

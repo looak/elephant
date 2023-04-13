@@ -61,7 +61,7 @@ struct PieceKey
 class MoveGenerator
 {
 public:
-    std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
+    std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool countingMoves = false) const;
 
 	int Perft(GameContext& context, int depth);
 

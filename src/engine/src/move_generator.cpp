@@ -92,29 +92,41 @@ MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predic
 }
 
 std::vector<Move>
-MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
+MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMoves) const
 {
     std::vector<Move> retMoves;
     auto currentSet = context.readToPlay();
     const auto& board = context.readChessboard();
 
     auto moves = board.GetAvailableMoves(currentSet);
+    //return moves;
     auto boardCopy = context.copyChessboard();
 
-    for (auto&& mv : moves)
+ 
+    if (countingMoves)
     {
-        if (boardCopy.MakeMove(mv))
-        {
+        for (auto&& mv : moves)
+        {   
+            boardCopy.MakeMove(mv);
+
             if (!boardCopy.isChecked(currentSet))
                 retMoves.push_back(mv);
 
             boardCopy.UnmakeMove(mv);
         }
     }
+    else
+    {
+        for (auto&& mv : moves)
+        {   
+            boardCopy.MakeMoveUnchecked(mv);
 
-    // validate all moves are sane
-    for (auto&& mv : retMoves)
-        FATAL_ASSERT(mv.Piece.isValid());
+            if (!boardCopy.isChecked(currentSet))
+                retMoves.push_back(mv);
+
+            boardCopy.UnmakeMove(mv);
+        }
+    }
 
     return retMoves;
 }

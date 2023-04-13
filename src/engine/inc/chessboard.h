@@ -123,6 +123,7 @@ public:
 	void Clear();
 	bool PlacePiece(ChessPiece piece, Notation target, bool overwrite = false);
 	bool MakeMove(Move& move);
+	bool MakeMoveUnchecked(Move& move);
 
 	/**
 	* Makes the specified move on the chessboard. The move may be a partial move generated from a Portable Game Notation (PGN) string,
@@ -252,6 +253,8 @@ private:
 	* @return True if the move is a castle move, false otherwise. */
 	bool InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);
 	void InternalHandleKingRookMove(Move& move);
+	void InternalHandleCapture(Move& move, Notation pieceTarget);
+
 	bool UpdateEnPassant(Notation source, Notation target);
 	void InternalMakeMove(Notation source, Notation target);
 	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
@@ -262,7 +265,6 @@ private:
 
 	bool IsMoveCastling(const Move& move) const;
 	bool IsPromoting(const Move& move) const;
-	bool IsCheck(const Move& move) const;
 	bool VerifyMove(const Move& move) const;	
 
 	u64 m_hash;

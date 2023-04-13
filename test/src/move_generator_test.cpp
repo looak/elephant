@@ -137,7 +137,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
     testContext.editToPlay() = Set::BLACK;
 
     // do 
-    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+    auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
 
     // verify
     EXPECT_EQ(8, result.size());
@@ -1048,7 +1048,7 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext, true);
 
     // verify
     MoveCount::Predicate predicate = [](const Move& mv)
