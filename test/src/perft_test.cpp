@@ -4,6 +4,9 @@
 #include "move_generator.h"
 #include "elephant_test_utils.h"
 
+#include <future>
+#include <thread>
+
 namespace ElephantTest
 {
 ////////////////////////////////////////////////////////////////
@@ -41,7 +44,7 @@ public:
         return count;
 	}
 
-    unsigned int CountMovesAtDepth(GameContext& context, int depth)
+    unsigned int concurrentMovesAtDepth(GameContext context, int depth)
     {
         if (depth == 0)
         {
@@ -62,6 +65,43 @@ public:
                 context.MakeMove(mv);                
                 count += CountMovesAtDepth(context, depth - 1);
                 context.UnmakeMove(mv);
+            }
+
+            return count;
+        }
+    }
+
+    unsigned int CountMovesAtDepth(GameContext& context, int depth)
+    {        
+        if (depth == 0)
+        {
+            return 0;
+        }
+        else
+        if (depth == 1)
+        {
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            return moves.size();
+        }
+        else
+        {
+            std::vector<std::future<unsigned int>> futures;
+
+            unsigned int count = 0;
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            for (auto mv : moves)
+            {
+                context.MakeMove(mv);
+                //GameContext contextCopy(context);
+                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, depth - 1);
+                futures.push_back(std::move(future));
+                //count += CountMovesAtDepth(context, depth - 1);
+                context.UnmakeMove(mv);
+            }
+
+            for (auto& future : futures)
+            {
+                count += future.get();
             }
 
             return count;

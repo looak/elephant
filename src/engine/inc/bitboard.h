@@ -52,10 +52,25 @@ public:
 	bool ClearPiece(ChessPiece piece, Notation target);
 	bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, byte enPassant, u64 threatenedMask) const;
 
-	u64 GetAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
-	u64 GetAttackedSquares(Notation source, ChessPiece piece) const;
+	/**
 
-	u64 GetThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
+	@brief Calculate the available moves for a given chess piece on the bitboard.
+	This function calculates the legal moves for the specified chess piece on the 
+	bitboard, taking into account the current game state, including castling rights,
+	en passant capture, and pinned or checked status of the piece.
+	@param source The source square of the chess piece in algebraic notation.
+	@param piece The chess piece for which to calculate the available moves.
+	@param castling Castling rights represented as a byte.
+	@param enPassant The en passant target square represented as a byte.
+	@param threatened A bitmask representing the threatened squares on the board.
+	@param checked Boolean flag indicating if the piece is checked.
+	@param kingMask A bitmask representing the king's potential threats and pins.
+	@return A bitmask representing the available moves for the given chess piece.
+	*/
+	u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
+	u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
+
+	u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
 	u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;
 
 	// Calculate all directions the king could potentially be threatened or pinned against.
@@ -71,10 +86,10 @@ typedef std::function<u64(u64 sqrMask)> Validate;
 	u64 MaterialCombined() const;
 	u64 SlidingMaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-	u64 GetAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
-	u64 GetAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
+	u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
+	u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
 
-	u64 InternalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask){ return sqrMask; }) const;
+	u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask){ return sqrMask; }) const;
 
 	u64 m_material[2][6];
 };

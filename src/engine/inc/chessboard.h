@@ -142,6 +142,13 @@ public:
 	bool isStalemated(Set set) const;
 	
 	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, bool checked, u64 kingMask) const;
+
+	/**
+	 * Calculates the available moves for the specified set. Does not generate 100% legal moves. For legal moves refere to the MoveGenerator class.
+	 * 
+	 * @param currentSet The set to calculate the available moves for.
+	 * @return A vector of all the moves for the specified set - might not be legal moves.
+	 */
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	
 	u64 GetThreatenedMask(Set set) const;
@@ -258,7 +265,8 @@ private:
 	bool UpdateEnPassant(Notation source, Notation target);
 	void InternalMakeMove(Notation source, Notation target);
 	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
-	int getTileIndex(byte file, byte rank);
+
+	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, bool checked) const;
 
 	ChessboardTile& get(Notation position) { return editTile(position); }
 	const ChessboardTile& get(Notation position) const { return readTile(position); }

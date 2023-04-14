@@ -25,6 +25,13 @@ public:
         m_moveCount(1)
     {}
 
+    GameContext(const GameContext& rhs) :
+        m_board(rhs.m_board),
+        m_toPlay(rhs.m_toPlay),
+        m_plyCount(rhs.m_plyCount),
+        m_moveCount(rhs.m_moveCount)
+    {}
+
     void Reset();
 
     const Chessboard& readChessboard() const { return m_board; }

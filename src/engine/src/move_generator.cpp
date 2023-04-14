@@ -3,6 +3,10 @@
 #include <sstream>
 #include <utility>
 
+#include <future>
+#include <thread>
+
+
 int 
 MoveGenerator::Perft(GameContext& context, int depth)
 {
@@ -91,6 +95,37 @@ MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predic
     return ret;
 }
 
+std::vector<Move> concurrentGeneratePossibleMoves(std::vector<Move> moves, Chessboard board, bool countingMoves, Set currentSet)
+{
+    std::vector<Move> result;
+    if (countingMoves)
+    {
+        for (auto&& mv : moves)
+        {   
+            board.MakeMove(mv);
+
+            if (!board.isChecked(currentSet))
+                result.push_back(mv);
+
+            board.UnmakeMove(mv);
+        }
+    }
+    else
+    {
+        for (auto&& mv : moves)
+        {   
+            board.MakeMoveUnchecked(mv);
+
+            if (!board.isChecked(currentSet))
+                result.push_back(mv);
+
+            board.UnmakeMove(mv);
+        }
+    }
+
+    return result;
+}
+
 std::vector<Move>
 MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMoves) const
 {
@@ -102,6 +137,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMo
     //return moves;
     auto boardCopy = context.copyChessboard();
 
+//    std::vector<std::future<std::vector<Move>>> futures;
  
     if (countingMoves)
     {
