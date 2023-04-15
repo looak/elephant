@@ -1,3 +1,5 @@
 # elephant
 
-[![Build Status](https://app.travis-ci.com/looak/elephant.svg?branch=main)](https://app.travis-ci.com/looak/elephant)
+![Build][build-link]
+
+[build-link]:         https://github.com/looak/elephant/actions/workflows/cmake.yml/badge.svg
