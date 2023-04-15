@@ -20,6 +20,7 @@
 #include <string>
 #include <cstring>
 #include <sstream>
+#include <memory>
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
