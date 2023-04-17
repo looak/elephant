@@ -11,10 +11,7 @@ Move::Move(Notation source, Notation target) :
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
 	CapturedPiece(ChessPiece()),
-    Flags(MoveFlag::Zero),
-    PrevMove(nullptr),
-    NextMoveCount(0),
-    NextMove(nullptr)
+    Flags(MoveFlag::Zero)
 {
 }
 

@@ -14,6 +14,9 @@ proj-cppcheck-build-dir/
 
 #specific files
 test_detail.xml
+#generated
+elephant_cli_config.h
+elephant_gambit_config.h
 
 # Compiled Object files
 *.slo
@@ -25,13 +28,12 @@ test_detail.xml
 *.gch
 *.pch
 
-
 # Fortran module files
 *.mod
 *.smod
-
 
 # Executables
 *.exe
 *.out
 *.app
+

@@ -98,6 +98,10 @@ public:
     ChessPiece CapturedPiece;
 
     MoveFlag Flags;
+
+    Move* PrevMove;
+    unsigned short NextMoveCount;
+    Move* NextMove;
 };
 
 struct MoveResult

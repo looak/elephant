@@ -28,8 +28,11 @@
 
 class GameContext;
 
-typedef std::function<void(std::list<std::string>&, GameContext&)> CommandFunction;
-typedef std::map<std::string, CommandFunction> CommandsMap;
+namespace UCI
+{
+
+typedef std::function<void(std::list<std::string>&, GameContext&)> UCICommandFunction;
+typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
 
 static void UCIEnable(GameContext& context);
 
@@ -44,7 +47,7 @@ void StopCommand(std::list<std::string>& args, GameContext& context);
 void PonderHitCommand(std::list<std::string>& args, GameContext& context);
 void QuitCommand(std::list<std::string>& args, GameContext& context);
 
-static CommandsMap options = {
+static UCICommandsMap options = {
     { "debug", DebugCommand },
     { "isready", IsReadyCommand },
     { "setoption", SetOptionCommand },
@@ -56,3 +59,5 @@ static CommandsMap options = {
     { "ponderhit", PonderHitCommand },
     { "quit", QuitCommand }
 };
+
+} // namespace UCI

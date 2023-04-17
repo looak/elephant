@@ -46,17 +46,16 @@ void UCIEnableHelpCommand(const std::string& command);
 
 static CommandsMap options = {
     { "fen", { FenCommand, FenHelpCommand } },
-    { "evaluate", { EvaluateCommand, EvaluateHelpCommand },
+    { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
     { "uci", { UCIEnableCommand, UCIEnableHelpCommand } },
-    // {"clear", { ClearCommand, ClearHelpCommand } },
     { "help", { HelpCommand, HelpHelpCommand } },
     { "print", { PrintCommand, PrintHelpCommand } },
     {"move", { MoveCommand, MoveHelpCommand } },
      {"divide", {DivideDepthCommand, DivideDepthHelpCommand } },
-    // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
     { "exit", { ExitCommand, ExitHelpCommand } }
+    // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
+    // {"clear", { ClearCommand, ClearHelpCommand } },
     // {"about", { AboutCommand, AboutHelpCommand } }
-
 };
 
 }; // namespace CliCommands

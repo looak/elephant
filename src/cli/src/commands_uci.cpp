@@ -1,9 +1,10 @@
 #include "commands_uci.h"
 #include "game_context.h"
+#include "commands_utils.h"
 
 /**
 * Send back what options this engine supports. */
-void UCIOptions();
+void UCIOptions()
 {
     //std::cout << "options\n";
 }
@@ -24,17 +25,17 @@ void UCIEnable(GameContext& context)
 		if (tokens.size() == 0)
 			continue;
 
-		auto&& command = CommandsMap::options.find(tokens.front());
-		if(tokens.size() > 0 && command != CommandsMap::options.end())
+		auto&& command = UCI::options.find(tokens.front());
+		if(tokens.size() > 0 && command != UCI::options.end())
 		{
 			auto token = tokens.front();
 			tokens.pop_front();
 			
-			command->second.first(tokens, context);
+			command->second(tokens, context);
 		}
 		else if (tokens.size() == 1)
 		{
-            auto token = tokens.front()
+            auto token = tokens.front();
             if (token == "quit")
                 return;
 		}		

@@ -3,6 +3,8 @@
 #include "commands.h"
 #include "commands_utils.h"
 #include "elephant_cli.h"
+#include "elephant_cli_config.h"
+#include "elephant_gambit_config.h"
 #include "game_context.h"
 #include "log.h"
 
@@ -13,8 +15,10 @@
 
 Application::Application()
 {
-	MESSAGE() << " Elephant Chess Engine 2021-2023";
-	MESSAGE() << " Version: " << "0\n";
+	MESSAGE() << " Elephant Gambit Open Source Chess Engine 2021-2023"; // EGOSCE
+	MESSAGE() << " Versions: \tCLI: " << ELEPHANT_CLI_VERSION_STR << "\tEngine: " << ELEPHANT_GAMBIT_VERSION_STR;	
+	MESSAGE() << " Source: https://github.com/looak/elephant";
+	MESSAGE() << " Author: Alexander Loodin Ek\n";
 }
 
 void Application::Run()
