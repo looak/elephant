@@ -3,6 +3,7 @@
 #include <sstream>
 #include <exception>
 #include <stdexcept>
+#include <list>
 
 static const std::string whitespace = " ............................... ";
 static const size_t lineLength = 28;
