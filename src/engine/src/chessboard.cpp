@@ -393,7 +393,7 @@ Chessboard::VerifyMove(const Move& move) const
 	if (piece == ChessPiece())
 		return false;
 
-	u64 threatenedMask = GetThreatenedMask(ChessPiece::FlipSet(piece.getSet()));
+	u64 threatenedMask = calcThreatenedMask(ChessPiece::FlipSet(piece.getSet()));
 
 	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index(), threatenedMask) == false)
 		return false;
@@ -792,7 +792,7 @@ u64 Chessboard::GetKingMask(Set set) const
 }
 
 u64
-Chessboard::GetThreatenedMask(Set set) const
+Chessboard::calcThreatenedMask(Set set) const
 {
 	u64 mask = ~universe;
 
@@ -905,7 +905,7 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 {
 	auto [checked, chkCount, checkedMask] = calcualteCheckedCount(currentSet);
 	Set opSet = ChessPiece::FlipSet(currentSet);
-	u64 threatenedMask = GetThreatenedMask(opSet);
+	u64 threatenedMask = calcThreatenedMask(opSet);
 
 	u64 kingMask = GetKingMask(currentSet);
 	if (checked)

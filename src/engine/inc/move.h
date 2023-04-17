@@ -98,6 +98,21 @@ public:
     ChessPiece CapturedPiece;
 
     MoveFlag Flags;
+};
+
+struct MoveResult
+{
+    Notation SourceSquare;
+    Notation TargetSquare;
+
+    byte PrevCastlingState;
+
+    Notation EnPassantTargetSquare;
+    ChessPiece Piece;
+    ChessPiece PromoteToPiece;
+    ChessPiece CapturedPiece;
+
+    MoveFlag Flags;
 
     Move* PrevMove;
     unsigned short NextMoveCount;

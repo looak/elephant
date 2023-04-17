@@ -70,6 +70,7 @@ TEST_F(MoveGeneratorFixture, KnightOneCapture)
     {
         if (move.TargetSquare == f6)
         {
+            testContext.MakeMove(move);
             EXPECT_EQ(move.Flags, MoveFlag::Capture);
             break;
         }
@@ -440,13 +441,14 @@ TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
     board.PlacePiece(WHITEPAWN, f7);
 
     // do 
-    auto result = moveGenerator.GeneratePossibleMoves(testContext);
+    auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
 
     // verify
     for (auto&& move : result)
     {
         if (move.TargetSquare == f7)
         {
+            testContext.MakeMove(move);
             EXPECT_EQ(move.Flags, MoveFlag::Capture);
             break;
         }
@@ -517,6 +519,12 @@ TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
 
     // do 
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
+
+    for (auto& move : result)
+    {
+        testContext.MakeMove(move);
+        testContext.UnmakeMove(move);
+    }
 
     MoveCount::Predicate predicate = [](const Move& mv)
     {
@@ -859,7 +867,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
 //     A    B    C    D    E    F    G    H
 // sequence of moves: e4 fxe3 is illegal because it puts
 // king in check.
-TEST_F(MoveGeneratorFixture, PinnedPawnEnPassant)
+TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 {
     // setup
     testContext.editToPlay() = Set::BLACK;
@@ -1050,6 +1058,12 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext, true);
 
+    for (auto& mv : moves)
+    {
+        testContext.MakeMove(mv);
+        testContext.UnmakeMove(mv);
+    }
+
     // verify
     MoveCount::Predicate predicate = [](const Move& mv)
     {
@@ -1097,6 +1111,12 @@ TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
     EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
 
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    for(auto& mv : moves)
+    {
+        testContext.MakeMove(mv);
+        testContext.UnmakeMove(mv);
+    }
 
     auto predicate = [](const Move& mv)
     {

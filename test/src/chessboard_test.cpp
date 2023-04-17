@@ -541,7 +541,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     expected |= INT64_C(1) << h6.index();
 
     // do
-    u64 threat = board.GetThreatenedMask(Set::BLACK);
+    u64 threat = board.calcThreatenedMask(Set::BLACK);
 
     // validate
     EXPECT_EQ(expected, threat);
@@ -726,12 +726,12 @@ TEST_F(ChessboardFixture, Constructor_Copy)
 	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::BLACK);
-    cpyMask = scndCopy.GetThreatenedMask(Set::BLACK);
+    orgMask = m_gameOfTheCentury.calcThreatenedMask(Set::BLACK);
+    cpyMask = scndCopy.calcThreatenedMask(Set::BLACK);
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.GetThreatenedMask(Set::WHITE);
-    cpyMask = scndCopy.GetThreatenedMask(Set::WHITE);
+    orgMask = m_gameOfTheCentury.calcThreatenedMask(Set::WHITE);
+    cpyMask = scndCopy.calcThreatenedMask(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
 
     const Material* orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);

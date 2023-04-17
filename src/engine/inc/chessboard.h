@@ -151,7 +151,11 @@ public:
 	 */
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	
-	u64 GetThreatenedMask(Set set) const;
+	/**
+	 * @brief Calculates a bitboard which shows opponents available moves, i.e. threatened squares.
+	 * @param set The set to calculate the threat against.
+	*/
+	u64 calcThreatenedMask(Set set) const;
 	u64 GetKingMask(Set set) const;
 	/**
 	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces

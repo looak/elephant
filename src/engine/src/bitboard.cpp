@@ -151,6 +151,10 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     // add attacked squares to potential moves
     if (enPassant != 0xff)
     {
+        // re calculate king mask if enPassant is available.
+        
+
+
         u64 enPassantMask = UINT64_C(1) << enPassant;
         opMat |= enPassantMask;
     }
@@ -226,8 +230,8 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
             u64 mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);
             // comparing against two here since we'll find the sliding piece causing the pin
             // and at least one piece in between our king and this piece. This found piece isn't
-            // necessarily pinned, but if there are any more pieces between king and sliding piece
-            // they won't be pinned.
+            // necessarily pinned, if there are no more pieces between king and sliding piece
+            // they are pinned
             if (mvMask & slideMat && matCount <= 2)
             {
                 ret |= mvMask;
@@ -292,7 +296,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
         }
     }
 
-    // if we're checked by more than one piece we have to move and generating this mask doesn't matter.
+    // if we're checked by more than one piece we have to move the king and generating this mask doesn't matter.
     if (checks > 1)
         return 0;
     return ret;

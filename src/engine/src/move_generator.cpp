@@ -143,24 +143,36 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMo
     {
         for (auto&& mv : moves)
         {   
-            boardCopy.MakeMove(mv);
+            if (mv.Piece.getType() == PieceType::PAWN)
+            {
+                boardCopy.MakeMove(mv);
 
-            if (!boardCopy.isChecked(currentSet))
+                if (!boardCopy.isChecked(currentSet))
+                    retMoves.push_back(mv);
+
+                boardCopy.UnmakeMove(mv);
+            }
+            else
                 retMoves.push_back(mv);
-
-            boardCopy.UnmakeMove(mv);
         }
     }
     else
     {
         for (auto&& mv : moves)
         {   
-            boardCopy.MakeMoveUnchecked(mv);
+            if (mv.Piece.getType() == PieceType::PAWN)
+            {
+                boardCopy.MakeMoveUnchecked(mv);
 
-            if (!boardCopy.isChecked(currentSet))
+                if (!boardCopy.isChecked(currentSet))
+                    retMoves.push_back(mv);
+
+                boardCopy.UnmakeMove(mv);
+            }
+            else
+            {
                 retMoves.push_back(mv);
-
-            boardCopy.UnmakeMove(mv);
+            }
         }
     }
 
