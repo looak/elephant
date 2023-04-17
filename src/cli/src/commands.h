@@ -32,6 +32,12 @@ void DivideDepthHelpCommand(const std::string& command);
 bool MoveCommand(std::list<std::string>& tokens, GameContext& context);
 void MoveHelpCommand(const std::string& command);
 
+bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context);
+void EvaluateHelpCommand(const std::string& command);
+
+bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context);
+void UCIEnableHelpCommand(const std::string& command);
+
 //static CommandsMap aliases = {
 //    {"h", { HelpCommand, HelpHelpCommand } },
 //    //{"m", { MoveCommand, MoveHelpCommand } },
@@ -40,6 +46,8 @@ void MoveHelpCommand(const std::string& command);
 
 static CommandsMap options = {
     { "fen", { FenCommand, FenHelpCommand } },
+    { "evaluate", { EvaluateCommand, EvaluateHelpCommand },
+    { "uci", { UCIEnableCommand, UCIEnableHelpCommand } },
     // {"clear", { ClearCommand, ClearHelpCommand } },
     { "help", { HelpCommand, HelpHelpCommand } },
     { "print", { PrintCommand, PrintHelpCommand } },

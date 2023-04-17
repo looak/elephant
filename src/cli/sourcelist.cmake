@@ -9,7 +9,9 @@ ${SRC_DIR}/commands_print.cpp
 ${SRC_DIR}/commands_print.h
 ${SRC_DIR}/commands.cpp 
 ${SRC_DIR}/commands.h
-${SRC_DIR}/commands_utils.h)
+${SRC_DIR}/commands_utils.h
+${SRC_DIR}/commands_uci.cpp
+${SRC_DIR}/commands_uci.h)
 
 set(CLI_SOURCE_INCLUDE ${CLI_SOURCE_INCLUDE}
 ${INC_DIR}/elephant_cli.h

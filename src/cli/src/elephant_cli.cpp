@@ -1,9 +1,9 @@
 ﻿// ElephantGambit.cpp : Defines the entry point for the application.
 //
-
+#include "commands.h"
+#include "commands_utils.h"
 #include "elephant_cli.h"
 #include "game_context.h"
-#include "commands.h"
 #include "log.h"
 
 #include <iostream>
@@ -15,16 +15,6 @@ Application::Application()
 {
 	MESSAGE() << " Elephant Chess Engine 2021-2023";
 	MESSAGE() << " Version: " << "0\n";
-}
-
-void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
-{
-	std::istringstream ssargs(buffer);
-	std::string token;
-	while (std::getline(ssargs, token, ' '))
-	{
-		tokens.push_back(token);
-	}
 }
 
 void Application::Run()

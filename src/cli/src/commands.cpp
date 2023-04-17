@@ -205,4 +205,30 @@ void MoveHelpCommand(const std::string& command)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 
 }
+
+bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    return false;
+}
+void EvaluateHelpCommand(const std::string& command)
+{
+
+}
+
+bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    std::cout << "id name Elephant Gambit\n";
+    std::cout << "id author Alexander Loodin Ek\n";
+    return true;
+}
+
+void UCIEnableHelpCommand(const std::string& command)
+{
+    std::ostringstream ssCommand;
+    ssCommand << command;
+    std::string helpText("Puts engine into UCI mode.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+}
+
+
 } // CliCommands
