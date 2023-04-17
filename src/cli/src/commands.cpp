@@ -1,9 +1,10 @@
+#include "chessboard.h"
 #include "commands.h"
 #include "commands_print.h"
+#include "commands_uci.h"
 #include "commands_utils.h"
-#include "chessboard.h"
-#include "game_context.h"
 #include "fen_parser.h"
+#include "game_context.h"
 #include "move.h"
 #include "move_generator.h"
 #include <vector>
@@ -217,8 +218,11 @@ void EvaluateHelpCommand(const std::string& command)
 
 bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context)
 {
+    std::cout << "UCI mode enabled\n";
     std::cout << "id name Elephant Gambit\n";
     std::cout << "id author Alexander Loodin Ek\n";
+    UCI::UCIEnable(context);
+    std::cout << "Normal mode enabled\n";
     return true;
 }
 

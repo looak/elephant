@@ -6,16 +6,16 @@
 * Send back what options this engine supports. */
 void UCIOptions()
 {
-    //std::cout << "options\n";
+	//std::cout << "options\n";
 }
 
-void UCIEnable(GameContext& context)
+void UCI::UCIEnable(GameContext& context)
 {
-    bool uciEnabled = true;
-    while (uciEnabled)
-    {
-        UCIOptions();
-        std::cout << "uciok\n";
+	bool uciEnabled = true;
+	while (uciEnabled)
+	{
+		UCIOptions();
+		std::cout << "uciok\n";
 
 		std::string buffer = "";
 		std::getline(std::cin, buffer);
@@ -26,59 +26,55 @@ void UCIEnable(GameContext& context)
 			continue;
 
 		auto&& command = UCI::options.find(tokens.front());
-		if(tokens.size() > 0 && command != UCI::options.end())
+		if (tokens.size() > 0 && command != UCI::options.end())
 		{
 			auto token = tokens.front();
 			tokens.pop_front();
-			
+
 			command->second(tokens, context);
+			if (token == "quit")
+				return;
 		}
-		else if (tokens.size() == 1)
-		{
-            auto token = tokens.front();
-            if (token == "quit")
-                return;
-		}		
-    }    
+	}
 }
 
-void DebugCommand(std::list<std::string>& args, GameContext& context)
+void UCI::DebugCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void IsReadyCommand(std::list<std::string>& args, GameContext& context)
+void UCI::IsReadyCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void SetOptionCommand(std::list<std::string>& args, GameContext& context)
+void UCI::SetOptionCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void RegisterCommand(std::list<std::string>& args, GameContext& context)
+void UCI::RegisterCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void NewGameCommand(std::list<std::string>& args, GameContext& context)
+void UCI::NewGameCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void PositionCommand(std::list<std::string>& args, GameContext& context)
+void UCI::PositionCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void GoCommand(std::list<std::string>& args, GameContext& context)
+void UCI::GoCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void StopCommand(std::list<std::string>& args, GameContext& context)
+void UCI::StopCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void PonderHitCommand(std::list<std::string>& args, GameContext& context)
+void UCI::PonderHitCommand(std::list<std::string>& args, GameContext& context)
 {
 
 }
-void QuitCommand(std::list<std::string>& args, GameContext& context)
+void UCI::QuitCommand(std::list<std::string>& args, GameContext& context)
 {
-
+	std::cout << "bye bye\n";
 }

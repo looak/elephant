@@ -34,7 +34,7 @@ namespace UCI
 typedef std::function<void(std::list<std::string>&, GameContext&)> UCICommandFunction;
 typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
 
-static void UCIEnable(GameContext& context);
+void UCIEnable(GameContext& context);
 
 void DebugCommand(std::list<std::string>& args, GameContext& context);
 void IsReadyCommand(std::list<std::string>& args, GameContext& context);
