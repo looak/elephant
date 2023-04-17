@@ -1,6 +1,8 @@
 ﻿# Add source to this project's executable.
 add_library(${CLI_LIB} "")
 
+project(ElephantCli VERSION 0.0.3)
+
 include(sourcelist.cmake)
 
 include_directories(../engine/inc/)

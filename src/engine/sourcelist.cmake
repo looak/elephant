@@ -1,6 +1,8 @@
 ﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
+configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/elephant_gambit_config.h)
+
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ${ENGINE_INC_DIR}/elephant_gambit.h
 ${ENGINE_INC_DIR}/defines.h
@@ -17,6 +19,7 @@ ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/move_generator.h
 ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/uci.h
+${ENGINE_INC_DIR}/elephant_gambit_config.h
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
