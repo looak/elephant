@@ -16,8 +16,8 @@ Move::Move(Notation source, Notation target) :
 }
 
 Move::Move() :
-    TargetSquare(0),
-    SourceSquare(0),
+    TargetSquare(Notation::Invalid()),
+    SourceSquare(Notation::Invalid()),
     EnPassantTargetSquare(InvalidNotation),
     PrevCastlingState(0),
     Piece(ChessPiece()),

@@ -85,12 +85,13 @@ bool GameContext::PlayMove(Move& move)
 {
     std::string pgn = m_board.SerializeMoveToPGN(move);
 
-    bool result = MakeMove(move);
+    if(!MakeMove(move))
+        return false;
         
     MoveHistory entry = { m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn };
     m_moveHistory.emplace_back(entry);
 
-    return result;
+    return true;
 }
 
 bool GameContext::MakeMove(Move& move)

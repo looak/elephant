@@ -179,6 +179,12 @@ bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 		std::string token = tokens.front();
 		Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
 		
+        if (move.isInvalid())
+        {
+            std::cout << " Invalid move: " << token << std::endl;
+            return false;
+        }
+
 		if (!context.PlayMove(move))
 		{
 			std::cout << " Invalid move: " << token << std::endl;

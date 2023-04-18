@@ -216,7 +216,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 
 	u64 targetMask = UINT64_C(1) << mv.TargetSquare.index();
 
-	const auto notations = m_material->getPlacementsOfPiece(mv.Piece);
+	const auto notations = m_material[mv.Piece.set()].getPlacementsOfPiece(mv.Piece);
 	std::vector<Notation> possibleSources;
 
 	// currently this won't care if a move is legal or not.
@@ -231,6 +231,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 	{
 		mv.SourceSquare = possibleSources[0];
 		mv.setAmbiguous(false);
+		mv.setInvalid(false);
 		return mv;
 	}
 	else
@@ -244,6 +245,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 				{
 					mv.SourceSquare = notation;
 					mv.setAmbiguous(false);
+					mv.setInvalid(false);
 					return mv;
 				}
 			}
@@ -256,6 +258,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 				{
 					mv.SourceSquare = notation;
 					mv.setAmbiguous(false);
+					mv.setInvalid(false);
 					return mv;
 				}
 			}

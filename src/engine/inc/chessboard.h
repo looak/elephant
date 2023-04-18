@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2021-2022  Alexander Loodin Ek
+// Copyright(C) 2021-2023  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -117,13 +117,14 @@ class Chessboard
 public:
 	Chessboard();
 	~Chessboard() = default;
-
 	Chessboard(const Chessboard& other); 
 
 	void Clear();
 	bool PlacePiece(ChessPiece piece, Notation target, bool overwrite = false);
+
 	bool MakeMove(Move& move);
 	bool MakeMoveUnchecked(Move& move);
+	bool UnmakeMove(const Move& move);
 
 	/**
 	 * @brief Takes a move and serializes it to a unambigous Portable Game Notation (PGN) string for this board position.
@@ -136,16 +137,6 @@ public:
 	 * @param isWhiteMove Whether the move is a white move or not.
 	 * @return The deserialized move.	*/
 	Move DeserializeMoveFromPGN(const std::string& pgnMove, bool isWhiteMove) const;
-
-	/**
-	* Makes the specified move on the chessboard. The move may be a partial move generated from a Portable Game Notation (PGN) string,
-	* in which case it may not include the full move and we need the context of the chessboard to disambiguate the move.
-	*
-	* @param move The move to make.
-	* @return The actual move that was made, which may be different from the input move if the input move was ambiguous.
-	*         If the move could not be made, an invalid move is returned.	*/
-	//Move PlayMove(const Move& move);
-	bool UnmakeMove(const Move& move);
 	
 	std::tuple<bool, int, u64> calcualteCheckedCount(Set set) const;
 	bool isChecked(Set set) const;
