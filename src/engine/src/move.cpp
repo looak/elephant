@@ -227,43 +227,43 @@ std::string trim(const std::string& str,
 }
 
 std::vector<std::string> 
-Move::ParsePNG(std::string png, std::vector<Move>& ret)
+Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
 {       
     std::vector<std::string> comments;
     std::list<std::string> tokens;
     std::string token;
-    size_t cursor = png.find('{');
+    size_t cursor = pgn.find('{');
     size_t endPos = 0;
 
     while (cursor != std::string::npos)
     {
-        endPos = png.find('}');
+        endPos = pgn.find('}');
         endPos++; // inclusive
-        token = png.substr(cursor, endPos - cursor);
+        token = pgn.substr(cursor, endPos - cursor);
         comments.push_back(token);
-        png.erase(cursor, endPos - cursor);
-        cursor = png.find('{');
+        pgn.erase(cursor, endPos - cursor);
+        cursor = pgn.find('{');
     }
 
     cursor = 0;
-    endPos = png.find('.', 2);
+    endPos = pgn.find('.', 2);
     
     while (endPos != std::string::npos)
     {
         size_t orgEnd = endPos+1;
         endPos--; // step back one.
-        while (std::isdigit(png.at(endPos)))
+        while (std::isdigit(pgn.at(endPos)))
             endPos--;
 
-        token = png.substr(cursor, endPos - cursor);
+        token = pgn.substr(cursor, endPos - cursor);
         tokens.push_back(trim(token));
         cursor = endPos;
-        endPos = png.find('.', orgEnd);
+        endPos = pgn.find('.', orgEnd);
     }
 
     if (endPos == std::string::npos)
     {
-        token = png.substr(cursor, png.size() - cursor);
+        token = pgn.substr(cursor, pgn.size() - cursor);
         tokens.push_back(trim(token));
     }
 

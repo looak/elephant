@@ -84,7 +84,7 @@ public:
     Move& operator=(const Move& other);
     std::string toString() const;
 
-    static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
+    static std::vector<std::string> ParsePGN(std::string pgn, std::vector<Move>& ret);
     static Move FromString(std::string moveStr, bool isWhiteMove);
     static Move Invalid() { return Move(); }
 

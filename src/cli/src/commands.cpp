@@ -32,15 +32,18 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
     context.Reset();
     bool ret = FENParser::deserialize(fen.c_str(), context);
     if (!ret)
-        std::cout << " Invalid FEN: " << fen;
+        std::cout << " Invalid FEN: " << fen << "\n";
 
     return ret;
 }
 
 void FenHelpCommand(const std::string& command)
 {
-    std::string helpText("Writes given FEN to current Game Context.");
-    std::cout << AddLineDivider(command, helpText);
+    std::ostringstream ssCommand;
+    ssCommand << "fen <string> or fen";
+
+    std::string helpText("Sets the board to the given FEN string or outputs the FEN string for current board.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
 void HelpHelpCommand(const std::string& command)
@@ -155,12 +158,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
     }
     else
     {
-        std::cout << " Elephant Gambit CLI Commands:" << std::endl;
-        for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
-        {
-            iter->second.second(iter->first);
-            std::cout << std::endl;
-        }
+        DivideDepthHelpCommand("divide");
     }
 
     return true;
@@ -184,15 +182,7 @@ bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 		if (!context.MakeMove(move))
 		{
 			std::cout << " Invalid move: " << token << std::endl;
-		}
-	}
-	else
-	{
-		std::cout << " Elephant Gambit CLI Commands:" << std::endl;
-		for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
-		{
-			iter->second.second(iter->first);
-			std::cout << std::endl;
+            return false;
 		}
 	}
 

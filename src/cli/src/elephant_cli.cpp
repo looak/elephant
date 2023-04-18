@@ -41,9 +41,14 @@ void Application::Run()
 		if(tokens.size() > 0 && command != CliCommands::options.end())
 		{
 			auto token = tokens.front();
-			tokens.pop_front();
+			tokens.pop_front(); // remove command from tokens.
 			
-			command->second.first(tokens, context);
+			bool commandResult = command->second.first(tokens, context);
+			if (commandResult == false)
+			{
+				command->second.second(token);
+            	std::cout << std::endl;
+			}
 		}
 		else if (tokens.size() == 1)
 		{

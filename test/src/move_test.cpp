@@ -543,10 +543,10 @@ TEST_F(MoveFixture, Black_King_Castle_QueenSide_BlockedByKnight)
 // 1.d4 d5 2.c4 dxc4
 TEST_F(MoveFixture, BuildMoveSequence_QueensGambitAccepted)
 {
-    std::string movePNG = "1.d4 d5 2.c4 dxc4";
+    std::string pgn = "1.d4 d5 2.c4 dxc4";
 
     std::vector<Move> moves;
-    Move::ParsePNG(movePNG, moves);
+    Move::ParsePGN(pgn, moves);
 }
 
 // https://en.wikipedia.org/wiki/Portable_Game_Notation
@@ -554,9 +554,9 @@ TEST_F(MoveFixture, BuildMoveSequence_QueensGambitAccepted)
 // 4. Ba4 Nf6 5. O - O Be7
 TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky)
 {
-    std::string movePNG = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6";
+    std::string pgn = "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6";
     std::vector<Move> moves;
-    Move::ParsePNG(movePNG, moves);
+    Move::ParsePGN(pgn, moves);
 
     EXPECT_EQ(moves.size(), 8);
 
@@ -635,9 +635,9 @@ TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky)
 }
 TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
 {
-    std::string movePNG = "1. e4 { This is a comment. }e5 2. O-O-O O-O 3. Bxb5 a6{ This opening is called the Ruy Lopez. } 4. Ba4+ Nf6 5. O-O Be7 6. de5 Bxe5+";
+    std::string pgn = "1. e4 { This is a comment. }e5 2. O-O-O O-O 3. Bxb5 a6{ This opening is called the Ruy Lopez. } 4. Ba4+ Nf6 5. O-O Be7 6. de5 Bxe5+";
     std::vector<Move> moves;
-    auto comments = Move::ParsePNG(movePNG, moves);
+    auto comments = Move::ParsePGN(pgn, moves);
 
     EXPECT_EQ(2, comments.size());
     EXPECT_EQ(12, moves.size());
@@ -659,9 +659,9 @@ TEST_F(MoveFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
 
 TEST_F(MoveFixture, BuildMoveSequence_DisambiguatingMoves)
 {
-    std::string movePNG = "9. h3 R1a3 10. d4 Nbd7 23. Rae8 Ne5 24. Qh4e1 25. e1 e2 26. Ra1xa2+ e2";
+    std::string pgn = "9. h3 R1a3 10. d4 Nbd7 23. Rae8 Ne5 24. Qh4e1 25. e1 e2 26. Ra1xa2+ e2";
     std::vector<Move> moves;
-    Move::ParsePNG(movePNG, moves);
+    Move::ParsePGN(pgn, moves);
 
     { // h3
         const int index = 0;
@@ -753,9 +753,9 @@ TEST_F(MoveFixture, BuildMoveSequence_DisambiguatingMoves)
 
 TEST_F(MoveFixture, BuildMoveSequence_PawnPromotion)
 {
-    std::string movePNG = "9. e8=Q";
+    std::string pgn = "9. e8=Q";
     std::vector<Move> moves;
-    Move::ParsePNG(movePNG, moves);
+    Move::ParsePGN(pgn, moves);
 }
 
 TEST_F(MoveFixture, BrokenMove_QueenShouldBeAbleToCaptureBishopOne7)

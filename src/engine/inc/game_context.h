@@ -74,4 +74,18 @@ private:
     u32 m_plyCount;    
     u32 m_moveCount;
     u32 m_fiftyMoveRule;
+
+    struct MoveHistory
+    {
+        Move move;
+        //Chessboard board;
+        u64 HashKey;
+        u32 PlyCount;
+        u32 MoveCount;
+        u32 FiftyMoveRule;
+        // Short Algebraic Notation
+        std::string SAN;
+    };
+
+    std::vector<MoveHistory> m_moveHistory;
 };

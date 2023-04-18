@@ -85,6 +85,9 @@ bool GameContext::MakeMove(Move& move)
 {
     auto actualMove = m_board.PlayMove(move);
 
+    if (actualMove.isInvalid())
+        return false;
+
     if (actualMove.Piece.getSet() == Set::BLACK)
         m_moveCount++;
 
@@ -96,11 +99,8 @@ bool GameContext::MakeMove(Move& move)
     m_plyCount++;
 
     m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-    FATAL_ASSERT(actualMove.Piece.isValid());
+    
     move = actualMove;
-    FATAL_ASSERT(move.Piece.isValid());
-
     return true;
 }
 
@@ -151,6 +151,9 @@ GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
     MoveGenerator generator;
     Evaluator evaluator;
     auto moves = generator.GeneratePossibleMoves(board, toPlay);
+
+    if (moves.empty()) // no moves
+        return { -99, Move() };
 
     std::vector<std::pair<u64, Move>> scoredMoves;
 
