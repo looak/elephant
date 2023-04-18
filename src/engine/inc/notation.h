@@ -23,6 +23,10 @@ struct Notation
 	static Notation BuildPosition(byte file, byte rank);
 	static bool Validate(const Notation& notation);
 	static std::string toString(const Notation& notation);
+	static char fileToChar(const Notation& notation);
+	static char rankToChar(const Notation& notation);
+	static Notation Invalid();
+
 	// Should Notation validate rank & file?
 	// Should Notation validate format of rank & file?
 	Notation() :

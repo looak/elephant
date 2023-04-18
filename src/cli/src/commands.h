@@ -41,6 +41,12 @@ void EvaluateBestMoveHelpCommand(const std::string& command);
 bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context);
 void UCIEnableHelpCommand(const std::string& command);
 
+bool NewGameCommand(std::list<std::string>& tokens, GameContext& context);
+void NewGameHelpCommand(const std::string& command);
+
+bool AvailableMovesCommand(std::list<std::string>& tokens, GameContext& context);
+void AvailableMovesHelpCommand(const std::string& command);
+
 //static CommandsMap aliases = {
 //    {"h", { HelpCommand, HelpHelpCommand } },
 //    //{"m", { MoveCommand, MoveHelpCommand } },
@@ -49,15 +55,16 @@ void UCIEnableHelpCommand(const std::string& command);
 
 static CommandsMap options = {
     { "fen", { FenCommand, FenHelpCommand } },
-    { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
+//    { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
     { "bestmove", { EvaluateBestMoveCommand, EvaluateBestMoveHelpCommand } }, // "bestmove
     { "uci", { UCIEnableCommand, UCIEnableHelpCommand } },
     { "help", { HelpCommand, HelpHelpCommand } },
     { "print", { PrintCommand, PrintHelpCommand } },
     { "move", { MoveCommand, MoveHelpCommand } },
     { "divide", {DivideDepthCommand, DivideDepthHelpCommand } },
-    { "exit", { ExitCommand, ExitHelpCommand } }
-    // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
+    { "newgame", { NewGameCommand, NewGameHelpCommand } },
+    { "exit", { ExitCommand, ExitHelpCommand } },
+    { "show", { AvailableMovesCommand, AvailableMovesHelpCommand } }
     // {"clear", { ClearCommand, ClearHelpCommand } },
     // {"about", { AboutCommand, AboutHelpCommand } }
 };

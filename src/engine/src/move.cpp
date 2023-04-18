@@ -319,6 +319,8 @@ Move Move::FromString(std::string movestr, bool isWhiteMove)
 {
 	Move mv;
     mv.setAmbiguous(true);
+    mv.SourceSquare = Notation::Invalid();
+    mv.TargetSquare = Notation::Invalid();
 
 	size_t cursor = 0;
 	ParsePiece(movestr, cursor, mv, isWhiteMove);

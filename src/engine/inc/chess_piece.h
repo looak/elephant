@@ -71,6 +71,14 @@ public:
 	char toString() const;
 	bool fromString(char piece);
 
+	bool isPawn() const { return type() == 1; }
+	bool isKnight() const { return type() == 2; }
+	bool isBishop() const { return type() == 3; }
+	bool isRook() const { return type() == 4; }
+	bool isQueen() const { return type() == 5; }
+	bool isKing() const { return type() == 6; }
+	bool isWhite() const { return set() == 0; }
+
 	bool operator==(const ChessPiece& rhs) const;
 	bool operator!=(const ChessPiece& rhs) const;
 	bool operator<(const ChessPiece& rhs) const;

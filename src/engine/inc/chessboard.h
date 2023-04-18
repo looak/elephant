@@ -126,14 +126,25 @@ public:
 	bool MakeMoveUnchecked(Move& move);
 
 	/**
+	 * @brief Takes a move and serializes it to a unambigous Portable Game Notation (PGN) string for this board position.
+	 * @param move The move to serialize.
+	 * @return The serialized move.	*/
+	std::string SerializeMoveToPGN(const Move& move) const;
+	/**
+	 * @brief Takes a short algebraic notation (SAN) string and deserializes it to a move for this board position.
+	 * @param sanMove The SAN string to deserialize.
+	 * @param isWhiteMove Whether the move is a white move or not.
+	 * @return The deserialized move.	*/
+	Move DeserializeMoveFromPGN(const std::string& pgnMove, bool isWhiteMove) const;
+
+	/**
 	* Makes the specified move on the chessboard. The move may be a partial move generated from a Portable Game Notation (PGN) string,
 	* in which case it may not include the full move and we need the context of the chessboard to disambiguate the move.
 	*
 	* @param move The move to make.
 	* @return The actual move that was made, which may be different from the input move if the input move was ambiguous.
-	*         If the move could not be made, an invalid move is returned.
-	*/
-	Move PlayMove(const Move& move);
+	*         If the move could not be made, an invalid move is returned.	*/
+	//Move PlayMove(const Move& move);
 	bool UnmakeMove(const Move& move);
 	
 	std::tuple<bool, int, u64> calcualteCheckedCount(Set set) const;
@@ -147,15 +158,14 @@ public:
 	 * Calculates the available moves for the specified set. Does not generate 100% legal moves. For legal moves refere to the MoveGenerator class.
 	 * 
 	 * @param currentSet The set to calculate the available moves for.
-	 * @return A vector of all the moves for the specified set - might not be legal moves.
-	 */
+	 * @return A vector of all the moves for the specified set - might not be legal moves.	 */
 	std::vector<Move> GetAvailableMoves(Set currentSet) const;
 	
 	/**
 	 * @brief Calculates a bitboard which shows opponents available moves, i.e. threatened squares.
 	 * @param set The set to calculate the threat against.
 	*/
-	u64 calcThreatenedMask(Set set) const;
+	u64 CalcThreatenedMask(Set set) const;
 	u64 GetKingMask(Set set) const;
 	/**
 	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces
@@ -165,8 +175,7 @@ public:
 	 *
 	 * @param set The set of pieces (black or white) to consider.
 	 * @return A pair of bitboards representing the squares that are threatened by sliding pieces moving orthogonally and
-	 *         diagonally, respectively.
-	 */
+	 *         diagonally, respectively.	 */
 	MaterialMask GetSlidingMaskWithMaterial(Set set) const;
 	MaterialMask GetMaterialMask(Set set) const;
 

@@ -81,9 +81,24 @@ void GameContext::NewGame()
     m_toPlay = Set::WHITE;
 }
 
+bool GameContext::PlayMove(Move& move)
+{
+    std::string pgn = m_board.SerializeMoveToPGN(move);
+
+    bool result = MakeMove(move);
+        
+    MoveHistory entry = { m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn };
+    m_moveHistory.emplace_back(entry);
+
+    return result;
+}
+
 bool GameContext::MakeMove(Move& move)
 {
-    auto actualMove = m_board.PlayMove(move);
+    Move actualMove = move;
+    
+    if (!m_board.MakeMove(actualMove))
+        return false;
 
     if (actualMove.isInvalid())
         return false;
@@ -126,24 +141,24 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-void GameContext::PlayMoves(const Move& move, bool print)
-{
-    const Move* mv = &move;
-    while (mv != nullptr)
-    {
-        Move madeMove = m_board.PlayMove(*mv);
-        if (print)
-            PrintBoard(*this, madeMove);
+// void GameContext::PlayMoves(const Move& move, bool print)
+// {
+//     const Move* mv = &move;
+//     while (mv != nullptr)
+//     {
+//         Move madeMove = m_board.PlayMove(*mv);
+//         if (print)
+//             PrintBoard(*this, madeMove);
 
-        m_plyCount++;
+//         m_plyCount++;
 
-        // increase moveCount after black has moved.
-        if (mv->Piece.getSet() == Set::BLACK)
-            m_moveCount++;
+//         // increase moveCount after black has moved.
+//         if (mv->Piece.getSet() == Set::BLACK)
+//             m_moveCount++;
 
-        mv = mv->NextMove;
-    }
-}
+//         mv = mv->NextMove;
+//     }
+// }
 
 std::pair<u64, Move> 
 GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
@@ -162,7 +177,7 @@ GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
         for (auto& move : moves)
         {
             auto& itr = scoredMoves.emplace_back(0, move);
-            board.PlayMove(move);
+            board.MakeMove(move);
             itr.first = evaluator.Evaluate(board) * -1;
             board.UnmakeMove(move);
         }
@@ -172,7 +187,7 @@ GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
         int multiplier = (depth & 1) == 0 ? -1 : 1;
         for (auto& move : moves)
         {            
-            board.PlayMove(move);            
+            board.MakeMove(move);
             auto& itr = scoredMoves.emplace_back(concurrentBestMove(depth - 1, board, ChessPiece::FlipSet(toPlay)));
             itr.first += evaluator.Evaluate(board) * multiplier;
             board.UnmakeMove(move);

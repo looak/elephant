@@ -16,10 +16,23 @@
 #pragma once
 #include "chessboard.h"
 
+
 struct EngineParameters
 {
     // search depth in half moves, a.k.a. ply or plies.
     int SearchDepth = 5;
+};
+
+struct MoveHistory
+{
+    //Move move;
+    //Chessboard board;
+    u64 HashKey;
+    u32 PlyCount;
+    u32 MoveCount;
+    u32 FiftyMoveRule;
+    // Short Algebraic Notation
+    std::string SAN;
 };
 
 class GameContext
@@ -42,6 +55,7 @@ public:
     void NewGame();
 
     void PlayMoves(const Move& move, bool print = false);
+    bool PlayMove(Move& move);
     
     bool MakeMove(Move& move);
     bool UnmakeMove(const Move& move);
@@ -65,7 +79,9 @@ public:
 
     Set readToPlay() const { return m_toPlay; }
     Set& editToPlay() { return m_toPlay; }
-    
+
+    const std::vector<MoveHistory>& readMoveHistory() const { return m_moveHistory; }
+
 private:
     std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
 
@@ -74,18 +90,6 @@ private:
     u32 m_plyCount;    
     u32 m_moveCount;
     u32 m_fiftyMoveRule;
-
-    struct MoveHistory
-    {
-        Move move;
-        //Chessboard board;
-        u64 HashKey;
-        u32 PlyCount;
-        u32 MoveCount;
-        u32 FiftyMoveRule;
-        // Short Algebraic Notation
-        std::string SAN;
-    };
 
     std::vector<MoveHistory> m_moveHistory;
 };

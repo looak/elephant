@@ -16,6 +16,11 @@ Notation Notation::BuildPosition(byte file, byte rank)
 	return result;
 }
 
+Notation Notation::Invalid()
+{
+	return Notation(0xF, 0xF);
+}
+
 bool Notation::Validate(const Notation& notation)
 {
 	// since byte is unsigned we can't have negative values.
@@ -32,6 +37,16 @@ std::string Notation::toString(const Notation& notation)
 	output[0] = notation.file + 'a';
 	output[1] = notation.rank + '1';
 	return std::string(output, 2);
+}
+
+char Notation::fileToChar(const Notation& notation)
+{
+	return notation.file + 'a';
+}
+
+char Notation::rankToChar(const Notation& notation)
+{
+	return notation.rank + '1';
 }
 
 Notation& Notation::operator=(Notation&& other)

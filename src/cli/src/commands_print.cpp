@@ -66,4 +66,33 @@ void HelpCommandHelp(int, const std::string& command)
     std::string helpText("Outputs this help message");
     std::cout << AddLineDivider(command, helpText);
 }
+
+bool PGNCommand(const GameContext& context, const std::string& input)
+{
+    const auto& movehistory = context.readMoveHistory();    
+    std::ostringstream outputPgn;
+
+    for (auto&& entry : movehistory)
+    {
+        bool odd = entry.PlyCount & 1;
+        if (odd)
+            outputPgn << entry.MoveCount << ". ";
+        
+        outputPgn << entry.SAN;
+        if (odd)
+            outputPgn << " ";
+        else
+            outputPgn << "\n";        
+    }
+
+    std::cout << outputPgn.str() << std::endl;
+
+    return true;
+}
+void PGNHelpCommand(int option, const std::string& command)
+{
+    std::string helpText("Print the current game in PGN format");
+    std::cout << AddLineDivider(command, helpText);
+}
+
 } // namespace CliPrintCommands

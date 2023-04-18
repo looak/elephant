@@ -19,9 +19,13 @@ void BoardHelp(int option, const std::string& command);
 bool HelpCommand(const GameContext& context, const std::string& input);
 void HelpCommandHelp(int option, const std::string& command);
 
+bool PGNCommand(const GameContext& context, const std::string& input);
+void PGNHelpCommand(int option, const std::string& command);
+
 static PrintCommandsMap options = {
-    {"board", { Board, BoardHelp } },
-    {"help", { HelpCommand, HelpCommandHelp } }
+    { "board", { Board, BoardHelp } },
+    { "pgn", { PGNCommand, PGNHelpCommand } },
+    { "help", { HelpCommand, HelpCommandHelp } }
 };
 
 } // namespace CliPrintCommands

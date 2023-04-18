@@ -177,9 +177,9 @@ bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 	if (tokens.empty() == false)
 	{
 		std::string token = tokens.front();
-		Move move = Move::FromString(token, context.readToPlay() == Set::WHITE);
+		Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
 		
-		if (!context.MakeMove(move))
+		if (!context.PlayMove(move))
 		{
 			std::cout << " Invalid move: " << token << std::endl;
             return false;
@@ -220,7 +220,10 @@ bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& contex
 
 void EvaluateBestMoveHelpCommand(const std::string& command)
 {
-
+    std::ostringstream ssCommand;
+    ssCommand << "bestmove";
+    std::string helpText("Returns engines suggestion for best move.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
 bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context)
@@ -238,6 +241,41 @@ void UCIEnableHelpCommand(const std::string& command)
     std::ostringstream ssCommand;
     ssCommand << command;
     std::string helpText("Puts engine into UCI mode.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+}
+
+bool NewGameCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    context.NewGame();
+    return true;
+}
+
+void NewGameHelpCommand(const std::string&)
+{
+    std::ostringstream ssCommand;
+    ssCommand << "newgame";
+    std::string helpText("Starts a new game.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+}
+
+bool AvailableMovesCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    std::cout << " Available Moves: \n";
+    MoveGenerator generator;
+    auto moves = generator.GeneratePossibleMoves(context);
+    for (auto&& move : moves)
+    {
+        std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
+    }
+    std::cout << std::endl;
+    return true;
+}
+
+void AvailableMovesHelpCommand(const std::string& command)
+{
+    std::ostringstream ssCommand;
+    ssCommand << "show";
+    std::string helpText("Prints all available moves.");
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
