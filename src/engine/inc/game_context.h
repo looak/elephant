@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2021  Alexander Loodin Ek
+// Copyright(C) 2021-2023  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,6 +15,12 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
 #include "chessboard.h"
+
+struct EngineParameters
+{
+    // search depth in half moves, a.k.a. ply or plies.
+    int SearchDepth = 5;
+};
 
 class GameContext
 {
@@ -33,6 +39,19 @@ public:
     {}
 
     void Reset();
+    void NewGame();
+
+    void PlayMoves(const Move& move, bool print = false);
+    
+    bool MakeMove(Move& move);
+    bool UnmakeMove(const Move& move);
+
+    Move CalculateBestMove();
+
+    /**
+     * @brief Checks if the game is over.
+    */
+    bool isGameOver() const;
 
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
@@ -46,20 +65,13 @@ public:
 
     Set readToPlay() const { return m_toPlay; }
     Set& editToPlay() { return m_toPlay; }
-
-    bool MakeMove(Move& move);
-    bool UnmakeMove(const Move& move);
-
-    void PlayMoves(const Move& move, bool print = false);
-
-    bool endOfGame() const;
     
 private:
+    std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
+
     Chessboard m_board;
     Set m_toPlay;
     u32 m_plyCount;    
     u32 m_moveCount;
     u32 m_fiftyMoveRule;
-    
-    
 };

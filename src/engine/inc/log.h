@@ -21,6 +21,7 @@
 #include <cstring>
 #include <sstream>
 #include <memory>
+#include <fstream>
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
@@ -52,6 +53,27 @@ namespace LoggingInternals
 {
 
 typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
+
+class ScopedRedirect
+{
+public:
+	ScopedRedirect(std::ostream& stream, const std::string& filename) :
+		m_originalStream(stream),
+		m_originalBuffer(stream.rdbuf()),
+		m_fileStream(filename, std::ios::app) 
+	{
+		m_originalStream.rdbuf(m_fileStream.rdbuf());
+	}
+	~ScopedRedirect() 
+	{
+		m_originalStream.rdbuf(m_originalBuffer);
+	}
+
+private:
+	std::ostream& m_originalStream;
+	std::streambuf* m_originalBuffer;
+	std::ofstream m_fileStream;
+};
 
 class MessageStream
 {
@@ -153,6 +175,7 @@ public:
 
 	virtual ~LogMessage()
 	{
+		//ScopedRedirect redirect(std::cerr, "log.txt");
 		if (m_userMessage.get() != nullptr)
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
 		else

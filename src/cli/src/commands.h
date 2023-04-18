@@ -35,6 +35,9 @@ void MoveHelpCommand(const std::string& command);
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context);
 void EvaluateHelpCommand(const std::string& command);
 
+bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context);
+void EvaluateBestMoveHelpCommand(const std::string& command);
+
 bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context);
 void UCIEnableHelpCommand(const std::string& command);
 
@@ -47,11 +50,12 @@ void UCIEnableHelpCommand(const std::string& command);
 static CommandsMap options = {
     { "fen", { FenCommand, FenHelpCommand } },
     { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
+    { "bestmove", { EvaluateBestMoveCommand, EvaluateBestMoveHelpCommand } }, // "bestmove
     { "uci", { UCIEnableCommand, UCIEnableHelpCommand } },
     { "help", { HelpCommand, HelpHelpCommand } },
     { "print", { PrintCommand, PrintHelpCommand } },
-    {"move", { MoveCommand, MoveHelpCommand } },
-     {"divide", {DivideDepthCommand, DivideDepthHelpCommand } },
+    { "move", { MoveCommand, MoveHelpCommand } },
+    { "divide", {DivideDepthCommand, DivideDepthHelpCommand } },
     { "exit", { ExitCommand, ExitHelpCommand } }
     // {"show", { AvailableMovesCommand, AvailableMovesHelpCommand } },
     // {"clear", { ClearCommand, ClearHelpCommand } },

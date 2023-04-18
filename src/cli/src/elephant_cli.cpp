@@ -16,7 +16,8 @@
 Application::Application()
 {
 	MESSAGE() << " Elephant Gambit Open Source Chess Engine 2021-2023"; // EGOSCE
-	MESSAGE() << " Versions: \tCLI: " << ELEPHANT_CLI_VERSION_STR << "\tEngine: " << ELEPHANT_GAMBIT_VERSION_STR;	
+	MESSAGE() << " Versions: \tCLI: " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_SUFFIX <<
+		 "\tEngine: " << ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_SUFFIX;	
 	MESSAGE() << " Source: https://github.com/looak/elephant";
 	MESSAGE() << " Author: Alexander Loodin Ek\n";
 }

@@ -325,3 +325,17 @@ Move Move::FromString(std::string movestr, bool isWhiteMove)
 	ParseFileAndRank(movestr, cursor, mv, isWhiteMove);
 	return mv;
 }
+
+std::string Move::toString() const
+{
+    std::string ret;    
+    ret += SourceSquare.toString();
+    ret += TargetSquare.toString();
+
+    if (isPromotion())
+    {        
+        ret += PromoteToPiece.toString();
+    }
+
+    return ret;
+}

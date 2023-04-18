@@ -1,6 +1,12 @@
 ﻿set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(ElephantCli_VERSION_SUFFIX "-dbg")
+elseif(CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    set(ElephantCli_VERSION_SUFFIX "-dbg")
+endif()
+
 configure_file(${INC_DIR}/elephant_cli_config.h.in ${INC_DIR}/elephant_cli_config.h)
 
 set(CLI_SOURCE ${CLI_SOURCE}

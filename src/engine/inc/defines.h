@@ -35,3 +35,5 @@ const u64 universe = 0xffffffffffffffffULL;
 #define f_file 5
 #define g_file 6
 #define h_file 7
+
+static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

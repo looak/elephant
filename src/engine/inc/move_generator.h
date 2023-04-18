@@ -21,7 +21,9 @@
 #include "move.h"
 #include "defines.h"
 
+class Chessboard;
 class GameContext;
+
 struct MoveCount
 {
     typedef std::function<bool(const Move&)> Predicate;
@@ -62,6 +64,7 @@ class MoveGenerator
 {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool countingMoves = false) const;
+    std::vector<Move> GeneratePossibleMoves(Chessboard& board, Set toPlay) const;
 
 	int Perft(GameContext& context, int depth);
 

@@ -82,6 +82,7 @@ public:
 	void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
         
     Move& operator=(const Move& other);
+    std::string toString() const;
 
     static std::vector<std::string> ParsePNG(std::string png, std::vector<Move>& ret);
     static Move FromString(std::string moveStr, bool isWhiteMove);

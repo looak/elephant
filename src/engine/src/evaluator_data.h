@@ -1,3 +1,5 @@
+#include "chessboard.h"
+
 #define PAWN   0
 #define KNIGHT 1
 #define BISHOP 2
@@ -206,7 +208,42 @@ void init_tables()
     }
 }
 
-int eval()
+int convert(const ChessPiece& piece)
+{
+    switch(piece.raw())
+    {
+        case 0:
+            return EMPTY;
+        case 1:
+            return WHITE_PAWN;
+        case 2:
+            return WHITE_KNIGHT;
+        case 3:
+            return WHITE_BISHOP;
+        case 4:
+            return WHITE_ROOK;
+        case 5:
+            return WHITE_QUEEN;
+        case 6:
+            return WHITE_KING;
+        case 129:
+            return BLACK_PAWN;
+        case 130:
+            return BLACK_KNIGHT;
+        case 131:
+            return BLACK_BISHOP;
+        case 132:
+            return BLACK_ROOK;
+        case 133:
+            return BLACK_QUEEN;
+        case 134:
+            return BLACK_KING;
+        default:
+            return EMPTY;
+    }
+}
+
+int eval(const Chessboard& board)
 {
     int mg[2];
     int eg[2];
@@ -219,7 +256,7 @@ int eval()
 
     /* evaluate each piece */
     for (int sq = 0; sq < 64; ++sq) {
-        int pc = board[sq];
+        int pc = convert(board.readPieceAt(sq));
         if (pc != EMPTY) {
             mg[PCOLOR(pc)] += mg_table[pc][sq];
             eg[PCOLOR(pc)] += eg_table[pc][sq];

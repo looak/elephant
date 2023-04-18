@@ -1,11 +1,12 @@
 #include "move_generator.h"
+
+#include "chessboard.h"
 #include "game_context.h"
+
 #include <sstream>
 #include <utility>
-
 #include <future>
 #include <thread>
-
 
 int 
 MoveGenerator::Perft(GameContext& context, int depth)
@@ -124,6 +125,25 @@ std::vector<Move> concurrentGeneratePossibleMoves(std::vector<Move> moves, Chess
     }
 
     return result;
+}
+
+std::vector<Move>
+MoveGenerator::GeneratePossibleMoves(Chessboard& board, Set toPlay) const
+{
+    std::vector<Move> retMoves;
+    auto moves = board.GetAvailableMoves(toPlay);
+
+    for (auto&& mv : moves)
+    {   
+        board.MakeMoveUnchecked(mv);
+
+        if (!board.isChecked(toPlay))
+            retMoves.push_back(mv);
+
+        board.UnmakeMove(mv);        
+    }
+
+    return retMoves;
 }
 
 std::vector<Move>

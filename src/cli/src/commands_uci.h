@@ -33,6 +33,8 @@ namespace UCI
 
 typedef std::function<void(std::list<std::string>&, GameContext&)> UCICommandFunction;
 typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
+typedef std::map<std::string, std::pair<UCICommandFunction,std::string>> UCIOptionsMap;
+
 
 void UCIEnable(GameContext& context);
 
@@ -47,17 +49,23 @@ void StopCommand(std::list<std::string>& args, GameContext& context);
 void PonderHitCommand(std::list<std::string>& args, GameContext& context);
 void QuitCommand(std::list<std::string>& args, GameContext& context);
 
-static UCICommandsMap options = {
+void DebugOutputOption(std::list<std::string>& args, GameContext& context);
+
+static UCICommandsMap commands = {
     { "debug", DebugCommand },
     { "isready", IsReadyCommand },
     { "setoption", SetOptionCommand },
     { "register", RegisterCommand },
     { "ucinewgame", NewGameCommand },
-    {"position", PositionCommand },
-    {"go", GoCommand },
+    { "position", PositionCommand },
+    { "go", GoCommand },
     { "stop", StopCommand },
     { "ponderhit", PonderHitCommand },
     { "quit", QuitCommand }
+};
+
+static UCIOptionsMap options = {
+    { "Debug Output File", { DebugOutputOption, "type string default"} }
 };
 
 } // namespace UCI

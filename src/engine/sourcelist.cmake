@@ -1,15 +1,23 @@
 ﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
+    set(ElephantGambit_VERSION_SUFFIX "-dbg")
+elseif(CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
+    set(ElephantGambit_VERSION_SUFFIX "-dbg")
+endif()
+
 configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/elephant_gambit_config.h)
 
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ${ENGINE_INC_DIR}/elephant_gambit.h
+${ENGINE_INC_DIR}/elephant_gambit_config.h
 ${ENGINE_INC_DIR}/defines.h
 
 ${ENGINE_INC_DIR}/bitboard.h
 ${ENGINE_INC_DIR}/chessboard.h
 ${ENGINE_INC_DIR}/chess_piece.h
+${ENGINE_INC_DIR}/evaluator.h
 ${ENGINE_INC_DIR}/fen_parser.h
 ${ENGINE_INC_DIR}/game_context.h
 ${ENGINE_INC_DIR}/hash_zorbist.h
@@ -19,7 +27,6 @@ ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/move_generator.h
 ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/uci.h
-${ENGINE_INC_DIR}/elephant_gambit_config.h
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -29,6 +36,8 @@ ${ENGINE_SRC_DIR}/internal_defines.h
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp
 ${ENGINE_SRC_DIR}/chess_piece.cpp
+${ENGINE_SRC_DIR}/evaluator.cpp
+${ENGINE_SRC_DIR}/evaluator_data.h
 ${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/hash_zorbist.cpp

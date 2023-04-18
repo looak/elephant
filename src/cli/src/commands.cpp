@@ -3,6 +3,7 @@
 #include "commands_print.h"
 #include "commands_uci.h"
 #include "commands_utils.h"
+#include "evaluator.h"
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
@@ -209,9 +210,25 @@ void MoveHelpCommand(const std::string& command)
 
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    return false;
+    Evaluator evaluator;
+    u64 value = evaluator.Evaluate(context.readChessboard());
+    std::cout << " Evaluation: " << value << std::endl;
+    return true;
 }
+
 void EvaluateHelpCommand(const std::string& command)
+{
+
+}
+
+bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    Move mv = context.CalculateBestMove();
+    std::cout << " Best Move: " << mv.toString() << std::endl;
+    return true;
+}
+
+void EvaluateBestMoveHelpCommand(const std::string& command)
 {
 
 }
