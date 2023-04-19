@@ -72,6 +72,7 @@ void GameContext::Reset()
     m_moveCount = 0;
     m_plyCount = 0;
     m_fiftyMoveRule = 0;
+    m_moveHistory.clear();
 }
 
 void GameContext::NewGame()

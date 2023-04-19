@@ -298,6 +298,8 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 	else
 	{
 		pgn += std::toupper(move.Piece.toString());
+		u64 curMask = UINT64_C(1) << move.TargetSquare.index();
+
 		// do we need to be more specific?
 		auto notations = m_material[move.Piece.set()].getPlacementsOfPiece(move.Piece);
 		if (notations.size() > 1)
@@ -305,7 +307,6 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 			// remove self from list.
 			std::erase_if(notations, [&](const Notation& n) { return n == move.SourceSquare; });
 
-			u64 curMask = UINT64_C(1) << move.TargetSquare.index();
 			for (const auto& pos : notations)
 			{
 				u64 moveMask = m_bitboard.calcAvailableMoves(pos, move.Piece);
@@ -322,7 +323,8 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 				}
 			}
 		}
-		if (move.isCapture())
+		
+		if (m_tiles[move.TargetSquare.index()].readPiece().isValid())
 			pgn += "x";
 		pgn += move.TargetSquare.toString();
 	}
