@@ -154,7 +154,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMo
     const auto& board = context.readChessboard();
 
     auto moves = board.GetAvailableMoves(currentSet);
-    //return moves;
+    return moves;
     auto boardCopy = context.copyChessboard();
 
 //    std::vector<std::future<std::vector<Move>>> futures;

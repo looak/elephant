@@ -143,7 +143,7 @@ public:
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
 	
-	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, bool checked, u64 kingMask) const;
+	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, u64 checkedMask, u64 kingMask) const;
 
 	/**
 	 * Calculates the available moves for the specified set. Does not generate 100% legal moves. For legal moves refere to the MoveGenerator class.
@@ -266,11 +266,13 @@ private:
 	void InternalHandleKingRookMove(Move& move);
 	void InternalHandleCapture(Move& move, Notation pieceTarget);
 
+	bool InternalIsMoveCheck(Move& move) const;
+
 	bool UpdateEnPassant(Notation source, Notation target);
 	void InternalMakeMove(Notation source, Notation target);
 	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
-	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, bool checked) const;
+	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, u64 checkedMask) const;
 
 	ChessboardTile& get(Notation position) { return editTile(position); }
 	const ChessboardTile& get(Notation position) const { return readTile(position); }
@@ -297,7 +299,7 @@ private:
 		} m_tilesNamed;
 	};
 	
-	Bitboard m_bitboard;
+	mutable Bitboard m_bitboard;
 
 	// caching kings and their locations
 	std::pair<ChessPiece, Notation> m_kings[2];

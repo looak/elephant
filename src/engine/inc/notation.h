@@ -63,7 +63,13 @@ struct Notation
 	byte file : 4;
 	byte rank : 4;
 
-	byte index() const { return (rank * 8) + file; }
+	byte index() const 
+	{ 
+		if (isValid()) 
+			return (rank * 8) + file;
+		else
+			return 0xFF;
+	}
 	bool operator==(const Notation& rhs) const;
 	bool operator!=(const Notation& rhs) const;
 	bool operator<(const Notation& rhs) const;

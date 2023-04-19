@@ -237,7 +237,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 	else
 	{
 		// during deserialization there was additional information in the pgn to disambiguate the move
-		if (mv.SourceSquare.file == 9) 
+		if (mv.SourceSquare.file == 9)
 		{ // we are looking for a piece on given rank
 			for (const auto& notation : possibleSources)
 			{
@@ -288,7 +288,7 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 			pgn += move.PromoteToPiece.toString();
 		}
 	}
-	else if(move.isCastling())
+	else if (move.isCastling())
 	{
 		if (move.TargetSquare.file == 6)
 			pgn += "O-O";
@@ -323,7 +323,7 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 				}
 			}
 		}
-		
+
 		if (m_tiles[move.TargetSquare.index()].readPiece().isValid())
 			pgn += "x";
 		pgn += move.TargetSquare.toString();
@@ -713,7 +713,7 @@ Chessboard::MakeMove(Move& move)
 		m_enPassant = Notation();
 		m_enPassantTarget = Notation();
 	}
-	
+
 	InternalHandleCapture(move, pieceTarget);
 
 	// do move
@@ -736,7 +736,7 @@ Chessboard::MakeMove(Move& move)
 	return true;
 }
 
-void 
+void
 Chessboard::InternalHandleCapture(Move& move, Notation pieceTarget)
 {
 	// handle capture
@@ -943,34 +943,15 @@ Chessboard::GetSlidingMaskWithMaterial(Set set) const
 }
 
 std::vector<Move>
-Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, bool checked) const
+Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, u64 checkedMask) const
 {
 	std::vector<Move> result;
 
 	const auto& positions = m_material[piece.set()].getPlacementsOfPiece(piece);
-	u64 modKingMask = kingMask;
-
-	// figure out if pawn is putting king in check and if the pawn is the same file as enpassant
-	if (piece.getType() == PieceType::PAWN && checked && m_enPassant.isValid())
-	{
-		const unsigned char setModifier = piece.getSet() == Set::WHITE ? 0 : 1;
-		bool kingRankCheck = m_kings[piece.set()].second.rank == (3 + setModifier);
-
-		if (kingRankCheck) // can't be checked by double move unless king is on this rank
-		{
-			int fileDiff = m_kings[piece.set()].second.file - m_enPassant.file;
-			bool doubleMovedPawnCheck = std::abs(fileDiff) == 1;
-
-			if (doubleMovedPawnCheck)
-			{
-				modKingMask = kingMask | (UINT64_C(1) << m_enPassant.index());
-			}
-		}
-	}
 
 	for (auto pos : positions)
 	{
-		auto moves = GetAvailableMoves(pos, piece, threatenedMask, checked, modKingMask);
+		auto moves = GetAvailableMoves(pos, piece, threatenedMask, checkedMask, kingMask);
 		result.insert(result.end(), moves.begin(), moves.end());
 	}
 
@@ -980,22 +961,50 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	auto [checked, chkCount, checkedMask] = calcualteCheckedCount(currentSet);
+	auto [checked, chkCount, checkedMaskOrg] = calcualteCheckedCount(currentSet);
 	Set opSet = ChessPiece::FlipSet(currentSet);
 	u64 threatenedMask = CalcThreatenedMask(opSet);
 
 	u64 kingMask = GetKingMask(currentSet);
-	if (checked)
-		kingMask &= checkedMask;
+	u64 checkedMask = checkedMaskOrg & kingMask;
+	kingMask ^= checkedMask; // could also be called pinned mask?
+
+	u64 pawnKingMask = kingMask;
+	u64 pawnCheckedMask = checkedMask;
+
+	const unsigned char setModifier = currentSet == Set::WHITE ? 1 : 0;
+	bool kingRankCheck = m_kings[(int)currentSet].second.rank == (3 + setModifier);
+	if (m_enPassant.isValid() && kingRankCheck)
+	{
+		// remove en passant target from material
+		ChessPiece pawn(opSet, PieceType::PAWN);
+		m_bitboard.ClearPiece(pawn, m_enPassantTarget);
+		pawnKingMask = GetKingMask(currentSet);
+		pawnCheckedMask = pawnKingMask & checkedMaskOrg;
+		pawnKingMask ^= pawnCheckedMask;
+		pawnKingMask |= UINT64_C(1) << 63; 	// add a flag to indicate that this mask is for pawns
+											// who think they're pinned but they aren't
+		m_bitboard.PlacePiece(pawn, m_enPassantTarget);
+	}
 
 	std::vector<Move> result;
 	//std::vector<std::future<std::vector<Move>>> moveFutures;
 
-	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
+	u32 pieceIndx = 1;
+	if (chkCount > 1)
+		pieceIndx = (u32)PieceType::KING;
+
+	for (; pieceIndx < (size_t)PieceType::NR_OF_PIECES; ++pieceIndx)
 	{
-		ChessPiece currentPiece(currentSet, (PieceType)i);
+		ChessPiece currentPiece(currentSet, (PieceType)pieceIndx);
 		//moveFutures.push_back(std::async(std::launch::async, &Chessboard::concurrentCalculateAvailableMovesForPiece, this, currentPiece, threatenedMask, kingMask, checked));
-		auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, kingMask, checked);
+		if (pieceIndx == 1)
+		{
+			auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, pawnKingMask, pawnCheckedMask);
+			result.insert(result.end(), moves.begin(), moves.end());
+			continue;
+		}
+		auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, kingMask, checkedMask);
 		result.insert(result.end(), moves.begin(), moves.end());
 
 	}
@@ -1010,7 +1019,7 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 }
 
 const int index64[64] = {
-    0, 47,  1, 56, 48, 27,  2, 60,
+	0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
    54, 58, 35, 52, 50, 42, 21, 44,
    38, 32, 29, 23, 17, 11,  4, 62,
@@ -1028,13 +1037,22 @@ const int index64[64] = {
  * @return index (0..63) of least significant one bit
  */
 int bitScanForward(u64 bb) {
-   const u64 debruijn64 = 0x03f79d71b4cb0a89;
-   assert (bb != 0);
-   return index64[((bb ^ (bb-1)) * debruijn64) >> 58];
+	//return __builtin_ctzll(bb);
+	const u64 debruijn64 = 0x03f79d71b4cb0a89;
+	assert(bb != 0);
+	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
+}
+
+bool Chessboard::InternalIsMoveCheck(Move& move) const
+{
+	u64 attackedMask = m_bitboard.calcAttackedSquares(move.TargetSquare, move.isPromotion() ? move.PromoteToPiece : move.Piece);
+	ChessPiece kingPiece(ChessPiece::FlipSet(move.Piece.getSet()), PieceType::KING);
+	u64 kingPosition = m_bitboard.GetMaterial(kingPiece);
+	return (attackedMask & kingPosition) != 0;
 }
 
 std::vector<Move>
-Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, bool checked, u64 kingMask) const
+Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, u64 checkedMask, u64 kingMask) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -1043,11 +1061,12 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 	if (piece == ChessPiece())
 		return moveVector;
 
+	bool checked = checkedMask > 0;
 	// castling not available when in check
 	byte castlingState = checked ? 0 : m_castlingState;
 
-	u64 movesbb = m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant.index(), threatenedMask, checked, kingMask);
-	//u64 attacked = m_bitboard.calcAttackedSquares(source, piece);
+	u64 movesbb = m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant.index(), threatenedMask, checkedMask, kingMask);
+	u64 opMaterial = m_bitboard.GetMaterialCombined(ChessPiece::FlipSet(piece.getSet()));
 
 	if (movesbb == 0)
 		return moveVector;
@@ -1064,6 +1083,9 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 		if (move.Piece.getType() == PieceType::KING && IsMoveCastling(move))
 			move.Flags |= MoveFlag::Castle;
 
+		if (opMaterial & UINT64_C(1) << target)
+			move.Flags |= MoveFlag::Capture;
+
 		if (piece.getType() == PieceType::PAWN && IsPromoting(move))
 		{
 			move.Flags |= MoveFlag::Promotion;
@@ -1072,29 +1094,33 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 			Move rookPromote = Move(move);
 			rookPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::ROOK);
 
-			/*if (IsCheck(rookPromote))
-				rookPromote.Flags |= MoveFlag::Check;*/
+			if (InternalIsMoveCheck(rookPromote))
+				rookPromote.Flags |= MoveFlag::Check;
 
 			Move bishopPromote = Move(move);
 			bishopPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::BISHOP);
 
-			/*if (IsCheck(bishopPromote))
-				bishopPromote.Flags |= MoveFlag::Check;*/
+			if (InternalIsMoveCheck(bishopPromote))
+				bishopPromote.Flags |= MoveFlag::Check;
 
 			Move knightPromote = Move(move);
 			knightPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::KNIGHT);
 
-			/*if (IsCheck(knightPromote))
+			if (InternalIsMoveCheck(knightPromote))
 				knightPromote.Flags |= MoveFlag::Check;
 
-			if (IsCheck(move))
-				move.Flags |= MoveFlag::Check;*/
+			if (InternalIsMoveCheck(move))
+				move.Flags |= MoveFlag::Check;
 
-				// when pushing back new elements to the vector our reference to move is moved and 
-				// pointing at garbage. So we do this last.
+			// when pushing back new elements to the vector our reference to move is moved and 
+			// pointing at garbage. So we do this last.
 			moveVector.push_back(rookPromote);
 			moveVector.push_back(bishopPromote);
-			moveVector.push_back(knightPromote);			
+			moveVector.push_back(knightPromote);
+		}
+		else if (InternalIsMoveCheck(move))
+		{
+			move.Flags |= MoveFlag::Check;
 		}
 	}
 

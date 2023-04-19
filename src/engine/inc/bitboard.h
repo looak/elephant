@@ -67,7 +67,7 @@ public:
 	@param kingMask A bitmask representing the king's potential threats and pins.
 	@return A bitmask representing the available moves for the given chess piece.
 	*/
-	u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, bool checked = false, u64 kingMask = 0) const;
+	u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, u64 checkedMask = 0, u64 kingMask = 0) const;
 	u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
 	u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
@@ -78,6 +78,8 @@ public:
 	u64 GetMaterialCombined(Set set) const;
 	u64 GetMaterial(ChessPiece piece) const;
 
+	int BitScanFowrward(u64 bitboard) const;
+
 private:
 typedef std::function<bool(u64 sqrMask)> ResolveMask;
 typedef std::function<u64(u64 sqrMask)> Validate;
@@ -86,7 +88,7 @@ typedef std::function<u64(u64 sqrMask)> Validate;
 	u64 MaterialCombined() const;
 	u64 SlidingMaterialCombined(byte set) const;
 	u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-	u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, bool checked, u64 kingMask) const;
+	u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, u64 checkedMask, u64 kingMask) const;
 	u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
 
 	u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask){ return sqrMask; }) const;

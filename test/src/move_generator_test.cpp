@@ -857,9 +857,9 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
 }
 
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][ B ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][ p ][   ][   ][   ][   ][   ][   ]
 // 4 [ k ][   ][   ][   ][   ][ p ][   ][ R ]
 // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 2 [   ][   ][   ][   ][ P ][   ][   ][   ]
@@ -874,9 +874,11 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, a4);
     board.PlacePiece(BLACKPAWN, f4);
+    board.PlacePiece(BLACKPAWN, b5);
     board.PlacePiece(WHITEPAWN, e2);
     board.PlacePiece(WHITEROOK, h4);
     board.PlacePiece(WHITEKING, f1);
+    board.PlacePiece(WHITEBISHOP, d7);
 
     // move pawn to e4
     Move move(e2, e4);
@@ -884,6 +886,9 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    // b5 thinks in can move to b4 because both of those are in the pinned mask i.e. legal moves.
+    // need to seperate my pinned masks so a piece can't move from one pin to another.
 
     // verify
     MoveCount::Predicate predicate = [](const Move& mv)
@@ -1290,6 +1295,30 @@ TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
     ASSERT_NE(moves.end(), pawnMv);
     EXPECT_EQ(BLACKPAWN, pawnMv->Piece);
     EXPECT_EQ(c3, pawnMv->SourceSquare);
+}
+
+/**
+* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][ n ][   ][   ][   ][   ]
+* 3 [   ][ B ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][ K ][   ][ R ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H
+* fen: 8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1*/
+TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
+{
+    std::string fen("8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1");
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    auto knightMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == b3; });
+    EXPECT_NE(moves.end(), knightMv);
+    EXPECT_NE(5, moves.size());
 }
 
 } // namespace ElephantTest
