@@ -1,6 +1,7 @@
 #include "commands_uci.h"
-#include "game_context.h"
 #include "commands_utils.h"
+#include "game_context.h"
+#include "move.h"
 
 /**
 * Send back what options this engine supports. */
@@ -38,7 +39,7 @@ void UCI::UCIEnable(GameContext& context)
 
 			command->second(tokens, context);
 			if (token == "quit")
-				uciEnabled = false;
+				std::exit(0);
 		}
 	}
 }
@@ -67,10 +68,71 @@ void UCI::NewGameCommand(std::list<std::string>& args, GameContext& context)
 }
 void UCI::PositionCommand(std::list<std::string>& args, GameContext& context)
 {
-	
+    if (args.size() == 0)
+    {
+        LOG_ERROR() << "PositionCommand: No arguments";
+        return;
+    }
+
+    auto&& arg = args.front();
+    if (arg == "startpos")
+    {
+        context.NewGame();
+        args.pop_front();
+        if (args.front() == "moves")
+        {            
+            args.pop_front();
+            while (args.size() > 0)
+            {
+                std::string moveStr = args.front();
+                args.pop_front();
+                Move move = Move::fromString(moveStr);            
+                context.MakeMove(move);
+                LOG_INFO() << "Made move: " << move.toString() << "\n";
+            }
+        }
+
+    }
+    else if (arg == "fen")
+    {
+        // args.pop_front();
+        // std::string fen = "";
+        // while (args.size() > 0 && args.front() != "moves")
+        // {
+        //     fen += args.front() + " ";
+        //     args.pop_front();
+        // }
+        // context.NewGame(fen);
+    }
+    else
+    {
+        LOG_ERROR() << "PositionCommand: Invalid argument: " << arg;
+        return;
+    }
 }
 void UCI::GoCommand(std::list<std::string>& args, GameContext& context)
 {
+    if (args.size() == 0)
+    {
+        LOG_ERROR() << "PositionCommand: No arguments";
+        return;
+    }
+
+    //auto&& arg = args.front();
+    //if (arg == "go")
+    {
+        args.pop_front();
+        //args.front()
+
+        Move mv = context.CalculateBestMove();
+        std::cout << "bestmove " << mv.toString() << "\n";
+        LOG_INFO() << "bestmove " << mv.toString() << "\n";
+    }
+    // else
+    // {
+    //     LOG_ERROR() << "PositionCommand: Invalid argument: " << arg;
+    //     return;
+    // }
 
 }
 void UCI::StopCommand(std::list<std::string>& args, GameContext& context)

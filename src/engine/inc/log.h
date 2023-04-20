@@ -175,7 +175,7 @@ public:
 
 	virtual ~LogMessage()
 	{
-		//ScopedRedirect redirect(std::cerr, "log.txt");
+		ScopedRedirect redirect(std::cerr, "log.txt");
 		if (m_userMessage.get() != nullptr)
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
 		else

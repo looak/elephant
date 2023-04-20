@@ -86,7 +86,9 @@ public:
     std::string toString() const;
 
     static std::vector<std::string> ParsePGN(std::string pgn, std::vector<Move>& ret);
-    static Move FromString(std::string moveStr, bool isWhiteMove);
+    static Move fromPGN(std::string pgn, bool isWhiteMove);
+    static Move fromString(std::string moveNotation);
+
     static Move Invalid() { return Move(); }
 
     Notation TargetSquare;

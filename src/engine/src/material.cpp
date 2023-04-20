@@ -1,4 +1,5 @@
 #include "material.h"
+#include <algorithm>
 
 Material::Material()
 {}
@@ -88,6 +89,11 @@ Material::UnmakePieceMove(ChessPiece pieceToAdd, ChessPiece pieceToRemove, Notat
 u32 Material::getPieceCount(ChessPiece piece) const
 {
 	return m_material[piece.index()].size();
+}
+
+u32 Material::getPieceCount(PieceType type) const
+{
+    return m_material[(size_t)type].size();
 }
 
 u32 Material::getValue() const

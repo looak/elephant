@@ -209,7 +209,7 @@ Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 Move
 Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) const
 {
-	Move mv = Move::FromString(pgn, isWhiteMove);
+	Move mv = Move::fromPGN(pgn, isWhiteMove);
 
 	if (mv.SourceSquare.isValid())
 		return mv;

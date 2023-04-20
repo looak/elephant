@@ -315,7 +315,7 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
     return comments;
 }
 
-Move Move::FromString(std::string movestr, bool isWhiteMove)
+Move Move::fromPGN(std::string pgn, bool isWhiteMove)
 {
 	Move mv;
     mv.setAmbiguous(true);
@@ -323,8 +323,8 @@ Move Move::FromString(std::string movestr, bool isWhiteMove)
     mv.TargetSquare = Notation::Invalid();
 
 	size_t cursor = 0;
-	ParsePiece(movestr, cursor, mv, isWhiteMove);
-	ParseFileAndRank(movestr, cursor, mv, isWhiteMove);
+	ParsePiece(pgn, cursor, mv, isWhiteMove);
+	ParseFileAndRank(pgn, cursor, mv, isWhiteMove);
 	return mv;
 }
 
@@ -340,4 +340,23 @@ std::string Move::toString() const
     }
 
     return ret;
+}
+
+Move Move::fromString(std::string str)
+{
+    Move mv;
+    mv.setAmbiguous(false);
+    mv.SourceSquare = Notation::Invalid();
+    mv.TargetSquare = Notation::Invalid();
+
+    mv.SourceSquare = Notation::BuildPosition(str[0], std::atoi(&str[1]));
+    mv.TargetSquare = Notation::BuildPosition(str[2], std::atoi(&str[3]));
+
+    if (str.size() > 4)    // assume there's a promotion piece
+    {
+        mv.PromoteToPiece.fromString(str[4]);
+        mv.Flags |= MoveFlag::Promotion;
+    }
+
+    return mv;
 }

@@ -6,5 +6,8 @@ class Chessboard;
 class Evaluator
 {
 public:
-    u64 Evaluate(const Chessboard& board) const;
+    i32 Evaluate(const Chessboard& board) const;
+
+private:
+    i32 EvaluateMaterial(const Chessboard& board) const;
 };

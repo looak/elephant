@@ -24,6 +24,7 @@ typedef unsigned char byte;
 typedef unsigned long long u64;
 typedef signed long long i64;
 typedef unsigned long u32;
+typedef signed long i32;
 
 const u64 universe = 0xffffffffffffffffULL;
 

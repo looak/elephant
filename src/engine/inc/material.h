@@ -53,6 +53,7 @@ public:
 	u32 getValue() const;
 	u32 getCount() const;
 	u32 getPieceCount(ChessPiece piece) const;
+    u32 getPieceCount(PieceType pieceType) const;
 	
 private:
 	typedef std::array<std::vector<Notation>, (size_t)PieceType::KING> MaterialGrid;
