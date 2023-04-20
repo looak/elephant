@@ -1,8 +1,10 @@
 #pragma once
 #include <vector>
+#include "defines.h"
 
 class Chessboard;
 struct Notation;
+class KingMask;
 
 
 namespace ElephantTest
@@ -24,6 +26,8 @@ namespace ElephantTest
     bool NotationCompare(Notation lhs, Notation rhs);
 
     bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo);
+
+    u64 CombineKingMask(KingMask mask);
 
     #define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
     #define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)

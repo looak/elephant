@@ -98,10 +98,12 @@ int Bitboard::BitScanFowrward(u64 bitboard) const
     return __builtin_ctzll(bitboard);
 }
 
-u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, u64 checkedMask, u64 kingMask) const
+u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMaskStruct, KingMask kingMaskStruct) const
 {
     u64 ret = ~universe;    
     u64 matComb = mat | opMat;
+    u64 checkedMask = checkedMaskStruct.combined();
+    u64 kingMask = kingMaskStruct.combined();
 
     // by default we assume our piece is black
     byte curSet = 1;
@@ -121,8 +123,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     // this magic code is to solve the issue where we have a pinned pawn and a en passant capture opportunity,
     // but capturing the en passant would put our king in check.
     bool wasPinned = false;
-    u64 pinnedEnPassantFlagMask = UINT64_C(1) << 63;
-    if (pinned && pinnedEnPassantFlagMask & kingMask)
+    if (pinned && kingMaskStruct.pawnMask)
     {
         // verify we're on the rank of en passant target;
         if (rankMasks[epTargetRank] & sqrMask)
@@ -134,27 +135,35 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
 
     if(checkedMask > 0) // figure out if en passant target is the one putting our king in check
     {
+        threatenedMask = checkedMask;
+        
         if (enPassant != 0xff)
         {
             Notation ept(enPassant);
             Notation enPassantPieceSqr(ept.file, ept.rank + moveMod);
             // calculate attacked squares
-            ChessPiece opPawn = ChessPiece((Set)curSet, PieceType::PAWN);
+            ChessPiece opPawn = ChessPiece(ChessPiece::FlipSet((Set)curSet), PieceType::PAWN);
             u64 enPassantAttack = calcThreatenedSquares(enPassantPieceSqr, opPawn);
             
             if (enPassantAttack & m_material[piece.set()][5])
             {
-				threatenedMask = kingMask | (UINT64_C(1) << enPassant);
+				threatenedMask = checkedMask | (UINT64_C(1) << enPassant);
             }    
-        }
-        else
-        {
-            threatenedMask = checkedMask;
-        }
+        }        
+
+        if (pinned)
+            threatenedMask &= kingMask;
     }
     else if (pinned)
     {
-        threatenedMask = kingMask;
+        for (byte i = 0; i < 8; ++i)
+        {
+            if (sqrMask & kingMaskStruct.threats[i])
+            {                
+                threatenedMask = kingMaskStruct.threats[i];
+                break;
+            }        
+        }
     }    
 
     // Figure out if we're moving a pawn out of it's starting position.
@@ -206,21 +215,16 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     return ret;
 }
 
-/// <summary>
-/// From Kings position, we look at all directions until we hit end of board and see if 
-/// we run into a piece which is threatening the king or pinning another piece
-/// </summary>
-/// <param name="king"></param>
-/// <param name="target"></param>
-/// <returns></returns>
-u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& opponentSlidingMask) const
+KingMask 
+Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialMask& opponentSlidingMask) const
 {
     byte moveCount = ChessPieceDef::MoveCount(king.index());
 
     u8 bishop = 2;
     u8 rook = 3;
     u8 queen = 4;
-    //m_material[set][bishop] | m_material[set][rook] | m_material[set][queen];
+
+    KingMask ret;
 
     u8 opSet = ChessPiece::FlipSet(king.set());
     u64 slideMat = SlidingMaterialCombined(opSet);
@@ -230,7 +234,7 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
 	u64 orthogonalMat = opponentSlidingMask.orthogonal;
     u64 allMat = MaterialCombined();
     u64 knightMat = m_material[opSet][1];
-    u64 ret = ~universe;
+    //u64 ret = ~universe;
     u8 checks = 0;
     
     if (c_diagnoalMat > 0 || c_orthogonalMat > 0)
@@ -253,9 +257,11 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
         {            
             matCount = 0;
             sliding = true;
-            byte curSqr = target.index();
+            byte curSqr = source.index();
             signed short dir = ChessPieceDef::Moves0x88(king.index(), moveIndx);
             bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
+
+            ret.threats[moveIndx] = ~universe;
 			
             if (diagonal)
 				slideMat = diagnoalMat & c_diagnoalMat;
@@ -272,13 +278,17 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
             // they are pinned
             if (mvMask & slideMat && matCount <= 2)
             {
-                ret |= mvMask;
+                ret.threats[moveIndx] |= mvMask;
                 if (matCount == 1)
+                {
+                    ret.checked[moveIndx] = true;
                     checks++;
+                }
             }
         }
     }
 
+    ret.knightsAndPawns = ~universe;
     if (knightMat > 0)
     {
         // figure out if we're checked by a knight
@@ -294,13 +304,14 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
         {
             
-            byte curSqr = target.index();
+            byte curSqr = source.index();
             signed short dir = ChessPieceDef::Moves0x88(knight.index(), moveIndx);
 
             u64 mvMask = internalGenerateMask(curSqr, dir, sliding, nResolve);
             if (mvMask & knightMat)
             {
-                ret |= mvMask;
+                ret.knightsAndPawns |= mvMask;
+                ret.knightOrPawnCheck = true;
                 checks++;
             }
         }
@@ -310,33 +321,32 @@ u64 Bitboard::GetKingMask(ChessPiece king, Notation target, const MaterialMask& 
     {
         // figure out if we're checked by a pawn
         s8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
-        auto pawnSqr = Notation(target.file + 1, target.rank + pawnMod);
+        auto pawnSqr = Notation(source.file + 1, source.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
             sqrMak &= m_material[opSet][0];
             if (sqrMak > 0)
             {
-                ret |= sqrMak;
+                ret.knightsAndPawns |= sqrMak;
+                ret.knightOrPawnCheck = true;
                 checks++;
             }
         }
-        pawnSqr = Notation(target.file - 1, target.rank + pawnMod);
+        pawnSqr = Notation(source.file - 1, source.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
             sqrMak &= m_material[opSet][0];            
             if (sqrMak > 0)
             {
-                ret |= sqrMak;
+                ret.knightsAndPawns |= sqrMak;
+                ret.knightOrPawnCheck = true;
                 checks++;
             }
         }
     }
 
-    // if we're checked by more than one piece we have to move the king and generating this mask doesn't matter.
-    if (checks > 1)
-        return 0;
     return ret;
 }
 
@@ -371,7 +381,7 @@ u64 Bitboard::calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation so
     return ret;
 }
 
-u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castling, byte enPassant, u64 threatened, u64 checkedMask, u64 kingMask) const
+u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castling, byte enPassant, u64 threatened, KingMask checkedMask, KingMask kingMask) const
 {
     u64 ret = ~universe;
     u64 matComb = MaterialCombined(piece.set());
@@ -382,16 +392,39 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
     else if(piece.getType() == PieceType::KING)
         return calcAvailableMovesForKing(matComb, threatened, source, piece, castling);
     
-    bool checked = checkedMask > 0;
+    bool checked = !checkedMask.zero();
+    bool pinned = false;
+    byte moveIndx = 0;
 
-    // figure out if we're pinned
+    // figure out if we're pinned and if so overwrite the threatened mask.
     u64 sqrMask = UINT64_C(1) << source.index();
-    bool pinned = (sqrMask & kingMask);
-    if (checked)
-        threatened = checkedMask;
-    else if (pinned)
-        threatened = kingMask;
 
+    for (byte i = 0; i < 8; ++i)
+    {
+        // if (sqrMask & checkedMask.threats[i])
+        // {
+        //     checked = true;
+        //     //moveIndx = i;
+        //     threatened = checkedMask.threats[i];
+        //     break;
+        // }
+        // else
+        if(sqrMask & kingMask.threats[i])
+        {
+            pinned = true;
+            threatened = kingMask.threats[i];
+            //moveIndx = i;
+        }
+    }
+    
+    if (checked)
+    {
+        if (pinned)
+            threatened &= checkedMask.combined();
+        else
+            threatened = checkedMask.combined();
+    }
+    
     bool sliding = false;
     auto resolve = [&](u64 sqrMask)
     {
@@ -416,7 +449,7 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
     };
 
     byte moveCount = ChessPieceDef::MoveCount(piece.index());
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
+    for (; moveIndx < moveCount; ++moveIndx)
     {
         sliding = ChessPieceDef::Slides(piece.index());
         byte curSqr = source.index();

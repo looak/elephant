@@ -18,12 +18,7 @@ namespace ElephantTest
 class BitboardFixture : public ::testing::Test
 {
 public:
-    /*   virtual void SetUp()
-    {
 
-    };
-    virtual void TearDown() {};
-*/
 };
 
 ////////////////////////////////////////////////////////////////
@@ -1034,7 +1029,7 @@ TEST_F(BitboardFixture, Black_Rook_Threat_Blocked_By_Some_Pieces)
 // 2 [ . ][ . ][ . ][ . ][ R ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_Rook_OnlyAvailableMoveToBlockCheck)
+TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToBlockCheck)
 {
     Bitboard board;
     auto r = BLACKROOK;
@@ -1046,13 +1041,19 @@ TEST_F(BitboardFixture, Black_Rook_OnlyAvailableMoveToBlockCheck)
     board.PlacePiece(k, e7);
     board.PlacePiece(R, e2);
 
-    u64 expected = ~universe;    
+    u64 expected = ~universe;
     expected |= INT64_C(1) << e3.index();
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7, { threat, 0 });
-    u64 result = board.calcAvailableMoves(c3, r, 0, 0, threat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e7, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }
+
+    u64 result = board.calcAvailableMoves(c3, r, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1067,7 +1068,7 @@ TEST_F(BitboardFixture, Black_Rook_OnlyAvailableMoveToBlockCheck)
 // 2 [ . ][ . ][ r ][ . ][ xR][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
+TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToCaptureThreateningPiece)
 {
     Bitboard board;
     auto r = BLACKROOK;
@@ -1082,11 +1083,15 @@ TEST_F(BitboardFixture, Black_Rook_Only_Available_Move_To_Capture)
     u64 expected = ~universe;
     expected |= INT64_C(1) << e2.index();
 
-    // do
-    //u64 threat = board.calcThreatenedSquares(e2, R);
+    // do    
     u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7, { threatWithmat, 0 });
-    u64 result = board.calcAvailableMoves(c2, r, 0, 0, threatWithmat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e7, { threatWithmat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threatWithmat & kingMask.threats[i];
+    }
+    u64 result = board.calcAvailableMoves(c2, r, 0, 0, threatWithmat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1123,8 +1128,14 @@ TEST_F(BitboardFixture, PinnedPiece_Black_AbleToMoveAlongThreatenedSquares)
 
     // do
     u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7, { threatWithmat, 0 });
-    u64 result = board.calcAvailableMoves(e4, r, 0, 0, threatWithmat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e7, { threatWithmat, 0 });
+    KingMask checkedMask; // we are not in check so this should be 0.
+    // for (u8 i = 0; i < 8; ++i)
+    // {
+    //     // we are not in check
+    //     checkedMask.threats[i] = 0;//threatWithmat & kingMask.threats[i];
+    // }
+    u64 result = board.calcAvailableMoves(e4, r, 0, 0, threatWithmat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1139,7 +1150,7 @@ TEST_F(BitboardFixture, PinnedPiece_Black_AbleToMoveAlongThreatenedSquares)
 // 2 [ . ][ . ][ . ][ . ][ R ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ r ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
+TEST_F(BitboardFixture, KingCheckedMask_Black_RookHasNoAvailableMoves)
 {
     Bitboard board;
     auto r = BLACKROOK;
@@ -1154,9 +1165,14 @@ TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
     u64 expected = ~universe;
 
     // do
-    u64 threat = board.calcThreatenedSquares(e2, R);
-    u64 kingMask = board.GetKingMask(k, e7, { 0, 0});
-    u64 result = board.calcAvailableMoves(c1, r, 0, 0, threat, true, kingMask);
+    u64 threat = board.GetThreatenedSquaresWithMaterial(e2, R);
+    KingMask kingMask = board.calcKingMask(k, e7, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }
+    u64 result = board.calcAvailableMoves(c1, r, 0, 0, threat, kingMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1171,7 +1187,7 @@ TEST_F(BitboardFixture, Black_Rook_No_Available_Moves)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Pawn_Pinned_NoAvailableMoves)
+TEST_F(BitboardFixture, PinnedPiece_Black_PawnHasNoAvailableMovesSinceItsPinned)
 {
     Bitboard board;
     auto p = BLACKPAWN;
@@ -1187,8 +1203,13 @@ TEST_F(BitboardFixture, Pawn_Pinned_NoAvailableMoves)
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(h7, R);
-    u64 kingMask = board.GetKingMask(k, e7, { threat, 0 });
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, false, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e7, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }    
+    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1203,7 +1224,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_NoAvailableMoves)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
+TEST_F(BitboardFixture, PinnedPiece_White_PawnHasNoAvailableMovesSinceItsPinned)
 {
     Bitboard board;
     auto p = WHITEPAWN;
@@ -1219,8 +1240,13 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(h5, R);
-    u64 kingMask = board.GetKingMask(k, e5, { threat, 0 });
-    u64 result = board.calcAvailableMoves(f5, p, 0, 0, threat, false, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e5, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }   
+    u64 result = board.calcAvailableMoves(f5, p, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1235,7 +1261,7 @@ TEST_F(BitboardFixture, Pawn_Pinned_No_Available_Moves_White)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Pawn_Block_Check)
+TEST_F(BitboardFixture, CheckedMask_Black_PawnCanMoveIntoBlockingCheckButNoFurther)
 {
     Bitboard board;
     auto p = BLACKPAWN;
@@ -1252,8 +1278,13 @@ TEST_F(BitboardFixture, Pawn_Block_Check)
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(h6, R);
-    u64 kingMask = board.GetKingMask(k, e6, { threat, 0 });
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e6, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }   
+    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1268,7 +1299,7 @@ TEST_F(BitboardFixture, Pawn_Block_Check)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Pawn_Capture_Check)
+TEST_F(BitboardFixture, CheckedMask_Black_PawnCanCaptureCheckingPiece)
 {
     Bitboard board;
     auto p = BLACKPAWN;
@@ -1286,8 +1317,13 @@ TEST_F(BitboardFixture, Pawn_Capture_Check)
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(g6, R);
-    u64 kingMask = board.GetKingMask(k, e6, { threat, 0 });
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e6, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }  
+    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1302,7 +1338,7 @@ TEST_F(BitboardFixture, Pawn_Capture_Check)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Pawn_Block_Check_DoubleMove)
+TEST_F(BitboardFixture, CheckedMask_Black_PawnCanOnlyDoubleMoveToBlockCheck)
 {
     Bitboard board;
     auto p = BLACKPAWN;
@@ -1319,8 +1355,13 @@ TEST_F(BitboardFixture, Pawn_Block_Check_DoubleMove)
 
     // do
     u64 threat = board.GetThreatenedSquaresWithMaterial(g5, R);
-    u64 kingMask = board.GetKingMask(k, e5, { threat, 0 });
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, true, kingMask);
+    KingMask kingMask = board.calcKingMask(k, e5, { threat, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threat & kingMask.threats[i];
+    }      
+    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1413,7 +1454,7 @@ TEST_F(BitboardFixture, KingMask_Pawns)
     expected |= INT64_C(1) << b7.index();
 
     // do
-    u64 kingMask = board.GetKingMask(k, a8, { 0, 0 });
+    u64 kingMask = CombineKingMask(board.calcKingMask(k, a8, { 0, 0 }));
 
     // validate
     EXPECT_EQ(expected, kingMask);
@@ -1438,7 +1479,7 @@ TEST_F(BitboardFixture, White_Knight_Move)
     expected |= INT64_C(1) << d5.index();
 
     // do
-     u64 result = board.calcAvailableMoves(c3, N, 0, 0, 0, false, 0);
+     u64 result = board.calcAvailableMoves(c3, N, 0, 0, 0, KingMask(), KingMask());
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1453,7 +1494,7 @@ TEST_F(BitboardFixture, White_Knight_Move)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bishop_BlockCheck)
+TEST_F(BitboardFixture, CheckedMask_Black_BishopCanOnlyBlockOrCaptureToCancelCheck)
 {
     Bitboard board;
     
@@ -1468,10 +1509,15 @@ TEST_F(BitboardFixture, Bishop_BlockCheck)
 
  
     u64 threatMask = board.GetThreatenedSquaresWithMaterial(a8, WHITEROOK);
-    u64 kingMask = board.GetKingMask(BLACKKING, e8, { threatMask, 0 });
+    KingMask kingMask = board.calcKingMask(BLACKKING, e8, { threatMask, 0 });
+    KingMask checkedMask;
+    for (u8 i = 0; i < 8; ++i)
+    {
+        checkedMask.threats[i] = threatMask & kingMask.threats[i];
+    }    
 
 	// do
-	u64 result = board.calcAvailableMoves(b7, BLACKBISHOP, 0, 0, threatMask, true, kingMask);
+	u64 result = board.calcAvailableMoves(b7, BLACKBISHOP, 0, 0, threatMask, checkedMask, kingMask);
 
 	// validate
 	EXPECT_EQ(expected, result);       
@@ -1506,7 +1552,7 @@ TEST_F(BitboardFixture, Castling_BlockedByOpponentPieceInBetween)
 	expected |= INT64_C(1) << f7.index();
 
 	// do
-	u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, false, 0);
+	u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, KingMask(), KingMask());
 
 	// validate
 	EXPECT_EQ(expected, result);
@@ -1542,7 +1588,7 @@ TEST_F(BitboardFixture, Castling_BlockedByOwnPieceInBetween)
     expected |= INT64_C(1) << f7.index();
 
     // do
-    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, false, 0);
+    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, KingMask(), KingMask());
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1579,7 +1625,7 @@ TEST_F(BitboardFixture, KingMask_BishopAndQueenNotThreatening)
 	orthogonal |= board.GetThreatenedSquaresWithMaterial(f3, BLACKROOK);
     
     // do
-	u64 result = board.GetKingMask(WHITEKING, g1, { orthogonal, diagonal });
+	u64 result = CombineKingMask(board.calcKingMask(WHITEKING, g1, { orthogonal, diagonal }));
 
     // validate
     EXPECT_EQ(expected, result);

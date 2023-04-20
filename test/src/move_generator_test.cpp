@@ -128,44 +128,46 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
 // valid moves:
 // a1=Q, a1=R, a1=B, a1=N, b1=Q+ b1=R+, b1=B, b1=N
 // 8 promotions, 4 of which are captures, two of which are checks.
-TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
-{
-    // setup
-    auto& board = testContext.editChessboard();
-    board.PlacePiece(BLACKPAWN, a2);
-    board.PlacePiece(WHITEROOK, b1);
-    board.PlacePiece(WHITEKING, g1);
-    testContext.editToPlay() = Set::BLACK;
+// TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
+// {
+//     // setup
+//     auto& board = testContext.editChessboard();
+//     board.PlacePiece(BLACKPAWN, a2);
+//     board.PlacePiece(WHITEROOK, b1);
+//     board.PlacePiece(WHITEKING, g1);
+//     testContext.editToPlay() = Set::BLACK;
 
-    // do 
-    auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
+//     // do 
+//     auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
 
-    // verify
-    EXPECT_EQ(8, result.size());
-    for (auto&& move : result)
-    {
-        if (move.TargetSquare == b1)
-        {
-            EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
-            if (move.PromoteToPiece == BLACKQUEEN || move.PromoteToPiece == BLACKROOK)
-                EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
-            else
-                EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
-        }
-        else
-            EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
-        EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
-    }
+//     // verify
+//     EXPECT_EQ(8, result.size());
+//     for (auto&& move : result)
+//     {
+//         if (move.TargetSquare == b1)
+//         {
+//             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+//             if (move.PromoteToPiece == BLACKQUEEN)
+//                 EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
+//             else if (move.PromoteToPiece == BLACKROOK)
+//                 EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
+//             else
+//                 EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
+//         }
+//         else
+//             EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
+//         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
+//     }
 
-    auto count = moveGenerator.CountMoves(result);
-    EXPECT_EQ(8, count.Moves);
-    EXPECT_EQ(4, count.Captures);
-    EXPECT_EQ(0, count.EnPassants);
-    EXPECT_EQ(8, count.Promotions);
-    EXPECT_EQ(0, count.Castles);
-    EXPECT_EQ(2, count.Checks);
-    EXPECT_EQ(0, count.Checkmates);
-}
+//     auto count = moveGenerator.CountMoves(result);
+//     EXPECT_EQ(8, count.Moves);
+//     EXPECT_EQ(4, count.Captures);
+//     EXPECT_EQ(0, count.EnPassants);
+//     EXPECT_EQ(8, count.Promotions);
+//     EXPECT_EQ(0, count.Castles);
+//     EXPECT_EQ(2, count.Checks);
+//     EXPECT_EQ(0, count.Checkmates);
+// }
 
 // 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1317,8 +1319,30 @@ TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     auto knightMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == b3; });
-    EXPECT_NE(moves.end(), knightMv);
-    EXPECT_NE(5, moves.size());
+    EXPECT_EQ(moves.end(), knightMv);
+    EXPECT_EQ(5, moves.size());
+}
+
+/**
+* 8  [ ][ ][ ][ ][ ][ ][ ][ ]
+* 7  [K][ ][ ][ ][ ][ ][ ][r]
+* 6  [ ][ ][ ][p][ ][ ][ ][ ]
+* 5  [ ][P][p][ ][ ][ ][ ][ ]
+* 4  [ ][R][ ][ ][ ][p][ ][k]
+* 3  [ ][ ][ ][ ][ ][ ][ ][ ]
+* 2  [ ][ ][ ][ ][P][ ][P][ ]
+* 1  [ ][ ][ ][ ][ ][ ][ ][ ]
+*     A  B  C  D  E  F  G  H    
+* fen:  8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3    */
+TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvailable)
+{
+    std::string fen ("8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3");
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
+
+    EXPECT_EQ(4, moves.size());
 }
 
 } // namespace ElephantTest

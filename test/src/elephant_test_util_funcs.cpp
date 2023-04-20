@@ -5,6 +5,7 @@
 #include <sstream>
 #include <algorithm>
 #include "log.h"
+#include "bitboard.h"
 
 namespace ElephantTest
 {
@@ -44,6 +45,18 @@ namespace ElephantTest
 //
 //    return true;
 //}
+
+
+u64 CombineKingMask(KingMask mask)
+{
+    u64 result = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        result |= mask.threats[i];
+    }
+    result |= mask.knightsAndPawns;
+    return result;
+}
 
 bool PrintBoard(const Chessboard& board)
 {

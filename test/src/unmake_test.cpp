@@ -401,7 +401,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
     EXPECT_EQ(hash, m_chessboard.readHash());
 
     // validate available moves
-    auto moves = m_chessboard.GetAvailableMoves(e8, k, 0, false, 0);    
+    auto moves = m_chessboard.GetAvailableMoves(e8, k, 0, KingMask(), KingMask());
 
     EXPECT_EQ(7, moves.size());
 
@@ -412,7 +412,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(a8));
     EXPECT_EQ(4, m_chessboard.readCastlingState());
 
-	moves = m_chessboard.GetAvailableMoves(e8, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e8, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(6, moves.size());
     
     // unmake
@@ -422,7 +422,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
 	EXPECT_EQ(r, m_chessboard.readPieceAt(a8));
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(a1));
     
-	moves = m_chessboard.GetAvailableMoves(e8, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e8, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(7, moves.size());
 
     Move hrookMove(h8, h1);
@@ -432,7 +432,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
     EXPECT_EQ(empty, m_chessboard.readPieceAt(h8));
     EXPECT_EQ(8, m_chessboard.readCastlingState());
 
-    moves = m_chessboard.GetAvailableMoves(e8, k, 0, false, 0);
+    moves = m_chessboard.GetAvailableMoves(e8, k, 0, KingMask(), KingMask());
     EXPECT_EQ(6, moves.size());
 
     // unmake
@@ -442,7 +442,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
     EXPECT_EQ(r, m_chessboard.readPieceAt(h8));
     EXPECT_EQ(empty, m_chessboard.readPieceAt(h1));
 
-    moves = m_chessboard.GetAvailableMoves(e8, k, 0, false, 0);
+    moves = m_chessboard.GetAvailableMoves(e8, k, 0, KingMask(), KingMask());
     EXPECT_EQ(7, moves.size());    
 }
 
@@ -492,7 +492,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
     EXPECT_EQ(hash, m_chessboard.readHash());
 
     // validate available moves
-    auto moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+    auto moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
 
     EXPECT_EQ(7, moves.size());
 
@@ -503,7 +503,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(a1));
 	EXPECT_EQ(1, m_chessboard.readCastlingState());
 
-	moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(6, moves.size());
 
 	// unmake
@@ -513,7 +513,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
 	EXPECT_EQ(r, m_chessboard.readPieceAt(a1));
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(a8));
 
-	moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(7, moves.size());
 
 	Move hrookMove(h1, h8);
@@ -524,7 +524,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
 	EXPECT_EQ(2, m_chessboard.readCastlingState());
     
 
-	moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(6, moves.size());
 
 	// unmake
@@ -534,7 +534,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
 	EXPECT_EQ(r, m_chessboard.readPieceAt(h1));
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(h8));
 
-	moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+	moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
 	EXPECT_EQ(7, moves.size());
 
     // move king
@@ -550,7 +550,7 @@ TEST_F(UnmakeFixture, King_CastlingQueenSide_White_Unmake)
 	EXPECT_EQ(empty, m_chessboard.readPieceAt(e2));
 	EXPECT_EQ(3, m_chessboard.readCastlingState());
 
-    moves = m_chessboard.GetAvailableMoves(e1, k, 0, false, 0);
+    moves = m_chessboard.GetAvailableMoves(e1, k, 0, KingMask(), KingMask());
     EXPECT_EQ(7, moves.size());    
 }
 

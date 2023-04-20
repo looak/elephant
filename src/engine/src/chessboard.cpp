@@ -758,19 +758,19 @@ Chessboard::InternalHandleCapture(Move& move, Notation pieceTarget)
 	}
 }
 
-bool
+int
 Chessboard::IsMoveCastling(const Move& move) const
 {
 	byte casltingMask = 3 << (2 * move.Piece.set());
 	if (m_castlingState & casltingMask)
 	{
 		if (move.TargetSquare.file == 2)
-			return true; // castling queen side
+			return -1; // castling queen side
 		else if (move.TargetSquare.file == 6)
-			return true; // castling king side
+			return 1; // castling king side
 	}
 
-	return false;
+	return 0;
 }
 
 bool
@@ -785,10 +785,10 @@ Chessboard::IsPromoting(const Move& move) const
 	return false;
 }
 
-std::tuple<bool, int, u64>
+std::tuple<bool, int, KingMask>
 Chessboard::calcualteCheckedCount(Set set) const
 {
-	std::tuple<bool, int, u64> result = { false, 0, 0 };
+	std::tuple<bool, int, KingMask> result = { false, 0, KingMask() };
 	u8 indx = static_cast<u8>(set);
 	auto king = m_kings[indx];
 
@@ -799,7 +799,9 @@ Chessboard::calcualteCheckedCount(Set set) const
 	Set op = ChessPiece::FlipSet(set);
 	u64 kingMask = UINT64_C(1) << king.second.index();
 
-	// for each piece on the board check if it can attack the king.
+    //m_bitboard.calcKingMask(king.first, king.second, )
+
+    // for each piece on the board check if it can attack the king.
 	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
 	{
 		ChessPiece currentPiece(op, (PieceType)i);
@@ -812,7 +814,7 @@ Chessboard::calcualteCheckedCount(Set set) const
 			{
 				std::get<0>(result) = true;
 				std::get<1>(result) += 1;
-				std::get<2>(result) |= threatMask;
+			//	std::get<2>(result) |= threatMask;
 			}
 		}
 	}
@@ -857,15 +859,15 @@ Chessboard::readKingPosition(Set set) const
 	return m_kings[static_cast<u8>(set)].second;
 }
 
-u64 Chessboard::GetKingMask(Set set) const
+KingMask Chessboard::calcKingMask(Set set) const
 {
 	u8 indx = static_cast<u8>(set);
 	if (m_kings[indx].first == ChessPiece())
-		return 0;
+		return KingMask();
 
 	// might not need to get sliding masks, only material here?
 	auto slidingPair = GetSlidingMaskWithMaterial(ChessPiece::FlipSet(set));
-	return m_bitboard.GetKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
+	return m_bitboard.calcKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
 }
 
 u64
@@ -943,7 +945,7 @@ Chessboard::GetSlidingMaskWithMaterial(Set set) const
 }
 
 std::vector<Move>
-Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, u64 checkedMask) const
+Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask) const
 {
 	std::vector<Move> result;
 
@@ -961,16 +963,18 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
 {
-	auto [checked, chkCount, checkedMaskOrg] = calcualteCheckedCount(currentSet);
-	Set opSet = ChessPiece::FlipSet(currentSet);
+	//auto [checked, chkCount, checkedMaskOrg] = calcualteCheckedCount(currentSet);
+	
+    Set opSet = ChessPiece::FlipSet(currentSet);
 	u64 threatenedMask = CalcThreatenedMask(opSet);
 
-	u64 kingMask = GetKingMask(currentSet);
-	u64 checkedMask = checkedMaskOrg & kingMask;
+    int chkCount = 0;
+	KingMask kingMask = calcKingMask(currentSet);
+	KingMask checkedMask = kingMask.checkedMask(chkCount);
 	kingMask ^= checkedMask; // could also be called pinned mask?
 
-	u64 pawnKingMask = kingMask;
-	u64 pawnCheckedMask = checkedMask;
+	KingMask pawnKingMask = kingMask;
+	KingMask pawnCheckedMask = checkedMask;
 
 	const unsigned char setModifier = currentSet == Set::WHITE ? 1 : 0;
 	bool kingRankCheck = m_kings[(int)currentSet].second.rank == (3 + setModifier);
@@ -979,10 +983,11 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 		// remove en passant target from material
 		ChessPiece pawn(opSet, PieceType::PAWN);
 		m_bitboard.ClearPiece(pawn, m_enPassantTarget);
-		pawnKingMask = GetKingMask(currentSet);
-		pawnCheckedMask = pawnKingMask & checkedMaskOrg;
+		pawnKingMask = calcKingMask(currentSet);
+        chkCount = 0;
+		pawnCheckedMask = pawnKingMask.checkedMask(chkCount);
 		pawnKingMask ^= pawnCheckedMask;
-		pawnKingMask |= UINT64_C(1) << 63; 	// add a flag to indicate that this mask is for pawns
+		pawnKingMask.pawnMask = true; 	// add a flag to indicate that this mask is for pawns
 											// who think they're pinned but they aren't
 		m_bitboard.PlacePiece(pawn, m_enPassantTarget);
 	}
@@ -1052,7 +1057,7 @@ bool Chessboard::InternalIsMoveCheck(Move& move) const
 }
 
 std::vector<Move>
-Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, u64 checkedMask, u64 kingMask) const
+Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -1061,7 +1066,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 	if (piece == ChessPiece())
 		return moveVector;
 
-	bool checked = checkedMask > 0;
+	bool checked = !checkedMask.zero();
 	// castling not available when in check
 	byte castlingState = checked ? 0 : m_castlingState;
 
@@ -1080,48 +1085,66 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 		move.Flags = MoveFlag::Zero;
 		move.Piece = piece;
 
-		if (move.Piece.getType() == PieceType::KING && IsMoveCastling(move))
+        int castlingDir = IsMoveCastling(move);
+		if (move.Piece.getType() == PieceType::KING && castlingDir != 0)
+        {
 			move.Flags |= MoveFlag::Castle;
+            // // build a bogus move to check if rook puts opponent king in check.
+            // Notation rookNewPosition(move.SourceSquare.rank, castlingDir > 0 ? 3 : 5);
+            // ChessPiece rookPiece(piece.getSet(), PieceType::ROOK);
+            // Move tmpRook(Notation::Invalid(), rookNewPosition);
+            // tmpRook.Piece = rookPiece;
+            // if (InternalIsMoveCheck(tmpRook))
+            //     move.Flags |= MoveFlag::Check;
+        }
 
 		if (opMaterial & UINT64_C(1) << target)
 			move.Flags |= MoveFlag::Capture;
 
-		if (piece.getType() == PieceType::PAWN && IsPromoting(move))
+		if (piece.getType() == PieceType::PAWN )
 		{
-			move.Flags |= MoveFlag::Promotion;
-			move.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::QUEEN);
+            if (move.TargetSquare == m_enPassant)
+            {
+                move.Flags |= MoveFlag::EnPassant;
+                move.Flags |= MoveFlag::Capture;
+            }
+            else
+            if (IsPromoting(move))
+            {
+                move.Flags |= MoveFlag::Promotion;
+                move.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::QUEEN);
 
-			Move rookPromote = Move(move);
-			rookPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::ROOK);
+                Move rookPromote = Move(move);
+                rookPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::ROOK);
 
-			if (InternalIsMoveCheck(rookPromote))
-				rookPromote.Flags |= MoveFlag::Check;
+                if (InternalIsMoveCheck(rookPromote))
+                    rookPromote.Flags |= MoveFlag::Check;
 
-			Move bishopPromote = Move(move);
-			bishopPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::BISHOP);
+                Move bishopPromote = Move(move);
+                bishopPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::BISHOP);
 
-			if (InternalIsMoveCheck(bishopPromote))
-				bishopPromote.Flags |= MoveFlag::Check;
+                if (InternalIsMoveCheck(bishopPromote))
+                    bishopPromote.Flags |= MoveFlag::Check;
 
-			Move knightPromote = Move(move);
-			knightPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::KNIGHT);
+                Move knightPromote = Move(move);
+                knightPromote.PromoteToPiece = ChessPiece(piece.getSet(), PieceType::KNIGHT);
 
-			if (InternalIsMoveCheck(knightPromote))
-				knightPromote.Flags |= MoveFlag::Check;
+                if (InternalIsMoveCheck(knightPromote))
+                    knightPromote.Flags |= MoveFlag::Check;
 
-			if (InternalIsMoveCheck(move))
-				move.Flags |= MoveFlag::Check;
-
-			// when pushing back new elements to the vector our reference to move is moved and 
-			// pointing at garbage. So we do this last.
-			moveVector.push_back(rookPromote);
-			moveVector.push_back(bishopPromote);
-			moveVector.push_back(knightPromote);
+                // when pushing back new elements to the vector our reference to move is moved and 
+                // pointing at garbage. So we do this last.
+                moveVector.push_back(rookPromote);
+                moveVector.push_back(bishopPromote);
+                moveVector.push_back(knightPromote);
+            }
 		}
-		else if (InternalIsMoveCheck(move))
-		{
-			move.Flags |= MoveFlag::Check;
-		}
+        
+        if (InternalIsMoveCheck(move))
+        {
+            move.Flags |= MoveFlag::Check;
+        }
+		
 	}
 
 	return moveVector;

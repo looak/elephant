@@ -928,33 +928,60 @@ TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
 * 1 [   ][ K ][   ][ R ][   ][   ][ B ][   ]
 *     A    B    C    D    E    F    G    H 
 8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
-Pawn is pinned by white rook in this scenario*/
-// The piece being pinned needs to take precedence over the en passant capture.
-// Currently it doesn't, so this test is disabled.
-// TODO: Fix this test.
-// TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, d5);
-//     m_chessboard.PlacePiece(BLACKPAWN, d4);
-//     m_chessboard.PlacePiece(WHITEKING, b1);
-//     m_chessboard.PlacePiece(WHITEPAWN, e4);
-//     m_chessboard.PlacePiece(WHITEROOK, d1);
-//     m_chessboard.PlacePiece(WHITEBISHOP, g1);
+Pawn is pinned by white rook in this scenario.  */
+TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
+{
+    m_chessboard.PlacePiece(BLACKKING, d5);
+    m_chessboard.PlacePiece(BLACKPAWN, d4);
+    m_chessboard.PlacePiece(WHITEKING, b1);
+    m_chessboard.PlacePiece(WHITEPAWN, e4);
+    m_chessboard.PlacePiece(WHITEROOK, d1);
+    m_chessboard.PlacePiece(WHITEBISHOP, g1);
 
-//     m_chessboard.setEnPassant(e3);
+    m_chessboard.setEnPassant(e3);
 
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
-//     EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
+    EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
+    EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+    auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
 
-//     EXPECT_EQ(6, moves.size());
-//     auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) {
-//         return mv.Piece == BLACKPAWN;
-//     });
+    EXPECT_EQ(7, moves.size());
+    auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) {
+        return mv.Piece == BLACKPAWN;
+    });
 
-//     EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
-// }
+    EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
+}
+/**
+* 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][ Q ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][   ][   ][ q ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][ K ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H 
+3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
+TEST_F(MoveFixture, PinnedQueen_White_CanNotMoveQueen)
+{
+    m_chessboard.PlacePiece(BLACKKING, e8);
+    m_chessboard.PlacePiece(BLACKROOK, d8);
+    m_chessboard.PlacePiece(BLACKQUEEN, f4);
+    m_chessboard.PlacePiece(WHITEQUEEN, d6);
+    m_chessboard.PlacePiece(WHITEKING, d2);
+
+    EXPECT_TRUE(m_chessboard.isChecked(Set::WHITE));
+    EXPECT_FALSE(m_chessboard.isChecked(Set::BLACK));
+
+    auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
+
+    EXPECT_EQ(6, moves.size());
+    auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) {
+        return mv.Piece == WHITEQUEEN;
+    });
+    EXPECT_EQ(moves.end(), itr);
+}
 
 /**
 * 8 [   ][   ][   ][   ][   ][   ][   ][   ]

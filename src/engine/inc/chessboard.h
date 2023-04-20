@@ -138,12 +138,12 @@ public:
 	 * @return The deserialized move.	*/
 	Move DeserializeMoveFromPGN(const std::string& pgnMove, bool isWhiteMove) const;
 	
-	std::tuple<bool, int, u64> calcualteCheckedCount(Set set) const;
+	std::tuple<bool, int, KingMask> calcualteCheckedCount(Set set) const;
 	bool isChecked(Set set) const;
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
 	
-	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, u64 checkedMask, u64 kingMask) const;
+	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
 
 	/**
 	 * Calculates the available moves for the specified set. Does not generate 100% legal moves. For legal moves refere to the MoveGenerator class.
@@ -157,7 +157,7 @@ public:
 	 * @param set The set to calculate the threat against.
 	*/
 	u64 CalcThreatenedMask(Set set) const;
-	u64 GetKingMask(Set set) const;
+	KingMask calcKingMask(Set set) const;
 	/**
 	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces
 	 * (rooks, bishops, and queens) of a specified set (black or white) on the current board, taking into account the
@@ -272,12 +272,12 @@ private:
 	void InternalMakeMove(Notation source, Notation target);
 	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
-	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, u64 kingMask, u64 checkedMask) const;
+	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask) const;
 
 	ChessboardTile& get(Notation position) { return editTile(position); }
 	const ChessboardTile& get(Notation position) const { return readTile(position); }
 
-	bool IsMoveCastling(const Move& move) const;
+	int IsMoveCastling(const Move& move) const;
 	bool IsPromoting(const Move& move) const;
 	bool VerifyMove(const Move& move) const;	
 

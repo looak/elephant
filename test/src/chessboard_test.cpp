@@ -174,7 +174,7 @@ TEST_F(ChessboardFixture, Notation_GetIndex)
     auto pos = Notation::BuildPosition('a', 1);
     EXPECT_EQ(expected, pos.index());
 
-    expected = 135;
+    expected = 0xff;
     pos = Notation::BuildPosition('z', 1); // invalid position
     EXPECT_EQ(expected, pos.index());
 
@@ -704,12 +704,12 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     EXPECT_EQ(scndCopyHash, scndCopy.readHash());
     EXPECT_EQ(goatGame, scndCopyHash);
 
-    u64 orgMask = m_gameOfTheCentury.GetKingMask(Set::BLACK);
-    u64 cpyMask = scndCopy.GetKingMask(Set::BLACK);
+    u64 orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::BLACK));
+    u64 cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::BLACK));
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.GetKingMask(Set::WHITE);
-    cpyMask = scndCopy.GetKingMask(Set::WHITE);
+    orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::WHITE));
+    cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::WHITE));
     EXPECT_EQ(orgMask, cpyMask);
     
     auto orgSlidingMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::BLACK);

@@ -19,8 +19,12 @@ MoveGenerator::Perft(GameContext& context, int depth)
     int count = 0;
 
     auto moves = GeneratePossibleMoves(context);
-    count = moves.size();
-
+    count = 0;
+    if (depth == 1)
+    {
+        return moves.size();
+    }
+    else
     if (depth > 1)
     {
         for (auto mv : moves)
