@@ -1,0 +1,34 @@
+[Event "Computer chess game"]
+[Site "ABEYTU"]
+[Date "2023.04.20"]
+[Round "?"]
+[White "ElephantGambit"]
+[Black "Stockfish"]
+[Result "0-1"]
+[BlackElo "2000"]
+[ECO "A00"]
+[Opening "Anderssen Opening"]
+[Time "11:47:57"]
+[WhiteElo "2000"]
+[Termination "normal"]
+[PlyCount "60"]
+[WhiteType "program"]
+[BlackType "program"]
+
+1. a3 d5 {(d7-d5) +0.07/4} 2. c3 Nd7 {(Nb8-d7) +0.56/4} 3. a4 e5 {(e7-e5)
++0.67/4} 4. d4 Ngf6 {(Ng8-f6 a4-a5 e5-e4) +0.87/4} 5. a5 c6 {(c7-c6 a5-a6)
++0.85/4} 6. a6 b5 {(b7-b5) +0.77/4 0} 7. b3 exd4 {(e5xd4) +1.56/4} 8. Qxd4
+Bd6 {(Bf8-d6) +2.00/4 0} 9. b4 O-O {(O-O) +1.88/4 0} 10. e3 Re8 {(Rf8-e8)
++2.68/4} 11. f3 c5 {(c6-c5) +2.88/4 0} 12. bxc5 Bxc5 {(Bd6xc5) +3.76/4} 13.
+Qd1 Rb8 {(Ra8-b8) +5.18/4 0} 14. f4 Bxe3 {(Bc5xe3) +6.16/4} 15. Bxe3 Rxe3+
+{(Re8xe3+ Ke1-f2) +4.13/4 0} 16. Kd2 Re4 {(Re3-e4) +6.37/4} 17. f5 Qb6
+{(Qd8-b6) +7.40/4 0} 18. g3 Nc5 {(Nd7-c5) +7.58/4 0} 19. Bg2 Rc4 {(Re4-c4)
++8.03/4 0} 20. h3 d4 {(d5-d4 Kd2-c1 d4xc3) +8.73/4 0} 21. g4 Bxa6 {(Bc8xa6)
++7.96/4} 22. g5 b4 {(b5-b4 g5xf6 b4xc3+ Kd2-c1) +8.09/4} 23. gxf6 dxc3+
+{(d4xc3+ Kd2-c1 Qb6xf6) +7.08/4} 24. Kc2 Qxf6 {(Qb6xf6) +12.80/4} 25. Qh5
+b3+ {(b4-b3+ Kc2-d1 c3-c2+ Kd1-e2) +11.24/4} 26. Kd1 c2+ {(c3-c2+ Kd1-e2
+c2-c1Q) +24.32/4} 27. Kc1 b2+ {(b3-b2+ Kc1-d2 c2-c1Q+ Kd2-e2 b2xa1Q)
++33.87/4} 28. Kd2 c1=Q+ {(c2-c1Q+ Kd2-e2 Rc4-c2+ Ke2-f3 b2xa1Q) +36.45/4}
+29. Ke2 Rf4+ {(Rc4-f4+ Ra1xa6 Qf6xa6+) +M2/4} 30. Rxa6 Qxa6# {(Qf6xa6+)
++M1/4} 0-1
+

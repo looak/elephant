@@ -25,11 +25,23 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Compiler warning levels
+if(MSVC)
+    # For Microsoft Visual Studio
+    set(WARNING_LEVEL "/W4")
+    set(WARNING_LEVEL_PEDANTIC "/W4 /permissive-")
+else()
+    # For GCC and Clang
+    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter")
+endif()
+
+message(STATUS "## Warning level: ${WARNING_LEVEL}")
+
 include(GNUInstallDirs)
 
 foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER)
-    message(STATUS "Configuring for ${CONFIG_TYPE} build type")
+    message(STATUS "## Configuring for ${CONFIG_TYPE} build type")
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_LIBDIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_LIBDIR})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_BINDIR})
