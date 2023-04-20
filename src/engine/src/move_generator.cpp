@@ -1,6 +1,7 @@
 #include "move_generator.h"
 
 #include "chessboard.h"
+#include "evaluator.h"
 #include "game_context.h"
 
 #include <sstream>
@@ -140,4 +141,67 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 
     auto moves = board.GetAvailableMoves(currentSet);
     return moves;
+}
+
+int 
+MoveGenerator::AlphaBetaMinmax(GameContext& context, int depth, int alpha, int beta, bool isMaximizingPlayer)
+{
+    Evaluator evaluator;
+    if (depth == 0 || context.GameOver())
+        return evaluator.Evaluate(context.readChessboard());
+
+    if (isMaximizingPlayer)
+    {
+        int bestValue = -999999;
+        auto moves = GeneratePossibleMoves(context);
+        for (auto&& mv : moves)
+        {
+            context.MakeMove(mv);
+            int value = AlphaBetaMinmax(context, depth - 1, alpha, beta, false);
+            context.UnmakeMove(mv);
+            bestValue = std::max(bestValue, value);
+            alpha = std::max(alpha, bestValue);
+            if (beta <= alpha)
+                break;
+        }
+        return bestValue;
+    }
+    else
+    {
+        int bestValue = 999999;
+        auto moves = GeneratePossibleMoves(context);
+        for (auto&& mv : moves)
+        {
+            context.MakeMove(mv);
+            int value = AlphaBetaMinmax(context, depth - 1, alpha, beta, true);
+            context.UnmakeMove(mv);
+            bestValue = std::min(bestValue, value);
+            beta = std::min(beta, bestValue);
+            if (beta <= alpha)
+                break;
+        }
+
+        return bestValue;
+    }
+
+}
+
+Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
+{
+    Move bestMove;
+    int bestValue = -999999;
+    auto moves = GeneratePossibleMoves(context);
+    for (auto&& mv : moves)
+    {
+        context.MakeMove(mv);
+        int value = AlphaBetaMinmax(context, depth - 1, -999999, 999999, false);
+        context.UnmakeMove(mv);
+        if (value > bestValue)
+        {
+            bestValue = value;
+            bestMove = mv;
+        }
+    }
+
+    return bestMove;    
 }

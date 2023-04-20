@@ -62,6 +62,8 @@ public:
 
     Move CalculateBestMove();
 
+    bool GameOver() const;
+
     /**
      * @brief Checks if the game is over.
     */

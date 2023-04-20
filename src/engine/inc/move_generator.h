@@ -71,4 +71,9 @@ public:
     std::vector<std::string> MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
+    Move CalculateBestMove(GameContext& context, int depth);
+
+private:
+    int AlphaBetaMinmax(GameContext& context, int depth, int alpha, int beta, bool isMaximizingPlayer);
+
 };
