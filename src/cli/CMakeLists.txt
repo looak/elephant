@@ -2,6 +2,7 @@
 add_library(${CLI_LIB} "")
 
 project(ElephantCli VERSION 0.1.0)
+set(ElephantCli_VERSION_PRERELEASE "alpha.0")
 
 include(sourcelist.cmake)
 
