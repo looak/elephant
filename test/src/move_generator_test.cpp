@@ -138,7 +138,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
 //     testContext.editToPlay() = Set::BLACK;
 
 //     // do 
-//     auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
+//     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
 //     // verify
 //     EXPECT_EQ(8, result.size());
@@ -443,7 +443,7 @@ TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
     board.PlacePiece(WHITEPAWN, f7);
 
     // do 
-    auto result = moveGenerator.GeneratePossibleMoves(testContext, true);
+    auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
     for (auto&& move : result)
@@ -1063,7 +1063,7 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = moveGenerator.GeneratePossibleMoves(testContext, true);
+    auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     for (auto& mv : moves)
     {

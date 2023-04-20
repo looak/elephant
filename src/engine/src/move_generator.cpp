@@ -132,26 +132,7 @@ std::vector<Move> concurrentGeneratePossibleMoves(std::vector<Move> moves, Chess
 }
 
 std::vector<Move>
-MoveGenerator::GeneratePossibleMoves(Chessboard& board, Set toPlay) const
-{
-    std::vector<Move> retMoves;
-    auto moves = board.GetAvailableMoves(toPlay);
-
-    for (auto&& mv : moves)
-    {   
-        board.MakeMoveUnchecked(mv);
-
-        if (!board.isChecked(toPlay))
-            retMoves.push_back(mv);
-
-        board.UnmakeMove(mv);        
-    }
-
-    return retMoves;
-}
-
-std::vector<Move>
-MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMoves) const
+MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 {
     std::vector<Move> retMoves;
     auto currentSet = context.readToPlay();
@@ -159,46 +140,4 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool countingMo
 
     auto moves = board.GetAvailableMoves(currentSet);
     return moves;
-    auto boardCopy = context.copyChessboard();
-
-//    std::vector<std::future<std::vector<Move>>> futures;
- 
-    if (countingMoves)
-    {
-        for (auto&& mv : moves)
-        {   
-            // if (mv.Piece.getType() == PieceType::PAWN)
-            // {
-                boardCopy.MakeMove(mv);
-
-                if (!boardCopy.isChecked(currentSet))
-                    retMoves.push_back(mv);
-
-                boardCopy.UnmakeMove(mv);
-            // }
-            // else
-            //     retMoves.push_back(mv);
-        }
-    }
-    else
-    {
-        for (auto&& mv : moves)
-        {   
-            // if (mv.Piece.getType() == PieceType::PAWN)
-            // {
-                boardCopy.MakeMoveUnchecked(mv);
-
-                if (!boardCopy.isChecked(currentSet))
-                    retMoves.push_back(mv);
-
-                boardCopy.UnmakeMove(mv);
-            // }
-            // else
-            // {
-            //     retMoves.push_back(mv);
-            // }
-        }
-    }
-
-    return retMoves;
 }

@@ -167,7 +167,7 @@ GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
 {
     MoveGenerator generator;
     Evaluator evaluator;
-    auto moves = generator.GeneratePossibleMoves(board, toPlay);
+    auto moves = board.GetAvailableMoves(toPlay);
 
     if (moves.empty()) // no moves
         return { -99, Move() };

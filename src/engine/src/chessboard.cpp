@@ -962,9 +962,7 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 
 std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet) const
-{
-	//auto [checked, chkCount, checkedMaskOrg] = calcualteCheckedCount(currentSet);
-	
+{	
     Set opSet = ChessPiece::FlipSet(currentSet);
 	u64 threatenedMask = CalcThreatenedMask(opSet);
 
@@ -1011,7 +1009,6 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 		}
 		auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, kingMask, checkedMask);
 		result.insert(result.end(), moves.begin(), moves.end());
-
 	}
 
 	// for (auto& future : moveFutures)
