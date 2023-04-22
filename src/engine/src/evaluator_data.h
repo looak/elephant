@@ -1,5 +1,8 @@
 #include "chessboard.h"
 
+namespace evaluator_data
+{
+
 #define PAWN   0
 #define KNIGHT 1
 #define BISHOP 2
@@ -272,3 +275,5 @@ int eval(const Chessboard& board)
     int egPhase = 24 - mgPhase;
     return (mgScore * mgPhase + egScore * egPhase) / 24;
 }
+
+} // namespace evaluator_data

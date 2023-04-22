@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2021  Alexander Loodin Ek
+// Copyright(C) 2021-2023  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -74,6 +74,6 @@ public:
     Move CalculateBestMove(GameContext& context, int depth);
 
 private:
-    int AlphaBetaMinmax(GameContext& context, int depth, int alpha, int beta, bool isMaximizingPlayer);
+    int AlphaBetaMinmax(GameContext& context, Move prevMove, int depth, int alpha, int beta, bool isMaximizingPlayer);
 
 };

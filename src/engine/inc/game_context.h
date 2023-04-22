@@ -85,7 +85,7 @@ public:
     const std::vector<MoveHistory>& readMoveHistory() const { return m_moveHistory; }
 
 private:
-    std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
+    //std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
 
     Chessboard m_board;
     Set m_toPlay;

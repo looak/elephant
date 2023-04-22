@@ -23,7 +23,7 @@ MoveGenerator::Perft(GameContext& context, int depth)
     count = 0;
     if (depth == 1)
     {
-        return moves.size();
+        return (i32)moves.size();
     }
     else
     if (depth > 1)
@@ -144,11 +144,11 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 }
 
 int 
-MoveGenerator::AlphaBetaMinmax(GameContext& context, int depth, int alpha, int beta, bool isMaximizingPlayer)
+MoveGenerator::AlphaBetaMinmax(GameContext& context, Move prevMove, int depth, int alpha, int beta, bool isMaximizingPlayer)
 {
     Evaluator evaluator;
     if (depth == 0 || context.GameOver())
-        return evaluator.Evaluate(context.readChessboard());
+        return evaluator.Evaluate(context.readChessboard(), prevMove);
 
     if (isMaximizingPlayer)
     {
@@ -157,7 +157,7 @@ MoveGenerator::AlphaBetaMinmax(GameContext& context, int depth, int alpha, int b
         for (auto&& mv : moves)
         {
             context.MakeMove(mv);
-            int value = AlphaBetaMinmax(context, depth - 1, alpha, beta, false);
+            int value = AlphaBetaMinmax(context, mv, depth - 1, alpha, beta, false);
             context.UnmakeMove(mv);
             bestValue = std::max(bestValue, value);
             alpha = std::max(alpha, bestValue);
@@ -173,7 +173,7 @@ MoveGenerator::AlphaBetaMinmax(GameContext& context, int depth, int alpha, int b
         for (auto&& mv : moves)
         {
             context.MakeMove(mv);
-            int value = AlphaBetaMinmax(context, depth - 1, alpha, beta, true);
+            int value = AlphaBetaMinmax(context, mv, depth - 1, alpha, beta, true);
             context.UnmakeMove(mv);
             bestValue = std::min(bestValue, value);
             beta = std::min(beta, bestValue);
@@ -194,7 +194,7 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
     for (auto&& mv : moves)
     {
         context.MakeMove(mv);
-        int value = AlphaBetaMinmax(context, depth - 1, -999999, 999999, false);
+        int value = AlphaBetaMinmax(context, mv, depth - 1, -999999, 999999, false);
         context.UnmakeMove(mv);
         if (value > bestValue)
         {

@@ -4,7 +4,7 @@
 
 class Chessboard;
 struct Notation;
-class KingMask;
+struct KingMask;
 
 
 namespace ElephantTest

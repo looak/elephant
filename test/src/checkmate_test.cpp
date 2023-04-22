@@ -83,6 +83,11 @@ TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
 
 TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
 {
+    /**
+    * @brief Test case to verify the correct detection of a stalemate situation for the black side when it is black's turn to move.
+    * The test uses a specific chess position provided in FEN notation and asserts the expected outcomes for both sides
+    * in terms of checkmate and stalemate status.
+    */
     std::string fen("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");        
     FENParser::deserialize(fen.c_str(), m_context);
 
@@ -92,4 +97,7 @@ TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
     EXPECT_TRUE(m_context.readChessboard().isStalemated(Set::BLACK));
 }
 
+// TEST_F(CheckmateFixture, )
+
 } // namespace ElephantTest
+

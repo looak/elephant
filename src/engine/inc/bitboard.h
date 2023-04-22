@@ -191,7 +191,7 @@ public:
     u64 GetMaterialCombined(Set set) const;
     u64 GetMaterial(ChessPiece piece) const;
 
-    int BitScanFowrward(u64 bitboard) const;
+    // int BitScanFowrward(u64 bitboard) const;
 
 private:
     typedef std::function<bool(u64 sqrMask)> ResolveMask;

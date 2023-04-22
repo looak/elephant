@@ -93,10 +93,10 @@ u64 Bitboard::internalGenerateMask(byte curSqr, signed short dir, bool& sliding,
     return ret;
 }
 
-int Bitboard::BitScanFowrward(u64 bitboard) const
-{
-    return __builtin_ctzll(bitboard);
-}
+// int Bitboard::BitScanFowrward(u64 bitboard) const
+// {
+//     return __builtin_ctzll(bitboard);
+// }
 
 u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMaskStruct, KingMask kingMaskStruct) const
 {

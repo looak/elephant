@@ -151,7 +151,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 			std::cout << result << std::endl;
             context.UnmakeMove(move);
 		}
-        total += moves.size();
+        // total += moves.size();
         
         std::cout << "\n Moves: " << moves.size() << "\n";
         std::cout << " Total: " << total << "\n";
@@ -207,7 +207,7 @@ void MoveHelpCommand(const std::string& command)
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
 {
     Evaluator evaluator;
-    u64 value = evaluator.Evaluate(context.readChessboard());
+    u64 value = 0;// evaluator.Evaluate(context.readChessboard());
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
