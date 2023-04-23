@@ -275,7 +275,7 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
         std::string notation;
         while (std::getline(ssboard, notation, ' '))
         {
-            notation.erase(remove(notation.begin(), notation.end(), ' '), notation.end());
+            notation.erase(std::find(notation.begin(), notation.end(), ' '), notation.end());
             notations.push_back(notation);
         }
 

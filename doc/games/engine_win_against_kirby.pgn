@@ -1,0 +1,21 @@
+[Event "Computer chess game"]
+[Site "ABEYTU"]
+[Date "2023.04.21"]
+[Round "?"]
+[White "elephant gambit dev"]
+[Black "alexa"]
+[Result "1-0"]
+[BlackElo "2400"]
+[ECO "A01"]
+[Opening "Nimzowitsch-Larsen Attack"]
+[Time "23:49:21"]
+[Variation "Symmetrical Variation"]
+[WhiteElo "2000"]
+[Termination "normal"]
+[PlyCount "21"]
+[WhiteType "program"]
+[BlackType "human"]
+
+1. b3 b6 2. Na3 g6 3. Nc4 Nf6 4. g4 Bh6 5. Bg2 Nxg4 6. e3 Rg8 7. Qxg4 c6 8.
+Qh4 Na6 9. Bh3 Bg7 10. Qxh7 Bxa1 11. Qxg8# 1-0
+

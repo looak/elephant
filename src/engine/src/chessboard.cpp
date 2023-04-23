@@ -682,8 +682,9 @@ Chessboard::MakeMove(Move& move)
 {
 	move.Flags = MoveFlag::Invalid;
 
-	if (!VerifyMove(move))
-		return false;
+    // todo: enable if debug
+	// if (!VerifyMove(move))
+	// 	return false;
 
 	const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
 	move.Flags = MoveFlag::Zero;
@@ -790,35 +791,19 @@ Chessboard::calcualteCheckedCount(Set set) const
 {
 	std::tuple<bool, int, KingMask> result = { false, 0, KingMask() };
 	u8 indx = static_cast<u8>(set);
-	auto king = m_kings[indx];
+	
+    KingMask mask = calcKingMask(set);    
+    std::get<2>(result) = mask;
 
-	// why would king be invalid?
-	if (king.first == ChessPiece())
-		return result;
+    i32 chkCount = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        if (mask.checked[i] == true)
+            chkCount++;
+    }
 
-	Set op = ChessPiece::FlipSet(set);
-	u64 kingMask = UINT64_C(1) << king.second.index();
-
-    //m_bitboard.calcKingMask(king.first, king.second, )
-
-    // for each piece on the board check if it can attack the king.
-	for (u32 i = 1; i < (size_t)PieceType::NR_OF_PIECES; ++i)
-	{
-		ChessPiece currentPiece(op, (PieceType)i);
-
-		const auto& positions = m_material[(size_t)op].getPlacementsOfPiece(currentPiece);
-		for (auto& pos : positions)
-		{
-			u64 threatMask = m_bitboard.GetThreatenedSquaresWithMaterial(pos, currentPiece);
-			if (threatMask & kingMask)
-			{
-				std::get<0>(result) = true;
-				std::get<1>(result) += 1;
-			//	std::get<2>(result) |= threatMask;
-			}
-		}
-	}
-
+    std::get<1>(result) = chkCount;
+    std::get<0>(result) = chkCount != 0;
 	return result;
 }
 
@@ -1020,31 +1005,6 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 	return result;
 }
 
-const int index64[64] = {
-	0, 47,  1, 56, 48, 27,  2, 60,
-   57, 49, 41, 37, 28, 16,  3, 61,
-   54, 58, 35, 52, 50, 42, 21, 44,
-   38, 32, 29, 23, 17, 11,  4, 62,
-   46, 55, 26, 59, 40, 36, 15, 53,
-   34, 51, 20, 43, 31, 22, 10, 45,
-   25, 39, 14, 33, 19, 30,  9, 24,
-   13, 18,  8, 12,  7,  6,  5, 63
-};
-
-/**
- * bitScanForward
- * @author Kim Walisch (2012)
- * @param bb bitboard to scan
- * @precondition bb != 0
- * @return index (0..63) of least significant one bit
- */
-int bitScanForward(u64 bb) {
-	//return __builtin_ctzll(bb);
-	const u64 debruijn64 = 0x03f79d71b4cb0a89;
-	assert(bb != 0);
-	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
-}
-
 bool Chessboard::InternalIsMoveCheck(Move& move) const
 {
 	u64 attackedMask = m_bitboard.calcAttackedSquares(move.TargetSquare, move.isPromotion() ? move.PromoteToPiece : move.Piece);
@@ -1075,7 +1035,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 
 	while (movesbb != 0)
 	{
-		byte target = bitScanForward(movesbb);
+		byte target = m_bitboard.BitScanFowrward(movesbb);
 		movesbb ^= UINT64_C(1) << target;
 
 		auto& move = moveVector.emplace_back(source, Notation(target));

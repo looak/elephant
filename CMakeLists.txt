@@ -32,7 +32,7 @@ if(MSVC)
     set(WARNING_LEVEL_PEDANTIC "/W4 /permissive-")
 else()
     # For GCC and Clang
-    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter")
+    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter -Wconversion")
 endif()
 
 message(STATUS "## Warning level: ${WARNING_LEVEL}")
