@@ -16,7 +16,6 @@
 
 # CMakeList.txt : Top-level CMake project file
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
-cmake_policy(SET CMP0135 NEW)
 
 project(ElephantGambit VERSION 0.1.0 LANGUAGES CXX)
 set(ElephantGambit_VERSION_PRERELEASE "alpha.0")
