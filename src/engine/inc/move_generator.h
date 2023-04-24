@@ -74,6 +74,6 @@ public:
     Move CalculateBestMove(GameContext& context, int depth);
 
 private:
-    int AlphaBetaMinmax(GameContext& context, Move prevMove, int depth, int alpha, int beta, bool isMaximizingPlayer);
+    int AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta);
 
 };

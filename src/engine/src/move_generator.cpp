@@ -4,10 +4,11 @@
 #include "evaluator.h"
 #include "game_context.h"
 
-#include <sstream>
-#include <utility>
 #include <future>
+#include <limits>
+#include <sstream>
 #include <thread>
+#include <utility>
 
 int 
 MoveGenerator::Perft(GameContext& context, int depth)
@@ -101,37 +102,6 @@ MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predic
     return ret;
 }
 
-std::vector<Move> concurrentGeneratePossibleMoves(std::vector<Move> moves, Chessboard board, bool countingMoves, Set currentSet)
-{
-    std::vector<Move> result;
-    if (countingMoves)
-    {
-        for (auto&& mv : moves)
-        {   
-            board.MakeMove(mv);
-
-            if (!board.isChecked(currentSet))
-                result.push_back(mv);
-
-            board.UnmakeMove(mv);
-        }
-    }
-    else
-    {
-        for (auto&& mv : moves)
-        {   
-            board.MakeMoveUnchecked(mv);
-
-            if (!board.isChecked(currentSet))
-                result.push_back(mv);
-
-            board.UnmakeMove(mv);
-        }
-    }
-
-    return result;
-}
-
 std::vector<Move>
 MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 {
@@ -144,63 +114,53 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
 }
 
 int 
-MoveGenerator::AlphaBetaMinmax(GameContext& context, Move prevMove, int depth, int alpha, int beta, bool isMaximizingPlayer)
+MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta)
 {
     Evaluator evaluator;
     if (depth == 0 || context.GameOver())
         return evaluator.Evaluate(context.readChessboard(), prevMove);
 
-    if (isMaximizingPlayer)
+    i32 bestValue = std::numeric_limits<i32>::min();
+   
+    auto moves = GeneratePossibleMoves(context);
+    for (auto&& mv : moves)
     {
-        int bestValue = -999999;
-        auto moves = GeneratePossibleMoves(context);
-        for (auto&& mv : moves)
-        {
-            context.MakeMove(mv);
-            int value = AlphaBetaMinmax(context, mv, depth - 1, alpha, beta, false);
-            context.UnmakeMove(mv);
-            bestValue = std::max(bestValue, value);
-            alpha = std::max(alpha, bestValue);
-            if (beta <= alpha)
-                break;
-        }
-        return bestValue;
-    }
-    else
-    {
-        int bestValue = 999999;
-        auto moves = GeneratePossibleMoves(context);
-        for (auto&& mv : moves)
-        {
-            context.MakeMove(mv);
-            int value = AlphaBetaMinmax(context, mv, depth - 1, alpha, beta, true);
-            context.UnmakeMove(mv);
-            bestValue = std::min(bestValue, value);
-            beta = std::min(beta, bestValue);
-            if (beta <= alpha)
-                break;
-        }
+        context.MakeMove(mv);
 
-        return bestValue;
+        i32 value = -AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha);
+
+        context.UnmakeMove(mv);
+        
+        if (value > beta) return value; // beta cutoff
+        if (value > bestValue) bestValue = value;
+        if (value > alpha) alpha = value;
     }
 
+    return bestValue;
 }
 
 Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
 {
     Move bestMove;
-    int bestValue = -999999;
+    
+    i32 bestValue = std::numeric_limits<i32>::min();
+    i32 alpha = std::numeric_limits<i32>::min();
+    i32 beta = std::numeric_limits<i32>::max();
+
     auto moves = GeneratePossibleMoves(context);
     for (auto&& mv : moves)
     {
         context.MakeMove(mv);
-        int value = AlphaBetaMinmax(context, mv, depth - 1, -999999, 999999, false);
+        int value = AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha);
         context.UnmakeMove(mv);
         if (value > bestValue)
         {
             bestValue = value;
             bestMove = mv;
         }
+
+        if (value > alpha)
+            alpha = value;
     }
 
     return bestMove;    

@@ -38,9 +38,7 @@ i32 Evaluator::EvaluateMaterial(const Chessboard& board) const
 }
 
 i32 Evaluator::EvaluateMove(Move move) const
-{
-    // we assume that white is the maximizing player
-    i32 maximizing = move.Piece.set() == 0/*white*/ ? 1 : -1;
+{    
     i32 score = 0;
 
     if (move.isCapture())
@@ -53,5 +51,5 @@ i32 Evaluator::EvaluateMove(Move move) const
     if (move.isCheckmate())
         score += 100; // arbitrary checkmate value;
     
-    return score * maximizing;
+    return score;
 }
