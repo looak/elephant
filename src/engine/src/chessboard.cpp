@@ -682,9 +682,9 @@ Chessboard::MakeMove(Move& move)
 {
 	move.Flags = MoveFlag::Invalid;
 
-    // todo: enable if debug
-	// if (!VerifyMove(move))
-	// 	return false;
+    // todo: enable if debug and test
+	if (!VerifyMove(move))
+		return false;
 
 	const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
 	move.Flags = MoveFlag::Zero;
@@ -802,8 +802,11 @@ Chessboard::calcualteCheckedCount(Set set) const
             chkCount++;
     }
 
+    if (mask.knightOrPawnCheck == true)
+        chkCount++;
+
     std::get<1>(result) = chkCount;
-    std::get<0>(result) = chkCount != 0;
+    std::get<0>(result) = chkCount > 0 || mask.knightOrPawnCheck;
 	return result;
 }
 
