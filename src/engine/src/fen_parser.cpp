@@ -173,7 +173,20 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
 bool FENParser::serialize(const GameContext& inputContext, std::string& resultFen)
 {
     const auto& board = inputContext.readChessboard();
-    auto itr = board.begin();
+
+    serialize(board, inputContext.readToPlay(), resultFen);
+
+    resultFen += ' ';
+
+    resultFen += std::to_string(inputContext.readPly()) + " ";
+    resultFen += std::to_string(inputContext.readMoveCount());
+
+    return true;
+}
+
+bool FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen)
+{
+        auto itr = board.begin();
 
     std::vector<std::string> ranks;
     byte rank = itr.rank();
@@ -228,7 +241,7 @@ bool FENParser::serialize(const GameContext& inputContext, std::string& resultFe
     resultFen = strngBuilder;
 
     // set to move
-    if (inputContext.readToPlay() == Set::WHITE)
+    if (toPlay == Set::WHITE)
         resultFen += " w";
     else
         resultFen += " b";
@@ -258,10 +271,5 @@ bool FENParser::serialize(const GameContext& inputContext, std::string& resultFe
     else
         resultFen += '-';
 
-    resultFen += ' ';
-
-    resultFen += std::to_string(inputContext.readPly()) + " ";
-    resultFen += std::to_string(inputContext.readMoveCount());
-
-    return true;
+    return true;        
 }

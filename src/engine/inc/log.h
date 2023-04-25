@@ -37,6 +37,10 @@ if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::LogMessag
 #define LOG_INFO() \
 switch(0) case 0: default: LoggingInternals::LogMessage("[     INFO ] ", __FILENAME__, __LINE__)
 
+// @brief Logs a debug message with the file name and line number.
+#define LOG_DEBUG() \
+switch(0) case 0: default: LoggingInternals::DebugLogMessage("[    DEBUG ] ", __FILENAME__, __LINE__)
+
 // @brief Logs a warning message with the file name and line number.
 #define LOG_WARNING() \
 switch(0) case 0: default: LoggingInternals::LogMessage("[  WARNING ] ", __FILENAME__, __LINE__)
@@ -54,26 +58,64 @@ namespace LoggingInternals
 
 typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
 
-class ScopedRedirect
+class DualStreamBuffer : public std::streambuf 
 {
 public:
-	ScopedRedirect(std::ostream& stream, const std::string& filename) :
+    DualStreamBuffer(std::streambuf* one, std::streambuf* two)
+        : m_bufferOne(one), m_bufferTwo(two) {}
+
+protected:
+    int sync() override {
+        int result1 = m_bufferOne->pubsync();
+        int result2 = m_bufferTwo->pubsync();
+        return (result1 == 0 && result2 == 0) ? 0 : -1;
+    }
+
+    std::streamsize xsputn(const char* s, std::streamsize n) override {
+        m_bufferOne->sputn(s, n);
+        m_bufferTwo->sputn(s, n);
+        return n;
+    }
+
+    int overflow(int c) override {
+        if (c != EOF) {
+            m_bufferOne->sputc(static_cast<char>(c));
+            m_bufferTwo->sputc(static_cast<char>(c));
+        }
+        return c;
+    }
+
+private:
+    std::streambuf* m_bufferOne;
+    std::streambuf* m_bufferTwo;
+};
+
+/**
+ * @brief Scoped Redirect, will redirect given outstream to file & it's original target.  */
+class ScopedDualRedirect
+{
+public:
+	ScopedDualRedirect(std::ostream& stream, const std::string& filename) :
 		m_originalStream(stream),
 		m_originalBuffer(stream.rdbuf()),
 		m_fileStream(filename, std::ios::app) 
 	{
+        m_dualBuffer = new DualStreamBuffer(m_originalStream.rdbuf(), m_fileStream.rdbuf());
 		m_originalStream.rdbuf(m_fileStream.rdbuf());
 	}
-	~ScopedRedirect() 
+	~ScopedDualRedirect() 
 	{
 		m_originalStream.rdbuf(m_originalBuffer);
+        delete m_dualBuffer;
 	}
 
 private:
 	std::ostream& m_originalStream;
 	std::streambuf* m_originalBuffer;
 	std::ofstream m_fileStream;
+    DualStreamBuffer* m_dualBuffer;
 };
+
 
 class MessageStream
 {
@@ -152,9 +194,22 @@ private:
 
 		m_userMessage->append(message.getString().c_str());
 	}
+    
 protected:
 	std::unique_ptr<std::string> m_message;
 	std::unique_ptr<std::string> m_userMessage;
+
+    void flush()
+    {
+		//ScopedRedirect redirect(std::cerr, "log.txt");
+		if (m_userMessage.get() != nullptr)
+			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
+		else
+			std::cerr << m_message->c_str() << std::endl;
+
+        m_userMessage->clear();
+        m_message->clear();
+    }
 
 public:
 	LogMessage() :
@@ -175,12 +230,8 @@ public:
 
 	virtual ~LogMessage()
 	{
-		ScopedRedirect redirect(std::cerr, "log.txt");
-		if (m_userMessage.get() != nullptr)
-			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
-		else
-			std::cerr << m_message->c_str() << std::endl;
-		
+        flush();
+
 		std::string* strPtr = m_message.release();
 		if (strPtr != nullptr)
 			delete strPtr;
@@ -203,6 +254,35 @@ public:
 		AppendMessage(MessageStream() << value);
 		return *this;
 	}
+
+};
+
+class DebugLogMessage : public LogMessage
+{
+public:
+	DebugLogMessage() :
+      LogMessage(),
+      m_redirect(std::cerr, "log.txt")
+	{ }
+
+	DebugLogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line) :
+        LogMessage(prefix, file, function, line),
+        m_redirect(std::cerr, "log.txt")
+	{ }
+
+	DebugLogMessage(const std::string& prefix, const std::string& file, int line) :
+	  LogMessage(prefix, file, line),
+      m_redirect(std::cerr, "log.txt")
+	{ }
+
+    ~DebugLogMessage()
+    {
+        flush();
+    }
+
+private:
+
+    ScopedDualRedirect m_redirect;
 
 };
 

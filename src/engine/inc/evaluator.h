@@ -8,9 +8,10 @@ class Evaluator
 {
 public:
     Evaluator();
-    i32 Evaluate(const Chessboard& board, Move prevMove) const;
+    i32 Evaluate(const Chessboard& board, Move prevMove, i32 perspective) const;
 
 private:
     i32 EvaluateMaterial(const Chessboard& board) const;
     i32 EvaluateMove(Move move) const;
+    i32 EvalutePiecePosition(Move move) const;
 };

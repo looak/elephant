@@ -18,7 +18,7 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 project(ElephantGambit VERSION 0.1.0 LANGUAGES CXX)
-set(ElephantGambit_VERSION_PRERELEASE "alpha.0")
+set(ElephantGambit_VERSION_PRERELEASE "alpha.1")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)

@@ -3,18 +3,34 @@
 #include "chessboard.h"
 #include "chess_piece.h"
 #include "evaluator_data.h"
+#include "fen_parser.h"
 #include "move.h"
+
+#define DEBUG_EVALUATOR 0
 
 Evaluator::Evaluator()
 {
-    evaluator_data::init_tables();
 }
 
-i32 Evaluator::Evaluate(const Chessboard& board, Move prevMove) const
+i32 Evaluator::Evaluate(const Chessboard& board, Move prevMove, i32 perspective) const
 {
+    
     i32 score = 0;
-    score += EvaluateMaterial(board);
+    score += perspective * EvaluateMaterial(board) * 10;
     score += EvaluateMove(prevMove);
+    score += EvalutePiecePosition(prevMove);
+    
+    #ifdef DEBUG_EVALUATOR
+    if (score != 0)
+        LOG_DEBUG() << "Evaluator score: " << score << "\n";
+    // LOG_DEBUG() << "\n" << board.toString();
+    // LOG_DEBUG() << "\nprevMove: " << prevMove.toString();
+
+    // std::string output;
+    // FENParser::serialize(board, (Set)0, output);
+    // LOG_DEBUG() << "\nfen: " << output << "\n";
+
+    #endif
     //score += evaluator_data::eval(board);
     return score;
 }
@@ -52,4 +68,10 @@ i32 Evaluator::EvaluateMove(Move move) const
         score += 100; // arbitrary checkmate value;
     
     return score;
+}
+
+i32 Evaluator::EvalutePiecePosition(Move move) const
+{
+    // todo, flip tables 180 degrees for black
+    return evaluator_data::pestoTables[move.Piece.index()][move.TargetSquare.index()];
 }

@@ -20,10 +20,13 @@
 #include <string>
 
 class GameContext;
+class Chessboard;
+enum class Set : unsigned char;
 
 class FENParser
 {
 public:
     static bool deserialize(const char* input, GameContext& outputContext);
     static bool serialize(const GameContext& inputContext, std::string& resultFen);
+    static bool serialize(const Chessboard& board, Set toPlay, std::string& resultBoardFen);
 };

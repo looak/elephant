@@ -113,37 +113,39 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
     return moves;
 }
 
-int 
-MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta)
+i32 
+MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective)
 {
     Evaluator evaluator;
     if (depth == 0 || context.GameOver())
-        return evaluator.Evaluate(context.readChessboard(), prevMove);
+    {
+        return evaluator.Evaluate(context.readChessboard(), prevMove, perspective) * -perspective;
+    }
 
-    i32 bestValue = std::numeric_limits<i32>::min();
+    i32 value = std::numeric_limits<i32>::min();
    
     auto moves = GeneratePossibleMoves(context);
     for (auto&& mv : moves)
     {
         context.MakeMove(mv);
 
-        i32 value = -AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha);
+        value = std::max(value, -AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha, -perspective));
 
         context.UnmakeMove(mv);
         
-        if (value > beta) return value; // beta cutoff
-        if (value > bestValue) bestValue = value;
-        if (value > alpha) alpha = value;
+        alpha = std::max(alpha, value);
+        if (alpha > beta) break;        
     }
 
-    return bestValue;
+    return value;
 }
 
 Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
 {
+    bool isWhite = context.readToPlay() == Set::WHITE;
     Move bestMove;
     
-    i32 bestValue = std::numeric_limits<i32>::min();
+    i32 bestValue = isWhite ? std::numeric_limits<i32>::min() : std::numeric_limits<i32>::max();
     i32 alpha = std::numeric_limits<i32>::min();
     i32 beta = std::numeric_limits<i32>::max();
 
@@ -151,17 +153,34 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
     for (auto&& mv : moves)
     {
         context.MakeMove(mv);
-        int value = AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha);
+        int value = AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha, isWhite ? 1 : -1);
         context.UnmakeMove(mv);
-        if (value > bestValue)
-        {
-            bestValue = value;
-            bestMove = mv;
-        }
 
-        if (value > alpha)
-            alpha = value;
+        if (isWhite)
+        {
+            if (value > bestValue)
+            {
+                bestValue = value;
+                bestMove = mv;
+            }
+
+            if (value > alpha)
+                alpha = value;
+        }
+        else
+        {
+            if (value < bestValue)
+            {
+                bestValue = value;
+                bestMove = mv;
+            }
+
+            if (value < beta)
+                beta = value;
+        }
     }
+
+    std::cout << " Best value: " << bestValue << std::endl;
 
     return bestMove;    
 }

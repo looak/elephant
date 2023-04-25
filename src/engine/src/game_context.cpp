@@ -161,89 +161,10 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-// void GameContext::PlayMoves(const Move& move, bool print)
-// {
-//     const Move* mv = &move;
-//     while (mv != nullptr)
-//     {
-//         Move madeMove = m_board.PlayMove(*mv);
-//         if (print)
-//             PrintBoard(*this, madeMove);
-
-//         m_plyCount++;
-
-//         // increase moveCount after black has moved.
-//         if (mv->Piece.getSet() == Set::BLACK)
-//             m_moveCount++;
-
-//         mv = mv->NextMove;
-//     }
-// }
-
-// std::pair<u64, Move> 
-// GameContext::concurrentBestMove(int depth, Chessboard& board, Set toPlay)
-// {
-//     MoveGenerator generator;
-//     Evaluator evaluator;
-//     auto moves = board.GetAvailableMoves(toPlay);
-
-//     if (moves.empty()) // no moves
-//         return { -99, Move() };
-
-//     std::vector<std::pair<u64, Move>> scoredMoves;
-
-//     if (depth == 1)
-//     {    
-//         for (auto& move : moves)
-//         {
-//             auto& itr = scoredMoves.emplace_back(0, move);
-//             board.MakeMove(move);
-//             itr.first = evaluator.Evaluate(board) * -1;
-//             board.UnmakeMove(move);
-//         }
-//     }
-//     else
-//     {
-//         int multiplier = (depth & 1) == 0 ? -1 : 1;
-//         for (auto& move : moves)
-//         {            
-//             board.MakeMove(move);
-//             auto& itr = scoredMoves.emplace_back(concurrentBestMove(depth - 1, board, ChessPiece::FlipSet(toPlay)));
-//             itr.first += evaluator.Evaluate(board) * multiplier;
-//             board.UnmakeMove(move);
-//         }        
-//     }
-
-//     std::sort(scoredMoves.begin(), scoredMoves.end(), [](const std::pair<u64, Move>& a, const std::pair<u64, Move>& b) { return a.first > b.first; });
-//     return scoredMoves[0];
-// }
-
 Move GameContext::CalculateBestMove()
 {
-    // MoveGenerator generator;
-    // Evaluator evaluator;
-    // auto moves = generator.GeneratePossibleMoves(*this);
-
-    // std::vector<std::pair<u64, Move>> scoredMoves;
-
-    // for(auto& move : moves)
-    // {
-    //     auto& itr = scoredMoves.emplace_back(0, move);
-
-    //     auto boardCpy = copyChessboard();
-    //     boardCpy.MakeMove(move);
-    //     u64& refValue = itr.first;
-    //     refValue = evaluator.Evaluate(readChessboard());
-    //     auto bestResponse = concurrentBestMove(3, boardCpy, ChessPiece::FlipSet(readToPlay()));
-    //     refValue -= bestResponse.first;
-    //     boardCpy.UnmakeMove(move);
-    // }
-
-    // std::sort(scoredMoves.begin(), scoredMoves.end(), [](const std::pair<u64, Move>& a, const std::pair<u64, Move>& b) { return a.first > b.first; });
-    // return scoredMoves[0].second;
-
     MoveGenerator generator;
-    return generator.CalculateBestMove(*this, 5);
+    return generator.CalculateBestMove(*this, 4);
 }
 
 bool GameContext::isGameOver() const

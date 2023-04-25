@@ -190,6 +190,8 @@ public:
 	const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
 	const Bitboard& readBitboard() const { return m_bitboard; }
 
+    std::string toString(u8 flags = 0) const;
+
 	template<typename T, bool isConst = false>
 	class ChessboardIterator
 	{

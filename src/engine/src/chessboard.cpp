@@ -155,6 +155,40 @@ Chessboard::Chessboard(const Chessboard& other):
 	m_material[1] = other.m_material[1];
 }
 
+std::string Chessboard::toString(u8 flags) const
+{
+    auto boardItr = begin();
+    std::array<std::stringstream, 8> ranks;
+    byte prevRank = -1;
+    do // build each row
+    {
+        if (prevRank != boardItr.rank())
+        {
+            ranks[boardItr.rank()] << "\n" << (int)(boardItr.rank() + 1) << "  ";
+        }
+
+        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+        prevRank = boardItr.rank();
+        ++boardItr;
+
+    } while (boardItr != end());
+
+    std::stringstream boardstream;
+    auto rankItr = ranks.rbegin();
+    while (rankItr != ranks.rend()) // rebuild the board
+    {
+        boardstream << (*rankItr).str();
+        rankItr++;
+    }
+    
+    boardstream << "\n    A  B  C  D  E  F  G  H\n";
+
+    boardstream << "castling state: " << m_castlingInfo.toString();
+    boardstream << "\nen passant target: " << m_enPassantTarget.toString();
+    boardstream << "\nhash: 0x" << m_hash << "\n";
+
+    return boardstream.str();
+}
 void
 Chessboard::Clear()
 {
@@ -1104,7 +1138,6 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
         {
             move.Flags |= MoveFlag::Check;
         }
-		
 	}
 
 	return moveVector;
@@ -1133,7 +1166,6 @@ bool Chessboard::setCastlingState(u8 castlingState)
 	m_castlingState = castlingState;
 	return true;
 }
-
 
 const ChessboardTile&
 Chessboard::readTile(Notation position) const
