@@ -1,4 +1,4 @@
-﻿// ElephantGambit.cpp : Defines the entry point for the application.
+// ElephantGambit.cpp : Defines the entry point for the application.
 //
 #include "commands.h"
 #include "commands_utils.h"
@@ -24,6 +24,10 @@ Application::Application()
 
 void Application::Run()
 {
+    #ifdef OUTPUT_LOG_TO_FILE
+    LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
+    #endif
+
 	GameContext context;
 		
 	while (1)

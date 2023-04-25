@@ -15,13 +15,17 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <iostream>
 #include <cassert>
-#include <string>
 #include <cstring>
-#include <sstream>
-#include <memory>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <sstream>
+#include <time.h>
+
+//#define OUTPUT_LOG_TO_FILE
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
@@ -55,6 +59,30 @@ switch(0) case 0: default: LoggingInternals::BasicMessage()
 
 namespace LoggingInternals
 {
+
+class LogHelpers
+{
+public:
+    static std::string readOutputFilename() { return s_outputFileName; };
+    // @brief Generates a unique filename based on time and date.
+    static std::string generateUniqueFilename()
+    {
+        struct tm newTime;
+        time_t now = time(0);
+        localtime_s(&newTime, &now);
+
+        std::ostringstream filename;
+        filename << "output_"
+                << std::put_time(&newTime, "%Y%m%d_%H%M%S")
+                << ".log";
+
+        return filename.str();
+    }
+
+private:
+
+    static std::string s_outputFileName;
+};
 
 typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
 
@@ -101,7 +129,7 @@ public:
 		m_fileStream(filename, std::ios::app) 
 	{
         m_dualBuffer = new DualStreamBuffer(m_originalStream.rdbuf(), m_fileStream.rdbuf());
-		m_originalStream.rdbuf(m_fileStream.rdbuf());
+		m_originalStream.rdbuf(m_dualBuffer);
 	}
 	~ScopedDualRedirect() 
 	{
@@ -115,7 +143,6 @@ private:
 	std::ofstream m_fileStream;
     DualStreamBuffer* m_dualBuffer;
 };
-
 
 class MessageStream
 {
@@ -201,7 +228,6 @@ protected:
 
     void flush()
     {
-		//ScopedRedirect redirect(std::cerr, "log.txt");
 		if (m_userMessage.get() != nullptr)
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
 		else
@@ -230,6 +256,10 @@ public:
 
 	virtual ~LogMessage()
 	{
+        #ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cerr(std::cerr, LogHelpers::readOutputFilename());
+        #endif
+
         flush();
 
 		std::string* strPtr = m_message.release();
@@ -262,17 +292,17 @@ class DebugLogMessage : public LogMessage
 public:
 	DebugLogMessage() :
       LogMessage(),
-      m_redirect(std::cerr, "log.txt")
+      m_redirect(std::cerr, LogHelpers::readOutputFilename())
 	{ }
 
 	DebugLogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line) :
         LogMessage(prefix, file, function, line),
-        m_redirect(std::cerr, "log.txt")
+        m_redirect(std::cerr, LogHelpers::generateUniqueFilename())
 	{ }
 
 	DebugLogMessage(const std::string& prefix, const std::string& file, int line) :
 	  LogMessage(prefix, file, line),
-      m_redirect(std::cerr, "log.txt")
+      m_redirect(std::cerr, LogHelpers::generateUniqueFilename())
 	{ }
 
     ~DebugLogMessage()
@@ -304,6 +334,10 @@ public:
 
 	~BasicMessage()
 	{
+        #ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cout(std::cout, LogHelpers::readOutputFilename());
+        #endif
+
 		if (m_message.get() != nullptr)
 			std::cout << m_message->c_str() << "\n";
 
@@ -339,6 +373,10 @@ public:
 	
 	~AssertMessage()
 	{
+        #ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cerr(std::cerr, LogHelpers::readOutputFilename());
+        #endif
+
 		if (m_userMessage.get() != nullptr)
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
 		else

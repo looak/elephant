@@ -6,7 +6,7 @@
 #include "fen_parser.h"
 #include "move.h"
 
-#define DEBUG_EVALUATOR 0
+//#define DEBUG_EVALUATOR
 
 Evaluator::Evaluator()
 {
@@ -39,6 +39,7 @@ i32 Evaluator::EvaluateMaterial(const Chessboard& board) const
 {
     const auto& whiteMaterial = board.readMaterial((Set)0);
     const auto& blackMaterial = board.readMaterial((Set)1);
+
 
     i32 score = 0;
     for (int pieceIndx = 0; pieceIndx < 6; pieceIndx++)
