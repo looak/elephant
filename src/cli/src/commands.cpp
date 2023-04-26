@@ -234,10 +234,8 @@ void EvaluateBestMoveHelpCommand(const std::string& command)
 
 bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    std::cout << "UCI mode enabled\n";
-    std::cout << "id name Elephant Gambit\n";
-    std::cout << "id author Alexander Loodin Ek\n";
-    UCI::UCIEnable(context);
+    std::cout << "UCI mode enabled\n";    
+    UCICommands::UCIEnable();
     std::cout << "Normal mode enabled\n";
     return true;
 }

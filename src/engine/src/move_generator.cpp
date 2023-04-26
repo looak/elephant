@@ -180,7 +180,5 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
         }
     }
 
-    std::cout << " Best value: " << bestValue << std::endl;
-
     return bestMove;    
 }

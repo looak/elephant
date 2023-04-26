@@ -161,10 +161,10 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-Move GameContext::CalculateBestMove()
+Move GameContext::CalculateBestMove(SearchParamters params)
 {
     MoveGenerator generator;
-    return generator.CalculateBestMove(*this, 4);
+    return generator.CalculateBestMove(*this, params.SearchDepth);
 }
 
 bool GameContext::isGameOver() const

@@ -32,6 +32,7 @@ ${SRC_DIR}/move_generator_test.cpp
 ${SRC_DIR}/perft_test.cpp
 ${SRC_DIR}/piece_test.cpp
 ${SRC_DIR}/unmake_test.cpp
+${SRC_DIR}/uci_test.cpp
 
 # Utility files
 ${SRC_DIR}/elephant_test_util_funcs.cpp 

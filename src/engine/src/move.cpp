@@ -352,7 +352,14 @@ Move Move::fromString(std::string str)
     mv.SourceSquare = Notation::BuildPosition(str[0], std::atoi(&str[1]));
     mv.TargetSquare = Notation::BuildPosition(str[2], std::atoi(&str[3]));
 
-    if (str.size() > 4)    // assume there's a promotion piece
+    if (str.size() == 4)
+    {
+        if (str[4] == '=' || str[4] == '#')
+            return mv; 
+        mv.PromoteToPiece.fromString(str[4]);
+        mv.Flags |= MoveFlag::Promotion;
+    }
+    else if (str.size() == 5)
     {
         mv.PromoteToPiece.fromString(str[4]);
         mv.Flags |= MoveFlag::Promotion;

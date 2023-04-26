@@ -36,3 +36,6 @@ elephant_gambit_config.h
 *.exe
 *.out
 *.app
+
+# Logs
+*.log

@@ -17,8 +17,12 @@
 #include "chessboard.h"
 
 
-struct EngineParameters
+struct SearchParamters
 {
+    SearchParamters() :
+        SearchDepth(5)
+    {}
+    
     // search depth in half moves, a.k.a. ply or plies.
     int SearchDepth = 5;
 };
@@ -60,7 +64,7 @@ public:
     bool MakeMove(Move& move);
     bool UnmakeMove(const Move& move);
 
-    Move CalculateBestMove();
+    Move CalculateBestMove(SearchParamters params = SearchParamters());
 
     bool GameOver() const;
 

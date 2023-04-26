@@ -26,30 +26,29 @@
 #include <string>
 #include <list>
 
-class GameContext;
+class UCI;
 
-namespace UCI
+namespace UCICommands
 {
 
-typedef std::function<void(std::list<std::string>&, GameContext&)> UCICommandFunction;
+typedef std::function<bool(std::list<std::string>&, UCI&)> UCICommandFunction;
 typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
 typedef std::map<std::string, std::pair<UCICommandFunction,std::string>> UCIOptionsMap;
 
+void UCIEnable();
 
-void UCIEnable(GameContext& context);
+bool DebugCommand(std::list<std::string>& args, UCI& context);
+bool IsReadyCommand(std::list<std::string>& args, UCI& context);
+bool SetOptionCommand(std::list<std::string>& args, UCI& context);
+bool RegisterCommand(std::list<std::string>& args, UCI& context);
+bool NewGameCommand(std::list<std::string>& args, UCI& context);
+bool PositionCommand(std::list<std::string>& args, UCI& context);
+bool GoCommand(std::list<std::string>& args, UCI& context);
+bool StopCommand(std::list<std::string>& args, UCI& context);
+bool PonderHitCommand(std::list<std::string>& args, UCI& context);
+bool QuitCommand(std::list<std::string>& args, UCI& context);
 
-void DebugCommand(std::list<std::string>& args, GameContext& context);
-void IsReadyCommand(std::list<std::string>& args, GameContext& context);
-void SetOptionCommand(std::list<std::string>& args, GameContext& context);
-void RegisterCommand(std::list<std::string>& args, GameContext& context);
-void NewGameCommand(std::list<std::string>& args, GameContext& context);
-void PositionCommand(std::list<std::string>& args, GameContext& context);
-void GoCommand(std::list<std::string>& args, GameContext& context);
-void StopCommand(std::list<std::string>& args, GameContext& context);
-void PonderHitCommand(std::list<std::string>& args, GameContext& context);
-void QuitCommand(std::list<std::string>& args, GameContext& context);
-
-void DebugOutputOption(std::list<std::string>& args, GameContext& context);
+bool DebugOutputOption(std::list<std::string>& args, UCI& context);
 
 static UCICommandsMap commands = {
     { "debug", DebugCommand },
@@ -68,4 +67,4 @@ static UCIOptionsMap options = {
     { "Debug Output File", { DebugOutputOption, "type string default"} }
 };
 
-} // namespace UCI
+} // namespace UCICommands

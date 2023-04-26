@@ -1,26 +1,24 @@
 #include "commands_uci.h"
 #include "commands_utils.h"
-#include "game_context.h"
 #include "move.h"
+#include "uci.hpp"
 
 /**
 * Send back what options this engine supports. */
 void UCIOptions()
 {
-	for (auto&& option : UCI::options)
+	for (auto&& option : UCICommands::options)
 	{
 		std::cout << "option name " << option.first << " " << option.second.second << "\n";
 	}
 }
 
-void UCI::UCIEnable(GameContext& context)
+void UCICommands::UCIEnable()
 {
-	UCIOptions();
-	bool uciEnabled = true;
-	while (uciEnabled)
+    UCI interface;
+	UCIOptions();	
+	while (interface.Enabled())
 	{
-		std::cout << "uciok\n";
-
 		std::string buffer = "";
 		std::getline(std::cin, buffer);
 		std::list<std::string> tokens;
@@ -31,127 +29,88 @@ void UCI::UCIEnable(GameContext& context)
 		if (tokens.size() == 0)
 			continue;
 
-		auto&& command = UCI::commands.find(tokens.front());
-		if (tokens.size() > 0 && command != UCI::commands.end())
+        std::string commandStr = tokens.front();
+		auto&& command = UCICommands::commands.find(commandStr);
+		if (tokens.size() > 0 && command != UCICommands::commands.end())
 		{
 			auto token = tokens.front();
-			tokens.pop_front();
-
-			command->second(tokens, context);
-			if (token == "quit")
+            if (token == "quit")
 				std::exit(0);
+			
+            tokens.pop_front(); // remove command from arguments
+			if (!command->second(tokens, interface))
+            {
+                LOG_ERROR() << " Something went wrong during command: " << commandStr;
+                std::exit(1);
+            }
 		}
 	}
 }
 
-void UCI::DebugCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::DebugCommand(std::list<std::string>& args, UCI& interface)
 {
-
-}
-void UCI::IsReadyCommand(std::list<std::string>&, GameContext&)
-{
-	LOG_INFO() << "readyok";
-	std::cout << "readyok\n";
+    LOG_ERROR() << "Not implemented";
+    return false;
 }
 
-void UCI::SetOptionCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::IsReadyCommand(std::list<std::string>&, UCI& interface)
 {
+    return interface.IsReady();
+}
 
-}
-void UCI::RegisterCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::SetOptionCommand(std::list<std::string>& args, UCI& interface)
 {
+    LOG_ERROR() << "Not implemented";
+    return false;
+}
 
-}
-void UCI::NewGameCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::RegisterCommand(std::list<std::string>& args, UCI& interface)
 {
-	context.NewGame();
+    LOG_ERROR() << "Not implemented";
+    return false;
 }
-void UCI::PositionCommand(std::list<std::string>& args, GameContext& context)
+
+bool UCICommands::NewGameCommand(std::list<std::string>& args, UCI& interface)
 {
-    if (args.size() == 0)
+	return interface.NewGame();
+}
+
+bool UCICommands::PositionCommand(std::list<std::string>& args, UCI& interface)
+{
+    if (!interface.Position(args))
     {
-        LOG_ERROR() << "PositionCommand: No arguments";
-        return;
+        LOG_ERROR() << " Something went wrong during position command";
+        return false;
     }
 
-    auto&& arg = args.front();
-    if (arg == "startpos")
-    {
-        context.NewGame();
-        args.pop_front();
-        if (args.front() == "moves")
-        {            
-            args.pop_front();
-            while (args.size() > 0)
-            {
-                std::string moveStr = args.front();
-                args.pop_front();
-                Move move = Move::fromString(moveStr);            
-                context.MakeMove(move);
-                LOG_INFO() << "Made move: " << move.toString() << "\n";
-            }
-        }
-
-    }
-    else if (arg == "fen")
-    {
-        // args.pop_front();
-        // std::string fen = "";
-        // while (args.size() > 0 && args.front() != "moves")
-        // {
-        //     fen += args.front() + " ";
-        //     args.pop_front();
-        // }
-        // context.NewGame(fen);
-    }
-    else
-    {
-        LOG_ERROR() << "PositionCommand: Invalid argument: " << arg;
-        return;
-    }
+    return true;
 }
-void UCI::GoCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::GoCommand(std::list<std::string>& args, UCI& interface)
 {
-    if (args.size() == 0)
-    {
-        LOG_ERROR() << "PositionCommand: No arguments";
-        return;
-    }
-
-    //auto&& arg = args.front();
-    //if (arg == "go")
-    {
-        args.pop_front();
-        //args.front()
-
-        Move mv = context.CalculateBestMove();
-        std::cout << "bestmove " << mv.toString() << "\n";
-        LOG_INFO() << "bestmove " << mv.toString() << "\n";
-    }
-    // else
-    // {
-    //     LOG_ERROR() << "PositionCommand: Invalid argument: " << arg;
-    //     return;
-    // }
-
+    return interface.Go(args);
 }
-void UCI::StopCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::StopCommand(std::list<std::string>& args, UCI& interface)
 {
-
+    LOG_ERROR() << "Not implemented";
+    return false;
 }
-void UCI::PonderHitCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::PonderHitCommand(std::list<std::string>& args, UCI& interface)
 {
-
+    LOG_ERROR() << "Not implemented";
+    return false;
 }
-void UCI::QuitCommand(std::list<std::string>& args, GameContext& context)
+bool UCICommands::QuitCommand(std::list<std::string>& args, UCI& interface)
 {
 	std::cout << "bye bye\n";
+    return true;
 }
 
-void UCI::DebugOutputOption(std::list<std::string>& args, GameContext& context)
+bool UCICommands::DebugOutputOption(std::list<std::string>& args, UCI& interface)
 {
 	for (auto&& arg : args)
 	{
 		LOG_INFO() << "DebugOutputOption: " << arg;
 	}	
+
+    return true;
 }

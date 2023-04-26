@@ -407,6 +407,10 @@ Chessboard::InternalHandlePawnMove(Move& move)
 
 	if (IsPromoting(move))
 	{ // edit the source tile piece, since we're using this when we do our internal move.
+        
+        // ensure promotion piece is same set as piece we're moving. There is a bug in string parsing of piece 
+        // which assumses capitalized string is white, but that doesn't work for promotions
+        move.PromoteToPiece = ChessPiece(move.Piece.getSet(), move.PromoteToPiece.getType());
 
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare.index());
 		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare.index());
