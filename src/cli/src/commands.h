@@ -55,7 +55,7 @@ void AvailableMovesHelpCommand(const std::string& command);
 
 static CommandsMap options = {
     { "fen", { FenCommand, FenHelpCommand } },
-//    { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
+    { "evaluate", { EvaluateCommand, EvaluateHelpCommand } },
     { "bestmove", { EvaluateBestMoveCommand, EvaluateBestMoveHelpCommand } }, // "bestmove
     { "uci", { UCIEnableCommand, UCIEnableHelpCommand } },
     { "help", { HelpCommand, HelpHelpCommand } },

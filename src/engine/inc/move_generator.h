@@ -63,7 +63,7 @@ struct PieceKey
 class MoveGenerator
 {
 public:
-    std::vector<Move> GeneratePossibleMoves(const GameContext& context) const;
+    std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
 
 	int Perft(GameContext& context, int depth);
 
@@ -74,6 +74,6 @@ public:
     Move CalculateBestMove(GameContext& context, int depth);
 
 private:
-    i32 AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective);
-
+    i32 AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
+    i32 QuiescenceSearch(GameContext& context, Move prevMove, u32 depth,  i32 alpha, i32 beta, i32 perspective, u64& count);
 };

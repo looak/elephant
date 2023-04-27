@@ -7,16 +7,17 @@
 * Send back what options this engine supports. */
 void UCIOptions()
 {
-	for (auto&& option : UCICommands::options)
-	{
-		std::cout << "option name " << option.first << " " << option.second.second << "\n";
-	}
+	// for (auto&& option : UCICommands::options)
+	// {
+	// 	std::cout << "option name " << option.first << " " << option.second.second << "\n";
+	// }
 }
 
 void UCICommands::UCIEnable()
 {
     UCI interface;
-	UCIOptions();	
+	UCIOptions();
+    interface.Enable();
 	while (interface.Enabled())
 	{
 		std::string buffer = "";
@@ -90,9 +91,8 @@ bool UCICommands::GoCommand(std::list<std::string>& args, UCI& interface)
     return interface.Go(args);
 }
 bool UCICommands::StopCommand(std::list<std::string>& args, UCI& interface)
-{
-    LOG_ERROR() << "Not implemented";
-    return false;
+{    
+    return interface.Stop();
 }
 bool UCICommands::PonderHitCommand(std::list<std::string>& args, UCI& interface)
 {

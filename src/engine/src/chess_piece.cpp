@@ -29,7 +29,7 @@ const signed short ChessPieceDef::m_attacks0x88[6][8] = {
 };
 
 const signed short ChessPieceDef::m_value[6] = {
-	1, 3, 3, 5, 9, 100
+	100, 350, 350, 525, 1000, 10000
 };
 
 const PieceType ChessPieceDef::m_slidingPieceTypes[3] = {

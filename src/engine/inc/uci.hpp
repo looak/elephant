@@ -9,6 +9,7 @@ public:
     UCI();
     ~UCI();
 
+    void Enable();
     bool Enabled();
     void Disable();
 
@@ -37,6 +38,11 @@ public:
      * options are available according to the UCI standard and described in
      * the documentation.     */
     bool Go(std::list<std::string>& args);
+
+    /**
+     * Stops calculating the best move for the current position. If the engine 
+     * was  calculating a move, it will respond with "bestmove"     */
+    bool Stop();
 
     const GameContext& readGameContext() { return m_context; }
 private:

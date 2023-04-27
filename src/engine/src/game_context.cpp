@@ -113,6 +113,25 @@ bool GameContext::PlayMove(Move& move)
     return true;
 }
 
+bool GameContext::MakeLegalMove(Move& move)
+{
+    m_board.MakeMoveUnchecked(move);
+
+    if (move.Piece.getSet() == Set::BLACK)
+        m_moveCount++;
+
+    if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
+        m_fiftyMoveRule = 0;
+    else
+        m_fiftyMoveRule++;
+
+    m_plyCount++;
+
+    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+
+    return true;
+}
+
 bool GameContext::MakeMove(Move& move)
 {
     Move actualMove = move;
@@ -161,7 +180,7 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-Move GameContext::CalculateBestMove(SearchParamters params)
+Move GameContext::CalculateBestMove(SearchParameters params)
 {
     MoveGenerator generator;
     return generator.CalculateBestMove(*this, params.SearchDepth);

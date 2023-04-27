@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
-#include "game_context.h"
-#include "fen_parser.h"
-#include "move_generator.h"
 #include "elephant_test_utils.h"
+
+#include "clock.hpp"
+#include "fen_parser.h"
+#include "game_context.h"
+#include "move_generator.h"
 
 #include <future>
 #include <thread>
@@ -85,27 +87,55 @@ public:
         }
         else
         {
-//            std::vector<std::future<unsigned int>> futures;
+            unsigned int count = 0;
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            for (auto mv : moves)
+            {
+                context.MakeMove(mv);
+                u32 newDepth = depth - 1;
+                count += concurrentMovesAtDepth(context, newDepth);
+
+                context.UnmakeMove(mv);
+            }
+
+            return count;
+        }
+    }
+
+    unsigned int CountMovesAtDepthConcurrent(GameContext& context, int depth)
+    {        
+        if (depth == 0)
+        {
+            return 0;
+        }
+        else
+        if (depth == 1)
+        {
+            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            return moves.size();
+        }
+        else
+        {
+
+            std::vector<std::future<unsigned int>> futures;
 
             unsigned int count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             for (auto mv : moves)
             {
                 context.MakeMove(mv);
-                //GameContext contextCopy(context);
+                GameContext contextCopy(context);
                 u32 newDepth = depth - 1;
-                count += concurrentMovesAtDepth(context, newDepth);
-                //auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, newDepth);
+                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, newDepth);
 
-                //futures.push_back(std::move(future));
-                //count += CountMovesAtDepth(context, depth - 1);
+                futures.push_back(std::move(future));
                 context.UnmakeMove(mv);
             }
 
-            // for (auto& future : futures)
-            // {
-            //     count += future.get();
-            // }
+            for (auto& future : futures)
+            {
+                count += future.get();
+            }
 
             return count;
         }
@@ -113,8 +143,18 @@ public:
     
     void Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
     {
+        Clock clock;
+        clock.Start();
         FENParser::deserialize(fen.c_str(), m_context);
-        EXPECT_EQ(expectedValue, CountMovesAtDepth(m_context, atDepth));
+        u32 result = CountMovesAtDepthConcurrent(m_context, atDepth);
+        EXPECT_EQ(expectedValue, result);
+        i64 elapsedTime = clock.getElapsedTime();
+        LOG_INFO() << "Elapsed time: " <<  elapsedTime << " ms";
+
+        // convert to seconds
+        float et = elapsedTime / 1000.f;
+        i64 nps = (i64)(result) / et;
+        LOG_INFO() << "Nodes per second: " << nps << " nps";
     }
 
     GameContext m_context;
@@ -507,6 +547,5 @@ TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
 }
 
 ////////////////////////////////////////////////////////////////
-
 
 } // namespace ElephantTest

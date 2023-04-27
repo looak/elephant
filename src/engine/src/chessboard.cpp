@@ -971,7 +971,7 @@ Chessboard::GetSlidingMaskWithMaterial(Set set) const
 }
 
 std::vector<Move>
-Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask) const
+Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask, bool captureMoves) const
 {
 	std::vector<Move> result;
 
@@ -979,7 +979,7 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 
 	for (auto pos : positions)
 	{
-		auto moves = GetAvailableMoves(pos, piece, threatenedMask, checkedMask, kingMask);
+		auto moves = GetAvailableMoves(pos, piece, threatenedMask, checkedMask, kingMask, captureMoves);
 		result.insert(result.end(), moves.begin(), moves.end());
 	}
 
@@ -987,7 +987,7 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 }
 
 std::vector<Move>
-Chessboard::GetAvailableMoves(Set currentSet) const
+Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
 {	
     Set opSet = ChessPiece::FlipSet(currentSet);
 	u64 threatenedMask = CalcThreatenedMask(opSet);
@@ -1029,11 +1029,11 @@ Chessboard::GetAvailableMoves(Set currentSet) const
 		//moveFutures.push_back(std::async(std::launch::async, &Chessboard::concurrentCalculateAvailableMovesForPiece, this, currentPiece, threatenedMask, kingMask, checked));
 		if (pieceIndx == 1)
 		{
-			auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, pawnKingMask, pawnCheckedMask);
+			auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, pawnKingMask, pawnCheckedMask, captureMoves);
 			result.insert(result.end(), moves.begin(), moves.end());
 			continue;
 		}
-		auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, kingMask, checkedMask);
+		auto moves = concurrentCalculateAvailableMovesForPiece(currentPiece, threatenedMask, kingMask, checkedMask, captureMoves);
 		result.insert(result.end(), moves.begin(), moves.end());
 	}
 
@@ -1055,7 +1055,7 @@ bool Chessboard::InternalIsMoveCheck(Move& move) const
 }
 
 std::vector<Move>
-Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const
+Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask, bool captureMoves) const
 {
 	std::vector<Move> moveVector;
 	if (!Bitboard::IsValidSquare(source))
@@ -1071,13 +1071,17 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 	u64 movesbb = m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant.index(), threatenedMask, checkedMask, kingMask);
 	u64 opMaterial = m_bitboard.GetMaterialCombined(ChessPiece::FlipSet(piece.getSet()));
 
+    if (captureMoves)
+        movesbb &= opMaterial;
+
 	if (movesbb == 0)
 		return moveVector;
 
 	while (movesbb != 0)
 	{
 		byte target = m_bitboard.BitScanFowrward(movesbb);
-		movesbb ^= UINT64_C(1) << target;
+        // "optimal way" to clear least signficant bit
+        movesbb = movesbb & (movesbb - 1);
 
 		auto& move = moveVector.emplace_back(source, Notation(target));
 		move.Flags = MoveFlag::Zero;

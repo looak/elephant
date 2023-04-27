@@ -23,10 +23,14 @@ UCI::~UCI()
 }
 
 bool UCI::Enabled()
-{    
-    if (m_enabled)
-        m_stream << "uciok\n";
+{ 
     return m_enabled;
+}
+
+void UCI::Enable()
+{
+    m_enabled = true;
+    m_stream << "uciok\n";
 }
 
 void UCI::Disable()
@@ -88,7 +92,6 @@ bool UCI::Position(std::list<std::string>& args)
                 LOG_ERROR() << "Failed to make move: " << move.toString();
                 return false;
             }
-            LOG_DEBUG() << "Made move: " << move.toString();
         }
     }
 
@@ -98,30 +101,91 @@ bool UCI::Position(std::list<std::string>& args)
 bool UCI::NewGame()
 {
     m_context.NewGame();
-    m_stream << "isready\n";
+    return true;
+}
+
+bool UCI::Stop()
+{
     return true;
 }
 
 bool UCI::Go(std::list<std::string>& args)
 {
+    SearchParameters searchParams;
+    EngineParameters engineParams;
+    
     // some of these args have values associated with them, so when we iterate
     // over the options, some times we need to jump twice. Hence the lambda
     // returns a optional, since the lambda can also fail.
     std::map<std::string, std::function<std::optional<int>(void)>> options;
     options["searchmoves"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
     options["ponder"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["wtime"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["btime"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["winc"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["binc"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
+    options["wtime"] = [&engineParams, this, args]() -> std::optional<int> {
+        auto itr = std::find(args.begin(), args.end(), "wtime");
+        itr++; // increment itr should hold the value of "movetime"
+        if (itr == args.end())
+        {
+            LOG_ERROR() << "No time specified";
+            return std::nullopt;
+        }
+        engineParams.WhiteTimelimit = std::stoi(*itr);
+        m_stream << "info wtime " << engineParams.WhiteTimelimit << "\n";
+        return 1;
+    };
+    options["btime"] = [&engineParams, this, args]() -> std::optional<int> {
+        auto itr = std::find(args.begin(), args.end(), "btime");
+        itr++; // increment itr should hold the value of "movetime"
+        if (itr == args.end())
+        {
+            LOG_ERROR() << "No time specified";
+            return std::nullopt;
+        }
+        engineParams.BlackTimelimit = std::stoi(*itr);
+        m_stream << "info btime " << engineParams.BlackTimelimit << "\n";
+        return 1;
+    };
+    options["winc"] = [&engineParams, this, args]() -> std::optional<int> {
+        auto itr = std::find(args.begin(), args.end(), "winc");
+        itr++; // increment itr should hold the value of "movetime"
+        if (itr == args.end())
+        {
+            LOG_ERROR() << "No time specified";
+            return std::nullopt;
+        }
+        engineParams.WhiteTimeIncrement = std::stoi(*itr);
+        m_stream << "info winc " << engineParams.WhiteTimeIncrement << "\n";
+        return 1;
+    };
+    options["binc"] = [&engineParams, this, args]() -> std::optional<int> {
+        auto itr = std::find(args.begin(), args.end(), "binc");
+        itr++; // increment itr should hold the value of "movetime"
+        if (itr == args.end())
+        {
+            LOG_ERROR() << "No time specified";
+            return std::nullopt;
+        }
+        engineParams.BlackTimeIncrement = std::stoi(*itr);
+        m_stream << "info binc " << engineParams.BlackTimeIncrement << "\n";
+        return 1;
+    };
     options["movestogo"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
     options["nodes"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
     options["mate"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["movetime"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
+    options["movetime"] = [&searchParams, this, args]() -> std::optional<int> {
+        auto itr = std::find(args.begin(), args.end(), "movetime");
+        itr++; // increment itr should hold the value of "movetime"
+        if (itr == args.end())
+        {
+            LOG_ERROR() << "No movetime specified";
+            return std::nullopt;
+        }
+        searchParams.MoveTime = std::stoi(*itr);
+        m_stream << "info movetime " << searchParams.MoveTime << "\n";
+        return 1;
+    };
     options["infinite"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
 
-    SearchParamters params;
-    options["depth"] = [&params, this, args]() -> std::optional<int> {
+    options["depth"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "depth");
         itr++; // increment itr should hold the value of "depth"
         if (itr == args.end())
@@ -129,8 +193,8 @@ bool UCI::Go(std::list<std::string>& args)
             LOG_ERROR() << "No depth specified";
             return std::nullopt;
         }
-        params.SearchDepth = std::stoi(*itr);
-        m_stream << "info depth " << params.SearchDepth << "\n";
+        searchParams.SearchDepth = std::stoi(*itr);
+        m_stream << "info depth " << searchParams.SearchDepth << "\n";
         return 1;
     };
 
@@ -157,6 +221,7 @@ bool UCI::Go(std::list<std::string>& args)
         }
     }
 
-    m_context.CalculateBestMove(params);
+    Move mv = m_context.CalculateBestMove(searchParams);
+    m_stream << "bestmove " << mv.toString() << "\n";
     return true;
 }

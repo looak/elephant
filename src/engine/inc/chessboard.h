@@ -26,6 +26,17 @@
 
 struct Move;
 
+// enum ChessboardPrint
+// {
+//     NONE = 0x00,
+//     MOVE = 0x01,
+//     CASTLING = 0x02,
+//     EN_PASSANT = 0x04,
+//     HASH = 0x08,
+//     FEN = 0x10,
+//     ALL = MOVE | CASTLING | EN_PASSANT | HASH | FEN
+// }
+
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState
 {
@@ -142,15 +153,15 @@ public:
 	bool isChecked(Set set) const;
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
-	
-	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
+	    
+	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask, bool captureMoves = false) const;
 
 	/**
-	 * Calculates the available moves for the specified set. Does not generate 100% legal moves. For legal moves refere to the MoveGenerator class.
-	 * 
+	 * Calculates the available legal moves for the specified set.
 	 * @param currentSet The set to calculate the available moves for.
+     * @param captureMoves if true, will only return capture moves, by default false.
 	 * @return A vector of all the moves for the specified set - might not be legal moves.	 */
-	std::vector<Move> GetAvailableMoves(Set currentSet) const;
+	std::vector<Move> GetAvailableMoves(Set currentSet, bool captureMoves = false) const;
 	
 	/**
 	 * @brief Calculates a bitboard which shows opponents available moves, i.e. threatened squares.
@@ -274,7 +285,7 @@ private:
 	void InternalMakeMove(Notation source, Notation target);
 	void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
-	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask) const;
+	std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask, KingMask checkedMask, bool captureMoves) const;
 
 	ChessboardTile& get(Notation position) { return editTile(position); }
 	const ChessboardTile& get(Notation position) const { return readTile(position); }

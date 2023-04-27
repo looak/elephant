@@ -71,7 +71,7 @@ private:
 TEST_F(UciFixture, isready_Outputs_readyok)
 {
     // setup
-    m_uci.Enabled();
+    m_uci.Enable();
 
     std::stringstream testOutput;
     bool result = false;
@@ -91,7 +91,7 @@ TEST_F(UciFixture, isready_Outputs_readyok)
 TEST_F(UciFixture, Enabled_Outputs_uciok)
 {
     // setup
-    m_uci.Enabled();
+    m_uci.Enable();
 
     std::stringstream testOutput;
     bool result;
@@ -100,18 +100,17 @@ TEST_F(UciFixture, Enabled_Outputs_uciok)
         ScopedRedirect coutRedirect(std::cout, testOutput);
         
         // do
-        result = m_uci.Enabled();
+        m_uci.Enable();
     }
 
     // verify
     EXPECT_STREQ("uciok\n", testOutput.str().c_str());
-    EXPECT_TRUE(result);
 }
 
 TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
 {
     // setup
-    m_uci.Enabled();
+    m_uci.Enable();
 
     // do
     std::list<std::string> args{ "startpos" };
@@ -139,7 +138,7 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
 TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
 {
     // setup
-    m_uci.Enabled();
+    m_uci.Enable();
     std::string gocFen = "r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1";
     GameContext expected;
     FENParser::deserialize(gocFen.c_str(), expected);
@@ -170,7 +169,7 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
 TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
 {
     // setup
-    m_uci.Enabled();
+    m_uci.Enable();
     m_uci.NewGame();
 
     // do
@@ -189,7 +188,7 @@ TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
     }
 
     EXPECT_TRUE(result);
-    EXPECT_STREQ("info depth 3\n", testOutput.str().c_str());
+    EXPECT_STREQ("info depth 3\nbestmove", testOutput.str().substr(0, testOutput.str().size()-6).c_str());
 
 }
 

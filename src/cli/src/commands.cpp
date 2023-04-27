@@ -9,6 +9,7 @@
 #include "move.h"
 #include "move_generator.h"
 #include <vector>
+#include <charconv>
 
 namespace CliCommands
 {
@@ -207,7 +208,7 @@ void MoveHelpCommand(const std::string& command)
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
 {
     Evaluator evaluator;
-    u64 value = 0;// evaluator.Evaluate(context.readChessboard());
+    i32 value = evaluator.Evaluate(context.readChessboard(), Move(), 1);
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
@@ -219,7 +220,14 @@ void EvaluateHelpCommand(const std::string& command)
 
 bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    Move mv = context.CalculateBestMove();
+    SearchParameters searchParams;
+    if (tokens.size() != 0)
+    {
+        std::string depth = tokens.front();        
+        std::from_chars_result res = std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
+    }
+
+    Move mv = context.CalculateBestMove(searchParams);
     std::cout << " Best Move: " << mv.toString() << std::endl;
     return true;
 }

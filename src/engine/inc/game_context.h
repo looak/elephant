@@ -17,14 +17,26 @@
 #include "chessboard.h"
 
 
-struct SearchParamters
+struct EngineParameters
 {
-    SearchParamters() :
-        SearchDepth(5)
+    int WhiteTimelimit = 0;
+    int BlackTimelimit = 0;
+    int WhiteTimeIncrement = 0;
+    int BlackTimeIncrement = 0;
+};
+
+struct SearchParameters
+{
+    SearchParameters() :
+        SearchDepth(5),
+        MoveTime(0)
     {}
     
     // search depth in half moves, a.k.a. ply or plies.
     int SearchDepth = 5;
+
+    // total amount of time allowed to search for a move in milliseconds.
+    int MoveTime = 0;
 };
 
 struct MoveHistory
@@ -61,16 +73,16 @@ public:
     void PlayMoves(const Move& move, bool print = false);
     bool PlayMove(Move& move);
     
+    bool MakeLegalMove(Move& move);
     bool MakeMove(Move& move);
     bool UnmakeMove(const Move& move);
 
-    Move CalculateBestMove(SearchParamters params = SearchParamters());
+    Move CalculateBestMove(SearchParameters params = SearchParameters());
 
     bool GameOver() const;
 
     /**
-     * @brief Checks if the game is over.
-    */
+     * @brief Checks if the game is over.    */
     bool isGameOver() const;
 
     const Chessboard& readChessboard() const { return m_board; }

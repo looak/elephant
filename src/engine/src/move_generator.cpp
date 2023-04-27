@@ -1,6 +1,7 @@
 #include "move_generator.h"
 
 #include "chessboard.h"
+#include "clock.hpp"
 #include "evaluator.h"
 #include "game_context.h"
 
@@ -103,38 +104,91 @@ MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predic
 }
 
 std::vector<Move>
-MoveGenerator::GeneratePossibleMoves(const GameContext& context) const
+MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool captureMoves) const
 {
     std::vector<Move> retMoves;
     auto currentSet = context.readToPlay();
     const auto& board = context.readChessboard();
 
-    auto moves = board.GetAvailableMoves(currentSet);
+    auto moves = board.GetAvailableMoves(currentSet, captureMoves);
     return moves;
 }
 
 i32 
-MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective)
+MoveGenerator::QuiescenceSearch(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count)
 {
+    // something that we aren't considering here is moves that put opponent in check.
+    i32 value = std::numeric_limits<i32>::min();
+    
+    // generate capture moves
+    auto moves = GeneratePossibleMoves(context, true);
     Evaluator evaluator;
-    if (depth == 0 || context.GameOver())
+
+    if (moves.size() == 0)
+        return perspective * evaluator.Evaluate(context.readChessboard(), prevMove, perspective);
+    else
     {
-        return evaluator.Evaluate(context.readChessboard(), prevMove, perspective) * -perspective;
+        for (auto&& mv : moves)
+        {
+            context.MakeLegalMove(mv);
+            i32 newValue = std::max(value, -QuiescenceSearch(context, mv, depth -1, -beta, -alpha, -perspective, count));            
+            context.UnmakeMove(mv);
+
+            ++count;
+            
+        if (newValue > value)
+        {
+            value = newValue;
+            alpha = std::max(alpha, newValue);
+        }
+        
+        if (alpha >= beta)
+            break;
+        }
     }
 
-    i32 value = std::numeric_limits<i32>::min();
-   
+    return value;
+}
+
+i32 
+MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count)
+{
+    Evaluator evaluator;
+    if (depth == 0)
+    {
+        if (prevMove.isCapture())
+             return QuiescenceSearch(context, prevMove, 3, alpha, beta, perspective, count);
+        else
+            return perspective * evaluator.Evaluate(context.readChessboard(), prevMove, perspective);
+    }
+
+    i32 value = std::numeric_limits<i32>::min();   
     auto moves = GeneratePossibleMoves(context);
+    
+    if (moves.size() == 0)
+    {
+        if (context.readChessboard().isChecked(context.readToPlay()))
+            return value; // negative "infinity" since we're in checkmate
+
+        return 0; // we're in stalemate
+    }
+
     for (auto&& mv : moves)
     {
-        context.MakeMove(mv);
-
-        value = std::max(value, -AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha, -perspective));
-
+        context.MakeLegalMove(mv);
+        i32 newValue = -AlphaBetaNegmax(context, mv, depth -1, alpha, beta, -perspective, count);
         context.UnmakeMove(mv);
         
-        alpha = std::max(alpha, value);
-        if (alpha > beta) break;        
+        ++count;
+
+        if (newValue > value)
+        {
+            value = newValue;
+            alpha = std::max(alpha, newValue);
+        }
+        
+        if (alpha >= beta)
+            break;
     }
 
     return value;
@@ -143,42 +197,50 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i
 Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
 {
     bool isWhite = context.readToPlay() == Set::WHITE;
+    LOG_DEBUG() << "to play: " << (isWhite ? "White" : "Black");
+    LOG_DEBUG() << "depth: " << depth;
     Move bestMove;
     
-    i32 bestValue = isWhite ? std::numeric_limits<i32>::min() : std::numeric_limits<i32>::max();
+    i32 bestValue = std::numeric_limits<i32>::min();
     i32 alpha = std::numeric_limits<i32>::min();
     i32 beta = std::numeric_limits<i32>::max();
 
+    Clock clock;
+    clock.Start();
+
+    u64 count = 0;
     auto moves = GeneratePossibleMoves(context);
+
+    i32 perspective = isWhite ? 1 : -1;
+    
     for (auto&& mv : moves)
     {
-        context.MakeMove(mv);
-        int value = AlphaBetaNegmax(context, mv, depth - 1, -beta, -alpha, isWhite ? 1 : -1);
+        context.MakeLegalMove(mv);
+        i32 value = -AlphaBetaNegmax(context, mv, depth -1, std::numeric_limits<i32>::min(), -alpha, -perspective, count);
+        value *= perspective;
         context.UnmakeMove(mv);
+        count++;
 
-        if (isWhite)
+        LOG_DEBUG() << mv.toString() << " value: " << value;
+
+        if (value > alpha)
         {
-            if (value > bestValue)
-            {
-                bestValue = value;
-                bestMove = mv;
-            }
-
-            if (value > alpha)
-                alpha = value;
-        }
-        else
-        {
-            if (value < bestValue)
-            {
-                bestValue = value;
-                bestMove = mv;
-            }
-
-            if (value < beta)
-                beta = value;
-        }
+            bestValue = value;
+            bestMove = mv;
+            alpha = value;
+        } 
+        
+        if (alpha >= beta) 
+            break;
     }
 
-    return bestMove;    
+    i64 et = clock.getElapsedTime();
+    LOG_INFO() << "Elapsed time: " <<  et << " ms";
+    LOG_INFO() << "Nodes evaluated: " << count;
+    // convert to seconds
+    float etfloat = et / 1000.f;
+    i64 nps = (i64)(count) / etfloat;
+    LOG_INFO() << "Nodes per second: " << nps << " nps";
+
+    return bestMove;
 }

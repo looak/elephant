@@ -25,7 +25,7 @@
 #include <sstream>
 #include <time.h>
 
-//#define OUTPUT_LOG_TO_FILE
+#define OUTPUT_LOG_TO_FILE
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
@@ -80,8 +80,8 @@ public:
     }
 
 private:
-
     static std::string s_outputFileName;
+    
 };
 
 typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
@@ -89,24 +89,30 @@ typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
 class DualStreamBuffer : public std::streambuf 
 {
 public:
-    DualStreamBuffer(std::streambuf* one, std::streambuf* two)
-        : m_bufferOne(one), m_bufferTwo(two) {}
+    DualStreamBuffer(std::streambuf* one, std::streambuf* two) :
+        m_bufferOne(one),
+        m_bufferTwo(two) 
+    {}
 
 protected:
-    int sync() override {
+    int sync() override 
+    {
         int result1 = m_bufferOne->pubsync();
         int result2 = m_bufferTwo->pubsync();
         return (result1 == 0 && result2 == 0) ? 0 : -1;
     }
 
-    std::streamsize xsputn(const char* s, std::streamsize n) override {
+    std::streamsize xsputn(const char* s, std::streamsize n) override 
+    {
         m_bufferOne->sputn(s, n);
         m_bufferTwo->sputn(s, n);
         return n;
     }
 
-    int overflow(int c) override {
-        if (c != EOF) {
+    int overflow(int c) override 
+    {
+        if (c != EOF) 
+        {
             m_bufferOne->sputc(static_cast<char>(c));
             m_bufferTwo->sputc(static_cast<char>(c));
         }
@@ -146,19 +152,10 @@ private:
 
 class MessageStream
 {
-private:
-  	// The type of basic IO manipulators (endl, ends, and flush) for
-  	// narrow streams.
-  	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
-
-	std::unique_ptr< ::std::stringstream> m_stream;
-
-	void operator=(const MessageStream& other);
-
 public:
 	MessageStream() :
 	  m_stream(new ::std::stringstream)
-	{}
+	{ }
 
 	MessageStream(const MessageStream& msg) :
 	  m_stream(new ::std::stringstream)
@@ -210,6 +207,13 @@ public:
 		*m_stream << (value ? "true" : "false");
 		return *this;
 	}
+    private:
+  	// The type of basic IO manipulators (endl, ends, and flush) for
+  	// narrow streams.
+  	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
+	std::unique_ptr< ::std::stringstream> m_stream;
+	void operator=(const MessageStream& other);
+
 };
 
 class LogMessage
@@ -217,7 +221,8 @@ class LogMessage
 private:
 	void AppendMessage(const MessageStream& message)
 	{
-		if (m_userMessage.get() == nullptr) m_userMessage.reset(new ::std::string);
+		if (m_userMessage.get() == nullptr) 
+            m_userMessage.reset(new ::std::string);
 
 		m_userMessage->append(message.getString().c_str());
 	}
@@ -228,10 +233,10 @@ protected:
 
     void flush()
     {
-		if (m_userMessage.get() != nullptr)
+		if (m_userMessage.get() != nullptr && !m_userMessage->empty())
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
-		else
-			std::cerr << m_message->c_str() << std::endl;
+		else if(!m_message->empty())
+			std::cerr << m_message->c_str() << "\n";
 
         m_userMessage->clear();
         m_message->clear();
@@ -284,7 +289,6 @@ public:
 		AppendMessage(MessageStream() << value);
 		return *this;
 	}
-
 };
 
 class DebugLogMessage : public LogMessage
@@ -297,12 +301,12 @@ public:
 
 	DebugLogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line) :
         LogMessage(prefix, file, function, line),
-        m_redirect(std::cerr, LogHelpers::generateUniqueFilename())
+        m_redirect(std::cerr, LogHelpers::readOutputFilename())
 	{ }
 
 	DebugLogMessage(const std::string& prefix, const std::string& file, int line) :
 	  LogMessage(prefix, file, line),
-      m_redirect(std::cerr, LogHelpers::generateUniqueFilename())
+      m_redirect(std::cerr, LogHelpers::readOutputFilename())
 	{ }
 
     ~DebugLogMessage()
@@ -311,7 +315,6 @@ public:
     }
 
 private:
-
     ScopedDualRedirect m_redirect;
 
 };
@@ -343,8 +346,7 @@ public:
 
 		std::string* strPtr = m_message.release();
 		if (strPtr != nullptr)
-			delete strPtr;
-		
+			delete strPtr;		
 	}
 
 	template <typename T>
@@ -377,9 +379,9 @@ public:
         ScopedDualRedirect redirect_cerr(std::cerr, LogHelpers::readOutputFilename());
         #endif
 
-		if (m_userMessage.get() != nullptr)
+		if (m_userMessage.get() != nullptr && !m_userMessage->empty())
 			std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
-		else
+		else if(!m_message->empty())
 			std::cerr << m_message->c_str() << "\n";
 
 		std::string* strPtr = m_message.release();
