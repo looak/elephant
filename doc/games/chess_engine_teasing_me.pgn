@@ -1,0 +1,31 @@
+[Event "Computer chess game"]
+[Site "ABEYTU"]
+[Date "2023.04.27"]
+[Round "?"]
+[White "alexa"]
+[Black "elephant gambit dev"]
+[Result "0-1"]
+[BlackElo "2000"]
+[ECO "A56"]
+[Opening "Benoni"]
+[Time "14:35:49"]
+[Variation "2...c5 3.e3 e6"]
+[WhiteElo "2400"]
+[Termination "normal"]
+[PlyCount "74"]
+[WhiteType "human"]
+[BlackType "program"]
+
+1. d4 c5 {0.00/4 0} 2. c4 e6 {0.00/4 0} 3. e3 Nf6 {0.00/4 1} 4. Nc3 b6
+{0.00/4 1} 5. Nf3 Bb7 {0.00/4 1} 6. Be2 b5 {0.00/4 1} 7. Nxb5 a6 {0.00/4 1}
+8. Nc3 cxd4 {0.00/4 2} 9. Nxd4 Bxg2 {0.00/4 3} 10. Rg1 Bc6 {0.00/4 3} 11.
+Bf3 Bb4 {0.00/4 4} 12. Bd2 O-O {0.00/4 6} 13. Bxc6 Nxc6 {0.00/4 4} 14. Nxc6
+dxc6 {0.00/4 2} 15. a3 Qd6 {0.00/4 3} 16. Ne4 Bxd2+ {0.00/4 1} 17. Nxd2
+Rab8 {0.00/4 2} 18. f3 Rfd8 {0.00/4 1} 19. Ne4 Qe5 {0.00/4 4} 20. Qe2 Rxb2
+{0.00/4 1} 21. Rd1 Rxe2+ {0.00/4 4} 22. Kxe2 Qb2+ {0.00/4 2} 23. Ke1 Rxd1+
+{0.00/4 1} 24. Kxd1 Qa1+ {0.00/4 0} 25. Kd2 Nxe4+ {0.00/4 0} 26. Kd3 Nf2+
+{0.00/4 0} 27. Ke2 Qxg1 {0.00/4 0} 28. Kd2 Qd1+ {0.00/4 0} 29. Kc3 Qxf3
+{0.00/4 0} 30. Kb4 Qxe3 {0.00/4 0} 31. Ka4 Qc3 {0.00/4 0} 32. c5 Nd1
+{0.00/4} 33. h3 a5 {0.00/4} 34. h4 e5 {0.00/4} 35. h5 e4 {0.00/4 0} 36. h6
+e3 {0.00/4} 37. hxg7 Nb2# {0.00/4} 0-1
+

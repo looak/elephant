@@ -208,7 +208,7 @@ void MoveHelpCommand(const std::string& command)
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
 {
     Evaluator evaluator;
-    i32 value = evaluator.Evaluate(context.readChessboard(), Move(), 1);
+    i32 value = evaluator.Evaluate(context.readChessboard(), 1);
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }

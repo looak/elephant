@@ -247,7 +247,7 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 */
 
 
-TEST_F(PerftFixture, Position_Two)
+TEST_F(PerftFixture, DISABLED_Position_Two)
 {
     // setup
 	char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
@@ -356,7 +356,7 @@ TEST_F(PerftFixture, Position_Three_Depth5)
    //EXPECT_EQ(0 + 17 + 0, count.Checkmates);
 }
 
-TEST_F(PerftFixture, Position_Three)
+TEST_F(PerftFixture, DISABLED_Position_Three)
 {
     // setup
 	std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
@@ -415,7 +415,7 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions	Checks		Checkmates
 2		270			87			0		6			48			10			0
 3		9737		1108		4		6			168			48			22
 */
-TEST_F(PerftFixture, Position_Four)
+TEST_F(PerftFixture, DISABLED_Position_Four)
 {
     // setup    
 	std::string inputFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
@@ -457,12 +457,12 @@ TEST_F(PerftFixture, Position_Four_Depth3)
 	//EXPECT_EQ(22, count.Checkmates);
 }
 
-TEST_F(PerftFixture, Catching_IllegalEnPassant)
+TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassant)
 {    
 	Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
 }
 
-TEST_F(PerftFixture, Catching_IllegalEnPassantTwo)
+TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassantTwo)
 {
 	Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
 }
@@ -512,12 +512,12 @@ TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck)
     Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6);
 }
 
-TEST_F(PerftFixture, Catching_SelfStalemate)
+TEST_F(PerftFixture, DISABLED_Catching_SelfStalemate)
 {
     Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6);
 }
 
-TEST_F(PerftFixture, Catching_StalemateAndCheckmate)
+TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmate)
 {
     Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7);
 }

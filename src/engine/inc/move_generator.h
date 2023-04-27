@@ -60,6 +60,12 @@ struct PieceKey
     }
 };
 
+struct SearchResult
+{
+    i32 score;
+    Move move;
+};
+
 class MoveGenerator
 {
 public:
@@ -73,7 +79,7 @@ public:
 
     Move CalculateBestMove(GameContext& context, int depth);
 
-private:
-    i32 AlphaBetaNegmax(GameContext& context, Move prevMove, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
-    i32 QuiescenceSearch(GameContext& context, Move prevMove, u32 depth,  i32 alpha, i32 beta, i32 perspective, u64& count);
+private:    
+    SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
+    i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
 };

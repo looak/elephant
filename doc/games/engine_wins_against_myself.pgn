@@ -1,0 +1,26 @@
+[Event "Computer chess game"]
+[Site "ABEYTU"]
+[Date "2023.04.27"]
+[Round "?"]
+[White "alexa"]
+[Black "elephant gambit dev"]
+[Result "0-1"]
+[BlackElo "2000"]
+[ECO "B15"]
+[Opening "Caro-Kann"]
+[Time "13:16:38"]
+[Variation "4.Nxe4"]
+[WhiteElo "2400"]
+[Termination "normal"]
+[PlyCount "42"]
+[WhiteType "human"]
+[BlackType "program"]
+
+1. d4 c6 {0.00/4} 2. e4 d5 {0.00/4 0} 3. Nc3 dxe4 {0.00/4 0} 4. Nxe4 e6
+{0.00/4 0} 5. Bf4 b6 {0.00/4 0} 6. Qd2 a5 {0.00/4 0} 7. O-O-O a4 {0.00/4 0}
+8. Kb1 a3 {0.00/4 0} 9. Qc3 axb2 {0.00/4 0} 10. Qxb2 b5 {0.00/4 0} 11. Nf3
+b4 {0.00/4 0} 12. Ne5 c5 {0.00/4 0} 13. Nc6 Nxc6 {0.00/4 0} 14. Bb5 Qd5
+{0.00/4 0} 15. f3 cxd4 {0.00/4 0} 16. Rxd4 Qxb5 {0.00/4 0} 17. Rhd1 Nxd4
+{0.00/4 0} 18. Rxd4 Qf1+ {0.00/4 0} 19. Qc1 Qxg2 {0.00/4 0} 20. Rd3 b3
+{0.00/4 0} 21. cxb3 Qxa2# {0.00/4 0} 0-1
+
