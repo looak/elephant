@@ -80,6 +80,6 @@ public:
     Move CalculateBestMove(GameContext& context, int depth);
 
 private:    
-    SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
+    SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
     i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
 };

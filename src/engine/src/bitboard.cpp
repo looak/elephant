@@ -61,7 +61,7 @@ bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 	return true;
 }
 
-u64 Bitboard::internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare, Validate valid) const
+u64 Bitboard::internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare) const
 {
     u64 ret = ~universe;
 
@@ -86,7 +86,7 @@ u64 Bitboard::internalGenerateMask(byte curSqr, signed short dir, bool& sliding,
         if (!resolveSquare(sqrMask))
             break;
       
-        ret |= valid(sqrMask);
+        ret |= sqrMask;
 
     } while (sliding);
 
@@ -427,19 +427,10 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
 
     for (byte i = 0; i < 8; ++i)
     {
-        // if (sqrMask & checkedMask.threats[i])
-        // {
-        //     checked = true;
-        //     //moveIndx = i;
-        //     threatened = checkedMask.threats[i];
-        //     break;
-        // }
-        // else
         if(sqrMask & kingMask.threats[i])
         {
             pinned = true;
             threatened = kingMask.threats[i];
-            //moveIndx = i;
         }
     }
     
@@ -468,11 +459,11 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
         return true;
     };
 
-    auto validChecked = [&](u64 sqrMask)
-    {
-        sqrMask &= threatened;
-        return sqrMask;            
-    };
+    // auto validChecked = [&](u64 sqrMask)
+    // {
+    //     sqrMask &= threatened;
+    //     return sqrMask;            
+    // };
 
     byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (; moveIndx < moveCount; ++moveIndx)
@@ -483,12 +474,15 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
 
         u64 mvMask = 0;
         if (checked || pinned)
-            mvMask = internalGenerateMask(curSqr, dir, sliding, resolve, validChecked);
+            mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);
         else
             mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);       
 
         ret |= mvMask;
     }
+
+    if (checked || pinned)
+        ret &= threatened;
 
     return ret;
 }

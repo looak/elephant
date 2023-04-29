@@ -197,7 +197,6 @@ public:
 
 private:
     typedef std::function<bool(u64 sqrMask)> ResolveMask;
-    typedef std::function<u64(u64 sqrMask)> Validate;
 
     u64 MaterialCombined(byte set) const;
     u64 MaterialCombined() const;
@@ -206,7 +205,7 @@ private:
     u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
     u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
 
-    u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func, Validate valid = [](u64 sqrMask) { return sqrMask; }) const;
+    u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func) const;
 
     u64 m_material[2][6];
 };
