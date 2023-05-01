@@ -18,11 +18,14 @@
 #include <vector>
 #include <functional>
 #include <optional>
-#include "move.h"
+
 #include "defines.h"
+#include "move.h"
+#include "evaluation_table.hpp"
 
 class Chessboard;
 class GameContext;
+struct SearchParameters;
 
 struct MoveCount
 {
@@ -74,12 +77,13 @@ public:
 	int Perft(GameContext& context, int depth);
 
     MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
-    std::vector<std::string> MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
-    Move CalculateBestMove(GameContext& context, int depth);
+    Move CalculateBestMove(GameContext& context, SearchParameters params);
 
 private:    
     SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
     i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
+
+    EvaluationTable m_table;
 };

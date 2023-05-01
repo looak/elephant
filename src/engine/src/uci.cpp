@@ -111,8 +111,7 @@ bool UCI::Stop()
 
 bool UCI::Go(std::list<std::string>& args)
 {
-    SearchParameters searchParams;
-    EngineParameters engineParams;
+    SearchParameters searchParams;    
     
     // some of these args have values associated with them, so when we iterate
     // over the options, some times we need to jump twice. Hence the lambda
@@ -120,7 +119,7 @@ bool UCI::Go(std::list<std::string>& args)
     std::map<std::string, std::function<std::optional<int>(void)>> options;
     options["searchmoves"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
     options["ponder"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
-    options["wtime"] = [&engineParams, this, args]() -> std::optional<int> {
+    options["wtime"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "wtime");
         itr++; // increment itr should hold the value of "movetime"
         if (itr == args.end())
@@ -128,11 +127,11 @@ bool UCI::Go(std::list<std::string>& args)
             LOG_ERROR() << "No time specified";
             return std::nullopt;
         }
-        engineParams.WhiteTimelimit = std::stoi(*itr);
-        m_stream << "info wtime " << engineParams.WhiteTimelimit << "\n";
+        searchParams.WhiteTimelimit = std::stoi(*itr);
+        m_stream << "info wtime " << searchParams.WhiteTimelimit << "\n";
         return 1;
     };
-    options["btime"] = [&engineParams, this, args]() -> std::optional<int> {
+    options["btime"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "btime");
         itr++; // increment itr should hold the value of "movetime"
         if (itr == args.end())
@@ -140,11 +139,11 @@ bool UCI::Go(std::list<std::string>& args)
             LOG_ERROR() << "No time specified";
             return std::nullopt;
         }
-        engineParams.BlackTimelimit = std::stoi(*itr);
-        m_stream << "info btime " << engineParams.BlackTimelimit << "\n";
+        searchParams.BlackTimelimit = std::stoi(*itr);
+        m_stream << "info btime " << searchParams.BlackTimelimit << "\n";
         return 1;
     };
-    options["winc"] = [&engineParams, this, args]() -> std::optional<int> {
+    options["winc"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "winc");
         itr++; // increment itr should hold the value of "movetime"
         if (itr == args.end())
@@ -152,11 +151,11 @@ bool UCI::Go(std::list<std::string>& args)
             LOG_ERROR() << "No time specified";
             return std::nullopt;
         }
-        engineParams.WhiteTimeIncrement = std::stoi(*itr);
-        m_stream << "info winc " << engineParams.WhiteTimeIncrement << "\n";
+        searchParams.WhiteTimeIncrement = std::stoi(*itr);
+        m_stream << "info winc " << searchParams.WhiteTimeIncrement << "\n";
         return 1;
     };
-    options["binc"] = [&engineParams, this, args]() -> std::optional<int> {
+    options["binc"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "binc");
         itr++; // increment itr should hold the value of "movetime"
         if (itr == args.end())
@@ -164,8 +163,8 @@ bool UCI::Go(std::list<std::string>& args)
             LOG_ERROR() << "No time specified";
             return std::nullopt;
         }
-        engineParams.BlackTimeIncrement = std::stoi(*itr);
-        m_stream << "info binc " << engineParams.BlackTimeIncrement << "\n";
+        searchParams.BlackTimeIncrement = std::stoi(*itr);
+        m_stream << "info binc " << searchParams.BlackTimeIncrement << "\n";
         return 1;
     };
     options["movestogo"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };

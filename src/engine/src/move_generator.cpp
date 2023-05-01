@@ -90,19 +90,6 @@ MoveGenerator::OrganizeMoves(const std::vector<Move>& moves) const
     return ret;
 }
 
-std::vector<std::string>
-MoveGenerator::MoveAnnotations(const std::vector<Move>& moves, MoveCount::Predicate predicate) const
-{
-    std::vector<std::string> ret;
-    // for (auto&& mv : moves)
-    // {
-    //     std::ostringstream notation;
-    //     notation << "something";
-
-    // }
-    return ret;
-}
-
 std::vector<Move>
 MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool captureMoves) const
 {
@@ -145,16 +132,27 @@ MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 
     return alpha;
 }
 
+static int evaluation_hits = 0;
+
 SearchResult
 MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv)
 {    
     Evaluator evaluator;
     if (depth == 0)
     {
-        //if (prevMove.isCapture())
-        return { QuiescenceSearch(context, 3, alpha, beta, perspective, count), Move() };
-        // else
-        //return { perspective * evaluator.Evaluate(context.readChessboard(), perspective), Move() };
+        auto tpItr = m_table.find(context.readChessboard().readHash());
+        if (tpItr != m_table.end())
+        {
+            EvaluationEntry& entry = tpItr->second;
+            evaluation_hits++;
+            return { entry.score, Move() };
+        }
+        else
+        {
+            i32 score = QuiescenceSearch(context, 3, alpha, beta, perspective, count);
+            m_table.emplace(context.readChessboard().readHash(), EvaluationEntry{ score });
+            return { score, Move() };
+        }        
     }
 
     i32 c_checkmateconstant = -24000;
@@ -163,6 +161,7 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
     Move bestMove;
 
     auto moves = GeneratePossibleMoves(context);
+    std::sort(moves.begin(), moves.end(), s_moveComparer); // sort all captures to be upfront
     
     if (moves.size() == 0)
     {
@@ -178,7 +177,9 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
     for (auto&& mv : moves)
     {
         context.MakeLegalMove(mv);
-        SearchResult result = AlphaBetaNegmax(context, depth -1, ply+1, -beta, -alpha, -perspective, count, &localPV[0]);
+        SearchResult result;
+        result = AlphaBetaNegmax(context, depth -1, ply+1, -beta, -alpha, -perspective, count, &localPV[0]);
+
         i32 score = -result.score;
         context.UnmakeMove(mv);
         
@@ -202,43 +203,93 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
     return { bestScore, bestMove };
 }
 
-Move MoveGenerator::CalculateBestMove(GameContext& context, int depth)
+
+Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 {
+    auto& stream = std::cout; // should pass this forward from the outer uci calls or something?
+
     bool isWhite = context.readToPlay() == Set::WHITE;
     LOG_DEBUG() << "to play: " << (isWhite ? "White" : "Black");
-    LOG_DEBUG() << "depth: " << depth;
-    Move bestMove;
     
-    i32 bestValue = -64000;
+    static const u32 c_maxSearchDepth = 5;
+    u32 depth = 0;
+    bool useMoveTime = false;
+    u32 moveTime = 0;
+
+    bool useTimelimits = false;
+
+    if (params.SearchDepth != 0)
+    {
+        if (params.SearchDepth > c_maxSearchDepth)
+            params.SearchDepth = c_maxSearchDepth;
+
+        depth = params.SearchDepth;
+    }
+
+    if (params.MoveTime != 0)
+    {
+        depth = c_maxSearchDepth;
+        useMoveTime = true;
+        moveTime = params.MoveTime;
+    }
+    
+    if (params.WhiteTimelimit != 0)
+    {
+        // strategies around using these move times.
+        depth = c_maxSearchDepth;
+        useTimelimits = true;
+        moveTime = params.WhiteTimelimit;
+    }
+    
+    LOG_DEBUG() << "search depth: " << depth;
+    
+    Clock clock;
+    clock.Start();
+    
     i32 alpha = -64000;
     i32 beta = 64000;
     i32 perspective = isWhite ? 1 : -1;
-
-    Clock clock;
-    clock.Start();
-
     u64 count = 0;
+    evaluation_hits = 0;
 
-    Move pv[depth+1];
-    pv[depth] = Move::Invalid(); // null move, null termination.
-    SearchResult result = AlphaBetaNegmax(context, depth, 1, alpha, beta, perspective, count, &pv[0]);
-        
-    LOG_DEBUG() << result.move.toString() << " value: " << result.score;
+    SearchResult bestResult;
+    bestResult.score = -64000;
 
-    std::stringstream pvSS;
-    for (i32 i = 0; i < depth; ++i)
+    for (u32 itrDepth = 1; itrDepth <= depth; ++itrDepth)
     {
-        pvSS << " " << pv[i].toString();
+        Move pv[itrDepth+1];
+        pv[itrDepth] = Move::Invalid(); // null move, null termination.
+        SearchResult result = AlphaBetaNegmax(context, itrDepth, 1, alpha, beta, perspective, count, &pv[0]);
+
+        if (result.score > bestResult.score)
+            bestResult = result;
+            
+        LOG_DEBUG() << result.move.toString() << " value: " << result.score << " at depth: " << itrDepth;
+
+        i64 et = clock.getElapsedTime();
+        i64 nps = (i64)(count) / (et / 1000.f);
+        stream << "info nps " << nps << "\n";
+        
+        std::stringstream pvSS;
+        for (i32 i = 0; i < itrDepth; ++i)
+        {
+            pvSS << " " << pv[i].toString();
+        }
+
+        stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv " << pvSS.str() << "\n";
+
+        LOG_DEBUG() << "Principal variation:" << pvSS.str();
+        LOG_DEBUG() << "Evaluation Cache Hits: " << evaluation_hits;
+        evaluation_hits = 0;
     }
 
-    LOG_DEBUG() << "Principal variation:" << pvSS.str();
-    i64 et = clock.getElapsedTime();
-    LOG_INFO() << "Elapsed time: " <<  et << " ms";
+    i64 finalTime = clock.getElapsedTime();
+    LOG_INFO() << "Elapsed time: " <<  finalTime << " ms";
     LOG_INFO() << "Nodes evaluated: " << count;
     // convert to seconds
-    float etfloat = et / 1000.f;
-    i64 nps = (i64)(count) / etfloat;
+    float finalfloat = finalTime / 1000.f;
+    i64 nps = (i64)(count) / finalfloat;
     LOG_INFO() << "Nodes per second: " << nps << " nps";
 
-    return result.move;
+    return bestResult.move;
 }

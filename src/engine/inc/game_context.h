@@ -16,15 +16,6 @@
 #pragma once
 #include "chessboard.h"
 
-
-struct EngineParameters
-{
-    int WhiteTimelimit = 0;
-    int BlackTimelimit = 0;
-    int WhiteTimeIncrement = 0;
-    int BlackTimeIncrement = 0;
-};
-
 struct SearchParameters
 {
     SearchParameters() :
@@ -33,10 +24,19 @@ struct SearchParameters
     {}
     
     // search depth in half moves, a.k.a. ply or plies.
-    int SearchDepth = 5;
+    // 0 = infinite
+    u32 SearchDepth = 5;
 
     // total amount of time allowed to search for a move in milliseconds.
-    int MoveTime = 0;
+    // 0 = no time limit
+    u32 MoveTime = 0;
+
+    // time limit for white and black in milliseconds including increments.
+    // 0 = no time limit.    
+    u32 WhiteTimelimit = 0;
+    u32 BlackTimelimit = 0;
+    u32 WhiteTimeIncrement = 0;
+    u32 BlackTimeIncrement = 0;
 };
 
 struct MoveHistory

@@ -1,4 +1,4 @@
-﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -18,6 +18,7 @@ ${ENGINE_INC_DIR}/bitboard.h
 ${ENGINE_INC_DIR}/chessboard.h
 ${ENGINE_INC_DIR}/chess_piece.h
 ${ENGINE_INC_DIR}/clock.hpp
+${ENGINE_INC_DIR}/evaluation_table.hpp
 ${ENGINE_INC_DIR}/evaluator.h
 ${ENGINE_INC_DIR}/fen_parser.h
 ${ENGINE_INC_DIR}/game_context.h
