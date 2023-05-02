@@ -20,12 +20,17 @@
 #include <optional>
 
 #include "defines.h"
-#include "move.h"
 #include "evaluation_table.hpp"
+#include "move.h"
+#include "transposition_table.hpp"
 
 class Chessboard;
 class GameContext;
 struct SearchParameters;
+
+#ifndef DEBUG_SEARCHING
+    #define DEBUG_SEARCHING
+#endif
 
 struct MoveCount
 {
@@ -85,5 +90,6 @@ private:
     SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
     i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
 
-    EvaluationTable m_table;
+    EvaluationTable m_evaluationTable;
+    TranspositionTable m_transpositionTable;
 };

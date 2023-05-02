@@ -712,16 +712,16 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::WHITE));
     EXPECT_EQ(orgMask, cpyMask);
     
-    auto orgSlidingMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::BLACK);
-    auto cpySlidingMask = scndCopy.GetSlidingMaskWithMaterial(Set::BLACK);
+    auto orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::BLACK);
+    auto cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::BLACK);
 	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
 	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgSlidingMask = m_gameOfTheCentury.GetSlidingMaskWithMaterial(Set::WHITE);
-    cpySlidingMask = scndCopy.GetSlidingMaskWithMaterial(Set::WHITE);
+    orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::WHITE);
+    cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::WHITE);
 	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
 	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     EXPECT_EQ(orgMask, cpyMask);

@@ -178,8 +178,7 @@ public:
 	 * @param set The set of pieces (black or white) to consider.
 	 * @return A pair of bitboards representing the squares that are threatened by sliding pieces moving orthogonally and
 	 *         diagonally, respectively.	 */
-	MaterialMask GetSlidingMaskWithMaterial(Set set) const;
-	MaterialMask GetMaterialMask(Set set) const;
+	MaterialSlidingMask readSlidingMaterialMask(Set set) const;
 
 	Notation readKingPosition(Set set) const;
 

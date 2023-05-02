@@ -11,6 +11,10 @@
 #include <thread>
 #include <utility>
 
+static const u32 c_maxSearchDepth = 5;
+static const i32 c_maxScore = 32000;
+static const i32 c_checmkateConstant = 24000;
+
 int 
 MoveGenerator::Perft(GameContext& context, int depth)
 {
@@ -105,7 +109,7 @@ i32
 MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count)
 {
     // something that we aren't considering here is moves that put opponent in check.
-    i32 value = -64000;
+    i32 value = -c_maxScore;
     
     // generate capture moves
     auto moves = GeneratePossibleMoves(context, true);
@@ -131,34 +135,40 @@ MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 
 
     return alpha;
 }
-
-static int evaluation_hits = 0;
+#ifdef DEBUG_SEARCHING
+    static int evaluation_hits = 0;
+    static float failHigh = 0.f;
+    static float failHighFirst = 0.f;
+#endif
 
 SearchResult
 MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv)
-{    
+{
     Evaluator evaluator;
     if (depth == 0)
     {
-        auto tpItr = m_table.find(context.readChessboard().readHash());
-        if (tpItr != m_table.end())
+        auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
+        if (tpItr != m_evaluationTable.end())
         {
             EvaluationEntry& entry = tpItr->second;
+            #ifdef DEBUG_SEARCHING
             evaluation_hits++;
+            #endif
             return { entry.score, Move() };
         }
         else
         {
             i32 score = QuiescenceSearch(context, 3, alpha, beta, perspective, count);
-            m_table.emplace(context.readChessboard().readHash(), EvaluationEntry{ score });
+            m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{ score });
             return { score, Move() };
         }        
     }
-
-    i32 c_checkmateconstant = -24000;
-    i32 bestScore = -64000;
     i32 oldAlpha = alpha;
+    i32 bestScore = -c_maxScore;    
     Move bestMove;
+
+    // if (m_transpositionTable.probe(context.readChessboard().readHash(), depth, alpha, beta, bestScore))
+    //     return { bestScore, bestMove };
 
     auto moves = GeneratePossibleMoves(context);
     std::sort(moves.begin(), moves.end(), s_moveComparer); // sort all captures to be upfront
@@ -166,13 +176,14 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
     if (moves.size() == 0)
     {
         if (context.readChessboard().isChecked(context.readToPlay()))
-            return { c_checkmateconstant + (i32)ply, Move() }; // negative "infinity" since we're in checkmate
+            return { -c_checmkateConstant + (i32)ply, Move() }; // negative "infinity" since we're in checkmate
 
         return { 0, Move() }; // we're in stalemate
     }
 
     Move localPV[depth+1];
     localPV[depth] = Move::Invalid();
+    int localCount = 0;
 
     for (auto&& mv : moves)
     {
@@ -183,7 +194,7 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
         i32 score = -result.score;
         context.UnmakeMove(mv);
         
-        ++count;
+        ++localCount;
 
         if (score > alpha)
         {
@@ -197,12 +208,28 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
                 pv[i] = localPV[i-1];
         }
 
-        if (alpha >= beta) break;
-    }    
+        if (alpha >= beta) 
+        {
+            #ifdef DEBUG_SEARCHING
+            if (localCount == 1)
+                failHighFirst += 1.f;
+
+            failHigh += 1.f;
+            #endif
+//            m_transpositionTable.store(context.readChessboard().readHash(), mv, depth, score, TTF_CUT_BETA);
+            break;
+        }
+    }
+
+    count += localCount;
+
+    // if (alpha != oldAlpha)
+    //     m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, bestScore, TTF_CUT_EXACT);
+    // else
+    //     m_transpositionTable.store(context.readChessboard().readHash(), Move::Invalid(), depth, bestScore, TTF_CUT_ALPHA);
 
     return { bestScore, bestMove };
 }
-
 
 Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 {
@@ -232,7 +259,7 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
         useMoveTime = true;
         moveTime = params.MoveTime;
     }
-    
+
     if (params.WhiteTimelimit != 0)
     {
         // strategies around using these move times.
@@ -242,18 +269,22 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
     }
     
     LOG_DEBUG() << "search depth: " << depth;
-    
+
     Clock clock;
     clock.Start();
     
-    i32 alpha = -64000;
-    i32 beta = 64000;
+    i32 alpha = -c_maxScore;
+    i32 beta = c_maxScore;
     i32 perspective = isWhite ? 1 : -1;
     u64 count = 0;
+#ifdef DEBUG_SEARCHING
     evaluation_hits = 0;
+    failHigh = 0.f;
+    failHighFirst = 0.f;
+#endif
 
     SearchResult bestResult;
-    bestResult.score = -64000;
+    bestResult.score = -c_maxScore;
 
     for (u32 itrDepth = 1; itrDepth <= depth; ++itrDepth)
     {
@@ -263,13 +294,11 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
 
         if (result.score > bestResult.score)
             bestResult = result;
-            
-        LOG_DEBUG() << result.move.toString() << " value: " << result.score << " at depth: " << itrDepth;
-
+        
         i64 et = clock.getElapsedTime();
         i64 nps = (i64)(count) / (et / 1000.f);
         stream << "info nps " << nps << "\n";
-        
+
         std::stringstream pvSS;
         for (i32 i = 0; i < itrDepth; ++i)
         {
@@ -277,10 +306,6 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
         }
 
         stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv " << pvSS.str() << "\n";
-
-        LOG_DEBUG() << "Principal variation:" << pvSS.str();
-        LOG_DEBUG() << "Evaluation Cache Hits: " << evaluation_hits;
-        evaluation_hits = 0;
     }
 
     i64 finalTime = clock.getElapsedTime();
@@ -290,6 +315,13 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
     float finalfloat = finalTime / 1000.f;
     i64 nps = (i64)(count) / finalfloat;
     LOG_INFO() << "Nodes per second: " << nps << " nps";
+
+#ifdef DEBUG_SEARCHING
+    LOG_DEBUG() << "Fail high ratio: " << failHighFirst / failHigh;
+    LOG_DEBUG() << "Evaluation Cache Hits: " << evaluation_hits;
+
+    m_transpositionTable.debugStatistics();
+#endif
 
     return bestResult.move;
 }

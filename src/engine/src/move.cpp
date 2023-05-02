@@ -57,6 +57,45 @@ Move::Move(Move&& other)
 	*this = std::move(other);
 }
 
+PackedMove Move::readPackedMove() const
+{
+    u16 packedMove = 0;
+    packedMove = (SourceSquare.index() & 63);
+    packedMove |= (TargetSquare.index() & 63) << 6;
+    packedMove |= isCapture() << 14;
+    if (isCastling())
+    {
+        packedMove |= 1 << 13;
+        if (TargetSquare.file == c_file) // queen side castling
+            packedMove |= 1 << 12;
+    }
+    if (isPromotion())
+    {
+        packedMove |= 1 << 15;
+
+        u8 packedPiece = PromoteToPiece.type() - 2;
+        packedMove |= packedPiece << 12;
+    }
+
+    if (Piece.isPawn())
+    {
+        if (abs(SourceSquare.rank - TargetSquare.rank) == 2)
+            packedMove |= 1 << 12;
+    }
+
+    PackedMove mv;
+    mv.set(packedMove);
+    return mv;
+}
+
+i16 Move::calcCaptureValue() const
+{
+    i16 victim = ChessPieceDef::Value(CapturedPiece.index());
+    i16 attacker = ChessPieceDef::Value(Piece.index());
+
+    return victim * 10 - attacker;
+}
+
 void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
 {
     char character = moveStr.at(cursor);

@@ -10,14 +10,14 @@
 
 Bitboard::Bitboard()
 {
-    std::memset(&m_material[0][0], 0, sizeof(u64) * 12);
+    std::memset(&m_material[0], 0, sizeof(u64) * 12);
 }
 
 Bitboard& Bitboard::operator=(const Bitboard& other)
 {
     auto size = sizeof(m_material);
-    std::memset(&m_material[0][0], 0, size);
-    std::memcpy(&m_material[0][0], &other.m_material[0][0], size);
+    std::memset(&m_material[0], 0, size);
+    std::memcpy(&m_material[0], &other.m_material[0], size);
     return *this;
 }
 
@@ -42,13 +42,13 @@ bool Bitboard::IsValidSquare(Notation source)
 
 void Bitboard::Clear()
 {
-	std::memset(&m_material[0][0], 0, sizeof(u64) * 12);
+	std::memset(&m_material[0], 0, sizeof(u64) * 12);
 }
 
 bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
-	m_material[piece.set()][piece.index()] ^= mask;
+	m_material[piece.set()].material[piece.index()] ^= mask;
 	
 	return true;
 }
@@ -56,7 +56,7 @@ bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 {
     u64 mask = UINT64_C(1) << target.index();
-	m_material[piece.set()][piece.index()] |= mask;
+	m_material[piece.set()].material[piece.index()] |= mask;
 	
 	return true;
 }
@@ -171,7 +171,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
             ChessPiece opPawn = ChessPiece(ChessPiece::FlipSet((Set)curSet), PieceType::PAWN);
             u64 enPassantAttack = calcThreatenedSquares(enPassantPieceSqr, opPawn);
             
-            if (enPassantAttack & m_material[piece.set()][5])
+            if (enPassantAttack & m_material[piece.set()].material[5])
             {
 				threatenedMask = checkedMask | (UINT64_C(1) << enPassant);
             }    
@@ -242,7 +242,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
 }
 
 KingMask 
-Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialMask& opponentSlidingMask) const
+Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const
 {
     byte moveCount = ChessPieceDef::MoveCount(king.index());
 
@@ -254,12 +254,12 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialMask& opp
 
     u8 opSet = ChessPiece::FlipSet(king.set());
     u64 slideMat = SlidingMaterialCombined(opSet);
-    const u64 c_diagnoalMat = m_material[opSet][bishop] | m_material[opSet][queen];
-    const u64 c_orthogonalMat = m_material[opSet][rook] | m_material[opSet][queen];
+    const u64 c_diagnoalMat = m_material[opSet].bishops | m_material[opSet].queens;
+    const u64 c_orthogonalMat = m_material[opSet].rooks | m_material[opSet].queens;
     u64 diagnoalMat = opponentSlidingMask.diagonal;
 	u64 orthogonalMat = opponentSlidingMask.orthogonal;
     u64 allMat = MaterialCombined();
-    u64 knightMat = m_material[opSet][1];
+    u64 knightMat = m_material[opSet].knights;
     //u64 ret = ~universe;
     u8 checks = 0;
     
@@ -343,15 +343,15 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialMask& opp
         }
     }
 
-    if (m_material[opSet][0] > 0)
+    if (m_material[opSet].pawns > 0)
     {
         // figure out if we're checked by a pawn
-        s8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
+        i8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
         auto pawnSqr = Notation(source.file + 1, source.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
-            sqrMak &= m_material[opSet][0];
+            sqrMak &= m_material[opSet].pawns;
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
@@ -363,7 +363,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialMask& opp
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = UINT64_C(1) << pawnSqr.index();
-            sqrMak &= m_material[opSet][0];            
+            sqrMak &= m_material[opSet].pawns;            
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
@@ -496,7 +496,7 @@ u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece
 
 u64 Bitboard::GetMaterial(ChessPiece piece) const
 {
-    return m_material[piece.set()][piece.index()];
+    return m_material[piece.set()].material[piece.index()];
 }
 
 u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing) const
@@ -508,7 +508,7 @@ u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pier
 
     // removing king from opmaterial so it doesn't stop our sliding.
     if (pierceKing)
-        opMatComb &= ~m_material[opSet][5];
+        opMatComb &= ~m_material[opSet].kings;
 
     signed char moveMod = 1;
     if (piece.getSet() == Set::WHITE)
@@ -617,6 +617,11 @@ u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
     return retVal;
 }
 
+MaterialMask Bitboard::GetMaterial(Set set) const
+{
+    return m_material[(size_t)set];
+}
+
 u64 Bitboard::GetMaterialCombined(Set set) const
 {
     return MaterialCombined(static_cast<byte>(set));
@@ -630,7 +635,7 @@ u64 Bitboard::MaterialCombined() const
 u64 Bitboard::MaterialCombined(byte set) const
 {
     u64 combMaterialMask = 0;
-    for (u64 msk : m_material[set])
+    for (u64 msk : m_material[set].material)
     {
         combMaterialMask |= msk;
     }
@@ -642,5 +647,5 @@ u64 Bitboard::SlidingMaterialCombined(byte set) const
     u8 bishop = 2;
     u8 rook = 3;
     u8 queen = 4;
-    return m_material[set][bishop] | m_material[set][rook] | m_material[set][queen];
+    return m_material[set].bishops | m_material[set].rooks | m_material[set].queens;
 }

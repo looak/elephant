@@ -1,4 +1,4 @@
-set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -28,6 +28,7 @@ ${ENGINE_INC_DIR}/material.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/move_generator.h
 ${ENGINE_INC_DIR}/notation.h
+${ENGINE_INC_DIR}/transposition_table.hpp
 ${ENGINE_INC_DIR}/uci.hpp
 )
 
@@ -49,6 +50,7 @@ ${ENGINE_SRC_DIR}/material.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
+${ENGINE_SRC_DIR}/transposition_table.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 )
 

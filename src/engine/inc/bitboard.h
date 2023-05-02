@@ -33,6 +33,26 @@ struct Notation;
 
 struct MaterialMask
 {
+    union {
+        struct {
+            u64 pawns;
+            u64 knights;
+            u64 bishops;
+            u64 rooks;
+            u64 queens;
+            u64 kings;
+        };        
+        u64 material[6];
+    };
+
+    u64 combine() const
+    {
+        return material[0] | material[1] | material[2] | material[3] | material[4] | material[5];
+    }
+};
+
+struct MaterialSlidingMask
+{
     u64 orthogonal;
     u64 diagonal;
 };
@@ -189,9 +209,10 @@ public:
      * @param source Position on board of the king.
      * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
      * @return A mask struct containing a seperate mask for each direction.  */
-    KingMask calcKingMask(ChessPiece king, Notation source, const MaterialMask& opponentSlidingMask) const;
+    KingMask calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const;
     u64 GetMaterialCombined(Set set) const;
     u64 GetMaterial(ChessPiece piece) const;
+    MaterialMask GetMaterial(Set set) const;
 
     int BitScanFowrward(u64 bitboard) const;
 
@@ -207,5 +228,5 @@ private:
 
     u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func) const;
 
-    u64 m_material[2][6];
+    MaterialMask m_material[2];
 };

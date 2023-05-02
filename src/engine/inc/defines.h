@@ -18,12 +18,14 @@
 #include <stdint.h>
 #include "log.h"
 
-typedef uint8_t u8;
-typedef int8_t s8;
 typedef unsigned char byte;
-typedef unsigned long long u64;
-typedef signed long long i64;
+typedef unsigned char u8;
+typedef signed short u16;
 typedef unsigned long u32;
+typedef unsigned long long u64;
+typedef signed char i8;
+typedef signed short i16;
+typedef signed long long i64;
 typedef signed long i32;
 
 const u64 universe = 0xffffffffffffffffULL;

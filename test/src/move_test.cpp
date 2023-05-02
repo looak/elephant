@@ -82,6 +82,64 @@ TEST_F(MoveFixture, PawnMoves)
     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(d4).readPiece());
 }
 
+TEST_F(MoveFixture, PackedMoves_FromMove)
+{
+    Move quietMove(e3, d4);
+    quietMove.Piece = BLACKBISHOP;
+    PackedMove pmv = quietMove.readPackedMove();
+    EXPECT_TRUE(pmv.isQuiet());
+    EXPECT_EQ(quietMove.SourceSquare.index(), pmv.sourceSqr());
+    EXPECT_EQ(quietMove.TargetSquare.index(), pmv.targetSqr());
+    
+    Move mvDoublePush(d2, d4);
+    mvDoublePush.Piece = WHITEPAWN;
+
+    pmv = mvDoublePush.readPackedMove();
+    EXPECT_TRUE(pmv.isPawnDoublePush());
+    EXPECT_FALSE(pmv.isCapture());
+    EXPECT_FALSE(pmv.isCastling());
+    EXPECT_FALSE(pmv.isPromotion());
+
+    EXPECT_EQ(mvDoublePush.SourceSquare.index(), pmv.sourceSqr());
+    EXPECT_EQ(mvDoublePush.TargetSquare.index(), pmv.targetSqr());
+
+    Move capture(g1, g8);
+    capture.setCapture(true);
+    capture.CapturedPiece = BLACKROOK;
+    pmv = capture.readPackedMove();
+    EXPECT_TRUE(pmv.isCapture());
+    EXPECT_EQ(capture.SourceSquare.index(), pmv.sourceSqr());
+    EXPECT_EQ(capture.TargetSquare.index(), pmv.targetSqr());
+    EXPECT_FALSE(pmv.isQuiet());
+    EXPECT_FALSE(pmv.isPromotion());
+    EXPECT_FALSE(pmv.isPawnDoublePush());
+    EXPECT_FALSE(pmv.isCastling());
+
+    Move promotion(f7,f8);
+    promotion.setPromotion(true);
+    promotion.PromoteToPiece = BLACKROOK;
+    pmv = promotion.readPackedMove();
+    EXPECT_TRUE(pmv.isPromotion());
+    EXPECT_EQ(promotion.SourceSquare.index(), pmv.sourceSqr());
+    EXPECT_EQ(promotion.TargetSquare.index(), pmv.targetSqr());
+    EXPECT_EQ(promotion.PromoteToPiece.type(), pmv.readPromoteToPieceType());
+    EXPECT_FALSE(pmv.isCapture());
+    EXPECT_FALSE(pmv.isQuiet());
+    EXPECT_FALSE(pmv.isPawnDoublePush());
+    EXPECT_FALSE(pmv.isCastling());
+    
+    Move castle(e1, c1);
+    castle.setCastling(true);
+    pmv = castle.readPackedMove();
+    EXPECT_TRUE(pmv.isCastling());    
+    EXPECT_EQ(castle.SourceSquare.index(), pmv.sourceSqr());
+    EXPECT_EQ(castle.TargetSquare.index(), pmv.targetSqr());
+    EXPECT_EQ(PackedMoveType::QUEEN_CASTLE, (pmv.read() >> 12));
+    EXPECT_FALSE(pmv.isCapture());
+    EXPECT_FALSE(pmv.isQuiet());
+    EXPECT_FALSE(pmv.isPromotion());
+}
+
 TEST_F(MoveFixture, PawnMoves_enpassant_white)
 {
     // setup
