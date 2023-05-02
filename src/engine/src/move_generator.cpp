@@ -210,12 +210,12 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
 
         if (alpha >= beta) 
         {
-            #ifdef DEBUG_SEARCHING
+#ifdef DEBUG_SEARCHING
             if (localCount == 1)
                 failHighFirst += 1.f;
 
             failHigh += 1.f;
-            #endif
+#endif
 //            m_transpositionTable.store(context.readChessboard().readHash(), mv, depth, score, TTF_CUT_BETA);
             break;
         }
