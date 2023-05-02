@@ -238,10 +238,11 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
     bool isWhite = context.readToPlay() == Set::WHITE;
     LOG_DEBUG() << "to play: " << (isWhite ? "White" : "Black");
     
-    static const u32 c_maxSearchDepth = 5;
-    u32 depth = 0;
+    static const u32 c_maxSearchDepth = 8;
+    u32 depth = c_maxSearchDepth;
     bool useMoveTime = false;
     u32 moveTime = 0;
+    u32 timeIncrement = 0;    
 
     bool useTimelimits = false;
 
@@ -251,21 +252,38 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
             params.SearchDepth = c_maxSearchDepth;
 
         depth = params.SearchDepth;
+        
     }
 
     if (params.MoveTime != 0)
     {
-        depth = c_maxSearchDepth;
-        useMoveTime = true;
+        depth = c_maxSearchDepth;        
         moveTime = params.MoveTime;
+        useMoveTime = true;
     }
 
     if (params.WhiteTimelimit != 0)
     {
         // strategies around using these move times.
-        depth = c_maxSearchDepth;
-        useTimelimits = true;
-        moveTime = params.WhiteTimelimit;
+        depth = c_maxSearchDepth;        
+        useMoveTime = true;
+
+        if (isWhite)
+        {
+            moveTime = params.WhiteTimelimit;
+            if (params.WhiteTimeIncrement != 0)
+            {
+                timeIncrement = params.WhiteTimeIncrement;                
+            }
+        }
+        else
+        {
+            moveTime = params.BlackTimelimit;
+            if (params.BlackTimeIncrement != 0)
+            {
+                timeIncrement = params.BlackTimeIncrement;                
+            }
+        }
     }
     
     LOG_DEBUG() << "search depth: " << depth;
@@ -295,8 +313,7 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
         if (result.score > bestResult.score)
             bestResult = result;
         
-        i64 et = clock.getElapsedTime();
-        i64 nps = (i64)(count) / (et / 1000.f);
+        u64 nps = clock.calcNodesPerSecond(count);
         stream << "info nps " << nps << "\n";
 
         std::stringstream pvSS;
@@ -305,18 +322,34 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
             pvSS << " " << pv[i].toString();
         }
 
-        stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv " << pvSS.str() << "\n";
-        // float centipawn = bestResult.score / 100.f;
-        // stream << "info score cp " << centipawn << "\n";
+        i64 et = clock.getElapsedTime();
+        // figure out if we found a mate move order.
+        i32 checkmateDistance = c_checmkateConstant - abs(bestResult.score);
+        if (checkmateDistance <= depth) 
+        {
+            // found checmkate within depth.
+            if (bestResult.score < 0)
+                checkmateDistance = -checkmateDistance;                
+            stream << "info mate " << checkmateDistance << "\n";
+            break; // don't need to search further if we found a forced mate.
+        }
+        else
+        {
+            stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";
+            float centipawn = bestResult.score / 100.f;
+            stream << "info score cp " << centipawn << "\n";
+        }
+
+        if (useMoveTime != false && TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(), bestResult.score) == false)
+            break;
+
     }
 
     i64 finalTime = clock.getElapsedTime();
-    LOG_INFO() << "Elapsed time: " <<  finalTime << " ms";
-    LOG_INFO() << "Nodes evaluated: " << count;
-    // convert to seconds
-    float finalfloat = finalTime / 1000.f;
-    i64 nps = (i64)(count) / finalfloat;
-    LOG_INFO() << "Nodes per second: " << nps << " nps";
+    LOG_DEBUG() << "Elapsed time: " <<  finalTime << " ms";
+    LOG_DEBUG() << "Nodes evaluated: " << count;    
+    u64 nps = clock.calcNodesPerSecond(count);
+    LOG_DEBUG() << "Nodes per second: " << nps << " nps";
 
 #ifdef DEBUG_SEARCHING
     LOG_DEBUG() << "Fail high ratio: " << failHighFirst / failHigh;
@@ -326,4 +359,32 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
 #endif
 
     return bestResult.move;
+}
+
+bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score)
+{
+    // should return false if we want to abort our search.
+    // how do we manage time?
+    // lots of magic numbers in here.
+    const u32 c_maxTimeAllowed = (timeleft / 24); // at 5min this is 12 seconds.
+    if (elapsedTime > c_maxTimeAllowed)
+    {
+        // if score is negative we continue looking one more depth.
+        // if (score < 0 && timeleft > (c_maxTimeAllowed * 6)) 
+        //     return true;
+        // else
+        return false;
+    }
+    else
+    {
+        i64 avrgTime = elapsedTime / depth;
+        avrgTime *= avrgTime; // assume exponential time increase per depth.
+        avrgTime /= 2; // give some credit to the alpha beta search.
+        if (avrgTime > c_maxTimeAllowed)
+            return false;
+        else
+            return true;
+    }
+
+    return false;
 }

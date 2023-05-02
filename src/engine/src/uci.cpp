@@ -182,7 +182,12 @@ bool UCI::Go(std::list<std::string>& args)
         m_stream << "info movetime " << searchParams.MoveTime << "\n";
         return 1;
     };
-    options["infinite"] = []() { LOG_ERROR() << "Not yet implemented"; return std::nullopt; };
+    options["infinite"] = [&searchParams]() -> std::optional<int> {
+        
+        searchParams.MoveTime = 0;
+        searchParams.SearchDepth = 0;
+        return 0;
+     };
 
     options["depth"] = [&searchParams, this, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "depth");

@@ -86,9 +86,11 @@ public:
 
     Move CalculateBestMove(GameContext& context, SearchParameters params);
 
-private:    
+private:
     SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
     i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
+
+    bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
 
     EvaluationTable m_evaluationTable;
     TranspositionTable m_transpositionTable;
