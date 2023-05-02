@@ -28,9 +28,9 @@ class Chessboard;
 class GameContext;
 struct SearchParameters;
 
-#ifndef DEBUG_SEARCHING
-    #define DEBUG_SEARCHING
-#endif
+// #ifndef DEBUG_SEARCHING
+//     #define DEBUG_SEARCHING
+// #endif
 
 struct MoveCount
 {

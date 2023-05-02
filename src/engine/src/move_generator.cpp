@@ -151,9 +151,9 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
         if (tpItr != m_evaluationTable.end())
         {
             EvaluationEntry& entry = tpItr->second;
-            #ifdef DEBUG_SEARCHING
+#ifdef DEBUG_SEARCHING
             evaluation_hits++;
-            #endif
+#endif
             return { entry.score, Move() };
         }
         else
@@ -306,6 +306,8 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
         }
 
         stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv " << pvSS.str() << "\n";
+        // float centipawn = bestResult.score / 100.f;
+        // stream << "info score cp " << centipawn << "\n";
     }
 
     i64 finalTime = clock.getElapsedTime();

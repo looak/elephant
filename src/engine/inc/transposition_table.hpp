@@ -4,9 +4,9 @@
 
 #include <unordered_map>
 
-#ifndef DEBUG_SEARCHING
-    #define DEBUG_SEARCHING
-#endif
+// #ifndef DEBUG_SEARCHING
+//     #define DEBUG_SEARCHING
+// #endif
 
 class Move;
 /**
