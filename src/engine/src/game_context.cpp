@@ -180,7 +180,7 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-Move GameContext::CalculateBestMove(SearchParameters params)
+SearchResult GameContext::CalculateBestMove(SearchParameters params)
 {
     MoveGenerator generator;
     return generator.CalculateBestMove(*this, params);

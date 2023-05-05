@@ -227,8 +227,8 @@ bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& contex
         std::from_chars_result res = std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
     }
 
-    Move mv = context.CalculateBestMove(searchParams);
-    std::cout << " Best Move: " << mv.toString() << std::endl;
+    SearchResult result = context.CalculateBestMove(searchParams);
+    std::cout << " Best Move: " << result.move.toString() << std::endl;
     return true;
 }
 

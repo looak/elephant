@@ -3,6 +3,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
+#include "move_generator.h"
 
 #include <map>
 #include <functional>
@@ -225,7 +226,7 @@ bool UCI::Go(std::list<std::string>& args)
         }
     }
 
-    Move mv = m_context.CalculateBestMove(searchParams);
-    m_stream << "bestmove " << mv.toString() << "\n";
+    SearchResult result = m_context.CalculateBestMove(searchParams);
+    m_stream << "bestmove " << result.move.toString() << "\n";
     return true;
 }

@@ -16,28 +16,8 @@
 #pragma once
 #include "chessboard.h"
 
-struct SearchParameters
-{
-    SearchParameters() :
-        SearchDepth(5),
-        MoveTime(0)
-    {}
-    
-    // search depth in half moves, a.k.a. ply or plies.
-    // 0 = infinite
-    u32 SearchDepth = 5;
-
-    // total amount of time allowed to search for a move in milliseconds.
-    // 0 = no time limit
-    u32 MoveTime = 0;
-
-    // time limit for white and black in milliseconds including increments.
-    // 0 = no time limit.    
-    u32 WhiteTimelimit = 0;
-    u32 BlackTimelimit = 0;
-    u32 WhiteTimeIncrement = 0;
-    u32 BlackTimeIncrement = 0;
-};
+struct SearchResult;
+struct SearchParameters;
 
 struct MoveHistory
 {
@@ -77,7 +57,7 @@ public:
     bool MakeMove(Move& move);
     bool UnmakeMove(const Move& move);
 
-    Move CalculateBestMove(SearchParameters params = SearchParameters());
+    SearchResult CalculateBestMove(SearchParameters params);
 
     bool GameOver() const;
 

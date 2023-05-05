@@ -106,7 +106,7 @@ MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool captureMov
 }
 
 i32 
-MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count)
+MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count)
 {
     // something that we aren't considering here is moves that put opponent in check.
     i32 value = -c_maxScore;
@@ -115,14 +115,34 @@ MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 
     auto moves = GeneratePossibleMoves(context, true);
     Evaluator evaluator;
 
-    if (moves.size() == 0 || depth == 0)
-        return perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+    if (moves.size() == 0)
+    {
+        if (context.readChessboard().isChecked(context.readToPlay()))
+            return -c_checmkateConstant + (i32)ply; // negative "infinity" since we're in checkmate
+
+        return 0; // we're in stalemate
+    }
+    else if (depth == 0)
+    {        
+        auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());        
+        if (tpItr != m_evaluationTable.end())
+        {
+            EvaluationEntry& entry = tpItr->second;
+            return entry.score;
+        }
+        else
+        {
+            i32 score = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+            m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{ score });
+            return score;
+        }
+    }
     else
     {
         for (auto&& mv : moves)
         {
             context.MakeLegalMove(mv);
-            i32 score = std::max(value, -QuiescenceSearch(context, depth -1, -beta, -alpha, -perspective, count));
+            i32 score = std::max(value, -QuiescenceSearch(context, depth -1, ply+1, -beta, -alpha, -perspective, count));
             context.UnmakeMove(mv);
 
             ++count;
@@ -158,7 +178,7 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
         }
         else
         {
-            i32 score = QuiescenceSearch(context, 3, alpha, beta, perspective, count);
+            i32 score = QuiescenceSearch(context, 3, ply, alpha, beta, perspective, count);
             m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{ score });
             return { score, Move() };
         }        
@@ -231,7 +251,8 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alp
     return { bestScore, bestMove };
 }
 
-Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
+SearchResult
+MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 {
     auto& stream = std::cout; // should pass this forward from the outer uci calls or something?
 
@@ -329,15 +350,18 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
         {
             // found checmkate within depth.
             if (bestResult.score < 0)
-                checkmateDistance = -checkmateDistance;                
+            { // mate is forced
+                checkmateDistance = -checkmateDistance;
+                bestResult.ForcedMate = true;
+            }
+            checkmateDistance /= 2;
             stream << "info mate " << checkmateDistance << "\n";
             break; // don't need to search further if we found a forced mate.
         }
         else
         {
-            stream << "info depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";
             float centipawn = bestResult.score / 100.f;
-            stream << "info score cp " << centipawn << "\n";
+            stream << "info score cp " << std::fixed << std::setprecision(2) << centipawn << " depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";            
         }
 
         if (useMoveTime != false && TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(), bestResult.score) == false)
@@ -358,7 +382,7 @@ Move MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters par
     m_transpositionTable.debugStatistics();
 #endif
 
-    return bestResult.move;
+    return bestResult;
 }
 
 bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score)

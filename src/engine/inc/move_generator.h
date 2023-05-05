@@ -68,10 +68,34 @@ struct PieceKey
     }
 };
 
+struct SearchParameters
+{
+    SearchParameters() :
+        SearchDepth(5),
+        MoveTime(0)
+    {}
+    
+    // search depth in half moves, a.k.a. ply or plies.
+    // 0 = infinite
+    u32 SearchDepth = 5;
+
+    // total amount of time allowed to search for a move in milliseconds.
+    // 0 = no time limit
+    u32 MoveTime = 0;
+
+    // time limit for white and black in milliseconds including increments.
+    // 0 = no time limit.    
+    u32 WhiteTimelimit = 0;
+    u32 BlackTimelimit = 0;
+    u32 WhiteTimeIncrement = 0;
+    u32 BlackTimeIncrement = 0;
+};
+
 struct SearchResult
 {
     i32 score;
     Move move;
+    bool ForcedMate = false;
 };
 
 class MoveGenerator
@@ -84,11 +108,11 @@ public:
     MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
-    Move CalculateBestMove(GameContext& context, SearchParameters params);
+    SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
 
 private:
     SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
-    i32 QuiescenceSearch(GameContext& context, u32 depth, i32 alpha, i32 beta, i32 perspective, u64& count);
+    i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
 
