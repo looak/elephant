@@ -153,6 +153,12 @@ public:
 	bool isChecked(Set set) const;
 	bool isCheckmated(Set set) const;
 	bool isStalemated(Set set) const;
+
+	/**
+	 * @brief Calculates the end game coeficient.
+	 * Used for tapered evaluation. 	
+	 * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.	*/
+	float calculateEndGameCoeficient() const;
 	    
 	std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask, bool captureMoves = false) const;
 
