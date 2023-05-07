@@ -22,8 +22,7 @@
  * representation we can optimize the move generation and evaluation of the
  * board. The board is built up by 12 bitboards, one for each piece type.
  *
- * @author Alexander Loodin Ek
- */
+ * @author Alexander Loodin Ek    */
 #pragma once
 #include <functional>
 #include "defines.h"
@@ -47,7 +46,7 @@ struct MaterialMask
 
     u64 combine() const
     {
-        return material[0] | material[1] | material[2] | material[3] | material[4] | material[5];
+        return pawns | knights | bishops | rooks | queens | kings;
     }
 };
 
@@ -213,8 +212,6 @@ public:
     u64 GetMaterialCombined(Set set) const;
     u64 GetMaterial(ChessPiece piece) const;
     MaterialMask GetMaterial(Set set) const;
-
-    int BitScanFowrward(u64 bitboard) const;
 
 private:
     typedef std::function<bool(u64 sqrMask)> ResolveMask;

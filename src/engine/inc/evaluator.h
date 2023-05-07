@@ -1,6 +1,8 @@
 #pragma once
 #include "defines.h"
 
+#include <unordered_map>
+
 class Chessboard;
 struct Move;
 
@@ -15,6 +17,9 @@ private:
     i32 EvaluateMove(Move move) const;
     i32 EvalutePiecePositions(const Chessboard& board) const;
     i32 EvaluatePawnStructure(const Chessboard& board);
+
+    template<typename Comparator>
+    bool EvaluatePassedPawn(const Chessboard& board, u32 potentialPassedPawn, u64 opponentsPawns) const;
 
     struct PawnStructureHashEntry
     {

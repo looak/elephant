@@ -2,10 +2,14 @@
 #include "move.h"
 #include "log.h"
 #include "hash_zorbist.h"
+#include "intrinsics.hpp"
 
 #include <future>
 #include <vector>
 #include <thread>
+
+
+
 
 ChessboardTile::ChessboardTile()
 	: m_position(InvalidNotation),
@@ -1064,9 +1068,9 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
         u64 itrBB = movesbbcopy;
         while (itrBB != 0)
         {
-            byte target = m_bitboard.BitScanFowrward(itrBB);
+            byte target = lsbIndex(itrBB);
             // "optimal way" to clear least signficant bit
-            itrBB = itrBB & (itrBB - 1);
+            itrBB = resetLsb(itrBB);
 
             auto& move = moveVector.emplace_back(source, Notation(target));
             move.Flags = MoveFlag::Zero;
@@ -1221,4 +1225,27 @@ CastlingStateInfo::toString() const
 		result = "-";
 
 	return result;
+}
+
+float
+Chessboard::calculateEndGameCoeficient() const
+{
+    static constexpr i32 defaultPosValueOfMaterial  = ChessPieceDef::Value(0) * 16 // pawn
+                                                    + ChessPieceDef::Value(1) * 4  // knight
+                                                    + ChessPieceDef::Value(2) * 4  // bishop
+                                                    + ChessPieceDef::Value(3) * 4  // rook
+                                                    + ChessPieceDef::Value(4) * 2; // queens
+
+    // check if we have promoted a pawn because that will screw with this endgame coeficient calculation.
+    // and probably, at the point we're looking for promotions, we're most likely in a endgame already 
+    // should just reutnr 1.f
+
+    i32 boardMaterialCombinedValue = 0;
+    for (u8 index = 0; index < 5; ++index)
+    {
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * popcnt(m_bitboard.GetMaterial(Set::WHITE).material[index]);
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * popcnt(m_bitboard.GetMaterial(Set::BLACK).material[index]);
+    }
+
+    return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
 }

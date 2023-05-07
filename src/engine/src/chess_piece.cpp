@@ -2,15 +2,15 @@
 #include "log.h"
 #include <iostream>
 
-const byte ChessPieceDef::m_moveCount[6] = {
+constexpr byte ChessPieceDef::m_moveCount[6] = {
 	2, 8, 4, 4, 8, 8
 };
 
-const bool ChessPieceDef::m_slides[6] = {
+constexpr bool ChessPieceDef::m_slides[6] = {
 	false, false, true, true, true, false,
 };
 
-const signed short ChessPieceDef::m_moves0x88[6][8] = {
+constexpr signed short ChessPieceDef::m_moves0x88[6][8] = {
 	{ -16, -32, 0, 0, 0, 0, 0, 0 },
 	{ -33, -31, -18, -14, 14, 18, 31, 33 },
 	{ -17, -15, 15, 17, 0, 0, 0, 0 },
@@ -19,17 +19,13 @@ const signed short ChessPieceDef::m_moves0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-const signed short ChessPieceDef::m_attacks0x88[6][8] = {
+constexpr signed short ChessPieceDef::m_attacks0x88[6][8] = {
 	{ -15, -17, 0, 0, 0, 0, 0, 0 },
 	{ -33, -31, -18, -14, 14, 18, 31, 33 },
 	{ -17, -15, 15, 17, 0, 0, 0, 0 },
 	{ -16, -1, 1, 16, 0, 0, 0, 0 },
 	{ -17, -16, -15, -1, 1, 15, 16, 17 },
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
-};
-
-const signed short ChessPieceDef::m_value[6] = {
-	100, 350, 350, 525, 1000, 10000
 };
 
 const PieceType ChessPieceDef::m_slidingPieceTypes[3] = {

@@ -273,7 +273,6 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
             params.SearchDepth = c_maxSearchDepth;
 
         depth = params.SearchDepth;
-        
     }
 
     if (params.MoveTime != 0)
@@ -355,13 +354,13 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
                 bestResult.ForcedMate = true;
             }
             checkmateDistance /= 2;
-            stream << "info mate " << checkmateDistance << "\n";
+            stream << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";
             break; // don't need to search further if we found a forced mate.
         }
         else
         {
             float centipawn = bestResult.score / 100.f;
-            stream << "info score cp " << std::fixed << std::setprecision(2) << centipawn << " depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";            
+            stream << "info score cp " << std::fixed << std::setprecision(2) << centipawn << " depth " << itrDepth << " nodes " << count << " time " << et << " pv" << pvSS.str() << "\n";
         }
 
         if (useMoveTime != false && TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(), bestResult.score) == false)

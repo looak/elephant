@@ -1,7 +1,20 @@
 #include "defines.h"
 
+struct TaperedScore
+{
+    i32 midgame;
+    i32 endgame;    
+};
+
+i32 operator*(const TaperedScore& lhs, const float& rhs)
+{
+    return lhs.midgame + (lhs.endgame - lhs.midgame) * rhs;
+}
+
 namespace evaluator_data
 {
+
+#define TS(x,y) TaperedScore{x,y}
 
 /* piece/sq tables */
 const i32 pawnPositionTable[64] = {
@@ -13,6 +26,17 @@ const i32 pawnPositionTable[64] = {
     10,  10,  10,  20,  20,  10,  10,  10,
     20,	 20,  20,  30,  30,  20,  20,  20,
      0,   0,   5,  10,  10,   5,   0,   0
+};
+
+constexpr TaperedScore pawnPositionTaperedScoreTable[64] = {
+    TS(0, 0),  TS(0, 0),  TS(0, 0),  TS(0, 0),   TS(0, 0),   TS(0, 0),   TS(0, 0),   TS(0, 0),
+    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0),
+    TS(0, 0),  TS(0, 0),  TS(10, 0), TS(10, 0),  TS(10, 0),  TS(10, 0),  TS(0, 0),   TS(0, 0),
+    TS(0, 0),  TS(0, 0),  TS(10, 0), TS(20, 0),  TS(20, 0),  TS(10, 0),  TS(0, 0),   TS(0, 0),
+    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0),
+    TS(10, 0), TS(10, 0), TS(10, 0), TS(20, 0),  TS(20, 0),  TS(10, 0),  TS(10, 0),  TS(10, 0),
+    TS(20, 0), TS(20, 0), TS(20, 0), TS(30, 0),  TS(30, 0),  TS(20, 0),  TS(20, 0),  TS(20, 0),
+    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0)
 };
 
 const i32 knightPositionTable[64] = {
@@ -89,5 +113,18 @@ const i32* pestoTables[6] =
     queenPositionTable,
     kingPositionTable
 };
+
+/**
+ * Idea here is that doubling pawns early or midgame will hurt your structure,
+ * later in the game it's not as important where there are less pawns on the board.  */
+static constexpr TaperedScore doubledPawnScore{-50, -25};
+
+/**
+ * Idea here is that isolated pawns are bad but will be worse in the endgame.  */
+static constexpr TaperedScore isolatedPawnScore{-25, -50};
+
+/**
+ * Passed pawns are a strong factor in the endgame and something to strive for. */
+static constexpr TaperedScore passedPawnScore{50, 200};
 
 } // namespace evaluator_data
