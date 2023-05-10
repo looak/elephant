@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <list>
 
 #include "game_context.h"
 
@@ -18,7 +19,7 @@ public:
 	* set up the position described in fenstring on the internal board and play the
     * moves on the internal chess board. If the game was played from the start 
     * position the string "startpos" will be sent   */
-    bool Position(std::list<std::string>& args);    
+    bool Position(std::list<std::string>& args);
 
     /**
      * Synchronizes the engine with the GUI by ensuring that the engine is ready 

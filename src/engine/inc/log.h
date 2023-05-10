@@ -17,6 +17,7 @@
 #pragma once
 #include <cassert>
 #include <cstring>
+#include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -67,13 +68,13 @@ public:
     // @brief Generates a unique filename based on time and date.
     static std::string generateUniqueFilename()
     {
-        struct tm newTime;
-        time_t now = time(0);
-        localtime_s(&newTime, &now);
+        auto now = std::chrono::system_clock::now();
+        std::time_t timetNow = std::chrono::system_clock::to_time_t(now);
+        std::tm* localtime = std::localtime(&timetNow);
 
         std::ostringstream filename;
         filename << "output_"
-                << std::put_time(&newTime, "%Y%m%d_%H%M%S")
+                << std::put_time(localtime, "%Y%m%d_%H%M%S")
                 << ".log";
 
         return filename.str();

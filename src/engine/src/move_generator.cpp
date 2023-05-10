@@ -344,7 +344,7 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 
         i64 et = clock.getElapsedTime();
         // figure out if we found a mate move order.
-        i32 checkmateDistance = c_checmkateConstant - abs(bestResult.score);
+        i32 checkmateDistance = c_checmkateConstant - abs((int)bestResult.score);
         if (checkmateDistance <= depth) 
         {
             // found checmkate within depth.
