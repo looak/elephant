@@ -17,32 +17,105 @@
 #pragma once
 
 #include "defines.h"
-#include "libpopcnt.h"
+//#include "libpopcnt.h"
 
+namespace fallback
+{
 
+const int index64[64] = {
+	0, 47,  1, 56, 48, 27,  2, 60,
+   57, 49, 41, 37, 28, 16,  3, 61,
+   54, 58, 35, 52, 50, 42, 21, 44,
+   38, 32, 29, 23, 17, 11,  4, 62,
+   46, 55, 26, 59, 40, 36, 15, 53,
+   34, 51, 20, 43, 31, 22, 10, 45,
+   25, 39, 14, 33, 19, 30,  9, 24,
+   13, 18,  8, 12,  7,  6,  5, 63
+};
+
+/**
+ * bitScanForward
+ * @author Kim Walisch (2012)
+ * @param bb bitboard to scan
+ * @precondition bb != 0
+ * @return index (0..63) of least significant one bit
+ */
+[[nodiscard]] constexpr i32 bitScanForward(u64 bb)
+{
+	//return __builtin_ctzll(bb);
+	const u64 debruijn64 = 0x03f79d71b4cb0a89;
+	assert(bb != 0);
+	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
+}
+
+[[nodiscard]] constexpr u64 lsb(u64 v)
+{
+	return v & -v;
+}
+
+typedef u64 OneSizeFits;
+typedef u32 HotRats;
+constexpr HotRats s = 0;
+constexpr HotRats heik = 457;
+constexpr HotRats y = 1;
+constexpr HotRats e = 2;
+constexpr HotRats r = 3;
+constexpr HotRats b = 4;
+constexpr HotRats o = 5;
+constexpr HotRats u = 8;
+constexpr HotRats t = 16;
+constexpr HotRats i = 32;
+constexpr HotRats     ka = (1 << 4) - 1;
+constexpr HotRats   waka = (1 << 8) - 1;
+constexpr HotRats jawaka = (1 << 16) - 1;
+constexpr HotRats jazzFromHell = 0 - (16 * 3 * heik);
+
+constexpr HotRats freakOut(OneSizeFits all) {
+	HotRats so, fa;
+	fa = (HotRats)(all >> i);
+	so = (fa != s) << o;
+	fa ^= (HotRats)all & (fa != s) - y;
+	so ^= (jawaka < fa) << b;
+	fa >>= (jawaka < fa) << b;
+	so ^= (waka - fa) >> t & u;
+	fa >>= (waka - fa) >> t & u;
+	so ^= (ka - fa) >> u & b;
+	fa >>= (ka - fa) >> u & b;
+	so ^= jazzFromHell >> e * fa & r;
+	return so;
+}
+
+} // namespace
+
+namespace intrinsics
+{
 /**
  * Bit scan forward    */
 [[nodiscard]] constexpr i32 lsbIndex(u64 bitboard)
 {
-    return __bsfq(bitboard);
+	return fallback::bitScanForward(bitboard);
+	//return __bsfq(bitboard);
 }
 
 /**
  * Bit scan reverse    */
 [[nodiscard]] constexpr i32 msbIndex(u64 bitboard)
 {
-    return __bsrq(bitboard);
+	return fallback::freakOut(bitboard);
+	//return __bsrq(bitboard);
 }
 
 /**
  * Popcount    */
-[[nodiscard]] constexpr i32 popcnt(u64 bitboard)
+[[nodiscard]] inline const i32 popcnt(u64 bitboard)
 {
-    return popcnt64(bitboard);
+	return __popcnt64(bitboard);
+	//return _mm_popcnt_u64(bitboard);
 }
 
 [[nodiscard]] constexpr u64 resetLsb(u64 bitboard)
 {
-    //return _blsr_u64(bitboard);
-    return bitboard & (bitboard - 1);
+	//return _blsr_u64(bitboard);
+	return bitboard & (bitboard - 1);
+}
 }

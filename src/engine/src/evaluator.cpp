@@ -17,9 +17,16 @@ Evaluator::Evaluator()
 i32 Evaluator::Evaluate(const Chessboard& board, i32 perspective)
 {
     i32 score = 0;
+    Set set = perspective > 0 ? Set::WHITE : Set::BLACK;
+    
+    if (board.isCheckmated(set))
+        return 24000;
+    else if (board.isStalemated(set))
+        return 0;
+
     score += EvaluateMaterial(board);    
     score += EvalutePiecePositions(board);
-    score += EvaluatePawnStructure(board);
+//    score += EvaluatePawnStructure(board);
 
     return score;
 }
@@ -90,7 +97,7 @@ bool Evaluator::EvaluatePassedPawn(const Chessboard& board, u32 pawnSqr, u64 opp
     u64 opponentCopy = opponentsPawns;
     while (opponentCopy != 0)
     {
-        i32 oppSqr = lsbIndex(opponentCopy);
+        i32 oppSqr = intrinsics::lsbIndex(opponentCopy);
         opponentCopy = opponentCopy & (opponentCopy - 1);
 
         oppSqr = oppSqr / 8;
@@ -118,8 +125,8 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board)
     {
         // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will result in 1
         // if we have 3 pawns this will result in 1. Maybe we should use and 2?
-        result += (evaluator_data::doubledPawnScore * egCoeficient) * (popcnt(whitePawns & fileMasks[idx]) >> 1);
-        result -= (evaluator_data::doubledPawnScore * egCoeficient) * (popcnt(blackPawns & fileMasks[idx]) >> 1);
+        result += (evaluator_data::doubledPawnScore * egCoeficient) * (intrinsics::popcnt(whitePawns & fileMasks[idx]) >> 1);
+        result -= (evaluator_data::doubledPawnScore * egCoeficient) * (intrinsics::popcnt(blackPawns & fileMasks[idx]) >> 1);
 
         // build neighbour files mask
         u64 neighbourMask = 0;
@@ -146,7 +153,7 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board)
                 }
                 else
                 {                    
-                    i32 pawnSqr = msbIndex( whitePawns & fileMasks[idx]);
+                    i32 pawnSqr = intrinsics::msbIndex( whitePawns & fileMasks[idx]);
                     if (EvaluatePassedPawn<std::less<i32>>(board, pawnSqr, opposingNeighbours))
                         result += evaluator_data::passedPawnScore * egCoeficient;
                 }                
@@ -171,7 +178,7 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board)
                 }
                 else 
                 {
-                    i32 pawnSqr = lsbIndex(blackPawns & fileMasks[idx]);
+                    i32 pawnSqr = intrinsics::lsbIndex(blackPawns & fileMasks[idx]);
                     if (EvaluatePassedPawn<std::greater<i32>>(board, pawnSqr, opposingNeighbours))
                         result += evaluator_data::passedPawnScore * egCoeficient;
                 }

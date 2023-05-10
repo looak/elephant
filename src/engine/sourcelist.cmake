@@ -47,7 +47,6 @@ ${ENGINE_SRC_DIR}/evaluator_data.h
 ${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/hash_zorbist.cpp
-${ENGINE_SRC_DIR}/intrinsics.cpp
 ${ENGINE_SRC_DIR}/log.cpp
 ${ENGINE_SRC_DIR}/material.cpp
 ${ENGINE_SRC_DIR}/move.cpp

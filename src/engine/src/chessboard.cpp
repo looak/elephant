@@ -1068,9 +1068,9 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
         u64 itrBB = movesbbcopy;
         while (itrBB != 0)
         {
-            byte target = lsbIndex(itrBB);
+            byte target = intrinsics::lsbIndex(itrBB);
             // "optimal way" to clear least signficant bit
-            itrBB = resetLsb(itrBB);
+            itrBB = intrinsics::resetLsb(itrBB);
 
             auto& move = moveVector.emplace_back(source, Notation(target));
             move.Flags = MoveFlag::Zero;
@@ -1243,8 +1243,8 @@ Chessboard::calculateEndGameCoeficient() const
     i32 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index)
     {
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * popcnt(m_bitboard.GetMaterial(Set::WHITE).material[index]);
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * popcnt(m_bitboard.GetMaterial(Set::BLACK).material[index]);
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * intrinsics::popcnt(m_bitboard.GetMaterial(Set::WHITE).material[index]);
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * intrinsics::popcnt(m_bitboard.GetMaterial(Set::BLACK).material[index]);
     }
 
     return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
