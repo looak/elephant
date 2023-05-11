@@ -214,16 +214,11 @@ public:
     MaterialMask GetMaterial(Set set) const;
 
 private:
-    typedef std::function<bool(u64 sqrMask)> ResolveMask;
-
     u64 MaterialCombined(byte set) const;
     u64 MaterialCombined() const;
     u64 SlidingMaterialCombined(byte set) const;
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;
     u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
     u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
-
-    u64 internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask func) const;
-
     MaterialMask m_material[2];
 };

@@ -61,38 +61,6 @@ bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 	return true;
 }
 
-u64 Bitboard::internalGenerateMask(byte curSqr, signed short dir, bool& sliding, ResolveMask resolveSquare) const
-{
-    u64 ret = ~universe;
-
-    do
-    {
-        // build a 0x88 square out of current square.
-        signed char sq0x88 = to0x88(curSqr);
-        // do move
-        sq0x88 += dir;
-        if (sq0x88 & 0x88) // validate move, are we still on the board?
-        {
-            sliding = false;
-            break;
-        }
-
-        // convert our sqr0x88 back to a square index
-        curSqr = fr0x88(sq0x88);
-        // build a square mask from current square
-        u64 sqrMask = UINT64_C(1) << curSqr;
-
-        // check if we are blocked by a friendly piece or a oponent piece.
-        if (!resolveSquare(sqrMask))
-            break;
-      
-        ret |= sqrMask;
-
-    } while (sliding);
-
-    return ret;
-}
-
 u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMaskStruct, KingMask kingMaskStruct) const
 {
     u64 ret = ~universe;    
@@ -185,13 +153,23 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
 		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
         dir *= moveMod;
 
-        bool sliding = false;
-        
-        // check if we are blocked by a friendly piece or a oponent piece.      
-        ret |= internalGenerateMask(curSqr, dir, sliding, resolve);
-        
-        if (ret == 0) // we've run into a piece, i.e. we can't do double move.
+        // build a 0x88 square out of current square.
+        signed char sq0x88 = to0x88(curSqr);
+        // do move
+        sq0x88 += dir;
+        if (sq0x88 & 0x88) // validate move, are we still on the board?
+            continue;
+
+        // convert our sqr0x88 back to a square index
+        curSqr = fr0x88(sq0x88);
+        // build a square mask from current square
+        u64 sqrMask = UINT64_C(1) << curSqr;
+
+        // check if we are blocked by a friendly piece or a oponent piece.
+        if (matComb & sqrMask)
             break;
+      
+        ret |= sqrMask;
     }
 
     // add attacked squares to potential moves
@@ -265,8 +243,37 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
 
 			if (slideMat == 0)
 				continue;			
+            
+            u64 mvMask = 0;
+            do
+            {
+                // build a 0x88 square out of current square.
+                signed char sq0x88 = to0x88(curSqr);
+                // do move
+                sq0x88 += dir;
+                if (sq0x88 & 0x88) // validate move, are we still on the board?
+                {
+                    sliding = false;
+                    break;
+                }
 
-            u64 mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);
+                // convert our sqr0x88 back to a square index
+                curSqr = fr0x88(sq0x88);
+                // build a square mask from current square
+                u64 sqrMask = UINT64_C(1) << curSqr;
+
+                if (allMat & sqrMask)
+                    matCount++;
+                
+                if (slideMat & sqrMask)
+                {
+                    sliding = false;
+                }
+                
+                mvMask |= sqrMask;
+
+            } while (sliding);
+
             // comparing against two here since we'll find the sliding piece causing the pin
             // and at least one piece in between our king and this piece. This found piece isn't
             // necessarily pinned, if there are no more pieces between king and sliding piece
@@ -287,7 +294,6 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
     if (knightMat > 0)
     {
         // figure out if we're checked by a knight
-        bool sliding = false;
         static const ChessPiece knight(Set::WHITE, PieceType::KNIGHT);
         moveCount = ChessPieceDef::MoveCount(knight.index());
         
@@ -297,12 +303,27 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         };
 
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
-        {
-            
+        {            
             byte curSqr = source.index();
             signed short dir = ChessPieceDef::Moves0x88(knight.index(), moveIndx);
 
-            u64 mvMask = internalGenerateMask(curSqr, dir, sliding, nResolve);
+            u64 mvMask = 0;
+                        
+            // build a 0x88 square out of current square.
+            signed char sq0x88 = to0x88(curSqr);
+            // do move
+            sq0x88 += dir;
+            if (sq0x88 & 0x88) // validate move, are we still on the board?
+            {
+                continue;
+            }
+
+            // convert our sqr0x88 back to a square index
+            curSqr = fr0x88(sq0x88);
+            // build a square mask from current square
+            u64 sqrMask = UINT64_C(1) << curSqr;
+            mvMask |= sqrMask;
+
             if (mvMask & knightMat)
             {
                 ret.knightsAndPawns |= mvMask;
@@ -361,14 +382,32 @@ u64 Bitboard::calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation so
 
         return true;
     };
+
+    u64 combinedMatAndThreat = mat | threatenedMask;
     
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
     {
         byte curSqr = source.index();
 		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
 
-        bool sliding = false;
-        ret |= internalGenerateMask(curSqr, dir, sliding, resolve);
+        // build a 0x88 square out of current square.
+        signed char sq0x88 = to0x88(curSqr);
+        // do move
+        sq0x88 += dir;
+        if (sq0x88 & 0x88) // validate move, are we still on the board?
+            continue;
+
+        // convert our sqr0x88 back to a square index
+        curSqr = fr0x88(sq0x88);
+
+        // build a square mask from current square
+        u64 sqrMask = UINT64_C(1) << curSqr;
+
+        // check if we are blocked by a friendly piece or a oponent piece.
+        if (sqrMask & combinedMatAndThreat)
+            continue;
+      
+        ret |= sqrMask;    
     }
     
     ret |= Castling(piece.set(), castling, threatenedMask);
@@ -412,28 +451,6 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
     }
     
     bool sliding = false;
-    auto resolve = [&](u64 sqrMask)
-    {
-        if (matComb & sqrMask) 
-        {
-            sliding = false;
-            return false;
-        }
-        else if (opMatComb & sqrMask)
-        {
-            sliding = false;
-            return true;
-        }
-
-        return true;
-    };
-
-    // auto validChecked = [&](u64 sqrMask)
-    // {
-    //     sqrMask &= threatened;
-    //     return sqrMask;            
-    // };
-
     byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (; moveIndx < moveCount; ++moveIndx)
     {
@@ -442,10 +459,36 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
 		signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
 
         u64 mvMask = 0;
-        if (checked || pinned)
-            mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);
-        else
-            mvMask = internalGenerateMask(curSqr, dir, sliding, resolve);       
+        do
+        {
+            // build a 0x88 square out of current square.
+            signed char sq0x88 = to0x88(curSqr);
+            // do move
+            sq0x88 += dir;
+            if (sq0x88 & 0x88) // validate move, are we still on the board?
+            {
+                sliding = false;
+                break;
+            }
+
+            // convert our sqr0x88 back to a square index
+            curSqr = fr0x88(sq0x88);
+            // build a square mask from current square
+            u64 sqrMask = UINT64_C(1) << curSqr;
+
+            if (matComb & sqrMask) 
+            {
+                sliding = false;
+                break;
+            }
+            else if (opMatComb & sqrMask)
+            {
+                sliding = false;                
+            }
+        
+            ret |= sqrMask;
+
+        } while (sliding);
 
         ret |= mvMask;
     }
@@ -484,23 +527,7 @@ u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pier
         moveMod = -1;
     
     bool sliding = false;
-    auto resolve = [&](u64 sqrMask)
-    {
-        // if i collide with my own piece I stop sliding but I'm guarding it.
-        if (matComb & sqrMask) 
-        {
-            sliding = false;
-            return true;
-        }
-        // if I collide with oponent piece it is threatened and I stop slding.
-        else if (opMatComb & sqrMask)
-        {
-            sliding = false;
-            return true;
-        }
-
-        return true;
-    };
+    opMatComb |= matComb;
 
     byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx)
@@ -509,7 +536,30 @@ u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pier
         byte curSqr = source.index();
 		signed short dir = ChessPieceDef::Attacks0x88(piece.index(), moveIndx);
         dir *= moveMod;
-        ret |= internalGenerateMask(curSqr, dir, sliding, resolve);
+        
+        do
+        {
+            // build a 0x88 square out of current square.
+            signed char sq0x88 = to0x88(curSqr);
+            // do move
+            sq0x88 += dir;
+            if (sq0x88 & 0x88) // validate move, are we still on the board?
+            {
+                sliding = false;
+                break;
+            }
+
+            // convert our sqr0x88 back to a square index
+            curSqr = fr0x88(sq0x88);
+            // build a square mask from current square
+            u64 sqrMask = UINT64_C(1) << curSqr;
+
+            if ((opMatComb & sqrMask) > 0)
+                sliding = false;
+        
+            ret |= sqrMask;
+
+        } while (sliding);
     }
 
     return ret;
