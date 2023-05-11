@@ -38,25 +38,46 @@ enum class Set : byte
 constexpr signed short pieceValues[6] = {
 	100, 350, 350, 525, 1000, 10000
 };
+constexpr byte moveCount[6] = {
+	2, 8, 4, 4, 8, 8
+};
+
+constexpr bool slides[6] = {
+	false, false, true, true, true, false,
+};
+
+constexpr signed short moves0x88[6][8] = {
+	{ -16, -32, 0, 0, 0, 0, 0, 0 },
+	{ -33, -31, -18, -14, 14, 18, 31, 33 },
+	{ -17, -15, 15, 17, 0, 0, 0, 0 },
+	{ -16, -1, 1, 16, 0, 0, 0, 0 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 }
+};
+
+constexpr signed short attacks0x88[6][8] = {
+	{ -15, -17, 0, 0, 0, 0, 0, 0 },
+	{ -33, -31, -18, -14, 14, 18, 31, 33 },
+	{ -17, -15, 15, 17, 0, 0, 0, 0 },
+	{ -16, -1, 1, 16, 0, 0, 0, 0 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 },
+	{ -17, -16, -15, -1, 1, 15, 16, 17 }
+};
+
+const PieceType m_slidingPieceTypes[3] = {
+	PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN
+};
 
 class ChessPieceDef
 {
 public:
-	static inline constexpr byte	 			MoveCount(byte pIndex) { return m_moveCount[pIndex]; };
-	static inline constexpr bool 				Slides(byte pIndex) { return m_slides[pIndex]; }
-	static inline constexpr signed short 		Moves0x88(byte pIndex, byte mIndex) { return m_moves0x88[pIndex][mIndex]; }
-	static inline constexpr signed short 		Attacks0x88(byte pIndex, byte mIndex) { return m_attacks0x88[pIndex][mIndex]; }
+	static inline constexpr byte	 			MoveCount(byte pIndex) { return moveCount[pIndex]; };
+	static inline constexpr bool 				Slides(byte pIndex) { return slides[pIndex]; }
+	static inline constexpr signed short 		Moves0x88(byte pIndex, byte mIndex) { return moves0x88[pIndex][mIndex]; }
+	static inline constexpr signed short 		Attacks0x88(byte pIndex, byte mIndex) { return attacks0x88[pIndex][mIndex]; }
 	static inline constexpr signed short		Value(byte pIndex) { return pieceValues[pIndex]; }
 	static inline const PieceType*              SlidingTypes() { return &m_slidingPieceTypes[0]; }
 	static inline constexpr bool				IsDiagonalMove(signed short mvValue) { return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17); }
-
-private:
-	static const byte m_moveCount[6];
-	static const bool m_slides[6];
-	static const signed short m_moves0x88[6][8];
-	static const signed short m_attacks0x88[6][8];
-	// static constexpr signed short m_value[6];
-	static const PieceType m_slidingPieceTypes[3];
 };
 
 
