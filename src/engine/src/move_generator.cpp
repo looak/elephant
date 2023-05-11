@@ -11,10 +11,10 @@
 #include <thread>
 #include <utility>
 
-static const u32 c_maxSearchDepth = 5;
-static const i32 c_maxScore = 32000;
-static const i32 c_checmkateConstant = 24000;
-static const i32 c_pvScore = 10000;
+static constexpr u32 c_maxSearchDepth = 8;
+static constexpr i32 c_maxScore = 32000;
+static constexpr i32 c_checmkateConstant = 24000;
+static constexpr i32 c_pvScore = 10000;
 
 int 
 MoveGenerator::Perft(GameContext& context, int depth)
@@ -275,13 +275,10 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
     bool isWhite = context.readToPlay() == Set::WHITE;
     LOG_DEBUG() << "to play: " << (isWhite ? "White" : "Black");
     
-    static const u32 c_maxSearchDepth = 8;
     u32 depth = c_maxSearchDepth;
     bool useMoveTime = false;
     u32 moveTime = 0;
     u32 timeIncrement = 0;    
-
-    bool useTimelimits = false;
 
     if (params.SearchDepth != 0)
     {
@@ -324,7 +321,6 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 
     if (params.Infinite)
     {
-        useTimelimits = false;
         depth = 100;
     }
 
@@ -370,16 +366,16 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
         stream << "info nps " << nps << "\n";
 
         std::stringstream pvSS;
-        for (i32 i = 0; i < itrDepth; ++i)
+        for (u32 i = 0; i < itrDepth; ++i)
         {
             pvSS << " " << searchContext.pv[i].toString();
-            searchContext.pv[i].Score = c_pvScore;        
+            searchContext.pv[i].Score = c_pvScore; 
         }
 
         i64 et = clock.getElapsedTime();
         // figure out if we found a mate move order.
         i32 checkmateDistance = c_checmkateConstant - abs((int)bestResult.score);
-        if (checkmateDistance <= depth) 
+        if ((u32)checkmateDistance <= depth) 
         {
             // found checmkate within depth.
             if (bestResult.score < 0)

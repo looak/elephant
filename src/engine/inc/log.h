@@ -228,13 +228,13 @@ public:
     NopMessage() {}
 
     template <typename T>
-	inline NopMessage& operator<<(const T& value)
+	inline NopMessage& operator<<(const T&)
 	{		
 		return *this;
 	}
 
 	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
-	inline NopMessage& operator<<(BasicNarrowIoManip value)
+	inline NopMessage& operator<<(BasicNarrowIoManip)
 	{		
 		return *this;
 	}

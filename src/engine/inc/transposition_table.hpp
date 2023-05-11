@@ -8,7 +8,7 @@
 //     #define DEBUG_SEARCHING
 // #endif
 
-class Move;
+struct Move;
 /**
  * Transposition Entry bits
  * - move: 16-bits

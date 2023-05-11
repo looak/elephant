@@ -162,7 +162,7 @@ Chessboard::Chessboard(const Chessboard& other):
 	m_material[1] = other.m_material[1];
 }
 
-std::string Chessboard::toString(u8 flags) const
+std::string Chessboard::toString(u8) const
 {
     auto boardItr = begin();
     std::array<std::stringstream, 8> ranks;
@@ -835,7 +835,6 @@ std::tuple<bool, int, KingMask>
 Chessboard::calcualteCheckedCount(Set set) const
 {
 	std::tuple<bool, int, KingMask> result = { false, 0, KingMask() };
-	u8 indx = static_cast<u8>(set);
 	
     KingMask mask = calcKingMask(set);    
     std::get<2>(result) = mask;
@@ -1059,10 +1058,14 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
     u64 opMaterial = opMaterialMask.combine();
 
     if (captureMoves)
+    {
         movesbb &= opMaterial;
+    }
 
-	if (movesbb == 0)
+    if (movesbb == 0)
+    {
 		return moveVector;
+    }
 
     // generate capture moves first, this helps searching down the line.
     u64 movesbbcopy = movesbb & opMaterial;    

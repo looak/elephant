@@ -87,7 +87,7 @@ i32 Evaluator::EvalutePiecePositions(const Chessboard& board) const
 }
 
 template<typename Comparator>
-bool Evaluator::EvaluatePassedPawn(const Chessboard& board, u32 pawnSqr, u64 opponentsPawns) const
+bool Evaluator::EvaluatePassedPawn(const Chessboard&, u32 pawnSqr, u64 opponentsPawns) const
 {
     // this code is wrong, in blacks case we want to use the first lsb, but in whites case we want to remove
     // all lsbs until there's only one bit left, and that is the pawn we're interested in.

@@ -48,7 +48,7 @@ void UCICommands::UCIEnable()
 	}
 }
 
-bool UCICommands::DebugCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::DebugCommand(std::list<std::string>&, UCI&)
 {
     LOG_ERROR() << "Not implemented";
     return false;
@@ -59,19 +59,19 @@ bool UCICommands::IsReadyCommand(std::list<std::string>&, UCI& interface)
     return interface.IsReady();
 }
 
-bool UCICommands::SetOptionCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::SetOptionCommand(std::list<std::string>&, UCI&)
 {
     LOG_ERROR() << "Not implemented";
     return false;
 }
 
-bool UCICommands::RegisterCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::RegisterCommand(std::list<std::string>&, UCI&)
 {
     LOG_ERROR() << "Not implemented";
     return false;
 }
 
-bool UCICommands::NewGameCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::NewGameCommand(std::list<std::string>&, UCI& interface)
 {
 	return interface.NewGame();
 }
@@ -90,22 +90,22 @@ bool UCICommands::GoCommand(std::list<std::string>& args, UCI& interface)
 {
     return interface.Go(args);
 }
-bool UCICommands::StopCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::StopCommand(std::list<std::string>&, UCI& interface)
 {    
     return interface.Stop();
 }
-bool UCICommands::PonderHitCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::PonderHitCommand(std::list<std::string>&, UCI&)
 {
     LOG_ERROR() << "Not implemented";
     return false;
 }
-bool UCICommands::QuitCommand(std::list<std::string>& args, UCI& interface)
+bool UCICommands::QuitCommand(std::list<std::string>&, UCI&)
 {
 	std::cout << "bye bye\n";
     return true;
 }
 
-bool UCICommands::DebugOutputOption(std::list<std::string>& args, UCI& interface)
+bool UCICommands::DebugOutputOption(std::list<std::string>& args, UCI&)
 {
 	for (auto&& arg : args)
 	{

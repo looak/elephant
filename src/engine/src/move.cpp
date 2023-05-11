@@ -25,10 +25,10 @@ Move::Move() :
     PromoteToPiece(ChessPiece()),
 	CapturedPiece(ChessPiece()),
     Flags(MoveFlag::Invalid),
+    Score(0),
     PrevMove(nullptr),
     NextMoveCount(0),
-    NextMove(nullptr),
-    Score(0)
+    NextMove(nullptr)
 {
 }
 
@@ -163,7 +163,7 @@ Notation ReadWholeNotation(const std::string& moveStr, size_t& cursor)
     return Notation(file, rank);
 }
 
-void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
+void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool)
 {
     if (cursor >= moveStr.length())
         return;
@@ -342,7 +342,7 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
     }
 
     // fixup pointers
-    int index = 0;
+    size_t index = 0;
     for (auto&& mv : ret)
     {
         if (index > 0)

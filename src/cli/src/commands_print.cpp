@@ -8,7 +8,7 @@
 
 namespace CliPrintCommands
 {
-bool Board(const GameContext& context, const std::string& input)
+bool Board(const GameContext& context, const std::string&)
 {
 	const auto& board = context.readChessboard();
     auto boardItr = board.begin();
@@ -43,13 +43,13 @@ bool Board(const GameContext& context, const std::string& input)
     return true;
 }
 
-void BoardHelp(int option, const std::string& command)
+void BoardHelp(int, const std::string& command)
 {
     std::string helpText("Print the current board (default)");
     std::cout << AddLineDivider(command, helpText);
 }
 
-bool HelpCommand(const GameContext&, const std::string& input)
+bool HelpCommand(const GameContext&, const std::string&)
 {
     std::cout << " Elephant Gambit CLI print Commands:" << std::endl;
     for (PrintCommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
@@ -67,7 +67,7 @@ void HelpCommandHelp(int, const std::string& command)
     std::cout << AddLineDivider(command, helpText);
 }
 
-bool PGNCommand(const GameContext& context, const std::string& input)
+bool PGNCommand(const GameContext& context, const std::string&)
 {
     const auto& movehistory = context.readMoveHistory();    
     std::ostringstream outputPgn;
@@ -89,7 +89,7 @@ bool PGNCommand(const GameContext& context, const std::string& input)
 
     return true;
 }
-void PGNHelpCommand(int option, const std::string& command)
+void PGNHelpCommand(int, const std::string& command)
 {
     std::string helpText("Print the current game in PGN format");
     std::cout << AddLineDivider(command, helpText);

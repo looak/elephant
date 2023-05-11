@@ -102,19 +102,19 @@ private:
 	union
 	{
 		byte m_internalState;
-		struct
-		{
-			// technically we only use 3 bits to identify the piece type but to get the correct offset to the
-			// set bit we have set this to 7.
-			PieceType m_type : 7;				
-			Set m_set : 1;
-		};
+		// struct
+		// {
+		// 	// technically we only use 3 bits to identify the piece type but to get the correct offset to the
+		// 	// set bit we have set this to 7.
+		// 	PieceType m_type : 7;				
+		// 	Set m_set : 1;
+		// };
 		
-		struct
-		{
-			byte m_typeValue : 7;
-			byte m_setValue : 1;
-		};
+		// struct
+		// {
+		// 	byte m_typeValue : 7;
+		// 	byte m_setValue : 1;
+		// };
 	};
 	//byte m_internalState;
 };

@@ -30,10 +30,11 @@ if(MSVC)
     set(WARNING_LEVEL "/W4 /permissive-")
 else()
     # For GCC and Clang
-    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter -Wconversion")    
+    #set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic'")    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
-add_compile_options(${WARNING_LEVEL})
+#add_compile_options(${WARNING_LEVEL})
 
 message(STATUS "## Warning level: ${WARNING_LEVEL}")
 

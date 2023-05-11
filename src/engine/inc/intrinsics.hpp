@@ -107,7 +107,7 @@ namespace intrinsics
 
 /**
  * Popcount    */
-[[nodiscard]] inline const i32 popcnt(u64 bitboard)
+[[nodiscard]] inline i32 popcnt(u64 bitboard)
 {
 	//return __popcnt64(bitboard);
 	//return _mm_popcnt_u64(bitboard);
