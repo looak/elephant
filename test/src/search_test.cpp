@@ -48,7 +48,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     // setup
     GameContext context;
 
-    std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");    
+    std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");
     FENParser::deserialize(fen.c_str(), context);
 
     SearchParameters params;
@@ -67,7 +67,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 
 TEST_F(SearchFixture, WhiteForcedMate)
 {
-    std::string fen("5k2/6pp/p2N4/1p1p4/2qP4/2PKP2Q/PP3r2/3R4 w - - 1 2");
+    std::string fen("5k2/8/3N4/1p1p4/2qP4/2PKP3/5r2/8 w - - 1 2");
     GameContext context;
     FENParser::deserialize(fen.c_str(), context);
 
