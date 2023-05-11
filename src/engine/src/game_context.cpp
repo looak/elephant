@@ -180,6 +180,28 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
+bool GameContext::MakeNullMove()
+{
+    if (m_toPlay == Set::BLACK)
+        m_moveCount++;
+
+    m_fiftyMoveRule++;
+    m_plyCount++;
+    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    return true;
+}
+
+bool GameContext::UnmakeNullMove()
+{
+    if (m_toPlay == Set::WHITE)
+        m_moveCount--;
+
+    --m_fiftyMoveRule;
+    --m_plyCount;
+    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    return true;
+}
+
 SearchResult GameContext::CalculateBestMove(SearchParameters params)
 {
     MoveGenerator generator;

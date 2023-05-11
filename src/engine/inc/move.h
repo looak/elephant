@@ -186,10 +186,17 @@ public:
 
     MoveFlag Flags;
 
+    i32 Score;
+
     Move* PrevMove;
     unsigned short NextMoveCount;
     Move* NextMove;
 };
+
+inline bool operator==(const Move& lhs, const Move& rhs)
+{
+    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare && lhs.PromoteToPiece == rhs.PromoteToPiece;
+}
 
 struct MoveResult
 {
@@ -213,13 +220,13 @@ struct MoveResult
 struct
 {
     bool operator()(const Move& lhs, const Move& rhs) const
-    {
+    {   
         if (lhs.isCapture() == true && rhs.isCapture() == true)
         {
-            return lhs.calcCaptureValue() > rhs.calcCaptureValue();
+            return lhs.Score > rhs.Score;
         }
         else
-        if (lhs.isCapture() == true && rhs.isCapture() == false)
+        if (lhs.isCapture() == true)
         {
             return true;
         }        

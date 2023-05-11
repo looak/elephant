@@ -47,7 +47,7 @@ void Bitboard::Clear()
 
 bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 {
-    u64 mask = UINT64_C(1) << target.index();
+    u64 mask = squareMaskTable[target.index()];
 	m_material[piece.set()].material[piece.index()] ^= mask;
 	
 	return true;
@@ -55,7 +55,7 @@ bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
 
 bool Bitboard::PlacePiece(ChessPiece piece, Notation target)
 {
-    u64 mask = UINT64_C(1) << target.index();
+    u64 mask = squareMaskTable[target.index()];
 	m_material[piece.set()].material[piece.index()] |= mask;
 	
 	return true;
@@ -81,7 +81,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     }
     byte epTargetRank = (enPassant / 8) + moveMod;
     // figure out if we're pinned
-    u64 sqrMask = UINT64_C(1) << source.index();
+    u64 sqrMask = squareMaskTable[ source.index()];
     bool pinned = (sqrMask & kingMask);
     // this magic code is to solve the issue where we have a pinned pawn and a en passant capture opportunity,
     // but capturing the en passant would put our king in check.
@@ -110,7 +110,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
             
             if (enPassantAttack & m_material[piece.set()].material[5])
             {
-				threatenedMask = checkedMask | (UINT64_C(1) << enPassant);
+				threatenedMask = checkedMask | squareMaskTable[enPassant];
             }    
         }        
 
@@ -163,7 +163,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
         // convert our sqr0x88 back to a square index
         curSqr = fr0x88(sq0x88);
         // build a square mask from current square
-        u64 sqrMask = UINT64_C(1) << curSqr;
+        u64 sqrMask = squareMaskTable[curSqr];
 
         // check if we are blocked by a friendly piece or a oponent piece.
         if (matComb & sqrMask)
@@ -175,7 +175,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     // add attacked squares to potential moves
     if (enPassant != 0xff && !wasPinned)
     {
-        u64 enPassantMask = UINT64_C(1) << enPassant;
+        u64 enPassantMask = squareMaskTable[enPassant];
         opMat |= enPassantMask;
     }
 
@@ -260,7 +260,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
                 // convert our sqr0x88 back to a square index
                 curSqr = fr0x88(sq0x88);
                 // build a square mask from current square
-                u64 sqrMask = UINT64_C(1) << curSqr;
+                u64 sqrMask = squareMaskTable[curSqr];
 
                 if (allMat & sqrMask)
                     matCount++;
@@ -321,7 +321,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
             // convert our sqr0x88 back to a square index
             curSqr = fr0x88(sq0x88);
             // build a square mask from current square
-            u64 sqrMask = UINT64_C(1) << curSqr;
+            u64 sqrMask = squareMaskTable[curSqr];
             mvMask |= sqrMask;
 
             if (mvMask & knightMat)
@@ -340,7 +340,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         auto pawnSqr = Notation(source.file + 1, source.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
-            u64 sqrMak = UINT64_C(1) << pawnSqr.index();
+            u64 sqrMak = squareMaskTable[pawnSqr.index()];
             sqrMak &= m_material[opSet].pawns;
             if (sqrMak > 0)
             {
@@ -352,7 +352,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         pawnSqr = Notation(source.file - 1, source.rank + pawnMod);
         if (Bitboard::IsValidSquare(pawnSqr))
         {
-            u64 sqrMak = UINT64_C(1) << pawnSqr.index();
+            u64 sqrMak = squareMaskTable[pawnSqr.index()];
             sqrMak &= m_material[opSet].pawns;            
             if (sqrMak > 0)
             {
@@ -401,7 +401,7 @@ u64 Bitboard::calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation so
         curSqr = fr0x88(sq0x88);
 
         // build a square mask from current square
-        u64 sqrMask = UINT64_C(1) << curSqr;
+        u64 sqrMask = squareMaskTable[curSqr];
 
         // check if we are blocked by a friendly piece or a oponent piece.
         if (sqrMask & combinedMatAndThreat)
@@ -431,7 +431,7 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
     byte moveIndx = 0;
 
     // figure out if we're pinned and if so overwrite the threatened mask.
-    u64 sqrMask = UINT64_C(1) << source.index();
+    u64 sqrMask = squareMaskTable[source.index()];
 
     for (byte i = 0; i < 8; ++i)
     {
@@ -474,7 +474,7 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
             // convert our sqr0x88 back to a square index
             curSqr = fr0x88(sq0x88);
             // build a square mask from current square
-            u64 sqrMask = UINT64_C(1) << curSqr;
+            u64 sqrMask = squareMaskTable[curSqr];
 
             if (matComb & sqrMask) 
             {
@@ -502,7 +502,7 @@ u64 Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castlin
 u64 Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing) const
 {
     u64 retValue = calcThreatenedSquares(source, piece, pierceKing);
-    u64 mask = UINT64_C(1) << source.index();
+    u64 mask = squareMaskTable[source.index()];
     return retValue | mask;
 }
 
@@ -552,7 +552,7 @@ u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pier
             // convert our sqr0x88 back to a square index
             curSqr = fr0x88(sq0x88);
             // build a square mask from current square
-            u64 sqrMask = UINT64_C(1) << curSqr;
+            u64 sqrMask = squareMaskTable[curSqr];
 
             if ((opMatComb & sqrMask) > 0)
                 sliding = false;
@@ -577,7 +577,7 @@ bool Bitboard::IsValidMove(Notation source, ChessPiece piece, Notation target, b
     u64 movesMask = calcAvailableMoves(source, piece, castling, enPassant, threatenedMask);
     movesMask |= calcAttackedSquares(source, piece);
 
-    u64 targetMask = UINT64_C(1) << target.index();
+    u64 targetMask = squareMaskTable[target.index()];
 
     return movesMask & targetMask;
 }
@@ -608,11 +608,11 @@ u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
         byte fsqr = (rank * 8) + 5;
         byte gsqr = fsqr + 1;
         u64 mask = ~universe;
-        mask |= UINT64_C(1) << fsqr;
-        mask |= UINT64_C(1) << gsqr;
+        mask |= squareMaskTable[fsqr];
+        mask |= squareMaskTable[gsqr];
 
         if (!(attacked & mask) && !(combMat & mask))
-            retVal |= UINT64_C(1) << gsqr;
+            retVal |= squareMaskTable[gsqr];
     }
     // check queen side
     if (castling & 2)
@@ -623,15 +623,14 @@ u64 Bitboard::Castling(byte set, byte castling, u64 threatenedMask) const
         byte dsqr = csqr + 1;
         u64 threatMask = ~universe;
         u64 blockedMask = ~universe;
-        threatMask |= UINT64_C(1) << csqr;
-        threatMask |= UINT64_C(1) << dsqr;
+        threatMask |= squareMaskTable[csqr];
+        threatMask |= squareMaskTable[dsqr];
 
         blockedMask |= threatMask;
-        blockedMask |= UINT64_C(1) << bsqr;
-
+        blockedMask |= squareMaskTable[bsqr];
 
         if (!(attacked & threatMask) && !(combMat & blockedMask))
-            retVal |= UINT64_C(1) << csqr;
+            retVal |= squareMaskTable[csqr];
     }
     return retVal;
 }

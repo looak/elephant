@@ -55,7 +55,10 @@ public:
     
     bool MakeLegalMove(Move& move);
     bool MakeMove(Move& move);
+    bool MakeNullMove();
+    
     bool UnmakeMove(const Move& move);
+    bool UnmakeNullMove();
 
     SearchResult CalculateBestMove(SearchParameters params);
 

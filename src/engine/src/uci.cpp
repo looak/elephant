@@ -187,6 +187,7 @@ bool UCI::Go(std::list<std::string>& args)
         
         searchParams.MoveTime = 0;
         searchParams.SearchDepth = 0;
+        searchParams.Infinite = true;
         return 0;
      };
 

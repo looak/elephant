@@ -1,4 +1,5 @@
 ﻿#include "chessboard.h"
+#include "bitboard_constants.h"
 #include "move.h"
 #include "log.h"
 #include "hash_zorbist.h"
@@ -60,6 +61,7 @@ Chessboard::Chessboard():
 	m_kings[1].first = ChessPiece();
 	m_kings[1].second = Notation();
 
+#ifdef EG_DEBUGGING
 	// verify tiles & tiles named have the same position
 	LOG_ERROR_EXPR(m_tilesNamed.A1.m_position == Notation(0, 0));
 	LOG_ERROR_EXPR(m_tilesNamed.A2.m_position == Notation(0, 1));
@@ -132,6 +134,7 @@ Chessboard::Chessboard():
 	LOG_ERROR_EXPR(m_tilesNamed.H6.m_position == Notation(7, 5));
 	LOG_ERROR_EXPR(m_tilesNamed.H7.m_position == Notation(7, 6));
 	LOG_ERROR_EXPR(m_tilesNamed.H8.m_position == Notation(7, 7));
+#endif
 }
 
 Chessboard::Chessboard(const Chessboard& other):
@@ -1089,7 +1092,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
                 //     move.Flags |= MoveFlag::Check;
             }
 
-            if (opMaterial & UINT64_C(1) << target)
+            if (opMaterial & squareMaskTable[target])
             {
                 move.Flags |= MoveFlag::Capture;
                 move.CapturedPiece = m_tiles[target].readPiece();

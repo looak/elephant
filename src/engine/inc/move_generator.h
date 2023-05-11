@@ -89,6 +89,8 @@ struct SearchParameters
     u32 BlackTimelimit = 0;
     u32 WhiteTimeIncrement = 0;
     u32 BlackTimeIncrement = 0;
+
+    bool Infinite = false;
 };
 
 struct SearchResult
@@ -96,6 +98,14 @@ struct SearchResult
     i32 score;
     Move move;
     bool ForcedMate = false;
+};
+
+struct SearchContext
+{
+    u32 count;
+    std::vector<Move> pv;
+    std::vector<std::array<Move, 3>> killerMoves;
+    // maybe add history heuristic as well.
 };
 
 class MoveGenerator
@@ -111,10 +121,12 @@ public:
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
 
 private:
-    SearchResult AlphaBetaNegmax(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count, Move* pv);
-    i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u64& count);
+    SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, std::vector<Move>& pv, u32 doNullMove);
+    i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
+
+    void OrderMoves(SearchContext& searchContext, std::vector<Move>& moves, u32 depth, u32 ply) const;
 
     EvaluationTable m_evaluationTable;
     TranspositionTable m_transpositionTable;

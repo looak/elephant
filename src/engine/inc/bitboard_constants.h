@@ -1,5 +1,6 @@
 #pragma once
 #include "defines.h"
+#include <array>
 
 static constexpr u64 rank0Mask = UINT64_C(0x00000000000000FF);
 static constexpr u64 rank1Mask = UINT64_C(0x000000000000FF00);
@@ -43,3 +44,15 @@ static constexpr u64 fileMasks[8] = {
     filegMask,
     filehMask
 };
+
+constexpr std::array<u64, 64> generateSquareLookupTable() 
+{
+    std::array<u64, 64> result{};
+    for (int i = 0; i < 64; ++i)
+        result[i] = UINT64_C(1) << i;
+
+    return result;
+}
+
+static constexpr auto squareMaskTable = generateSquareLookupTable();
+

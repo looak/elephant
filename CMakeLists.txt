@@ -27,12 +27,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Compiler warning levels
 if(MSVC)
     # For Microsoft Visual Studio
-    set(WARNING_LEVEL "/W4")
-    set(WARNING_LEVEL_PEDANTIC "/W4 /permissive-")
+    set(WARNING_LEVEL "/W4 /permissive-")
 else()
     # For GCC and Clang
-    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter -Wconversion")
+    set(WARNING_LEVEL "-Wall -Wextra - Wpedantic -Wno-unused-parameter -Wconversion")    
 endif()
+
+add_compile_options(${WARNING_LEVEL})
 
 message(STATUS "## Warning level: ${WARNING_LEVEL}")
 

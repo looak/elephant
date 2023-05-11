@@ -11,7 +11,8 @@ Move::Move(Notation source, Notation target) :
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
 	CapturedPiece(ChessPiece()),
-    Flags(MoveFlag::Zero)
+    Flags(MoveFlag::Zero),
+    Score(0)
 {
 }
 
@@ -26,7 +27,8 @@ Move::Move() :
     Flags(MoveFlag::Invalid),
     PrevMove(nullptr),
     NextMoveCount(0),
-    NextMove(nullptr)
+    NextMove(nullptr),
+    Score(0)
 {
 }
 
@@ -48,6 +50,7 @@ Move& Move::operator=(const Move& other)
     PrevCastlingState = other.PrevCastlingState;
     CapturedPiece = other.CapturedPiece;
     EnPassantTargetSquare = other.EnPassantTargetSquare;
+    Score = other.Score;
 
     return *this;
 }

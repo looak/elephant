@@ -26,7 +26,8 @@
 #include <sstream>
 #include <time.h>
 
-//#define OUTPUT_LOG_TO_FILE
+// #define OUTPUT_LOG_TO_FILE
+// #define EG_DEBUGGING
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
@@ -43,8 +44,12 @@ if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::LogMessag
 switch(0) case 0: default: LoggingInternals::LogMessage("[     INFO ] ", __FILENAME__, __LINE__)
 
 // @brief Logs a debug message with the file name and line number.
+#ifdef EG_DEBUGGING
 #define LOG_DEBUG() \
 switch(0) case 0: default: LoggingInternals::DebugLogMessage("[    DEBUG ] ", __FILENAME__, __LINE__)
+#else
+#define LOG_DEBUG() LoggingInternals::NopMessage()
+#endif
 
 // @brief Logs a warning message with the file name and line number.
 #define LOG_WARNING() \
@@ -215,6 +220,24 @@ public:
 	std::unique_ptr< ::std::stringstream> m_stream;
 	void operator=(const MessageStream& other);
 
+};
+
+class NopMessage
+{
+public:
+    NopMessage() {}
+
+    template <typename T>
+	inline NopMessage& operator<<(const T& value)
+	{		
+		return *this;
+	}
+
+	typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
+	inline NopMessage& operator<<(BasicNarrowIoManip value)
+	{		
+		return *this;
+	}
 };
 
 class LogMessage
