@@ -19,5 +19,5 @@ public:
     u64 calcNodesPerSecond(u64 nodes) const;
 
 private:
-    std::chrono::steady_clock::time_point m_startTime;
+    std::chrono::high_resolution_clock::time_point m_startTime;
 };

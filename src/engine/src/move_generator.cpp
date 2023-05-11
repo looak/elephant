@@ -418,7 +418,7 @@ bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u
     // should return false if we want to abort our search.
     // how do we manage time?
     // lots of magic numbers in here.
-    const u32 c_maxTimeAllowed = (timeleft / 24); // at 5min this is 12 seconds.
+    const i64 c_maxTimeAllowed = (timeleft / 24); // at 5min this is 12 seconds.
     if (elapsedTime > c_maxTimeAllowed)
     {
         // if score is negative we continue looking one more depth.

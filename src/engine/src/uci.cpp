@@ -11,8 +11,8 @@
 
 
 UCI::UCI() :
-    m_stream(std::cout),
-    m_enabled(true)
+    m_enabled(true),
+    m_stream(std::cout)
 {
     m_stream << "id name Elephant Gambit\n";
     m_stream << "id author Alexander Loodin Ek\n";

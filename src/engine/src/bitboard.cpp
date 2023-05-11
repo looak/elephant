@@ -194,8 +194,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
     u64 diagnoalMat = opponentSlidingMask.diagonal;
 	u64 orthogonalMat = opponentSlidingMask.orthogonal;
     u64 allMat = MaterialCombined();
-    u64 knightMat = m_material[opSet].named.knights;
-    u8 checks = 0;
+    u64 knightMat = m_material[opSet].named.knights;    
     
     if (c_diagnoalMat > 0 || c_orthogonalMat > 0)
     {
@@ -259,8 +258,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
                 ret.threats[moveIndx] |= mvMask;
                 if (matCount == 1)
                 {
-                    ret.checked[moveIndx] = true;
-                    checks++;
+                    ret.checked[moveIndx] = true;                    
                 }
             }
         }
@@ -298,8 +296,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
             if (mvMask & knightMat)
             {
                 ret.knightsAndPawns |= mvMask;
-                ret.knightOrPawnCheck = true;
-                checks++;
+                ret.knightOrPawnCheck = true;                
             }
         }
     }
@@ -316,8 +313,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
-                ret.knightOrPawnCheck = true;
-                checks++;
+                ret.knightOrPawnCheck = true;                
             }
         }
         pawnSqr = Notation(source.file - 1, source.rank + pawnMod);
@@ -328,8 +324,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
-                ret.knightOrPawnCheck = true;
-                checks++;
+                ret.knightOrPawnCheck = true;                
             }
         }
     }

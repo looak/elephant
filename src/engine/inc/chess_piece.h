@@ -70,7 +70,6 @@ public:
 public:
 	ChessPiece();
 	ChessPiece(Set _set, PieceType _type);
-	ChessPiece(const ChessPiece& _piece);
 
 	char toString() const;
 	bool fromString(char piece);

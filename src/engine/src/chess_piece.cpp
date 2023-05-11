@@ -56,10 +56,6 @@ ChessPiece::ChessPiece(Set _set, PieceType _type) :
 	m_internalState |= (byte)_type;
 }
 
-ChessPiece::ChessPiece(const ChessPiece& _piece) :
-	m_internalState(_piece.m_internalState)
-{}
-
 char ChessPiece::toString() const
 {
 	char retValue = ' ';

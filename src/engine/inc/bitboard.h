@@ -33,7 +33,7 @@ struct Notation;
 struct MaterialMask
 {
     union {
-        struct Named {
+        struct {
             u64 pawns;
             u64 knights;
             u64 bishops;

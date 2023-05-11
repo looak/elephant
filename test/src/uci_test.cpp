@@ -94,7 +94,6 @@ TEST_F(UciFixture, Enabled_Outputs_uciok)
     m_uci.Enable();
 
     std::stringstream testOutput;
-    bool result;
     {   
         // redirect std::cout to a buffer
         ScopedRedirect coutRedirect(std::cout, testOutput);
