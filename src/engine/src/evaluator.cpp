@@ -37,13 +37,13 @@ i32 Evaluator::EvaluateMaterial(const Chessboard& board) const
     const auto& blackMaterial = board.readMaterial((Set)1);
 
     i32 score = 0;
-    for (int pieceIndx = 0; pieceIndx < 6; pieceIndx++)
+    for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++)
     {
-        int pieceValue = ChessPieceDef::Value(pieceIndx);
-        int count = whiteMaterial.getPieceCount((PieceType)pieceIndx);
+        u32 pieceValue = ChessPieceDef::Value(pieceIndx);
+        u32 count = (u32)whiteMaterial.getPieceCount((PieceType)pieceIndx);
         score += pieceValue * count;
 
-        count = blackMaterial.getPieceCount((PieceType)pieceIndx);
+        count = (u32)blackMaterial.getPieceCount((PieceType)pieceIndx);
         score -= pieceValue * count;        
     }
     return score;
@@ -65,7 +65,7 @@ i32 Evaluator::EvalutePiecePositions(const Chessboard& board) const
 {
     i32 score = 0;
     
-    for (u32 pieceIndx = 1; pieceIndx < (size_t)PieceType::NR_OF_PIECES; ++pieceIndx)
+    for (u32 pieceIndx = 1; pieceIndx < (u32)PieceType::NR_OF_PIECES; ++pieceIndx)
 	{        
         ChessPiece whitePiece(Set::WHITE, (PieceType)pieceIndx);
         const auto& whitePositions = board.readMaterial(Set::WHITE).getPlacementsOfPiece(whitePiece);

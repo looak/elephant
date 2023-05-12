@@ -72,7 +72,7 @@ void TranspositionTable::store(u64 boardHash, Move mv, u8 depth, i32 score, Tran
         entry.move = mv.readPackedMove();
         entry.flag = flag;
         entry.depth = depth;
-        entry.score = score;
+        entry.score = (i16)score;
 
         m_table.emplace(boardHash, entry);        
     }
@@ -82,7 +82,7 @@ void TranspositionTable::store(u64 boardHash, Move mv, u8 depth, i32 score, Tran
     ++m_overwrites;
 #endif        
         auto& entry = m_table[boardHash];
-        entry.score = score;
+        entry.score = (i16)score;
         entry.depth = depth;
         entry.flag = flag;
         entry.move = mv.readPackedMove();

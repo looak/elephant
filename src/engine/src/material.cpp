@@ -86,12 +86,12 @@ Material::UnmakePieceMove(ChessPiece pieceToAdd, ChessPiece pieceToRemove, Notat
 	AddPiece(pieceToAdd, source);
 }
 
-u32 Material::getPieceCount(ChessPiece piece) const
+size_t Material::getPieceCount(ChessPiece piece) const
 {
 	return m_material[piece.index()].size();
 }
 
-u32 Material::getPieceCount(PieceType type) const
+size_t Material::getPieceCount(PieceType type) const
 {
     return m_material[(size_t)type].size();
 }
@@ -102,14 +102,14 @@ u32 Material::getValue() const
 	for (u32 i = 0; i < m_material.size(); ++i)
 	{
 		const auto& positions = m_material[i];
-		value += positions.size() * ChessPieceDef::Value(i);
+		value += (u32)positions.size() * ChessPieceDef::Value(i);
 	}
 	return value;
 }
 
-u32 Material::getCount() const
+size_t Material::getCount() const
 {
-	u32 count = 0;
+	size_t count = 0;
 	for (const auto& pieces : m_material)
 	{
 		count += pieces.size();

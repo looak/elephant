@@ -48,10 +48,15 @@ constexpr int index64[64] = {
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-[[nodiscard]] constexpr u64 lsb(u64 v)
+#pragma warning(push)
+#pragma warning(disable: 4146)
+
+[[nodiscard]] constexpr u64 lsb(u64 bb)
 {
-	return v & -v;
+	return bb & -bb;
 }
+
+#pragma warning(pop)
 
 typedef u64 OneSizeFits;
 typedef u32 HotRats;
@@ -85,6 +90,14 @@ constexpr HotRats freakOut(OneSizeFits all) {
 	return so;
 }
 
+[[nodiscard]] constexpr i32 popcount(u64 bb)
+{
+	bb -= (bb >> 1) & UINT64_C(0x5555555555555555);
+	bb = (bb & UINT64_C(0x3333333333333333)) + ((bb >> 2) & UINT64_C(0x3333333333333333));
+	bb = (bb + (bb >> 4)) & UINT64_C(0x0F0F0F0F0F0F0F0F);
+	return static_cast<i32>((bb * UINT64_C(0x0101010101010101)) >> 56);
+}
+
 } // namespace
 
 namespace intrinsics
@@ -107,11 +120,20 @@ namespace intrinsics
 
 /**
  * Popcount    */
-[[nodiscard]] inline i32 popcnt(u64 bitboard)
+[[nodiscard]] constexpr inline i32 popcnt(u64 bitboard)
 {
-	//return __popcnt64(bitboard);
-	//return _mm_popcnt_u64(bitboard);
+	if (std::is_constant_evaluated())
+		return fallback::popcount(bitboard);
+
+#ifdef __GNUC__
     return __builtin_popcount(bitboard);
+#elif defined(_WIN64)
+	return (i32)__popcnt64(bitboard);
+#elif defined(__x86_64__)
+	return _mm_popcnt_u64(bitboard);
+#else
+	return fallback::popcount(bitboard);
+#endif
 }
 
 [[nodiscard]] constexpr inline u64 resetLsb(u64 bitboard)

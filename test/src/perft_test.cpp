@@ -46,7 +46,7 @@ public:
         return count;
 	}
 
-    unsigned int concurrentMovesAtDepth(GameContext context, int depth)
+    size_t concurrentMovesAtDepth(GameContext context, int depth)
     {
         if (depth == 0)
         {
@@ -60,7 +60,7 @@ public:
         }
         else
         {
-            unsigned int count = 0;
+            size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             for (auto mv : moves)
             {            
@@ -73,7 +73,7 @@ public:
         }
     }
 
-    unsigned int CountMovesAtDepth(GameContext& context, int depth)
+    size_t CountMovesAtDepth(GameContext& context, int depth)
     {        
         if (depth == 0)
         {
@@ -87,7 +87,7 @@ public:
         }
         else
         {
-            unsigned int count = 0;
+            size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             for (auto mv : moves)
             {
@@ -102,7 +102,7 @@ public:
         }
     }
 
-    unsigned int CountMovesAtDepthConcurrent(GameContext& context, int depth)
+    size_t CountMovesAtDepthConcurrent(GameContext& context, int depth)
     {        
         if (depth == 0)
         {
@@ -117,9 +117,9 @@ public:
         else
         {
 
-            std::vector<std::future<unsigned int>> futures;
+            std::vector<std::future<size_t>> futures;
 
-            unsigned int count = 0;
+            size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             for (auto mv : moves)
             {
@@ -146,14 +146,14 @@ public:
         Clock clock;
         clock.Start();
         FENParser::deserialize(fen.c_str(), m_context);
-        u32 result = CountMovesAtDepthConcurrent(m_context, atDepth);
+        size_t result = CountMovesAtDepthConcurrent(m_context, atDepth);
         EXPECT_EQ(expectedValue, result);
         i64 elapsedTime = clock.getElapsedTime();
         LOG_INFO() << "Elapsed time: " <<  elapsedTime << " ms";
 
         // convert to seconds
         float et = elapsedTime / 1000.f;
-        i64 nps = (i64)(result) / et;
+        i64 nps = (i64)(result / et);
         LOG_INFO() << "Nodes per second: " << nps << " nps";
     }
 

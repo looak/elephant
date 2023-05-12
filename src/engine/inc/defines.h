@@ -18,15 +18,33 @@
 #include <stdint.h>
 #include "log.h"
 
+namespace platform
+{
+constexpr bool is_win64 =
+#ifdef _WIN64
+true;
+#else
+false;
+#endif
+
+constexpr bool is_amd64_x86 =
+#ifdef __x86_64__
+true;
+#else
+false;
+#endif
+}
+
 typedef unsigned char byte;
 typedef unsigned char u8;
 typedef signed short u16;
-typedef unsigned long u32;
+typedef unsigned int u32;
 typedef unsigned long long u64;
 typedef signed char i8;
 typedef signed short i16;
 typedef signed long long i64;
-typedef signed long i32;
+typedef signed int i32;
+
 
 const u64 universe = 0xffffffffffffffffULL;
 

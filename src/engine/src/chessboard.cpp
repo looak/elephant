@@ -1096,7 +1096,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
         u64 itrBB = movesbbcopy;
         while (itrBB != 0)
         {
-            byte target = intrinsics::lsbIndex(itrBB);
+            byte target = (byte)intrinsics::lsbIndex(itrBB);
             itrBB = intrinsics::resetLsb(itrBB);
 
             auto& move = moveVector.emplace_back(source, Notation(target));

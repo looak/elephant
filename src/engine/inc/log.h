@@ -387,6 +387,8 @@ public:
 	}
 
 };
+#pragma warning(push)
+#pragma warning(disable: 4722) // I'm aborting the application in the ~dtor which compilers don't like.
 
 class AssertMessage : public LogMessage
 {
@@ -419,5 +421,7 @@ public:
 		abort();
 	}
 };
+
+#pragma warning(pop)
 
 } // namespace LoggingInternals
