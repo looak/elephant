@@ -32,7 +32,6 @@ struct Notation;
 
 struct MaterialMask
 {
-
     u64 material[6] {};
 
     u64 combine() const

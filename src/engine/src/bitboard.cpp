@@ -10,14 +10,16 @@
 
 Bitboard::Bitboard()
 {
-    std::memset(&m_material[0], 0, sizeof(u64) * 12);
+    m_material[0] = {};
+    m_material[1] = {};
 }
 
 Bitboard& Bitboard::operator=(const Bitboard& other)
-{
-    auto size = sizeof(m_material);
-    std::memset(&m_material[0], 0, size);
-    std::memcpy(&m_material[0], &other.m_material[0], size);
+{    
+    m_material[0] = {};
+    m_material[1] = {};
+    m_material[0] = other.m_material[0];
+    m_material[1] = other.m_material[1];
     return *this;
 }
 
@@ -42,7 +44,8 @@ bool Bitboard::IsValidSquare(Notation source)
 
 void Bitboard::Clear()
 {
-	std::memset(&m_material[0], 0, sizeof(u64) * 12);
+    m_material[0] = {};
+    m_material[1] = {};
 }
 
 bool Bitboard::ClearPiece(ChessPiece piece, Notation target)
