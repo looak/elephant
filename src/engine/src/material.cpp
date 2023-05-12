@@ -102,7 +102,7 @@ u32 Material::getValue() const
 	for (u32 i = 0; i < m_material.size(); ++i)
 	{
 		const auto& positions = m_material[i];
-		value += positions.size() * ChessPieceDef::Value(i+1);
+		value += positions.size() * ChessPieceDef::Value(i);
 	}
 	return value;
 }
