@@ -16,5 +16,7 @@ u64 Clock::calcNodesPerSecond(u64 nodes) const
     i64 et = getElapsedTime();
     if (et < 1)
         return 0;
-    return (u64)((float)nodes / (float)et / 1000.f);
+    float seconds = ((float)et / 1000.f);
+    
+    return (u64)((float)nodes / seconds);
 }

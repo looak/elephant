@@ -132,6 +132,8 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
         tokens.push_back(token);
     }
 
+    outputContext.Reset();
+
     if (tokens.size() != 6)
         return false;
 

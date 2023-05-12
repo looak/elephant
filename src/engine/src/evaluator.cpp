@@ -14,10 +14,10 @@ Evaluator::Evaluator()
 {
 }
 
-i32 Evaluator::Evaluate(const Chessboard& board, i32 perspective)
+i32 Evaluator::Evaluate(const Chessboard& board, i32)
 {
     i32 score = 0;
-    Set set = perspective > 0 ? Set::WHITE : Set::BLACK;
+    //Set set = perspective > 0 ? Set::WHITE : Set::BLACK;
     
     /*if (board.isCheckmated(set))
         return 24000;
