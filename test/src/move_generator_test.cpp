@@ -111,7 +111,9 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     for (auto&& move : result)
     {
         if (move.TargetSquare == b1)
+        {
             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
+        }
         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
     }
 }
