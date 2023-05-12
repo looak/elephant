@@ -81,7 +81,7 @@ u64 Bitboard::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, Che
     }
     byte epTargetRank = (enPassant / 8) + moveMod;
     // figure out if we're pinned
-    u64 sqrMask = squareMaskTable[ source.index()];
+    u64 sqrMask = squareMaskTable[source.index()];
     bool pinned = (sqrMask & kingMask);
     // this magic code is to solve the issue where we have a pinned pawn and a en passant capture opportunity,
     // but capturing the en passant would put our king in check.
@@ -187,14 +187,15 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
 
     KingMask ret;
 
-    u8 opSet = ChessPiece::FlipSet(king.set());
-    u64 slideMat = SlidingMaterialCombined(opSet);
-    const u64 c_diagnoalMat = m_material[opSet].named.bishops | m_material[opSet].named.queens;
-    const u64 c_orthogonalMat = m_material[opSet].named.rooks | m_material[opSet].named.queens;
-    u64 diagnoalMat = opponentSlidingMask.diagonal;
-	u64 orthogonalMat = opponentSlidingMask.orthogonal;
-    u64 allMat = MaterialCombined();
-    u64 knightMat = m_material[opSet].named.knights;    
+    const u8 opSet = ChessPiece::FlipSet(king.set());    
+    const u64 c_diagnoalMat = m_material[opSet].material[bishopId] | m_material[opSet].material[queenId];
+    const u64 c_orthogonalMat = m_material[opSet].material[rookId] | m_material[opSet].material[queenId];
+    const u64 diagnoalMat = opponentSlidingMask.diagonal;
+	const u64 orthogonalMat = opponentSlidingMask.orthogonal;
+    const u64 knightMat = m_material[opSet].material[knightId];
+    const u64 allMat = MaterialCombined();
+
+    const u64 slideMatCache[2] {orthogonalMat & c_orthogonalMat, diagnoalMat & c_diagnoalMat};
     
     if (c_diagnoalMat > 0 || c_orthogonalMat > 0)
     {
@@ -207,14 +208,11 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
             sliding = true;
             byte curSqr = source.index();
             signed short dir = ChessPieceDef::Moves0x88(king.index(), moveIndx);
-            bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
 
             ret.threats[moveIndx] = ~universe;
 			
-            if (diagonal)
-				slideMat = diagnoalMat & c_diagnoalMat;
-            else
-				slideMat = orthogonalMat & c_orthogonalMat;
+            bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
+            u64 slideMat = slideMatCache[diagonal];
 
 			if (slideMat == 0)
 				continue;			
@@ -301,7 +299,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         }
     }
 
-    if (m_material[opSet].named.pawns > 0)
+    if (m_material[opSet].material[pawnId] > 0)
     {
         // figure out if we're checked by a pawn
         i8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
@@ -309,7 +307,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= m_material[opSet].named.pawns;
+            sqrMak &= m_material[opSet].material[pawnId];
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
@@ -320,7 +318,7 @@ Bitboard::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
         if (Bitboard::IsValidSquare(pawnSqr))
         {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= m_material[opSet].named.pawns;
+            sqrMak &= m_material[opSet].material[pawnId];
             if (sqrMak > 0)
             {
                 ret.knightsAndPawns |= sqrMak;
@@ -475,7 +473,7 @@ u64 Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pier
 
     // removing king from opmaterial so it doesn't stop our sliding.
     if (pierceKing)
-        opMatComb &= ~m_material[opSet].named.kings;
+        opMatComb &= ~m_material[opSet].material[kingId];
 
     signed char moveMod = 1;
     if (piece.getSet() == Set::WHITE)
@@ -617,5 +615,5 @@ u64 Bitboard::MaterialCombined(byte set) const
 
 u64 Bitboard::SlidingMaterialCombined(byte set) const
 {
-    return m_material[set].named.bishops | m_material[set].named.rooks | m_material[set].named.queens;
+    return m_material[set].material[bishopId] | m_material[set].material[rookId] | m_material[set].material[queenId];
 }

@@ -74,7 +74,7 @@ public:
     static std::string generateUniqueFilename()
     {
         auto now = std::chrono::system_clock::now();
-        std::time_t timetNow = std::chrono::system_clock::to_time_t(now);
+        std::time_t timetNow = std::chrono::system_clock::to_time_t(now);        
         std::tm* localtime = std::localtime(&timetNow);
 
         std::ostringstream filename;

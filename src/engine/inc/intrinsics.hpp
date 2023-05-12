@@ -22,7 +22,7 @@
 namespace fallback
 {
 
-const int index64[64] = {
+constexpr int index64[64] = {
 	0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
    54, 58, 35, 52, 50, 42, 21, 44,
@@ -74,7 +74,7 @@ constexpr HotRats freakOut(OneSizeFits all) {
 	HotRats so, fa;
 	fa = (HotRats)(all >> i);
 	so = (fa != s) << o;
-	fa ^= (HotRats)all & (fa != s) - y;
+	fa ^= (HotRats)all & ((fa != s) - y);
 	so ^= (jawaka < fa) << b;
 	fa >>= (jawaka < fa) << b;
 	so ^= (waka - fa) >> t & u;
@@ -114,9 +114,11 @@ namespace intrinsics
     return __builtin_popcount(bitboard);
 }
 
-[[nodiscard]] constexpr u64 resetLsb(u64 bitboard)
+[[nodiscard]] constexpr inline u64 resetLsb(u64 bitboard)
 {
-	//return _blsr_u64(bitboard);
+    
+    // "optimal way" to clear least signficant bit	
 	return bitboard & (bitboard - 1);
+    //return _blsr_u64(bitboard);
 }
 }

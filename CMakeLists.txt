@@ -40,6 +40,8 @@ message(STATUS "## Warning level: ${WARNING_LEVEL}")
 
 include(GNUInstallDirs)
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
 foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER)
     message(STATUS "## Configuring for ${CONFIG_TYPE} build type")

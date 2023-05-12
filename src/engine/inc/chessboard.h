@@ -83,16 +83,7 @@ public:
 	std::string toString() const;
 		
 private:
-	union {
-		byte m_innerState;
-		struct
-		{
-			bool m_whiteKingSide : 1;
-			bool m_whiteQueenSide : 1;
-			bool m_blackKingSide : 1;
-			bool m_blackQueenSide : 1;
-		};
-	};	
+    byte m_innerState;
 };
 
 struct ChessboardTile
@@ -174,6 +165,7 @@ public:
 	 * @param set The set to calculate the threat against.
 	*/
 	u64 CalcThreatenedMask(Set set) const;
+    template<bool useCache = true>
 	KingMask calcKingMask(Set set) const;
 	/**
 	 * Computes and returns two bitboards that represent all the squares that are threatened by the sliding pieces
@@ -301,21 +293,8 @@ private:
 
 	u64 m_hash;
 		
-	union {
-		ChessboardTile m_tiles[64];
-		ChessboardTile m_tiles8x8[8][8];
-		struct
-		{
-			ChessboardTile A1, B1, C1, D1, E1, F1, G1, H1;
-			ChessboardTile A2, B2, C2, D2, E2, F2, G2, H2;
-			ChessboardTile A3, B3, C3, D3, E3, F3, G3, H3;
-			ChessboardTile A4, B4, C4, D4, E4, F4, G4, H4;
-			ChessboardTile A5, B5, C5, D5, E5, F5, G5, H5;
-			ChessboardTile A6, B6, C6, D6, E6, F6, G6, H6;
-			ChessboardTile A7, B7, C7, D7, E7, F7, G7, H7;
-			ChessboardTile A8, B8, C8, D8, E8, F8, G8, H8;
-		} m_tilesNamed;
-	};
+
+    ChessboardTile m_tiles[64];
 	
 	mutable Bitboard m_bitboard;
 
@@ -335,6 +314,8 @@ private:
 	Notation m_enPassantTarget;
 
 	Material m_material[(size_t)Set::NR_OF_SETS];
+
+    mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
 };
 
 template<typename T, bool isConst>

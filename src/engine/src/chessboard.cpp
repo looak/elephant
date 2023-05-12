@@ -9,9 +9,6 @@
 #include <vector>
 #include <thread>
 
-
-
-
 ChessboardTile::ChessboardTile()
 	: m_position(InvalidNotation),
 	m_piece(ChessPiece())
@@ -527,8 +524,9 @@ Chessboard::InternalHandleKingRookMove(Move& move)
 			break;
 
 	case PieceType::ROOK:
-		InternalHandleRookMove(move, targetRook, rookMove);
-
+		InternalHandleRookMove(move, targetRook, rookMove);        
+        break;
+        
 	default:
 		break;
 	}
@@ -553,6 +551,11 @@ Chessboard::InternalMakeMove(Notation source, Notation target)
 	// update hash
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
 	m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, source);
+
+    for (auto& [cached, mask] : m_cachedKingMask)
+    {
+        cached = false;
+    }
 }
 
 bool
@@ -891,15 +894,28 @@ Chessboard::readKingPosition(Set set) const
 	return m_kings[static_cast<u8>(set)].second;
 }
 
+template<bool useCache>
 KingMask Chessboard::calcKingMask(Set set) const
-{
+{    
 	u8 indx = static_cast<u8>(set);
 	if (m_kings[indx].first == ChessPiece())
 		return KingMask();
 
-	// might not need to get sliding masks, only material here?
-	auto slidingPair = readSlidingMaterialMask(ChessPiece::FlipSet(set));
-	return m_bitboard.calcKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
+    if constexpr (useCache)
+    {
+        auto& [cached, mask] = m_cachedKingMask[indx];
+        if (cached)
+            return mask;
+
+        auto slidingPair = readSlidingMaterialMask(ChessPiece::FlipSet(set));
+        mask = m_bitboard.calcKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
+        cached = true;
+        return mask;
+    }
+
+    auto slidingPair = readSlidingMaterialMask(ChessPiece::FlipSet(set));
+    auto mask = m_bitboard.calcKingMask(m_kings[indx].first, m_kings[indx].second, slidingPair);
+    return mask;
 }
 
 u64
@@ -992,7 +1008,7 @@ Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
 		// remove en passant target from material
 		ChessPiece pawn(opSet, PieceType::PAWN);
 		m_bitboard.ClearPiece(pawn, m_enPassantTarget);
-		pawnKingMask = calcKingMask(currentSet);
+		pawnKingMask = calcKingMask<false>(currentSet);
         chkCount = 0;
 		pawnCheckedMask = pawnKingMask.checkedMask(chkCount);
 		pawnKingMask ^= pawnCheckedMask;
@@ -1075,7 +1091,6 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
         while (itrBB != 0)
         {
             byte target = intrinsics::lsbIndex(itrBB);
-            // "optimal way" to clear least signficant bit
             itrBB = intrinsics::resetLsb(itrBB);
 
             auto& move = moveVector.emplace_back(source, Notation(target));

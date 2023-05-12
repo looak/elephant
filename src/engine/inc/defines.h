@@ -39,4 +39,11 @@ const u64 universe = 0xffffffffffffffffULL;
 #define g_file 6
 #define h_file 7
 
+#define pawnId 0
+#define knightId 1
+#define bishopId 2
+#define rookId 3
+#define queenId 4
+#define kingId 5
+
 static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

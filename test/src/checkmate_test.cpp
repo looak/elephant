@@ -50,7 +50,7 @@ private:
 // Black to move, checkmate in 1 move.
 TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
 {
-    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");        
+    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
 	FENParser::deserialize(fen.c_str(), m_context);
 
     Chessboard& boardEditor = m_context.editChessboard();
@@ -66,7 +66,7 @@ TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
     EXPECT_TRUE(m_context.readChessboard().isCheckmated(Set::WHITE));
     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
     EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
-    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));    
+    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));
 }
 
 // 8 [k][ ][ ][ ][ ][ ][ ][ ]

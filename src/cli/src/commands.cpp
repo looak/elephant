@@ -38,7 +38,7 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
     return ret;
 }
 
-void FenHelpCommand(const std::string& command)
+void FenHelpCommand(const std::string&)
 {
     std::ostringstream ssCommand;
     ssCommand << "fen <string> or fen";
@@ -57,7 +57,7 @@ void HelpHelpCommand(const std::string& command)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
-bool HelpCommand(std::list<std::string>& tokens, GameContext& context)
+bool HelpCommand(std::list<std::string>& tokens, GameContext&)
 {
     if (tokens.empty() == false)
     {
@@ -205,7 +205,7 @@ void MoveHelpCommand(const std::string& command)
 
 }
 
-bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
+bool EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
     i32 value = evaluator.Evaluate(context.readChessboard(), 1);
@@ -213,7 +213,7 @@ bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context)
     return true;
 }
 
-void EvaluateHelpCommand(const std::string& command)
+void EvaluateHelpCommand(const std::string&)
 {
 
 }
@@ -224,7 +224,7 @@ bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& contex
     if (tokens.size() != 0)
     {
         std::string depth = tokens.front();        
-        std::from_chars_result res = std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
+        std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
     }
 
     SearchResult result = context.CalculateBestMove(searchParams);
@@ -232,7 +232,7 @@ bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& contex
     return true;
 }
 
-void EvaluateBestMoveHelpCommand(const std::string& command)
+void EvaluateBestMoveHelpCommand(const std::string&)
 {
     std::ostringstream ssCommand;
     ssCommand << "bestmove";
@@ -240,7 +240,7 @@ void EvaluateBestMoveHelpCommand(const std::string& command)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
-bool UCIEnableCommand(std::list<std::string>& tokens, GameContext& context)
+bool UCIEnableCommand(std::list<std::string>&, GameContext&)
 {
     std::cout << "UCI mode enabled\n";    
     UCICommands::UCIEnable();
@@ -256,7 +256,7 @@ void UCIEnableHelpCommand(const std::string& command)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
-bool NewGameCommand(std::list<std::string>& tokens, GameContext& context)
+bool NewGameCommand(std::list<std::string>&, GameContext& context)
 {
     context.NewGame();
     return true;
@@ -270,7 +270,7 @@ void NewGameHelpCommand(const std::string&)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
-bool AvailableMovesCommand(std::list<std::string>& tokens, GameContext& context)
+bool AvailableMovesCommand(std::list<std::string>&, GameContext& context)
 {
     std::cout << " Available Moves: \n";
     MoveGenerator generator;
@@ -283,7 +283,7 @@ bool AvailableMovesCommand(std::list<std::string>& tokens, GameContext& context)
     return true;
 }
 
-void AvailableMovesHelpCommand(const std::string& command)
+void AvailableMovesHelpCommand(const std::string&)
 {
     std::ostringstream ssCommand;
     ssCommand << "show";

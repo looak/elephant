@@ -193,12 +193,14 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, SearchContext& searchContex
 
     // avoid null moves in endgame positions
     // float egCoefficient = context.readChessboard().calculateEndGameCoeficient();
-    // if (doNullMove > 0 && !context.readChessboard().isChecked(context.readToPlay()) && egCoefficient < .75f && depth >= 3)
-    // {
-    //     context.MakeNullMove();
-    //     auto nullResult = AlphaBetaNegmax(context, searchContext, depth -3, ply +1, -beta, -beta +1, -perspective, pv, doNullMove -1);
+    // if (doNullMove > 0 && !context.readChessboard().isChecked(context.readToPlay()) && egCoefficient < .75f && depth > 2)
+    // {        
+    //     std::vector<Move> localPv(depth+1);
+    //     auto cpy = context;
+    //     cpy.MakeNullMove();
+    //     auto nullResult = AlphaBetaNegmax(cpy, searchContext, depth -2, ply +1, -beta, -beta +1, -perspective, localPv, doNullMove -1);
     //     i32 score = -nullResult.score;
-    //     context.UnmakeNullMove();
+    //     cpy.UnmakeNullMove();
 
     //     if (score >= beta)
     //         return { beta, bestMove };
@@ -224,7 +226,8 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, SearchContext& searchContex
 
     for (auto&& mv : moves)
     {
-        context.MakeLegalMove(mv);
+        //context.MakeLegalMove(mv);
+        FATAL_ASSERT(context.MakeMove(mv));
         SearchResult result;
         result = AlphaBetaNegmax(context, searchContext, depth -1, ply+1, -beta, -alpha, -perspective, localPv, doNullMove);
         i32 score = -result.score;
@@ -353,14 +356,9 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
     {
         std::vector<Move> localPv(itrDepth+1);
         SearchResult result = AlphaBetaNegmax(context, searchContext, itrDepth, 1, alpha, beta, perspective, localPv, 1);
-
+        
         searchContext.pv = std::move(localPv);
-
-        if (result.move == bestResult.move)
-            bestResult.score = result.score;
-        else
-        if (result.score > bestResult.score)
-            bestResult = result;
+        bestResult = result;
         
         u64 nps = clock.calcNodesPerSecond(searchContext.count);
         stream << "info nps " << nps << "\n";

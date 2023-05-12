@@ -64,7 +64,7 @@ constexpr signed short attacks0x88[6][8] = {
 	{ -17, -16, -15, -1, 1, 15, 16, 17 }
 };
 
-const PieceType m_slidingPieceTypes[3] = {
+constexpr PieceType slidingPieceTypes[3] = {
 	PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN
 };
 
@@ -75,8 +75,7 @@ public:
 	static inline constexpr bool 				Slides(byte pIndex) { return slides[pIndex]; }
 	static inline constexpr signed short 		Moves0x88(byte pIndex, byte mIndex) { return moves0x88[pIndex][mIndex]; }
 	static inline constexpr signed short 		Attacks0x88(byte pIndex, byte mIndex) { return attacks0x88[pIndex][mIndex]; }
-	static inline constexpr signed short		Value(byte pIndex) { return pieceValues[pIndex]; }
-	static inline const PieceType*              SlidingTypes() { return &m_slidingPieceTypes[0]; }
+	static inline constexpr signed short		Value(byte pIndex) { return pieceValues[pIndex]; }    
 	static inline constexpr bool				IsDiagonalMove(signed short mvValue) { return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17); }
 };
 
@@ -118,23 +117,7 @@ public:
 	bool isSliding() const { return ChessPieceDef::Slides(index()); }
 
 private:	
-	// [set][not used][not used][not used][not used][piece t][piece t][piece t]
-	union
-	{
-		byte m_internalState;
-		// struct
-		// {
-		// 	// technically we only use 3 bits to identify the piece type but to get the correct offset to the
-		// 	// set bit we have set this to 7.
-		// 	PieceType m_type : 7;				
-		// 	Set m_set : 1;
-		// };
-		
-		// struct
-		// {
-		// 	byte m_typeValue : 7;
-		// 	byte m_setValue : 1;
-		// };
-	};
-	//byte m_internalState;
+	// [set][not used][not used][not used][not used][piece t][piece t][piece t]	
+    byte m_internalState;
+
 };

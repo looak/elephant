@@ -32,21 +32,12 @@ struct Notation;
 
 struct MaterialMask
 {
-    union {
-        struct {
-            u64 pawns;
-            u64 knights;
-            u64 bishops;
-            u64 rooks;
-            u64 queens;
-            u64 kings;
-        } named;
-        u64 material[6];
-    };
+
+    u64 material[6] {};
 
     u64 combine() const
     {
-        return named.pawns | named.knights | named.bishops | named.rooks | named.queens | named.kings;
+        return material[pawnId] | material[knightId] | material[bishopId] | material[rookId] | material[queenId] | material[kingId];
     }
 };
 
