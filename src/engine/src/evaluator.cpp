@@ -19,10 +19,10 @@ i32 Evaluator::Evaluate(const Chessboard& board, i32 perspective)
     i32 score = 0;
     Set set = perspective > 0 ? Set::WHITE : Set::BLACK;
     
-    if (board.isCheckmated(set))
+    /*if (board.isCheckmated(set))
         return 24000;
     else if (board.isStalemated(set))
-        return 0;
+        return 0;*/
 
     score += EvaluateMaterial(board);    
     score += EvalutePiecePositions(board);

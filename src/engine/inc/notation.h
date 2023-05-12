@@ -34,7 +34,7 @@ struct Notation
 		rank(0xF)
 	{}
 
-	constexpr Notation(byte index) :
+	explicit constexpr Notation(byte index) :
 		file(0xF),
 		rank(0xF)
 	{
@@ -42,12 +42,6 @@ struct Notation
 			LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
 		file = index % 8;
 		rank = index / 8;
-	}
-
-	Notation(const Notation& other)
-	{
-		file = other.file;
-		rank = other.rank;
 	}
 
 	// when we read algebraic notations we might only have file or rank in some cases.
@@ -59,16 +53,21 @@ struct Notation
 	{}
 
 	Notation(Notation&& other) = default;
+	Notation(const Notation& other) = default;
 
 	byte file : 4;
 	byte rank : 4;
 
-	byte index() const 
+	constexpr inline byte index() const
 	{ 
+#ifdef EG_DEBUGGING
 		if (isValid()) 
 			return (rank * 8) + file;
 		else
 			return 0xFF;
+#else
+		return (rank * 8) + file;
+#endif
 	}
 	bool operator==(const Notation& rhs) const;
 	bool operator!=(const Notation& rhs) const;

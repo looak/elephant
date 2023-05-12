@@ -203,7 +203,7 @@ Chessboard::Clear()
 
 	m_hash = 0;
 	m_castlingState = 0;
-	m_enPassant = 0;
+	m_enPassant = Notation::Invalid();
 	m_enPassantTarget = Notation();
 	m_kings[0].first = ChessPiece();
 	m_kings[0].second = Notation();
@@ -260,7 +260,7 @@ Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) con
 	// currently this won't care if a move is legal or not.
 	for (const auto& notation : notations)
 	{
-		auto moveMask = m_bitboard.calcAvailableMoves(notation, mv.Piece);
+		auto moveMask = m_bitboard.calcAvailableMoves(notation, mv.Piece, 0, {});
 		if (moveMask & targetMask)
 			possibleSources.push_back(notation);
 	}
@@ -347,15 +347,15 @@ Chessboard::SerializeMoveToPGN(const Move& move) const
 
 			for (const auto& pos : notations)
 			{
-				u64 moveMask = m_bitboard.calcAvailableMoves(pos, move.Piece);
+				u64 moveMask = m_bitboard.calcAvailableMoves(pos, move.Piece, 0, {});
 				if (moveMask & curMask)
 				{
 					// this assumes there are only two pieces of the same type on the board
 					// which will break if we ever support chess960 or pawns are promoted.
 					if (pos.file == move.SourceSquare.file)
-						pgn += Notation::rankToChar(pos.rank);
+						pgn += Notation::rankToChar(pos);
 					else if (pos.rank == move.SourceSquare.rank)
-						pgn += Notation::fileToChar(pos.file);
+						pgn += Notation::fileToChar(pos);
 					else
 						pgn += pos.toString();
 				}
@@ -416,8 +416,8 @@ Chessboard::InternalHandlePawnMove(Move& move)
         // which assumses capitalized string is white, but that doesn't work for promotions
         move.PromoteToPiece = ChessPiece(move.Piece.getSet(), move.PromoteToPiece.getType());
 
-		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare.index());
-		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare.index());
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare);
+		m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare);
 
 		m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
 		m_material[move.Piece.set()].PromotePiece(move.PromoteToPiece, move.SourceSquare);
@@ -572,7 +572,7 @@ Chessboard::VerifyMove(const Move& move) const
 
 	u64 threatenedMask = CalcThreatenedMask(ChessPiece::FlipSet(piece.getSet()));
 
-	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant.index(), threatenedMask) == false)
+	if (m_bitboard.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant, threatenedMask) == false)
 		return false;
 
 	return true;
@@ -1065,17 +1065,21 @@ std::vector<Move>
 Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask, KingMask kingMask, bool captureMoves) const
 {
 	std::vector<Move> moveVector;
+	moveVector.reserve(128);
+
+#ifdef EG_DEBUGGING
 	if (!Bitboard::IsValidSquare(source))
 		return moveVector;
 
 	if (piece == ChessPiece())
 		return moveVector;
+#endif
 
 	bool checked = !checkedMask.zero();
 	// castling not available when in check
 	byte castlingState = checked ? 0 : m_castlingState;
 
-	u64 movesbb = m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant.index(), threatenedMask, checkedMask, kingMask);
+	u64 movesbb = m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant, threatenedMask, checkedMask, kingMask);
 	MaterialMask opMaterialMask = m_bitboard.GetMaterial(ChessPiece::FlipSet(piece.getSet()));
     u64 opMaterial = opMaterialMask.combine();
 
@@ -1099,9 +1103,9 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
             byte target = (byte)intrinsics::lsbIndex(itrBB);
             itrBB = intrinsics::resetLsb(itrBB);
 
-            auto& move = moveVector.emplace_back(source, Notation(target));
+			Move move(source, Notation(target));
             move.Flags = MoveFlag::Zero;
-            move.Piece = piece;
+            move.Piece = piece;			
 
             int castlingDir = IsMoveCastling(move);
             if (move.Piece.getType() == PieceType::KING && castlingDir != 0)
@@ -1165,6 +1169,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
             {
                 move.Flags |= MoveFlag::Check;
             }
+			moveVector.push_back(move);
         }
 
         movesbb &= ~movesbbcopy;

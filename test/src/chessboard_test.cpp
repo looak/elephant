@@ -121,7 +121,7 @@ TEST_F(ChessboardFixture, Empty)
     // checking all tiles that they are empty
     for (int i = 0; i < 64; i++)
     {
-        auto piece = m_emptyChessboard.readPieceAt(i);
+        auto piece = m_emptyChessboard.readPieceAt(Notation(i));
         EXPECT_EQ(expectedPiece, piece);        
     }
 
@@ -174,13 +174,14 @@ TEST_F(ChessboardFixture, Notation_GetIndex)
     auto pos = Notation::BuildPosition('a', 1);
     EXPECT_EQ(expected, pos.index());
 
+#ifdef EG_DEBUGGING
     expected = 0xff;
     pos = Notation::BuildPosition('z', 1); // invalid position
     EXPECT_EQ(expected, pos.index());
 
     Notation defaultValue;
     EXPECT_EQ(expected, defaultValue.index());
-
+#endif
     expected = 28;
     pos = Notation::BuildPosition('e', 4);
     EXPECT_EQ(expected, pos.index());

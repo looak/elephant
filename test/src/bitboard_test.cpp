@@ -86,7 +86,7 @@ TEST_F(BitboardFixture, King_Move_e1)
     // f2 should be available for moving
     expected |= INT64_C(1) << f2.index();
 
-    auto result = board.calcAvailableMoves(e1, K);
+    auto result = board.calcAvailableMoves(e1, K, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -115,7 +115,7 @@ TEST_F(BitboardFixture, King_Move_d4)
     expected |= INT64_C(1) << e4.index();
     expected |= INT64_C(1) << e3.index();
 
-    u64 result = board.calcAvailableMoves(d4, K);
+    u64 result = board.calcAvailableMoves(d4, K, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -141,7 +141,7 @@ TEST_F(BitboardFixture, Black_King_Move_e8)
     expected |= INT64_C(1) << f8.index();
     expected |= INT64_C(1) << f7.index();
 
-    u64 result = board.calcAvailableMoves(e8, k);
+    u64 result = board.calcAvailableMoves(e8, k, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -174,7 +174,7 @@ TEST_F(BitboardFixture, Black_King_Attack_d5)
     expected |= INT64_C(1) << e5.index();
     expected |= INT64_C(1) << e4.index();
 
-    u64 result = board.calcAvailableMoves(d5, K);
+    u64 result = board.calcAvailableMoves(d5, K, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -199,7 +199,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << b2.index();
     expected |= INT64_C(1) << b1.index();
 
-    u64 result = board.calcAvailableMoves(a1, k);
+    u64 result = board.calcAvailableMoves(a1, k, 0, {});
     EXPECT_EQ(expected, result);
 
     // setup a8 corner
@@ -208,7 +208,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << b7.index();
     expected |= INT64_C(1) << a7.index();
 
-    result = board.calcAvailableMoves(a8, k);
+    result = board.calcAvailableMoves(a8, k, 0, {});
     EXPECT_EQ(expected, result);
 
     // setup h8 corner
@@ -217,7 +217,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << g8.index();
     expected |= INT64_C(1) << g7.index();
 
-    result = board.calcAvailableMoves(h8, k);
+    result = board.calcAvailableMoves(h8, k, 0, {});
     EXPECT_EQ(expected, result);
 
     // setup h1 corner
@@ -226,7 +226,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << g1.index();
     expected |= INT64_C(1) << g2.index();
 
-    result = board.calcAvailableMoves(h1, k);
+    result = board.calcAvailableMoves(h1, k, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -258,7 +258,7 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks)
     expected |= INT64_C(1) << g8.index();
 
     byte castling = 0xc; // black has not moved king nor rooks and should have all castling available.
-    u64 result = board.calcAvailableMoves(e8, k, castling);
+    u64 result = board.calcAvailableMoves(e8, k, castling, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -287,7 +287,7 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks_NoCastling)
     expected |= INT64_C(1) << f8.index();
     expected |= INT64_C(1) << f7.index();
 
-    u64 result = board.calcAvailableMoves(e8, k, 0x3);
+    u64 result = board.calcAvailableMoves(e8, k, 0x3, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -318,7 +318,7 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks)
     expected |= INT64_C(1) << f1.index();
     expected |= INT64_C(1) << g1.index();
 
-    u64 result = board.calcAvailableMoves(e1, K, 0x3);
+    u64 result = board.calcAvailableMoves(e1, K, 0x3, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -349,7 +349,7 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks_Blocked)
     expected |= INT64_C(1) << f1.index();
     expected |= INT64_C(1) << g1.index();
 
-    u64 result = board.calcAvailableMoves(e1, K, 0x3);
+    u64 result = board.calcAvailableMoves(e1, K, 0x3, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -385,7 +385,7 @@ TEST_F(BitboardFixture, White_Rook_Move)
     expected |= INT64_C(1) << d7.index();
     expected |= INT64_C(1) << d8.index();
 
-    u64 result = board.calcAvailableMoves(d4, R);
+    u64 result = board.calcAvailableMoves(d4, R, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -420,7 +420,7 @@ TEST_F(BitboardFixture, Black_Rook_Move)
     expected |= INT64_C(1) << b6.index();
     expected |= INT64_C(1) << b8.index();
 
-    u64 result = board.calcAvailableMoves(b7, r);
+    u64 result = board.calcAvailableMoves(b7, r, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -455,7 +455,7 @@ TEST_F(BitboardFixture, Black_Rook_Move_c1)
     expected |= INT64_C(1) << c7.index();
     expected |= INT64_C(1) << c8.index();
 
-    u64 result = board.calcAvailableMoves(c1, r);
+    u64 result = board.calcAvailableMoves(c1, r, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -490,7 +490,7 @@ TEST_F(BitboardFixture, Black_Rook_Move_a8)
     expected |= INT64_C(1) << a6.index();
     expected |= INT64_C(1) << a7.index();
 
-    u64 result = board.calcAvailableMoves(a8, r);
+    u64 result = board.calcAvailableMoves(a8, r, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -520,7 +520,7 @@ TEST_F(BitboardFixture, Black_Bishop_Move_b7)
     expected |= INT64_C(1) << g2.index();
     expected |= INT64_C(1) << h1.index();
 
-    u64 result = board.calcAvailableMoves(b7, b);
+    u64 result = board.calcAvailableMoves(b7, b, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -552,7 +552,7 @@ TEST_F(BitboardFixture, Black_Bishop_Move_f6)
     expected |= INT64_C(1) << h8.index();
     expected |= INT64_C(1) << h4.index();
 
-    u64 result = board.calcAvailableMoves(f6, b);
+    u64 result = board.calcAvailableMoves(f6, b, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -586,7 +586,7 @@ TEST_F(BitboardFixture, White_Bishop_Move_c5_blocked)
     expected |= INT64_C(1) << e3.index();
     expected |= INT64_C(1) << f8.index();
 
-    u64 result = board.calcAvailableMoves(c5, B);
+    u64 result = board.calcAvailableMoves(c5, B, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -636,7 +636,7 @@ TEST_F(BitboardFixture, Black_Queen_Moves_Capture_Available)
     expected |= INT64_C(1) << c2.index();
     expected |= INT64_C(1) << c1.index();
 
-    u64 result = board.calcAvailableMoves(c5, q);
+    u64 result = board.calcAvailableMoves(c5, q, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -662,7 +662,7 @@ TEST_F(BitboardFixture, White_Knight_Move_b2)
     expected |= INT64_C(1) << d3.index();
     expected |= INT64_C(1) << d1.index();
 
-    u64 result = board.calcAvailableMoves(b2, N);
+    u64 result = board.calcAvailableMoves(b2, N, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -684,7 +684,7 @@ TEST_F(BitboardFixture, White_Pawn_Move_b3)
     u64 expected = ~universe;
     expected |= INT64_C(1) << b4.index();
 
-    u64 result = board.calcAvailableMoves(b3, P);
+    u64 result = board.calcAvailableMoves(b3, P, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -706,7 +706,7 @@ TEST_F(BitboardFixture, Black_Pawn_Move_b3)
     u64 expected = ~universe;
     expected |= INT64_C(1) << b2.index();
 
-    u64 result = board.calcAvailableMoves(b3, p);
+    u64 result = board.calcAvailableMoves(b3, p, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -730,7 +730,7 @@ TEST_F(BitboardFixture, White_Pawn_Move_b2)
     expected |= INT64_C(1) << b3.index();
 
 
-    u64 result = board.calcAvailableMoves(b2, P);
+    u64 result = board.calcAvailableMoves(b2, P, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -753,7 +753,7 @@ TEST_F(BitboardFixture, White_Pawn_Move_b2_blocked)
     // setup
     u64 expected = ~universe;
 
-    u64 result = board.calcAvailableMoves(c2, P);
+    u64 result = board.calcAvailableMoves(c2, P, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -776,7 +776,7 @@ TEST_F(BitboardFixture, Black_Pawn_Move_e7)
     expected |= INT64_C(1) << e6.index();
     expected |= INT64_C(1) << e5.index();
 
-    u64 result = board.calcAvailableMoves(e7, p);
+    u64 result = board.calcAvailableMoves(e7, p, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -803,7 +803,7 @@ TEST_F(BitboardFixture, White_Knight_Move_b5)
     expected |= INT64_C(1) << d6.index();
     expected |= INT64_C(1) << d4.index();
 
-    u64 result = board.calcAvailableMoves(b5, N);
+    u64 result = board.calcAvailableMoves(b5, N, 0, {});
     EXPECT_EQ(expected, result);
 }
 
@@ -946,7 +946,7 @@ TEST_F(BitboardFixture, Black_Pawn_Avaliable_Move_EnPassant)
 
     auto enPassantSqr = g3;
     // do
-    u64 result = board.calcAvailableMoves(f4, p, 0, enPassantSqr.index());
+    u64 result = board.calcAvailableMoves(f4, p, 0, enPassantSqr);
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -977,7 +977,7 @@ TEST_F(BitboardFixture, White_Pawn_Avaliable_Move_EnPassant)
 
     auto enPassantSqr = f6;
     // do
-    u64 result = board.calcAvailableMoves(g5, P, 0, enPassantSqr.index());
+    u64 result = board.calcAvailableMoves(g5, P, 0, enPassantSqr);
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1053,7 +1053,7 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToBlockCheck)
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }
 
-    u64 result = board.calcAvailableMoves(c3, r, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(c3, r, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1091,7 +1091,7 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToCaptureThreat
     {
         checkedMask.threats[i] = threatWithmat & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(c2, r, 0, 0, threatWithmat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(c2, r, 0, {}, threatWithmat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1135,7 +1135,7 @@ TEST_F(BitboardFixture, PinnedPiece_Black_AbleToMoveAlongThreatenedSquares)
     //     // we are not in check
     //     checkedMask.threats[i] = 0;//threatWithmat & kingMask.threats[i];
     // }
-    u64 result = board.calcAvailableMoves(e4, r, 0, 0, threatWithmat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(e4, r, 0, {}, threatWithmat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1172,7 +1172,7 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_RookHasNoAvailableMoves)
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(c1, r, 0, 0, threat, kingMask, kingMask);
+    u64 result = board.calcAvailableMoves(c1, r, 0, {}, threat, kingMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1209,7 +1209,7 @@ TEST_F(BitboardFixture, PinnedPiece_Black_PawnHasNoAvailableMovesSinceItsPinned)
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }    
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1246,7 +1246,7 @@ TEST_F(BitboardFixture, PinnedPiece_White_PawnHasNoAvailableMovesSinceItsPinned)
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }   
-    u64 result = board.calcAvailableMoves(f5, p, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f5, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1284,7 +1284,7 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanMoveIntoBlockingCheckButNoFurth
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }   
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1323,7 +1323,7 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanCaptureCheckingPiece)
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }  
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1361,7 +1361,7 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanOnlyDoubleMoveToBlockCheck)
     {
         checkedMask.threats[i] = threat & kingMask.threats[i];
     }      
-    u64 result = board.calcAvailableMoves(f7, p, 0, 0, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1479,7 +1479,7 @@ TEST_F(BitboardFixture, White_Knight_Move)
     expected |= INT64_C(1) << d5.index();
 
     // do
-     u64 result = board.calcAvailableMoves(c3, N, 0, 0, 0, KingMask(), KingMask());
+    u64 result = board.calcAvailableMoves(c3, N, 0, {}, 0, KingMask(), KingMask());
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1517,7 +1517,7 @@ TEST_F(BitboardFixture, CheckedMask_Black_BishopCanOnlyBlockOrCaptureToCancelChe
     }    
 
 	// do
-	u64 result = board.calcAvailableMoves(b7, BLACKBISHOP, 0, 0, threatMask, checkedMask, kingMask);
+	u64 result = board.calcAvailableMoves(b7, BLACKBISHOP, 0, {}, threatMask, checkedMask, kingMask);
 
 	// validate
 	EXPECT_EQ(expected, result);       
@@ -1552,7 +1552,7 @@ TEST_F(BitboardFixture, Castling_BlockedByOpponentPieceInBetween)
 	expected |= INT64_C(1) << f7.index();
 
 	// do
-	u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, KingMask(), KingMask());
+    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, {}, 0, KingMask(), KingMask());
 
 	// validate
 	EXPECT_EQ(expected, result);
@@ -1588,7 +1588,7 @@ TEST_F(BitboardFixture, Castling_BlockedByOwnPieceInBetween)
     expected |= INT64_C(1) << f7.index();
 
     // do
-    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, 0, 0, KingMask(), KingMask());
+    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, {}, 0, KingMask(), KingMask());
 
     // validate
     EXPECT_EQ(expected, result);

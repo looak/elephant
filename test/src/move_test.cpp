@@ -863,7 +863,7 @@ TEST_F(MoveFixture, WhitePawnPromotion)
 
     bool result = context.editChessboard().MakeMove(move);
 	EXPECT_TRUE(result);
-    EXPECT_EQ(WHITEQUEEN, context.readChessboard().readTile(h8.index()).readPiece());
+    EXPECT_EQ(WHITEQUEEN, context.readChessboard().readTile(h8).readPiece());
 }
 
 // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]

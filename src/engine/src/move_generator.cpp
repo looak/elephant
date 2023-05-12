@@ -226,8 +226,8 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, SearchContext& searchContex
 
     for (auto&& mv : moves)
     {
-        //context.MakeLegalMove(mv);
-        FATAL_ASSERT(context.MakeMove(mv));
+        context.MakeLegalMove(mv);
+        //FATAL_ASSERT(context.MakeMove(mv));
         SearchResult result;
         result = AlphaBetaNegmax(context, searchContext, depth -1, ply+1, -beta, -alpha, -perspective, localPv, doNullMove);
         i32 score = -result.score;

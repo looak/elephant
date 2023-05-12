@@ -2,18 +2,15 @@
 #include <locale>
 
 Notation Notation::BuildPosition(byte file, byte rank)
-{
-	Notation result(0xF, 0xF);
+{	
 	byte corrFile = (byte)(tolower(file) - 'a');
 	byte corrRank = rank - 1;
 
 	// validate placement is inside the board.
 	if (corrFile > 7 || corrRank > 7)
-		return result;
+		return Invalid();
 
-	result.file = corrFile;	
-	result.rank = corrRank;
-	return result;
+	return Notation(corrFile, corrRank);
 }
 
 Notation Notation::Invalid()

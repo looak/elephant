@@ -169,7 +169,7 @@ public:
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
-    bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, byte enPassant, u64 threatenedMask) const;
+    bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, Notation enPassant, u64 threatenedMask) const;
 
     /**
      * @brief Calculate the available moves for a given chess piece on the bitboard.
@@ -183,7 +183,7 @@ public:
      * @param checked Boolean flag indicating if the piece is checked.
      * @param kingMask A bitmask representing the king's potential threats and pins.
      * @return A bitmask representing the available moves for the given chess piece.  */
-    u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling = 0x0, byte enPassant = 0xff, u64 threatenedMask = 0, KingMask checkedMask = KingMask(), KingMask kingMask = KingMask()) const;
+    u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling, Notation enPassant, u64 threatenedMask = 0, KingMask checkedMask = KingMask(), KingMask kingMask = KingMask()) const;
     u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
     u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
@@ -208,7 +208,7 @@ private:
     u64 MaterialCombined() const;
     u64 SlidingMaterialCombined(byte set) const;
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-    u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, byte enPassant, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
+    u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, Notation enPassant, u64 threatenedMask, KingMask checkedMask, KingMask kingMask) const;
     u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
     MaterialMask m_material[2];
 };
