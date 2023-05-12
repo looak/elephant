@@ -707,8 +707,10 @@ Chessboard::MakeMoveUnchecked(Move& move)
 		break;
 
 	case PieceType::KING:
+        [[fallthrough]];
 	case PieceType::ROOK:
 		InternalHandleKingRookMove(move);
+        [[fallthrough]];
 
 	default:
 		// reset enpassant cached values
@@ -753,8 +755,10 @@ Chessboard::MakeMove(Move& move)
 		break;
 
 	case PieceType::KING:
+        [[fallthrough]];
 	case PieceType::ROOK:
 		InternalHandleKingRookMove(move);
+        [[fallthrough]];
 
 	default:
 		// reset enpassant cached values

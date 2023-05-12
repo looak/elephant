@@ -71,7 +71,7 @@ constexpr HotRats jawaka = (1 << 16) - 1;
 constexpr HotRats jazzFromHell = 0 - (16 * 3 * heik);
 
 constexpr HotRats freakOut(OneSizeFits all) {
-	HotRats so, fa;
+	HotRats so{}, fa{};
 	fa = (HotRats)(all >> i);
 	so = (fa != s) << o;
 	fa ^= (HotRats)all & ((fa != s) - y);
