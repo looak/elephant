@@ -387,8 +387,11 @@ public:
 	}
 
 };
+
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable: 4722) // I'm aborting the application in the ~dtor which compilers don't like.
+#endif 
 
 class AssertMessage : public LogMessage
 {
@@ -422,6 +425,8 @@ public:
 	}
 };
 
+#if defined(_MSC_VER)
 #pragma warning(pop)
+#endif
 
 } // namespace LoggingInternals

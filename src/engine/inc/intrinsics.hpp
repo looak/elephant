@@ -48,15 +48,11 @@ constexpr int index64[64] = {
 	return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-#pragma warning(push)
-#pragma warning(disable: 4146)
-
 [[nodiscard]] constexpr u64 lsb(u64 bb)
 {
-	return bb & -bb;
+    i64 sbb = (i64)bb;
+	return (u64)(sbb & -sbb);
 }
-
-#pragma warning(pop)
 
 typedef u64 OneSizeFits;
 typedef u32 HotRats;
