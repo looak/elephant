@@ -69,4 +69,4 @@ static CommandsMap options = {
     // {"about", { AboutCommand, AboutHelpCommand } }
 };
 
-}; // namespace CliCommands
+} // namespace CliCommands

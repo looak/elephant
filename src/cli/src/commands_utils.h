@@ -10,7 +10,7 @@ static const size_t lineLength = 28;
 [[maybe_unused]] static std::string AddLineDivider(std::string command, std::string helpText)
 {
     size_t lengthLeft = lineLength - command.length();
-    if (lengthLeft < 0)
+    if (lengthLeft == 0 || lengthLeft > 128) // might wrap
         throw new std::range_error("AddLineDevider is too short!");
 
     std::stringstream output;
