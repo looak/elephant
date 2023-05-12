@@ -523,12 +523,12 @@ Chessboard::InternalHandleKingRookMove(Move& move)
 		if (InternalHandleKingMove(move, targetRook, rookMove) == false)
 			break;
 
-	case PieceType::ROOK:
+	case PieceType::ROOK:    
 		InternalHandleRookMove(move, targetRook, rookMove);        
-        break;
+        return;    
         
 	default:
-		break;
+		return;
 	}
 }
 

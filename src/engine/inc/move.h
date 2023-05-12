@@ -217,20 +217,3 @@ struct MoveResult
     Move* NextMove;
 };
 
-struct
-{
-    bool operator()(const Move& lhs, const Move& rhs) const
-    {   
-        if (lhs.isCapture() == true && rhs.isCapture() == true)
-        {
-            return lhs.Score > rhs.Score;
-        }
-        else
-        if (lhs.isCapture() == true)
-        {
-            return true;
-        }        
-
-        return false;
-    }
-} s_moveComparer;

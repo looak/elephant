@@ -420,4 +420,4 @@ public:
 	}
 };
 
-}; // namespace LoggingInternals
+} // namespace LoggingInternals
