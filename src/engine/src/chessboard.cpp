@@ -522,10 +522,12 @@ Chessboard::InternalHandleKingRookMove(Move& move)
 	case PieceType::KING:
 		if (InternalHandleKingMove(move, targetRook, rookMove) == false)
 			break;
+        
+        [[fallthrough]];
 
 	case PieceType::ROOK:    
-		InternalHandleRookMove(move, targetRook, rookMove);        
-        return;    
+		InternalHandleRookMove(move, targetRook, rookMove);
+        [[fallthrough]];
         
 	default:
 		return;
