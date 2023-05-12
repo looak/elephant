@@ -189,4 +189,4 @@ TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
     EXPECT_TRUE(result);
 }
 
-}; // namespace ElephantTest
+} // namespace ElephantTest

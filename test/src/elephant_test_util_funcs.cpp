@@ -170,4 +170,4 @@ bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<
     return true;
 }
 
-}; // namespace ElephantTest
+} // namespace ElephantTest
