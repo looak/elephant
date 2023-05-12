@@ -37,7 +37,7 @@ switch(0) case 0: default: LoggingInternals::LogMessage("[    ERROR ] ", __FILEN
 
 // @brief Logs an error message with the file name, function name and line number if the expression evaluates to false.
 #define LOG_ERROR_EXPR(expr) \
-if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
+if((expr) != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
 
 // @brief Logs an info message with the file name and line number.
 #define LOG_INFO() \
@@ -57,7 +57,7 @@ switch(0) case 0: default: LoggingInternals::LogMessage("[  WARNING ] ", __FILEN
 
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line number if it fails.
 #define FATAL_ASSERT(expr) \
-if(expr != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::AssertMessage(#expr, "[FATAL ASRT] ", __FILENAME__, __LINE__)
+if((expr) != 0){ int ___noop = 5; (void)___noop;} else LoggingInternals::AssertMessage(#expr, "[FATAL ASRT] ", __FILENAME__, __LINE__)
 
 // @brief Logs a basic message without any prefix or suffix.
 #define MESSAGE() \
