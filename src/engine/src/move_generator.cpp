@@ -411,7 +411,7 @@ MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
     return bestResult;
 }
 
-bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score)
+bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32, u32, u32 depth, i32)
 {
     // should return false if we want to abort our search.
     // how do we manage time?
@@ -439,9 +439,9 @@ bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u
     return false;
 }
 
-void MoveGenerator::OrderMoves(SearchContext& searchContext, std::vector<Move>& moves, u32 depth, u32 ply) const
+void MoveGenerator::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
 {
-    ply = ply - 1; // 0-indexed
+    //ply = ply - 1; // 0-indexed
 //    const Move& pvMv = searchContext.pv[ply];
     for (auto& mv : moves)
     {

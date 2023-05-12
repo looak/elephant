@@ -31,7 +31,7 @@ if(MSVC)
 else()
     # For GCC and Clang
     #set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic'")    
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Werror")
 endif()
 
 #add_compile_options(${WARNING_LEVEL})

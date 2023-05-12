@@ -7,7 +7,7 @@
 
 static const std::string whitespace = " ............................... ";
 static const size_t lineLength = 28;
-static std::string AddLineDivider(std::string command, std::string helpText)
+[[maybe_unused]] static std::string AddLineDivider(std::string command, std::string helpText)
 {
     size_t lengthLeft = lineLength - command.length();
     if (lengthLeft < 0)
@@ -24,7 +24,7 @@ static std::string AddLineDivider(std::string command, std::string helpText)
     return output.str();
 }
 
-static void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
+[[maybe_unused]] static void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
 {
 	std::istringstream ssargs(buffer);
 	std::string token;
