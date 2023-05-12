@@ -180,8 +180,10 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-bool GameContext::MakeNullMove()
+bool GameContext::MakeNullMove(Move& move)
 {
+    m_board.MakeNullMove(move);
+
     if (m_toPlay == Set::BLACK)
         m_moveCount++;
 
@@ -191,8 +193,9 @@ bool GameContext::MakeNullMove()
     return true;
 }
 
-bool GameContext::UnmakeNullMove()
+bool GameContext::UnmakeNullMove(const Move& move)
 {
+    m_board.UnmakeNullMove(move);
     if (m_toPlay == Set::WHITE)
         m_moveCount--;
 

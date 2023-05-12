@@ -191,20 +191,21 @@ MoveGenerator::AlphaBetaNegmax(GameContext& context, SearchContext& searchContex
     //i32 oldAlpha = alpha;
     Move bestMove;
 
-    // avoid null moves in endgame positions
-    // float egCoefficient = context.readChessboard().calculateEndGameCoeficient();
-    // if (doNullMove > 0 && !context.readChessboard().isChecked(context.readToPlay()) && egCoefficient < .75f && depth > 2)
-    // {        
-    //     std::vector<Move> localPv(depth+1);
-    //     auto cpy = context;
-    //     cpy.MakeNullMove();
-    //     auto nullResult = AlphaBetaNegmax(cpy, searchContext, depth -2, ply +1, -beta, -beta +1, -perspective, localPv, doNullMove -1);
-    //     i32 score = -nullResult.score;
-    //     cpy.UnmakeNullMove();
+    //// avoid null moves in endgame positions
+     float egCoefficient = context.readChessboard().calculateEndGameCoeficient();
+     if (doNullMove > 0 && !context.readChessboard().isChecked(context.readToPlay()) && egCoefficient < .75f && depth > 2)
+     {        
+         std::vector<Move> localPv(depth+1);
+         auto cpy = context;
+         Move nullMove{};
+         cpy.MakeNullMove(nullMove);
+         auto nullResult = AlphaBetaNegmax(cpy, searchContext, depth -2, ply +1, -beta, -beta +1, -perspective, localPv, doNullMove -1);
+         i32 score = -nullResult.score;
+         cpy.UnmakeNullMove(nullMove);
 
-    //     if (score >= beta)
-    //         return { beta, bestMove };
-    // }
+         if (score >= beta)
+             return { beta, bestMove };
+     }
 
     // if (m_transpositionTable.probe(context.readChessboard().readHash(), depth, alpha, beta, bestScore))
     //     return { bestScore, bestMove };

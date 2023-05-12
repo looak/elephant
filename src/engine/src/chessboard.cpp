@@ -583,6 +583,40 @@ ChessPiece Chessboard::readPieceAt(Notation notation) const
 	return m_tiles[notation.index()].readPiece();
 }
 
+bool Chessboard::MakeNullMove(Move& move)
+{
+	// storing enpassant target square so we can unmake this.	
+	if (Notation::Validate(m_enPassant))
+	{
+		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
+		move.EnPassantTargetSquare = m_enPassantTarget;
+	}
+
+	m_enPassant = Notation();
+	m_enPassantTarget = Notation();
+
+	return true;
+}
+bool Chessboard::UnmakeNullMove(const Move& move)
+{
+	if (Notation::Validate(m_enPassant))
+		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
+
+	m_enPassant = Notation();
+	m_enPassantTarget = Notation();
+	
+	if (move.EnPassantTargetSquare.isValid())
+	{
+		byte offset = move.Piece.getSet() == Set::WHITE ? 1 : -1;
+		m_enPassant = Notation(move.EnPassantTargetSquare.file, move.EnPassantTargetSquare.rank + offset);
+		m_enPassantTarget = move.EnPassantTargetSquare;
+		m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
+
+	}
+
+	return true;
+}
+
 bool
 Chessboard::UnmakeMove(const Move& move)
 {

@@ -128,6 +128,9 @@ public:
 	bool MakeMoveUnchecked(Move& move);
 	bool UnmakeMove(const Move& move);
 
+	bool MakeNullMove(Move& move);
+	bool UnmakeNullMove(const Move& move);
+
 	/**
 	 * @brief Takes a move and serializes it to a unambigous Portable Game Notation (PGN) string for this board position.
 	 * @param move The move to serialize.
