@@ -115,7 +115,7 @@ namespace intrinsics {
         return fallback::popcount(bitboard);
 
 #ifdef __GNUC__
-    return __builtin_popcount(bitboard);
+    return __builtin_popcountll(bitboard);
 #elif defined(_WIN64)
     return (i32)__popcnt64(bitboard);
 #elif defined(__x86_64__)
