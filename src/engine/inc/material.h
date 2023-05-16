@@ -15,48 +15,59 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
+#include <array>
+#include <vector>
 #include "chess_piece.h"
 #include "notation.h"
-#include <vector>
-#include <array>
 
-class Material
-{
+class Material {
 public:
-	Material();
-	Material(const Material& other);
+    Material();
+    Material(const Material& other);
 
-	void Clear();
+    void Clear();
 
-	Material& operator=(const Material& other);
+    Material& operator=(const Material& other);
 
-	void AddPiece(ChessPiece piece, Notation position);
-	void RemovePiece(ChessPiece piece, Notation position);
-	void MovePiece(ChessPiece piece, Notation source, Notation target);
-	void PromotePiece(ChessPiece piece, Notation position);
-	
-	/**
-	* @brief
-	* Unmakes a chess piece move by removing the piece from the target location and adding it back to the source location.
-	* Note: In this function, the "source" and "target" arguments are backwards compared to other methods, since this function is used to undo a previous move.
-	* Note: pieceToAdd and pieceToRemove can be different in the case where we are unmaking a promotion
-	*
-	* @param pieceToAdd		The chess piece to add to the source location.
-	* @param pieceToRemove	The chess piece to remove from the target location.
-	* @param source			The source location on the chess board where the pieceToAdd should be placed.
-	* @param target			The target location on the chess board where the pieceToRemove should be removed from.
-	*/
-	void UnmakePieceMove(ChessPiece pieceToAdd, ChessPiece pieceToRemove, Notation source, Notation target);
-		
-	const std::vector<Notation>& getPlacementsOfPiece(ChessPiece piece) const;
+    void AddPiece(ChessPiece piece, Notation position);
+    void RemovePiece(ChessPiece piece, Notation position);
+    void MovePiece(ChessPiece piece, Notation source, Notation target);
+    void PromotePiece(ChessPiece piece, Notation position);
 
-	u32 getValue() const;
-	size_t getCount() const;
-	size_t getPieceCount(ChessPiece piece) const;
-	size_t getPieceCount(PieceType pieceType) const;
-	
+    u32 readNextPiece(u64& pieceBitboard) const;
+    u64 readPieceBitboard(PieceType piece) const;
+    u64 readPieceBitboard(u32 pieceIndex) const;
+
+    /**
+     * @brief
+     * Unmakes a chess piece move by removing the piece from the target location and adding it back
+     * to the source location. Note: In this function, the "source" and "target" arguments are
+     * backwards compared to other methods, since this function is used to undo a previous move.
+     * Note: pieceToAdd and pieceToRemove can be different in the case where we are unmaking a
+     * promotion
+     *
+     * @param pieceToAdd		The chess piece to add to the source location.
+     * @param pieceToRemove	The chess piece to remove from the target location.
+     * @param source			The source location on the chess board where the pieceToAdd
+     * should be placed.
+     * @param target			The target location on the chess board where the
+     * pieceToRemove should be removed from.
+     */
+    void UnmakePieceMove(ChessPiece pieceToAdd,
+                         ChessPiece pieceToRemove,
+                         Notation source,
+                         Notation target);
+
+    // const std::vector<Notation>& getPlacementsOfPiece(ChessPiece piece) const;
+
+    // todo: remove this function
+    std::vector<Notation> buildPlacementsOfPiece(ChessPiece piece) const;
+
+    u32 getValue() const;
+    u32 getCount() const;
+    u32 getPieceCount(ChessPiece piece) const;
+    u32 getPieceCount(PieceType pieceType) const;
+
 private:
-	typedef std::array<std::vector<Notation>, (size_t)PieceType::KING> MaterialGrid;
-
-	MaterialGrid m_material;
+    std::array<u64, 6> m_materialBitboards;
 };

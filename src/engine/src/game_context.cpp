@@ -2,8 +2,9 @@
 #include "evaluator.h"
 #include "fen_parser.h"
 #include "hash_zorbist.h"
-#include "move_generator.h"
 #include "move.h"
+#include "move_generator.h"
+
 
 #include <algorithm>
 #include <array>
@@ -28,15 +29,13 @@ std::string PrintCastlingState(const Chessboard& board)
 
 bool PrintBoard(const GameContext& context, const Move& move)
 {
-    const Chessboard& board = context.readChessboard();
-    auto boardItr = board.begin();
+    const Chessboard&                board = context.readChessboard();
+    auto                             boardItr = board.begin();
     std::array<std::stringstream, 8> ranks;
 
     byte prevRank = -1;
-    do
-    {
-        if (prevRank != boardItr.rank())
-        {
+    do {
+        if (prevRank != boardItr.rank()) {
             ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
         }
 
@@ -47,18 +46,19 @@ bool PrintBoard(const GameContext& context, const Move& move)
     } while (boardItr != board.end());
 
     auto rankItr = ranks.rbegin();
-    while (rankItr != ranks.rend())
-    {
+    while (rankItr != ranks.rend()) {
         std::cout << (*rankItr).str();
         rankItr++;
     }
 
     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
-    std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
+    std::cout << " > move: " << std::dec << (int)context.readMoveCount()
+              << "\tply: " << (int)context.readPly() << "\n";
     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
     std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
-    std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
+    std::cout << " > prev move: " << Notation::toString(move.SourceSquare)
+              << Notation::toString(move.TargetSquare) << "\n";
     std::string output;
     FENParser::serialize(context, output);
     std::cout << " > fen: " << output << "\n";
@@ -96,18 +96,18 @@ bool GameContext::GameOver() const
     //     return true;
     // if (readChessboard().isStalemated(opSet))
     //     return true;
-    
-    return false;    
+
+    return false;
 }
 
 bool GameContext::PlayMove(Move& move)
 {
     std::string pgn = m_board.SerializeMoveToPGN(move);
 
-    if(!MakeMove(move))
+    if (!MakeMove(move))
         return false;
-        
-    MoveHistory entry = { m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn };
+
+    MoveHistory entry = {m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn};
     m_moveHistory.emplace_back(entry);
 
     return true;
@@ -135,7 +135,7 @@ bool GameContext::MakeLegalMove(Move& move)
 bool GameContext::MakeMove(Move& move)
 {
     Move actualMove = move;
-    
+
     if (!m_board.MakeMove(actualMove))
         return false;
 
@@ -153,15 +153,14 @@ bool GameContext::MakeMove(Move& move)
     m_plyCount++;
 
     m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-    
+
     move = actualMove;
     return true;
 }
 
 bool GameContext::UnmakeMove(const Move& move)
 {
-    if (m_board.UnmakeMove(move))
-    {
+    if (m_board.UnmakeMove(move)) {
         if (move.Piece.getSet() == Set::BLACK)
             m_moveCount--;
 
@@ -213,5 +212,6 @@ SearchResult GameContext::CalculateBestMove(SearchParameters params)
 
 bool GameContext::isGameOver() const
 {
-    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) || m_board.isStalemated(Set::WHITE) || m_board.isStalemated(Set::BLACK);
+    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) ||
+           m_board.isStalemated(Set::WHITE) || m_board.isStalemated(Set::BLACK);
 }

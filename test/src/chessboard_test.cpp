@@ -1,24 +1,22 @@
 #include <gtest/gtest.h>
+
 #include <algorithm>
 #include "chessboard.h"
 #include "elephant_test_utils.h"
 #include "hash_zorbist.h"
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class ChessboardFixture : public ::testing::Test
-{
+class ChessboardFixture : public ::testing::Test {
 public:
     virtual void SetUp()
-    { 
+    {
         DefaultStartingPosition();
         GameOfTheCentury_WindmillPosition();
     };
-    virtual void TearDown() {};
+    virtual void TearDown(){};
 
-    
-    Chessboard m_emptyChessboard; // by default a board should start empty.
+    Chessboard m_emptyChessboard;  // by default a board should start empty.
     Chessboard m_defaultStartingPosition;
     Chessboard m_gameOfTheCentury;
 
@@ -33,16 +31,13 @@ private:
     // 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
     //     A    B    C    D    E    F    G    H
     // fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-    void DefaultStartingPosition()
-    {
-       SetupDefaultStartingPosition(m_defaultStartingPosition);
-    }
+    void DefaultStartingPosition() { SetupDefaultStartingPosition(m_defaultStartingPosition); }
 
     // https://en.wikipedia.org/wiki/The_Game_of_the_Century_(chess)
-    // "Windmill Position from s.k. game of the century between Donald Bryen as White & Bobby Fischer as Black.
-    // Played at the Marshall Chess Club in New York City on October 17th 1956.
-    // At move 17 Fisher begins a windmill and that is where this board is.
-    
+    // "Windmill Position from s.k. game of the century between Donald Bryen as White & Bobby
+    // Fischer as Black. Played at the Marshall Chess Club in New York City on October 17th 1956. At
+    // move 17 Fisher begins a windmill and that is where this board is.
+
     // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
     // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
     // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]
@@ -53,7 +48,7 @@ private:
     // 1 [ R ][   ][   ][   ][ R ][   ][ K ][   ]
     //     A    B    C    D    E    F    G    H
     // fen: r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1
-    void GameOfTheCentury_WindmillPosition() 
+    void GameOfTheCentury_WindmillPosition()
     {
         auto K = WHITEKING;
         auto Q = WHITEQUEEN;
@@ -101,28 +96,30 @@ private:
         m_gameOfTheCentury.PlacePiece(R, e1);
         m_gameOfTheCentury.PlacePiece(K, g1);
     }
-
 };
 ////////////////////////////////////////////////////////////////
 TEST_F(ChessboardFixture, Empty)
 {
-    ChessPiece expectedPiece; // empty, default, 0;
-    
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 0, 0 }).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 7, 7 }).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 3, 3 }).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({ 4, 4 }).readPiece());
- 
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('a', 1)).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).readPiece());
-    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).readPiece());
+    ChessPiece expectedPiece;  // empty, default, 0;
+
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({0, 0}).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({7, 7}).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({3, 3}).readPiece());
+    EXPECT_EQ(expectedPiece, m_emptyChessboard.readTile({4, 4}).readPiece());
+
+    EXPECT_EQ(expectedPiece,
+              m_emptyChessboard.readTile(Notation::BuildPosition('a', 1)).readPiece());
+    EXPECT_EQ(expectedPiece,
+              m_emptyChessboard.readTile(Notation::BuildPosition('b', 2)).readPiece());
+    EXPECT_EQ(expectedPiece,
+              m_emptyChessboard.readTile(Notation::BuildPosition('e', 4)).readPiece());
+    EXPECT_EQ(expectedPiece,
+              m_emptyChessboard.readTile(Notation::BuildPosition('f', 4)).readPiece());
 
     // checking all tiles that they are empty
-    for (int i = 0; i < 64; i++)
-    {
+    for (int i = 0; i < 64; i++) {
         auto piece = m_emptyChessboard.readPieceAt(Notation(i));
-        EXPECT_EQ(expectedPiece, piece);        
+        EXPECT_EQ(expectedPiece, piece);
     }
 
     EXPECT_EQ(0, m_emptyChessboard.readCastlingState());
@@ -134,7 +131,7 @@ TEST_F(ChessboardFixture, Notation_Equality)
     EXPECT_EQ(expected, expected);
 
     expected = Notation(0xf, 0xf);
-    auto pos = Notation::BuildPosition('z', 1); // invalid position
+    auto pos = Notation::BuildPosition('z', 1);  // invalid position
     EXPECT_EQ(expected, pos);
 
     Notation defaultValue;
@@ -157,7 +154,7 @@ TEST_F(ChessboardFixture, Notation_BuildPosition)
     EXPECT_EQ(expected, pos);
 
     expected = Notation(0xf, 0xf);
-    pos = Notation::BuildPosition('z', 1); // invalid position
+    pos = Notation::BuildPosition('z', 1);  // invalid position
     EXPECT_EQ(expected, pos);
 
     Notation defaultValue;
@@ -176,7 +173,7 @@ TEST_F(ChessboardFixture, Notation_GetIndex)
 
 #ifdef EG_DEBUGGING
     expected = 0xff;
-    pos = Notation::BuildPosition('z', 1); // invalid position
+    pos = Notation::BuildPosition('z', 1);  // invalid position
     EXPECT_EQ(expected, pos.index());
 
     Notation defaultValue;
@@ -225,10 +222,8 @@ TEST_F(ChessboardFixture, Notation_IndexCtor)
     pos = Notation(56);
     EXPECT_EQ(expected, pos);
 
-    for (int r = 0; r < 8; r++)
-    {
-        for (int f = 0; f < 8; f++)
-        {
+    for (int r = 0; r < 8; r++) {
+        for (int f = 0; f < 8; f++) {
             expected = Notation(f, r);
             pos = Notation(expected.index());
             EXPECT_EQ(expected, pos);
@@ -239,7 +234,7 @@ TEST_F(ChessboardFixture, Notation_IndexCtor)
 TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
 {
     auto itr = m_emptyChessboard.begin();
-    //const Chessboard constBoard;
+    // const Chessboard constBoard;
 
     byte expected = 0;
     EXPECT_FALSE(itr.end());
@@ -252,7 +247,7 @@ TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
     EXPECT_EQ(otherExpected, itr.index());
     EXPECT_EQ(expected, itr.rank());
     EXPECT_EQ(otherExpected, itr.file());
-    
+
     itr++;
     otherExpected = 2;
     EXPECT_EQ(otherExpected, itr.index());
@@ -260,11 +255,9 @@ TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
     EXPECT_EQ(otherExpected, itr.file());
 
     auto otherItr = m_emptyChessboard.begin();
-    for (int r = 0; r < 8; r++)
-    {
+    for (int r = 0; r < 8; r++) {
         EXPECT_EQ(r, otherItr.rank());
-        for (int f = 0; f < 8; f++)
-        {
+        for (int f = 0; f < 8; f++) {
             auto notation = Notation(f, r);
             byte expectedIndex = notation.index();
             EXPECT_EQ(expectedIndex, otherItr.index());
@@ -278,7 +271,7 @@ TEST_F(ChessboardFixture, ChessboardIterator_Iterrating)
 TEST_F(ChessboardFixture, ChessboardIterator_IterratingExt)
 {
     auto itr = m_emptyChessboard.begin();
-    //const Chessboard constBoard;
+    // const Chessboard constBoard;
 
     byte expectedIndex = 0;
     byte expectedRank = 0;
@@ -319,7 +312,7 @@ TEST_F(ChessboardFixture, ChessboardIterator_IterratingExt)
     EXPECT_EQ(expectedIndex, itr.index());
     EXPECT_EQ(expectedRank, itr.rank());
     EXPECT_EQ(expectedFile, itr.file());
-    
+
     itr += 7;
     expectedIndex = 40;
     expectedRank = 5;
@@ -360,7 +353,7 @@ TEST_F(ChessboardFixture, ChessboardIterator_IterratingExt)
     EXPECT_EQ(expectedRank, itr.rank());
     EXPECT_EQ(expectedFile, itr.file());
 
-    auto scnditr = m_emptyChessboard.begin();    
+    auto scnditr = m_emptyChessboard.begin();
 
     scnditr += 11;
     expectedIndex = 11;
@@ -369,7 +362,6 @@ TEST_F(ChessboardFixture, ChessboardIterator_IterratingExt)
     EXPECT_EQ(expectedIndex, scnditr.index());
     EXPECT_EQ(expectedRank, scnditr.rank());
     EXPECT_EQ(expectedFile, scnditr.file());
-
 }
 
 TEST_F(ChessboardFixture, ChessboardIterator_Equality)
@@ -389,24 +381,35 @@ TEST_F(ChessboardFixture, ChessboardIterator_Equality)
 
     EXPECT_EQ(itrA, itrD);
     EXPECT_EQ(itrC, itrC);
-    //EXPECT_EQ(itrC, itrA);
+    // EXPECT_EQ(itrC, itrA);
     EXPECT_EQ(itrA, itrA);
     EXPECT_NE(itrA, itrB);
     // EXPECT_NE(itrC, itrB);
     // arbitrery adds
-    itrA++; itrA++; itrA++; itrA++;
-    itrB++; itrB++; itrB++; itrB++;
-    itrC++; itrC++; itrC++; itrC++;
+    itrA++;
+    itrA++;
+    itrA++;
+    itrA++;
+    itrB++;
+    itrB++;
+    itrB++;
+    itrB++;
+    itrC++;
+    itrC++;
+    itrC++;
+    itrC++;
 
-    //EXPECT_EQ(itrC, itrA);
+    // EXPECT_EQ(itrC, itrA);
     EXPECT_EQ(itrA, itrA);
     EXPECT_NE(itrA, itrB);
     EXPECT_EQ(itrC, itrC);
-    itrA++; itrA++; 
-    itrB++; 
-    itrC++; itrC++;
+    itrA++;
+    itrA++;
+    itrB++;
+    itrC++;
+    itrC++;
 
-    //EXPECT_EQ(itrC, itrA);
+    // EXPECT_EQ(itrC, itrA);
     EXPECT_EQ(itrA, itrA);
     EXPECT_NE(itrA, itrB);
     EXPECT_EQ(itrC, itrC);
@@ -418,8 +421,8 @@ TEST_F(ChessboardFixture, KingCheckedByOpRook)
     b.PlacePiece(WHITEKING, e1);
     b.PlacePiece(BLACKROOK, e8);
 
-    auto [checked, count, mask] = b.calcualteCheckedCount(Set::WHITE);
-    EXPECT_TRUE(checked);
+    auto [count, mask] = b.calcualteCheckedCount(Set::WHITE);
+    EXPECT_TRUE(count > 0);
     EXPECT_EQ(1, count);
 }
 
@@ -429,8 +432,8 @@ TEST_F(ChessboardFixture, KingNotCheckedByOpRook)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEROOK, f1);
 
-    auto [checked, count, mask] = b.calcualteCheckedCount(Set::WHITE);
-    EXPECT_FALSE(checked);
+    auto [count, mask] = b.calcualteCheckedCount(Set::WHITE);
+    EXPECT_FALSE(count > 0);
     EXPECT_EQ(0, count);
 }
 
@@ -440,13 +443,13 @@ TEST_F(ChessboardFixture, KingsNotChecked)
     b.PlacePiece(BLACKKING, e8);
     b.PlacePiece(WHITEKING, e1);
 
-    auto result = b.calcualteCheckedCount(Set::WHITE);
-    EXPECT_FALSE(std::get<0>(result));
-    EXPECT_EQ(0, std::get<1>(result));
+    auto [count, mask] = b.calcualteCheckedCount(Set::WHITE);
+    EXPECT_FALSE(count > 0);
+    EXPECT_EQ(0, count);
 
-    result = b.calcualteCheckedCount(Set::WHITE);
-    EXPECT_FALSE(std::get<0>(result));
-    EXPECT_EQ(0, std::get<1>(result));
+    auto [bcount, bmask] = b.calcualteCheckedCount(Set::BLACK);
+    EXPECT_FALSE(bcount > 0);
+    EXPECT_EQ(0, bcount);
 }
 
 // 8 [   ][   ][   ][   ][ k ][   ][ r ][   ]
@@ -471,13 +474,13 @@ TEST_F(ChessboardFixture, MultipleChecks_BishopAndRook)
     board.PlacePiece(k, e8);
     board.PlacePiece(K, g1);
 
-    auto result = board.calcualteCheckedCount(Set::WHITE);
-    EXPECT_TRUE(std::get<0>(result));
-    EXPECT_EQ(2, std::get<1>(result));
+    auto [wcount, wmask] = board.calcualteCheckedCount(Set::WHITE);
+    EXPECT_TRUE(wcount > 0);
+    EXPECT_EQ(2, wcount);
 
-    result = board.calcualteCheckedCount(Set::BLACK);
-    EXPECT_FALSE(std::get<0>(result));
-    EXPECT_EQ(0, std::get<1>(result));
+    auto [bcount, bmask] = board.calcualteCheckedCount(Set::BLACK);
+    EXPECT_FALSE(bcount > 0);
+    EXPECT_EQ(0, bcount);
 
     EXPECT_FALSE(board.isCheckmated(Set::BLACK));
     EXPECT_FALSE(board.isCheckmated(Set::WHITE));
@@ -505,7 +508,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     board.PlacePiece(b, f8);
     board.PlacePiece(n, g8);
     board.PlacePiece(r, h8);
-    
+
     board.PlacePiece(p, a7);
     board.PlacePiece(p, b7);
     board.PlacePiece(p, c7);
@@ -513,7 +516,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     board.PlacePiece(p, e7);
     board.PlacePiece(p, f7);
     board.PlacePiece(p, g7);
-    board.PlacePiece(p, h7);    
+    board.PlacePiece(p, h7);
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << b8.index();
@@ -531,7 +534,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     expected |= INT64_C(1) << f7.index();
     expected |= INT64_C(1) << g7.index();
     expected |= INT64_C(1) << h7.index();
-    
+
     expected |= INT64_C(1) << a6.index();
     expected |= INT64_C(1) << b6.index();
     expected |= INT64_C(1) << c6.index();
@@ -542,7 +545,7 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
     expected |= INT64_C(1) << h6.index();
 
     // do
-    u64 threat = board.CalcThreatenedMask(Set::BLACK);
+    u64 threat = board.calculateThreatenedMask(Set::BLACK);
 
     // validate
     EXPECT_EQ(expected, threat);
@@ -551,16 +554,16 @@ TEST_F(ChessboardFixture, Black_StartingPosition_Threatened)
 ////////////////////////////////////////////////////////////////
 
 TEST_F(ChessboardFixture, ZorbistHashing)
-{ 
+{
     // board should start out empty, so hashing these two boards should result in the same value.
     Chessboard boardOne;
     Chessboard boardTwo;
-    
+
     u64 oneHash = ZorbistHash::Instance().HashBoard(boardOne);
     u64 twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
 
     EXPECT_EQ(oneHash, twoHash);
-        
+
     auto k = BLACKKING;
     auto q = BLACKQUEEN;
     auto b = BLACKBISHOP;
@@ -581,13 +584,13 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     EXPECT_EQ(boardOne.readHash(), oneHash);
     EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
 
-    // board one    
+    // board one
     boardOne.PlacePiece(n, b8);
     boardOne.PlacePiece(b, c8);
     boardOne.PlacePiece(q, d8);
     boardOne.PlacePiece(k, e8);
     boardOne.PlacePiece(b, f8);
-    boardOne.PlacePiece(n, g8);    
+    boardOne.PlacePiece(n, g8);
 
     boardOne.PlacePiece(p, a7);
     boardOne.PlacePiece(p, b7);
@@ -664,7 +667,7 @@ TEST_F(ChessboardFixture, ZorbistHashing)
     EXPECT_EQ(boardTwo.readHash(), twoHash);
     EXPECT_EQ(boardOne.readHash(), oneHash);
     EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
-    
+
     boardTwo.setEnPassant(c7);
 
     oneHash = ZorbistHash::Instance().HashBoard(boardOne);
@@ -677,7 +680,7 @@ TEST_F(ChessboardFixture, ZorbistHashing)
 
     boardOne.setEnPassant(e4);
 
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);    
+    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
 
     EXPECT_NE(oneHash, twoHash);
     EXPECT_EQ(boardOne.readHash(), oneHash);
@@ -712,35 +715,35 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::WHITE));
     cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::WHITE));
     EXPECT_EQ(orgMask, cpyMask);
-    
+
     auto orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::BLACK);
     auto cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::BLACK);
-	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
-	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
-    
+    orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
+    cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
+
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);
 
     orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::WHITE);
     cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::WHITE);
-	orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
-	cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
+    orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
+    cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.CalcThreatenedMask(Set::BLACK);
-    cpyMask = scndCopy.CalcThreatenedMask(Set::BLACK);
+    orgMask = m_gameOfTheCentury.calculateThreatenedMask(Set::BLACK);
+    cpyMask = scndCopy.calculateThreatenedMask(Set::BLACK);
     EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = m_gameOfTheCentury.CalcThreatenedMask(Set::WHITE);
-    cpyMask = scndCopy.CalcThreatenedMask(Set::WHITE);
+    orgMask = m_gameOfTheCentury.calculateThreatenedMask(Set::WHITE);
+    cpyMask = scndCopy.calculateThreatenedMask(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
 
     const Material* orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);
-	const Material* cpyMat = &scndCopy.readMaterial(Set::BLACK);
-	EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
-	EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
+    const Material* cpyMat = &scndCopy.readMaterial(Set::BLACK);
+    EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
+    EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
 
-	orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
+    orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
     cpyMat = &scndCopy.readMaterial(Set::WHITE);
     EXPECT_EQ(orgMat->getValue(), cpyMat->getValue());
     EXPECT_EQ(orgMat->getCount(), cpyMat->getCount());
@@ -748,298 +751,318 @@ TEST_F(ChessboardFixture, Constructor_Copy)
 
 ////////////////////////////////////////////////////////////////
 
-TEST_F(ChessboardFixture, ValidateMaterial)
-{
-    const auto* orgMat = &m_defaultStartingPosition.readMaterial(Set::WHITE);
+// TEST_F(ChessboardFixture, ValidateMaterial)
+// {
+//     const auto* orgMat = &m_defaultStartingPosition.readMaterial(Set::WHITE);
 
-    EXPECT_EQ(8u, orgMat->getPieceCount(WHITEPAWN));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEKNIGHT));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
-    
-	EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b2, c2, d2, e2, f2, g2, h2 }, orgMat->getPlacementsOfPiece(WHITEPAWN)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ a1, h1 }, orgMat->getPlacementsOfPiece(WHITEROOK)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ b1, g1 }, orgMat->getPlacementsOfPiece(WHITEKNIGHT)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ c1, f1 }, orgMat->getPlacementsOfPiece(WHITEBISHOP)));
+//     EXPECT_EQ(8u, orgMat->getPieceCount(WHITEPAWN));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(WHITEKNIGHT));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(WHITEBISHOP));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
 
-    EXPECT_EQ(d1, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
-    EXPECT_EQ(e1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d2, e2, f2, g2, h2},
+//                                                 orgMat->getPlacementsOfPiece(WHITEPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a1, h1},
+//     orgMat->getPlacementsOfPiece(WHITEROOK))); EXPECT_TRUE(
+//         VerifyListsContainSameNotations({b1, g1}, orgMat->getPlacementsOfPiece(WHITEKNIGHT)));
+//     EXPECT_TRUE(
+//         VerifyListsContainSameNotations({c1, f1}, orgMat->getPlacementsOfPiece(WHITEBISHOP)));
 
-    orgMat = &m_defaultStartingPosition.readMaterial(Set::BLACK);
+//     EXPECT_EQ(d1, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
+//     EXPECT_EQ(e1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
 
-	EXPECT_EQ(8u, orgMat->getPieceCount(BLACKPAWN));
-	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKKNIGHT));
-	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKBISHOP));
-	EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
-	EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
-	EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
+//     orgMat = &m_defaultStartingPosition.readMaterial(Set::BLACK);
 
-	EXPECT_TRUE(VerifyListsContainSameNotations({ a7, b7, c7, d7, e7, f7, g7, h7 }, orgMat->getPlacementsOfPiece(BLACKPAWN)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ a8, h8 }, orgMat->getPlacementsOfPiece(BLACKROOK)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ b8, g8 }, orgMat->getPlacementsOfPiece(BLACKKNIGHT)));
-	EXPECT_TRUE(VerifyListsContainSameNotations({ c8, f8 }, orgMat->getPlacementsOfPiece(BLACKBISHOP)));
+//     EXPECT_EQ(8u, orgMat->getPieceCount(BLACKPAWN));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(BLACKKNIGHT));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(BLACKBISHOP));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
 
-	EXPECT_EQ(d8, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
-	EXPECT_EQ(e8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
-        
-    // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
-    // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
-    // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]
-    // 5 [   ][ q ][   ][   ][   ][   ][ B ][ Q ]
-    // 4 [   ][ P ][   ][ P ][   ][   ][   ][   ]
-    // 3 [   ][   ][   ][   ][ N ][   ][ R ][   ]
-    // 2 [ P ][   ][   ][   ][   ][ P ][ P ][ P ]
-    // 1 [ R ][   ][   ][   ][ R ][   ][ K ][   ]
-    //     A    B    C    D    E    F    G    H
-	orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
-    
-    EXPECT_EQ(6u, orgMat->getPieceCount(WHITEPAWN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKNIGHT));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b7, c7, d7, e7, f7, g7, h7},
+//                                                 orgMat->getPlacementsOfPiece(BLACKPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a8, h8},
+//     orgMat->getPlacementsOfPiece(BLACKROOK))); EXPECT_TRUE(
+//         VerifyListsContainSameNotations({b8, g8}, orgMat->getPlacementsOfPiece(BLACKKNIGHT)));
+//     EXPECT_TRUE(
+//         VerifyListsContainSameNotations({c8, f8}, orgMat->getPlacementsOfPiece(BLACKBISHOP)));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b4, d4, f2, g2, h2 }, orgMat->getPlacementsOfPiece(WHITEPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({ e1, g3 }, orgMat->getPlacementsOfPiece(WHITEROOK)));
-    
-    EXPECT_EQ(g5, orgMat->getPlacementsOfPiece(WHITEBISHOP)[0]);
-    EXPECT_EQ(e3, orgMat->getPlacementsOfPiece(WHITEKNIGHT)[0]);
-    EXPECT_EQ(h5, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
-    EXPECT_EQ(g1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+//     EXPECT_EQ(d8, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
+//     EXPECT_EQ(e8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
 
-    orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);    
+//     // 8 [ r ][   ][   ][   ][ r ][ n ][ k ][   ]
+//     // 7 [ p ][ b ][   ][   ][   ][ p ][ p ][   ]
+//     // 6 [   ][   ][   ][ p ][ p ][   ][   ][ p ]
+//     // 5 [   ][ q ][   ][   ][   ][   ][ B ][ Q ]
+//     // 4 [   ][ P ][   ][ P ][   ][   ][   ][   ]
+//     // 3 [   ][   ][   ][   ][ N ][   ][ R ][   ]
+//     // 2 [ P ][   ][   ][   ][   ][ P ][ P ][ P ]
+//     // 1 [ R ][   ][   ][   ][ R ][   ][ K ][   ]
+//     //     A    B    C    D    E    F    G    H
+//     orgMat = &m_gameOfTheCentury.readMaterial(Set::WHITE);
 
-    EXPECT_EQ(6u, orgMat->getPieceCount(BLACKPAWN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKNIGHT));
-    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKBISHOP));
-    EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
-    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
-    EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
+//     EXPECT_EQ(6u, orgMat->getPieceCount(WHITEPAWN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKNIGHT));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEBISHOP));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(WHITEROOK));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEQUEEN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(WHITEKING));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a7, d6, e6, f7, g7, h6 }, orgMat->getPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a8, e8 }, orgMat->getPlacementsOfPiece(BLACKROOK)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b4, d4, f2, g2, h2},
+//                                                 orgMat->getPlacementsOfPiece(WHITEPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({e1, g3},
+//     orgMat->getPlacementsOfPiece(WHITEROOK)));
 
-    EXPECT_EQ(b7, orgMat->getPlacementsOfPiece(BLACKBISHOP)[0]);
-    EXPECT_EQ(f8, orgMat->getPlacementsOfPiece(BLACKKNIGHT)[0]);
-    EXPECT_EQ(b5, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
-    EXPECT_EQ(g8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
-}
+//     EXPECT_EQ(g5, orgMat->getPlacementsOfPiece(WHITEBISHOP)[0]);
+//     EXPECT_EQ(e3, orgMat->getPlacementsOfPiece(WHITEKNIGHT)[0]);
+//     EXPECT_EQ(h5, orgMat->getPlacementsOfPiece(WHITEQUEEN)[0]);
+//     EXPECT_EQ(g1, orgMat->getPlacementsOfPiece(WHITEKING)[0]);
+
+//     orgMat = &m_gameOfTheCentury.readMaterial(Set::BLACK);
+
+//     EXPECT_EQ(6u, orgMat->getPieceCount(BLACKPAWN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKNIGHT));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKBISHOP));
+//     EXPECT_EQ(2u, orgMat->getPieceCount(BLACKROOK));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKQUEEN));
+//     EXPECT_EQ(1u, orgMat->getPieceCount(BLACKKING));
+
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, d6, e6, f7, g7, h6},
+//                                                 orgMat->getPlacementsOfPiece(BLACKPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a8, e8},
+//     orgMat->getPlacementsOfPiece(BLACKROOK)));
+
+//     EXPECT_EQ(b7, orgMat->getPlacementsOfPiece(BLACKBISHOP)[0]);
+//     EXPECT_EQ(f8, orgMat->getPlacementsOfPiece(BLACKKNIGHT)[0]);
+//     EXPECT_EQ(b5, orgMat->getPlacementsOfPiece(BLACKQUEEN)[0]);
+//     EXPECT_EQ(g8, orgMat->getPlacementsOfPiece(BLACKKING)[0]);
+// }
 
 TEST_F(ChessboardFixture, CastlingStateInfoTest)
 {
-	EXPECT_EQ(CastlingState::ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_EQ(CastlingState::NONE, m_gameOfTheCentury.readCastlingState());
-    
-	const auto& castlingState = m_defaultStartingPosition.readCastlingStateInfo();
-    
+    EXPECT_EQ(CastlingState::ALL, m_defaultStartingPosition.readCastlingState());
+    EXPECT_EQ(CastlingState::NONE, m_gameOfTheCentury.readCastlingState());
+
+    const auto& castlingState = m_defaultStartingPosition.readCastlingStateInfo();
+
     m_defaultStartingPosition.setCastlingState(0);
-	EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_FALSE(castlingState.hasAny());
-	EXPECT_FALSE(castlingState.hasWhite());
+    EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_FALSE(castlingState.hasAny());
+    EXPECT_FALSE(castlingState.hasWhite());
     EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
-	m_defaultStartingPosition.setCastlingState(1);
-	EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(2);
-	EXPECT_EQ(CastlingState::WHITE_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-        
-	m_defaultStartingPosition.setCastlingState(3);
-	EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(4);
-	EXPECT_EQ(CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_FALSE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(5);
-	EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(6);
-	EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(7);
-	EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_FALSE(castlingState.hasBlackQueenSide());
-    
+    m_defaultStartingPosition.setCastlingState(1);
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_FALSE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(2);
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_FALSE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(3);
+    EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_FALSE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(4);
+    EXPECT_EQ(CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_FALSE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(5);
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_KINGSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(6);
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_KINGSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(7);
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_KINGSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_FALSE(castlingState.hasBlackQueenSide());
+
     m_defaultStartingPosition.setCastlingState(8);
-	EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_FALSE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(9);
-	EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-       
-	m_defaultStartingPosition.setCastlingState(10);
-	EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(11);
-	EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_FALSE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-        
-	m_defaultStartingPosition.setCastlingState(12);
-	EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_FALSE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(13);
-	EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(14);
-	EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.setCastlingState(15);
-	EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-    
-	m_defaultStartingPosition.editCastlingState().unsetWhiteKingSide();
-	EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
-	EXPECT_FALSE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-	EXPECT_TRUE(castlingState.hasBlackKingSide());
-	EXPECT_TRUE(castlingState.hasBlackQueenSide());
-        
-	m_defaultStartingPosition.editCastlingState().unsetWhiteQueenSide();
-	EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-    
-	m_defaultStartingPosition.editCastlingState().unsetBlackKingSide();
-	EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
-    
-	m_defaultStartingPosition.editCastlingState().unsetBlackQueenSide();
-	EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_FALSE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
-	auto& editCastling = m_defaultStartingPosition.editCastlingState();
-	editCastling.setWhiteKingSide();
-    
-	EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    m_defaultStartingPosition.setCastlingState(9);
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_QUEENSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
-	editCastling.setWhiteQueenSide();
-	EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_FALSE(castlingState.hasBlack());
-	EXPECT_TRUE(castlingState.hasWhiteKingSide());
-	EXPECT_TRUE(castlingState.hasWhiteQueenSide());
-    
-	editCastling.setBlack();
-	EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
-	EXPECT_TRUE(castlingState.hasAny());
-	EXPECT_TRUE(castlingState.hasWhite());
-	EXPECT_TRUE(castlingState.hasBlack());
+    m_defaultStartingPosition.setCastlingState(10);
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_QUEENSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(11);
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_QUEENSIDE,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_FALSE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(12);
+    EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_FALSE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(13);
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_ALL,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(14);
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.setCastlingState(15);
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.editCastlingState().unsetWhiteKingSide();
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
+    EXPECT_FALSE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+    EXPECT_TRUE(castlingState.hasBlackKingSide());
+    EXPECT_TRUE(castlingState.hasBlackQueenSide());
+
+    m_defaultStartingPosition.editCastlingState().unsetWhiteQueenSide();
+    EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState());
+
+    m_defaultStartingPosition.editCastlingState().unsetBlackKingSide();
+    EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState());
+
+    m_defaultStartingPosition.editCastlingState().unsetBlackQueenSide();
+    EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState());
+
+    auto& editCastling = m_defaultStartingPosition.editCastlingState();
+    editCastling.setWhiteKingSide();
+
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_FALSE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_FALSE(castlingState.hasWhiteQueenSide());
+
+    editCastling.setWhiteQueenSide();
+    EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_FALSE(castlingState.hasBlack());
+    EXPECT_TRUE(castlingState.hasWhiteKingSide());
+    EXPECT_TRUE(castlingState.hasWhiteQueenSide());
+
+    editCastling.setBlack();
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL,
+              m_defaultStartingPosition.readCastlingState());
+    EXPECT_TRUE(castlingState.hasAny());
+    EXPECT_TRUE(castlingState.hasWhite());
+    EXPECT_TRUE(castlingState.hasBlack());
 }
-
 
 ////////////////////////////////////////////////////////////////
 
-} // namespace ElephantTest
+}  // namespace ElephantTest

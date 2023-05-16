@@ -9,32 +9,30 @@
 #include <future>
 #include <thread>
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class PerftFixture : public ::testing::Test
-{
+class PerftFixture : public ::testing::Test {
 public:
-    virtual void SetUp()
-    {
+    virtual void SetUp(){
 
     };
-    virtual void TearDown() {};
+    virtual void TearDown(){};
 
-	MoveCount CountMoves(GameContext& context, int depth, MoveCount& count, MoveCount::Predicate predicate = [](const Move&) { return true; })
-	{		
-		if (depth == 0)
-		{
-			return MoveCount();
-		}
-        
-		auto moves = m_moveGenerator.GeneratePossibleMoves(context);        
-		count += m_moveGenerator.CountMoves(moves, predicate);
-             
-        if (depth > 1)
-        {
-            for (auto mv : moves)
-            {
+    MoveCount CountMoves(
+        GameContext& context,
+        int depth,
+        MoveCount& count,
+        MoveCount::Predicate predicate = [](const Move&) { return true; })
+    {
+        if (depth == 0) {
+            return MoveCount();
+        }
+
+        auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+        count += m_moveGenerator.CountMoves(moves, predicate);
+
+        if (depth > 1) {
+            for (auto mv : moves) {
                 Move cpy(mv);
                 FATAL_ASSERT(context.MakeMove(cpy));
                 FATAL_ASSERT(cpy.Piece.isValid());
@@ -42,29 +40,24 @@ public:
                 context.UnmakeMove(cpy);
             }
         }
-        
+
         return count;
-	}
+    }
 
     size_t concurrentMovesAtDepth(GameContext context, int depth)
     {
-        if (depth == 0)
-        {
+        if (depth == 0) {
             return 0;
         }
-        else
-        if (depth == 1)
-        {
+        else if (depth == 1) {
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             return moves.size();
         }
-        else
-        {
+        else {
             size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
-            for (auto mv : moves)
-            {            
-                context.MakeMove(mv);                
+            for (auto mv : moves) {
+                context.MakeMove(mv);
                 count += CountMovesAtDepth(context, depth - 1);
                 context.UnmakeMove(mv);
             }
@@ -74,23 +67,18 @@ public:
     }
 
     size_t CountMovesAtDepth(GameContext& context, int depth)
-    {        
-        if (depth == 0)
-        {
+    {
+        if (depth == 0) {
             return 0;
         }
-        else
-        if (depth == 1)
-        {
+        else if (depth == 1) {
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             return moves.size();
         }
-        else
-        {
+        else {
             size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
-            for (auto mv : moves)
-            {
+            for (auto mv : moves) {
                 context.MakeMove(mv);
                 u32 newDepth = depth - 1;
                 count += concurrentMovesAtDepth(context, newDepth);
@@ -103,53 +91,53 @@ public:
     }
 
     size_t CountMovesAtDepthConcurrent(GameContext& context, int depth)
-    {        
-        if (depth == 0)
-        {
+    {
+        if (depth == 0) {
             return 0;
         }
-        else
-        if (depth == 1)
-        {
+        else if (depth == 1) {
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
             return moves.size();
         }
-        else
-        {
-
+        else {
             std::vector<std::future<size_t>> futures;
 
             size_t count = 0;
             auto moves = m_moveGenerator.GeneratePossibleMoves(context);
-            for (auto mv : moves)
-            {
+            for (auto mv : moves) {
                 context.MakeMove(mv);
                 GameContext contextCopy(context);
                 u32 newDepth = depth - 1;
-                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, newDepth);
+                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth,
+                                         this, context, newDepth);
 
                 futures.push_back(std::move(future));
                 context.UnmakeMove(mv);
             }
 
-            for (auto& future : futures)
-            {
+            for (auto& future : futures) {
                 count += future.get();
             }
 
             return count;
         }
     }
-    
+
+    template<bool concurrent = true>
     void Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
     {
         Clock clock;
         clock.Start();
         FENParser::deserialize(fen.c_str(), m_context);
-        size_t result = CountMovesAtDepthConcurrent(m_context, atDepth);
+        size_t result = 0;
+        if constexpr (concurrent)
+            result = CountMovesAtDepthConcurrent(m_context, atDepth);
+        else
+            result = CountMovesAtDepth(m_context, atDepth);
+
         EXPECT_EQ(expectedValue, result);
         i64 elapsedTime = clock.getElapsedTime();
-        LOG_INFO() << "Elapsed time: " <<  elapsedTime << " ms";
+        LOG_INFO() << "Elapsed time: " << elapsedTime << " ms";
 
         // convert to seconds
         float et = elapsedTime / 1000.f;
@@ -181,7 +169,7 @@ TEST_F(PerftFixture, Position_Start)
     // do
     auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
 
-    // verify    
+    // verify
     {
         MoveCount count;
         CountMoves(m_context, 1, count);
@@ -242,15 +230,14 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 1	    48      	8	        0	    2	        0	        0	        0
 2	    2039	    351	        1	    91      	0	        3       	0
 3	    97862	    17102	    45	    3162	    0	        993     	1
-4	    4085603	    757163	    1929	128013	    15172	    25523	    43
-5	    193690690	35043416	73365	4993637	    8392	    3309887	    30171
+4	    4085603	    757163	    1929	128013	    15172 25523	    43 5
+193690690	35043416	73365	4993637	    8392	    3309887	    30171
 */
-
 
 TEST_F(PerftFixture, DISABLED_Position_Two)
 {
     // setup
-	char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
     FENParser::deserialize(inputFen, m_context);
     PrintBoard(m_context.readChessboard());
 
@@ -269,14 +256,13 @@ TEST_F(PerftFixture, DISABLED_Position_Two)
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(2, count.Castles);
     EXPECT_EQ(0, count.Checks);
-    //EXPECT_EQ(0, count.Checkmates);
+    // EXPECT_EQ(0, count.Checkmates);
 
-    MoveCount::Predicate pawnPredicate = [](const Move& mv) 
-    {
+    MoveCount::Predicate pawnPredicate = [](const Move& mv) {
         static ChessPiece P = WHITEPAWN;
         if (mv.Piece == P)
             return true;
-        
+
         return false;
     };
 
@@ -288,29 +274,29 @@ TEST_F(PerftFixture, DISABLED_Position_Two)
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(0, count.Castles);
     EXPECT_EQ(0, count.Checks);
-    //EXPECT_EQ(0, count.Checkmates);
+    // EXPECT_EQ(0, count.Checkmates);
 }
 
-//3	    97862	    17102	    45	    3162	    0	        993     	1
+// 3	    97862	    17102	    45	    3162	    0	        993     	1
 
 TEST_F(PerftFixture, Position_Two_Depth3)
 {
-   // setup
-   char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-   FENParser::deserialize(inputFen, m_context);
-   
-   // do & verify
-   MoveCount count;
-   CountMoves(m_context, 3, count);
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    FENParser::deserialize(inputFen, m_context);
 
-   // verify
-	EXPECT_EQ(2039 + 48 + 97862, count.Moves);
-	EXPECT_EQ(351 + 8 + 17102, count.Captures);
-	EXPECT_EQ(1 + 0 + 45, count.EnPassants);
-	EXPECT_EQ(0 + 0 + 0, count.Promotions);
-	EXPECT_EQ(91 + 2 + 3162, count.Castles);
-	EXPECT_EQ(3 + 0 + 993, count.Checks);
-////	EXPECT_EQ(0 + 0 + 1, count.Checkmates);
+    // do & verify
+    MoveCount count;
+    CountMoves(m_context, 3, count);
+
+    // verify
+    EXPECT_EQ(2039 + 48 + 97862, count.Moves);
+    EXPECT_EQ(351 + 8 + 17102, count.Captures);
+    EXPECT_EQ(1 + 0 + 45, count.EnPassants);
+    EXPECT_EQ(0 + 0 + 0, count.Promotions);
+    EXPECT_EQ(91 + 2 + 3162, count.Castles);
+    EXPECT_EQ(3 + 0 + 993, count.Checks);
+    ////	EXPECT_EQ(0 + 0 + 1, count.Checkmates);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -326,40 +312,43 @@ TEST_F(PerftFixture, Position_Two_Depth3)
         1  [ ][ ][ ][ ][ ][ ][ ][ ]
             A  B  C  D  E  F  G  H
 
-Depth	Nodes		Captures	E.p.	Castles		Promotions		Checks		Checkmates
-1		14			1			0		0			0				2			0
-2		191			14			0		0			0				10			0
-3		2812		209			2		0			0				267			0
-4		43238		3348		123		0			0				1680		17
-5		674624		52051		1165	0			0				52950		0
-6		11030083	940350		33325	0			7552			452473		2733
-7		178633661	14519036	294874	0			140024			12797406	87
+Depth	Nodes		Captures	E.p.	Castles		Promotions Checks
+Checkmates
+1		14			1			0		0
+0				2			0 2		191			14
+0		0			0				10			0 3
+2812		209			2		0			0
+267			0 4		43238		3348		123		0
+0				1680		17 5		674624		52051		1165
+0			0				52950		0 6		11030083
+940350		33325	0			7552			452473		2733 7
+178633661	14519036	294874	0			140024 12797406	87
 */
 TEST_F(PerftFixture, Position_Three_Depth5)
 {
-   // setup
-   std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-   FENParser::deserialize(inputFen.c_str(), m_context);
+    // setup
+    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    FENParser::deserialize(inputFen.c_str(), m_context);
 
-   // do & verify
-   MoveCount count;
-   CountMoves(m_context, 5, count);
+    // do & verify
+    MoveCount count;
+    CountMoves(m_context, 5, count);
 
-   // verify
-   EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
-   EXPECT_EQ(14 + 1 + 209 + 3348 + 52051, count.Captures);
-   EXPECT_EQ(0, count.Castles);
-   EXPECT_EQ(2 + 123 + 1165, count.EnPassants);
-   EXPECT_EQ(0, count.Promotions);
-   
-   //EXPECT_EQ(10 + 2 + 267 + 1680 + 52950, count.Checks);
-   //EXPECT_EQ(0 + 17 + 0, count.Checkmates);
+    // verify
+    EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
+    EXPECT_EQ(14 + 1 + 209 + 3348 + 52051, count.Captures);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(2 + 123 + 1165, count.EnPassants);
+    EXPECT_EQ(0, count.Promotions);
+
+    // EXPECT_EQ(10 + 2 + 267 + 1680 + 52950, count.Checks);
+    // EXPECT_EQ(0 + 17 + 0, count.Checkmates);
 }
 
 TEST_F(PerftFixture, DISABLED_Position_Three)
 {
     // setup
-	std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    std::string inputFen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
     FENParser::deserialize(inputFen.c_str(), m_context);
     PrintBoard(m_context.readChessboard());
 
@@ -376,14 +365,13 @@ TEST_F(PerftFixture, DISABLED_Position_Three)
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(0, count.Castles);
     EXPECT_EQ(2, count.Checks);
-    //EXPECT_EQ(0, count.Checkmates);
+    // EXPECT_EQ(0, count.Checkmates);
 
-    MoveCount::Predicate pawnPredicate = [](const Move& mv) 
-    {
+    MoveCount::Predicate pawnPredicate = [](const Move& mv) {
         static ChessPiece P = WHITEPAWN;
         if (mv.Piece == P)
             return true;
-        
+
         return false;
     };
 
@@ -395,30 +383,35 @@ TEST_F(PerftFixture, DISABLED_Position_Three)
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(0, count.Castles);
     EXPECT_EQ(1, count.Checks);
-    //EXPECT_EQ(0, count.Checkmates);
+    // EXPECT_EQ(0, count.Checkmates);
 }
 
 ////////////////////////////////////////////////////////////////
 
 /*
 * per depth
-Depth	Nodes		Captures	E.p.	Castles		Promotions	Checks		Checkmates
-1		6			0			0		0			0			0			0
-2		264			87			0		6			48			10			0
-3		9467		1021		4		0			120			38			22
-4		422333		131393		0		7795		60032		15492		5
-5		15833292	2046173		6512	0			329464		200568		50562
-6		706045033	210369132	212		10882006	81102984	26973664	81076
+Depth	Nodes		Captures	E.p.	Castles		Promotions Checks
+Checkmates
+1		6			0			0		0
+0			0			0 2		264			87
+0		6			48			10			0 3
+9467		1021		4		0			120 38			22
+4		422333		131393		0		7795 60032		15492
+5 5		15833292	2046173		6512	0			329464
+200568		50562
+6		706045033	210369132	212		10882006	81102984
+26973664	81076
 
 * added up
-1		6			0			0		0			0			0			0
-2		270			87			0		6			48			10			0
-3		9737		1108		4		6			168			48			22
+1		6			0			0		0
+0			0			0 2		270			87
+0		6			48			10			0 3
+9737		1108		4		6			168 48			22
 */
 TEST_F(PerftFixture, DISABLED_Position_Four)
 {
-    // setup    
-	std::string inputFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
+    // setup
+    std::string inputFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
     FENParser::deserialize(inputFen.c_str(), m_context);
     PrintBoard(m_context.readChessboard());
 
@@ -435,36 +428,36 @@ TEST_F(PerftFixture, DISABLED_Position_Four)
     EXPECT_EQ(0, count.Promotions);
     EXPECT_EQ(0, count.Castles);
     EXPECT_EQ(0, count.Checks);
-    //EXPECT_EQ(0, count.Checkmates);
+    // EXPECT_EQ(0, count.Checkmates);
 }
 
 TEST_F(PerftFixture, Position_Four_Depth3)
 {
-    // setup    
+    // setup
     std::string inputFen("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1");
     FENParser::deserialize(inputFen.c_str(), m_context);
-    
+
     // do & verify
     MoveCount count;
     CountMoves(m_context, 3, count);
 
-	EXPECT_EQ(9737, count.Moves);
-	EXPECT_EQ(1108, count.Captures);
-	EXPECT_EQ(4, count.EnPassants);
-	EXPECT_EQ(6, count.Castles);
-	EXPECT_EQ(168, count.Promotions);
-	//EXPECT_EQ(48, count.Checks);
-	//EXPECT_EQ(22, count.Checkmates);
+    EXPECT_EQ(9737, count.Moves);
+    EXPECT_EQ(1108, count.Captures);
+    EXPECT_EQ(4, count.EnPassants);
+    EXPECT_EQ(6, count.Castles);
+    EXPECT_EQ(168, count.Promotions);
+    // EXPECT_EQ(48, count.Checks);
+    // EXPECT_EQ(22, count.Checkmates);
 }
 
 TEST_F(PerftFixture, Catching_IllegalEnPassant)
-{    
-	Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
+{
+    Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
 }
 
 TEST_F(PerftFixture, Catching_IllegalEnPassantTwo)
 {
-	Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
+    Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
 }
 
 TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
@@ -527,18 +520,20 @@ TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
     Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
 }
 
-/* This test takes a long time to run, so it is disabled by default    
+/* This test takes a long time to run, so it is disabled by default
 https://www.chessprogramming.net/perfect-perft/
 */
 TEST_F(PerftFixture, Catching_TwoHundrarMillionNodes_Twice)
 {
-    Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
+    Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+                          193690690, 5);
     Catching_TestFunction("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7);
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
 {
-    Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6);
+    Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+                          706045033, 6);
 }
 
 TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
@@ -548,4 +543,4 @@ TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
 
 ////////////////////////////////////////////////////////////////
 
-} // namespace ElephantTest
+}  // namespace ElephantTest

@@ -1,0 +1,35 @@
+# .clang-format
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+# basing on https://chromium.googlesource.com/chromium/src/+/refs/heads/main/styleguide/c++/c++.md
+Language: Cpp
+Standard: c++20
+BasedOnStyle: Chromium
+ColumnLimit: 100
+UseTab: Never
+IndentWidth: 4
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: All
+# AlignConsecutiveDeclarations: true
+BreakBeforeBraces: Stroustrup
+
+# Constructors
+BreakConstructorInitializers: AfterColon
+PackConstructorInitializers: Never
+
+# Comments
+CommentPragmas: "^!|^:"
+AlignTrailingComments: true
+
+NamespaceIndentation: None
+SortIncludes: true
+SpaceAfterTemplateKeyword: false
+BreakBeforeBinaryOperators: None
+
+# Headers
+EmptyLineBeforeAccessModifier: LogicalBlock
+IndentAccessModifiers: false
+AccessModifierOffset: -4

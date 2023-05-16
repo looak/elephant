@@ -1,20 +1,18 @@
 #include <gtest/gtest.h>
+
 #include "elephant_test_utils.h"
-#include "game_context.h"
 #include "fen_parser.h"
+#include "game_context.h"
 #include "move_generator.h"
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class MoveGeneratorFixture: public ::testing::Test
-{
+class MoveGeneratorFixture : public ::testing::Test {
 public:
-    virtual void SetUp()
-    {
+    virtual void SetUp(){
 
     };
-    virtual void TearDown() {};
+    virtual void TearDown(){};
 
     MoveGenerator moveGenerator;
     GameContext testContext;
@@ -66,10 +64,8 @@ TEST_F(MoveGeneratorFixture, KnightOneCapture)
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
     EXPECT_EQ(8, result.size());
 
-    for (auto&& move : result)
-    {
-        if (move.TargetSquare == f6)
-        {
+    for (auto&& move : result) {
+        if (move.TargetSquare == f6) {
             testContext.MakeMove(move);
             EXPECT_EQ(move.Flags, MoveFlag::Capture);
             break;
@@ -89,8 +85,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
 
     // verify
     EXPECT_EQ(4, result.size());
-    for (auto&& move : result)
-    {
+    for (auto&& move : result) {
         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
     }
 }
@@ -103,15 +98,13 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     board.PlacePiece(WHITEROOK, b1);
     testContext.editToPlay() = Set::BLACK;
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
     EXPECT_EQ(8, result.size());
-    for (auto&& move : result)
-    {
-        if (move.TargetSquare == b1)
-        {
+    for (auto&& move : result) {
+        if (move.TargetSquare == b1) {
             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
         }
         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
@@ -139,7 +132,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
 //     board.PlacePiece(WHITEKING, g1);
 //     testContext.editToPlay() = Set::BLACK;
 
-//     // do 
+//     // do
 //     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
 //     // verify
@@ -190,7 +183,7 @@ TEST_F(MoveGeneratorFixture, Check)
     board.PlacePiece(BLACKROOK, d8);
     board.PlacePiece(WHITEKING, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(3, result.size());
@@ -218,7 +211,7 @@ TEST_F(MoveGeneratorFixture, GuardedPiece)
     board.PlacePiece(BLACKKNIGHT, d2);
     board.PlacePiece(WHITEKING, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(3, result.size());
@@ -248,14 +241,13 @@ TEST_F(MoveGeneratorFixture, KingCanNotCastleWhileInCheck)
 
     testContext.editToPlay() = Set::BLACK;
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(4, result.size());
 
     // count king moves
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece b = BLACKKING;
         if (mv.Piece == b)
             return true;
@@ -296,12 +288,11 @@ TEST_F(MoveGeneratorFixture, KingCanNotCastleBecauseItsBlockedByKnight)
 
     testContext.editToPlay() = Set::BLACK;
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // count king moves
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece b = BLACKKING;
         if (mv.Piece == b)
             return true;
@@ -341,7 +332,7 @@ TEST_F(MoveGeneratorFixture, CheckGuardedPiece)
     board.PlacePiece(BLACKKNIGHT, f3);
     board.PlacePiece(WHITEKING, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(3, result.size());
@@ -370,7 +361,7 @@ TEST_F(MoveGeneratorFixture, CheckGuardedPiece_OnlyValidMovesAreToMoveKing)
     board.PlacePiece(WHITEKING, e1);
     board.PlacePiece(WHITEPAWN, g2);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(2, result.size());
@@ -395,7 +386,7 @@ TEST_F(MoveGeneratorFixture, KingCanNotMoveIntoCheck)
     board.PlacePiece(BLACKROOK, d8);
     board.PlacePiece(WHITEKING, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(3, result.size());
@@ -420,12 +411,11 @@ TEST_F(MoveGeneratorFixture, KingCanNotMoveIntoCheck_KnightVariation)
     board.PlacePiece(BLACKKNIGHT, e3);
     board.PlacePiece(WHITEKING, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(3, result.size());
 }
-
 
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
@@ -444,14 +434,12 @@ TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(WHITEPAWN, f7);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    for (auto&& move : result)
-    {
-        if (move.TargetSquare == f7)
-        {
+    for (auto&& move : result) {
+        if (move.TargetSquare == f7) {
             testContext.MakeMove(move);
             EXPECT_EQ(move.Flags, MoveFlag::Capture);
             break;
@@ -467,7 +455,6 @@ TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 }
-
 
 // 8 [   ][   ][   ][   ][   ][   ][ b ][   ]
 // 7 [   ][   ][   ][   ][   ][ x ][   ][ x ]
@@ -485,7 +472,7 @@ TEST_F(MoveGeneratorFixture, BlackBishop)
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKBISHOP, g8);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
@@ -521,17 +508,15 @@ TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
     board.PlacePiece(WHITEPAWN, f7);
     board.PlacePiece(WHITEROOK, f1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    for (auto& move : result)
-    {
+    for (auto& move : result) {
         testContext.MakeMove(move);
         testContext.UnmakeMove(move);
     }
 
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece b = BLACKBISHOP;
         if (mv.Piece == b)
             return true;
@@ -558,7 +543,6 @@ TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
     EXPECT_EQ(0, count.Checkmates);
 }
 
-
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -579,11 +563,10 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
     board.PlacePiece(BLACKBISHOP, e5);
     board.PlacePiece(WHITEROOK, e1);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece b = BLACKBISHOP;
         if (mv.Piece == b)
             return true;
@@ -631,11 +614,10 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves_ThreateningAPiece)
     board.PlacePiece(WHITEROOK, e1);
     board.PlacePiece(WHITEKNIGHT, g3);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece b = BLACKBISHOP;
         if (mv.Piece == b)
             return true;
@@ -683,11 +665,10 @@ TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
     board.PlacePiece(WHITEPAWN, d2);
     board.PlacePiece(WHITEPAWN, e2);
 
-    // do 
+    // do
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece Q = WHITEQUEEN;
         if (mv.Piece == Q)
             return true;
@@ -704,8 +685,7 @@ TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 
-    MoveCount::Predicate pawnPredicate = [](const Move& mv)
-    {
+    MoveCount::Predicate pawnPredicate = [](const Move& mv) {
         static ChessPiece P = WHITEPAWN;
         if (mv.Piece == P)
             return true;
@@ -826,7 +806,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
-    //board.PlacePiece(BLACKBISHOP, b6);
+    // board.PlacePiece(BLACKBISHOP, b6);
     board.PlacePiece(BLACKROOK, g6);
     board.PlacePiece(WHITEPAWN, g2);
     board.PlacePiece(WHITEKING, g1);
@@ -841,8 +821,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece P = WHITEPAWN;
         if (mv.Piece == P)
             return true;
@@ -895,8 +874,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
     // need to seperate my pinned masks so a piece can't move from one pin to another.
 
     // verify
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece P = BLACKPAWN;
         if (mv.Piece == P)
             return true;
@@ -944,8 +922,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawnEnPassant_g2)
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece P = BLACKPAWN;
         if (mv.Piece == P)
             return true;
@@ -988,17 +965,21 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a7, b4, c7, e6, f7, g6, h3 }, blkMat.getPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b2, c2, d5, e4, f2, g2, h2 }, whtMat.getPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3},
+                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
+                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
 
     // do
-    Move move(e6, d5); // pawn capture
+    Move move(e6, d5);  // pawn capture
     bool result = testContext.MakeMove(move);
 
     // verify
     EXPECT_TRUE(result);
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a7, b4, c7, d5, f7, g6, h3 }, blkMat.getPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b2, c2, e4, f2, g2, h2 }, whtMat.getPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3},
+                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2},
+                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(d5));
     EXPECT_NE(orgHash, testContext.readChessboard().readHash());
     EXPECT_TRUE(move.isCapture());
@@ -1011,8 +992,10 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a7, b4, c7, e6, f7, g6, h3 }, blkMat.getPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({ a2, b2, c2, d5, e4, f2, g2, h2 }, whtMat.getPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3},
+                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
+                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
     EXPECT_EQ(orgHash, testContext.readChessboard().readHash());
 }
 
@@ -1029,8 +1012,7 @@ TEST_F(MoveGeneratorFixture, KnightMovements)
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece P = BLACKKNIGHT;
         if (mv.Piece == P)
             return true;
@@ -1067,15 +1049,13 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    for (auto& mv : moves)
-    {
+    for (auto& mv : moves) {
         testContext.MakeMove(mv);
         testContext.UnmakeMove(mv);
     }
 
     // verify
-    MoveCount::Predicate predicate = [](const Move& mv)
-    {
+    MoveCount::Predicate predicate = [](const Move& mv) {
         static ChessPiece P = WHITEQUEEN;
         if (mv.Piece == P)
             return true;
@@ -1121,14 +1101,12 @@ TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
 
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    for(auto& mv : moves)
-    {
+    for (auto& mv : moves) {
         testContext.MakeMove(mv);
         testContext.UnmakeMove(mv);
     }
 
-    auto predicate = [](const Move& mv)
-    {
+    auto predicate = [](const Move& mv) {
         static ChessPiece b = BLACKBISHOP;
         if (mv.Piece == b)
             return true;
@@ -1158,8 +1136,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
     auto count = moveGenerator.CountMoves(moves);
     EXPECT_EQ(23, count.Moves);
 
-    auto predicate = [](const Move& mv)
-    {
+    auto predicate = [](const Move& mv) {
         static ChessPiece b = WHITEKING;
         if (mv.Piece == b)
             return true;
@@ -1170,8 +1147,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
     count = moveGenerator.CountMoves(moves, predicate);
     EXPECT_EQ(4, count.Moves);
 
-    auto predicateRook = [](const Move& mv)
-    {
+    auto predicateRook = [](const Move& mv) {
         static ChessPiece b = WHITEROOK;
         if (mv.Piece == b)
             return true;
@@ -1184,15 +1160,15 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
 }
 
 /**
-* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
-* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
-*     A    B    C    D    E    F    G    H */
+ * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [   ][ k ][   ][   ][   ][   ][   ][ R ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
+ *     A    B    C    D    E    F    G    H */
 TEST_F(MoveGeneratorFixture, KingCheckedByRook)
 {
     // setup
@@ -1209,15 +1185,15 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
 }
 
 /**
-* 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
-* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
-* 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
-*     A    B    C    D    E    F    G    H */
+ * 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
+ * 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
+ *     A    B    C    D    E    F    G    H */
 TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
 {
     // setup
@@ -1232,15 +1208,15 @@ TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
     EXPECT_EQ(0, moves.size());
 }
 /**
-* 8 [   ][   ][ k ][   ][   ][   ][   ][   ]
-* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 4 [   ][   ][   ][ p ][   ][   ][ p ][   ]
-* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 2 [   ][   ][ P ][   ][   ][ P ][   ][   ]
-* 1 [   ][   ][ K ][   ][   ][   ][   ][   ]
-*     A    B    C    D    E    F    G    H */
+ * 8 [   ][   ][ k ][   ][   ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][ p ][   ][   ][ p ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][ P ][   ][   ][ P ][   ][   ]
+ * 1 [   ][   ][ K ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H */
 TEST_F(MoveGeneratorFixture, EnPassantMoves_Both_UndoCaptureAndUndo)
 {
     // setup
@@ -1276,16 +1252,16 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvaila
 }
 
 /**
-* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
-* 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
-* 4 [   ][   ][   ][ P ][   ][   ][   ][   ]
-* 3 [   ][   ][ p ][   ][   ][ K ][   ][   ]
-* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-*     A    B    C    D    E    F    G    H
-* fen: 8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2*/
+ * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][ P ][   ][   ][   ][   ]
+ * 3 [   ][   ][ p ][   ][   ][ K ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H
+ * fen: 8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2*/
 TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
 {
     // setup
@@ -1295,23 +1271,24 @@ TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto pawnMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == c2; });
+    auto pawnMv = std::find_if(moves.begin(), moves.end(),
+                               [](const Move& mv) { return mv.TargetSquare == c2; });
     ASSERT_NE(moves.end(), pawnMv);
     EXPECT_EQ(BLACKPAWN, pawnMv->Piece);
     EXPECT_EQ(c3, pawnMv->SourceSquare);
 }
 
 /**
-* 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
-* 4 [   ][   ][   ][ n ][   ][   ][   ][   ]
-* 3 [   ][ B ][   ][   ][   ][   ][   ][   ]
-* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-* 1 [   ][ K ][   ][ R ][   ][   ][   ][   ]
-*     A    B    C    D    E    F    G    H
-* fen: 8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1*/
+ * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][ n ][   ][   ][   ][   ]
+ * 3 [   ][ B ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 1 [   ][ K ][   ][ R ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H
+ * fen: 8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1*/
 TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
 {
     std::string fen("8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1");
@@ -1320,25 +1297,26 @@ TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto knightMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == b3; });
+    auto knightMv = std::find_if(moves.begin(), moves.end(),
+                                 [](const Move& mv) { return mv.TargetSquare == b3; });
     EXPECT_EQ(moves.end(), knightMv);
     EXPECT_EQ(5, moves.size());
 }
 
 /**
-* 8  [ ][ ][ ][ ][ ][ ][ ][ ]
-* 7  [K][ ][ ][ ][ ][ ][ ][r]
-* 6  [ ][ ][ ][p][ ][ ][ ][ ]
-* 5  [ ][P][p][ ][ ][ ][ ][ ]
-* 4  [ ][R][ ][ ][ ][p][ ][k]
-* 3  [ ][ ][ ][ ][ ][ ][ ][ ]
-* 2  [ ][ ][ ][ ][P][ ][P][ ]
-* 1  [ ][ ][ ][ ][ ][ ][ ][ ]
-*     A  B  C  D  E  F  G  H    
-* fen:  8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3    */
+ * 8  [ ][ ][ ][ ][ ][ ][ ][ ]
+ * 7  [K][ ][ ][ ][ ][ ][ ][r]
+ * 6  [ ][ ][ ][p][ ][ ][ ][ ]
+ * 5  [ ][P][p][ ][ ][ ][ ][ ]
+ * 4  [ ][R][ ][ ][ ][p][ ][k]
+ * 3  [ ][ ][ ][ ][ ][ ][ ][ ]
+ * 2  [ ][ ][ ][ ][P][ ][P][ ]
+ * 1  [ ][ ][ ][ ][ ][ ][ ][ ]
+ *     A  B  C  D  E  F  G  H
+ * fen:  8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3    */
 TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvailable)
 {
-    std::string fen ("8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3");
+    std::string fen("8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3");
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
@@ -1347,4 +1325,4 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
     EXPECT_EQ(4, moves.size());
 }
 
-} // namespace ElephantTest
+}  // namespace ElephantTest

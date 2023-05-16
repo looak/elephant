@@ -1,5 +1,7 @@
-#include "chessboard.h"
 #include "commands.h"
+#include <charconv>
+#include <vector>
+#include "chessboard.h"
 #include "commands_print.h"
 #include "commands_uci.h"
 #include "commands_utils.h"
@@ -8,11 +10,9 @@
 #include "game_context.h"
 #include "move.h"
 #include "move_generator.h"
-#include <vector>
-#include <charconv>
 
-namespace CliCommands
-{
+
+namespace CliCommands {
 
 bool FenCommand(std::list<std::string>& tokens, GameContext& context)
 {
@@ -22,11 +22,10 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
         fen += str + " ";
 
     // if fen is empty we want to serialize current context.
-    if (fen.empty())
-    {
+    if (fen.empty()) {
         std::string output;
-		bool result = FENParser::serialize(context, output);
-		std::cout << " " << (result ? output : "Serializing failed!") << "\n";
+        bool        result = FENParser::serialize(context, output);
+        std::cout << " " << (result ? output : "Serializing failed!") << "\n";
         return result;
     }
 
@@ -43,7 +42,8 @@ void FenHelpCommand(const std::string&)
     std::ostringstream ssCommand;
     ssCommand << "fen <string> or fen";
 
-    std::string helpText("Sets the board to the given FEN string or outputs the FEN string for current board.");
+    std::string helpText(
+        "Sets the board to the given FEN string or outputs the FEN string for current board.");
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
@@ -59,25 +59,21 @@ void HelpHelpCommand(const std::string& command)
 
 bool HelpCommand(std::list<std::string>& tokens, GameContext&)
 {
-    if (tokens.empty() == false)
-    {
+    if (tokens.empty() == false) {
         std::string token = tokens.front();
-        if (options.find(token) != options.end())
-        {
+        if (options.find(token) != options.end()) {
             options.at(token).second(token);
             std::cout << std::endl;
         }
-        else
-        {
+        else {
             std::string invalidInput = token.length() > 0 ? token : "Not a Value!";
-            std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+            std::cout << " Invalid command: " << invalidInput << ", help for all commands!"
+                      << std::endl;
         }
     }
-    else
-    {
+    else {
         std::cout << " Elephant Gambit CLI Commands:" << std::endl;
-        for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter)
-        {
+        for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter) {
             iter->second.second(iter->first);
             std::cout << std::endl;
         }
@@ -87,18 +83,16 @@ bool HelpCommand(std::list<std::string>& tokens, GameContext&)
 }
 
 bool PrintCommand(std::list<std::string>& tokens, GameContext& context)
-{  
-    if (tokens.size() == 0)
-    {
+{
+    if (tokens.size() == 0) {
         CliPrintCommands::options.at("board").first(context, "");
     }
-    else if (CliPrintCommands::options.find(tokens.front()) == CliPrintCommands::options.end())
-    {
+    else if (CliPrintCommands::options.find(tokens.front()) == CliPrintCommands::options.end()) {
         std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-        std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+        std::cout << " Invalid command: " << invalidInput << ", help for all commands!"
+                  << std::endl;
     }
-    else
-    {
+    else {
         CliPrintCommands::options.at(tokens.front()).first(context, tokens.back());
     }
 
@@ -106,7 +100,7 @@ bool PrintCommand(std::list<std::string>& tokens, GameContext& context)
 }
 
 void PrintHelpCommand(const std::string& command)
-{    
+{
     std::ostringstream ssCommand;
     ssCommand << command << ":<command> or print";
     std::string helpText("Default prints board or Prints a command.");
@@ -127,38 +121,35 @@ void ExitHelpCommand(const std::string& command)
 
 bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    if (tokens.empty() == false)
-    {
+    if (tokens.empty() == false) {
         std::string token = tokens.front();
-        int depth = std::stoi(token);
-        
-        // validate depth
-		if (depth < 1 || depth > 10)
-		{
-			std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
-			return false;
-		}
+        int         depth = std::stoi(token);
 
-		MoveGenerator generator;
-        
+        // validate depth
+        if (depth < 1 || depth > 10) {
+            std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
+            return false;
+        }
+
+        MoveGenerator generator;
+
         auto moves = generator.GeneratePossibleMoves(context);
-        int total = 0;
-		for (auto&& move : moves)
-		{
-            std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
+        int  total = 0;
+        for (auto&& move : moves) {
+            std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString()
+                      << ": ";
             context.MakeMove(move);
-            int result = generator.Perft(context, depth -1);
+            int result = generator.Perft(context, depth - 1);
             total += result;
-			std::cout << result << std::endl;
+            std::cout << result << std::endl;
             context.UnmakeMove(move);
-		}
+        }
         // total += moves.size();
-        
+
         std::cout << "\n Moves: " << moves.size() << "\n";
         std::cout << " Total: " << total << "\n";
     }
-    else
-    {
+    else {
         DivideDepthHelpCommand("divide");
     }
 
@@ -169,31 +160,29 @@ void DivideDepthHelpCommand(const std::string& command)
 {
     std::ostringstream ssCommand;
     ssCommand << command << " <depth>";
-	std::string helpText("Divide given board by depth.");
+    std::string helpText("Divide given board by depth.");
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
 bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
-	if (tokens.empty() == false)
-	{
-		std::string token = tokens.front();
-		Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
-		
-        if (move.isInvalid())
-        {
+    if (tokens.empty() == false) {
+        std::string token = tokens.front();
+        Move        move = context.readChessboard().DeserializeMoveFromPGN(
+            token, context.readToPlay() == Set::WHITE);
+
+        if (move.isInvalid()) {
             std::cout << " Invalid move: " << token << std::endl;
             return false;
         }
 
-		if (!context.PlayMove(move))
-		{
-			std::cout << " Invalid move: " << token << std::endl;
+        if (!context.PlayMove(move)) {
+            std::cout << " Invalid move: " << token << std::endl;
             return false;
-		}
-	}
+        }
+    }
 
-	return true;
+    return true;
 }
 
 void MoveHelpCommand(const std::string& command)
@@ -202,28 +191,23 @@ void MoveHelpCommand(const std::string& command)
     ssCommand << command << " <move>";
     std::string helpText("Makes a move on the current board.");
     std::cout << AddLineDivider(ssCommand.str(), helpText);
-
 }
 
 bool EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
-    i32 value = evaluator.Evaluate(context.readChessboard(), 1);
+    i32       value = evaluator.Evaluate(context.readChessboard(), 1);
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
 
-void EvaluateHelpCommand(const std::string&)
-{
-
-}
+void EvaluateHelpCommand(const std::string&) {}
 
 bool EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
     SearchParameters searchParams;
-    if (tokens.size() != 0)
-    {
-        std::string depth = tokens.front();        
+    if (tokens.size() != 0) {
+        std::string depth = tokens.front();
         std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
     }
 
@@ -242,7 +226,7 @@ void EvaluateBestMoveHelpCommand(const std::string&)
 
 bool UCIEnableCommand(std::list<std::string>&, GameContext&)
 {
-    std::cout << "UCI mode enabled\n";    
+    std::cout << "UCI mode enabled\n";
     UCICommands::UCIEnable();
     std::cout << "Normal mode enabled\n";
     return true;
@@ -274,9 +258,8 @@ bool AvailableMovesCommand(std::list<std::string>&, GameContext& context)
 {
     std::cout << " Available Moves: \n";
     MoveGenerator generator;
-    auto moves = generator.GeneratePossibleMoves(context);
-    for (auto&& move : moves)
-    {
+    auto          moves = generator.GeneratePossibleMoves(context);
+    for (auto&& move : moves) {
         std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
     }
     std::cout << std::endl;
@@ -291,5 +274,4 @@ void AvailableMovesHelpCommand(const std::string&)
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
-
-} // CliCommands
+}  // namespace CliCommands

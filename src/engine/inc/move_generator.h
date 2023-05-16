@@ -90,6 +90,8 @@ struct SearchParameters
     u32 WhiteTimeIncrement = 0;
     u32 BlackTimeIncrement = 0;
 
+    u32 MovesToGo = 0;
+
     bool Infinite = false;
 };
 
@@ -121,7 +123,10 @@ public:
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
 
 private:
+    template<bool UseCache>
     SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, std::vector<Move>& pv, u32 doNullMove);
+    
+    template<bool UseCache>
     i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
