@@ -1,16 +1,19 @@
 #include "commands.h"
+
 #include <charconv>
 #include <vector>
+
 #include "chessboard.h"
 #include "commands_print.h"
 #include "commands_uci.h"
 #include "commands_utils.h"
+#include "elephant_cli_config.h"
+#include "elephant_gambit_config.h"
 #include "evaluator.h"
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
 #include "move_generator.h"
-
 
 namespace CliCommands {
 
@@ -24,7 +27,7 @@ bool FenCommand(std::list<std::string>& tokens, GameContext& context)
     // if fen is empty we want to serialize current context.
     if (fen.empty()) {
         std::string output;
-        bool        result = FENParser::serialize(context, output);
+        bool result = FENParser::serialize(context, output);
         std::cout << " " << (result ? output : "Serializing failed!") << "\n";
         return result;
     }
@@ -123,7 +126,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 {
     if (tokens.empty() == false) {
         std::string token = tokens.front();
-        int         depth = std::stoi(token);
+        int depth = std::stoi(token);
 
         // validate depth
         if (depth < 1 || depth > 10) {
@@ -134,7 +137,7 @@ bool DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
         MoveGenerator generator;
 
         auto moves = generator.GeneratePossibleMoves(context);
-        int  total = 0;
+        int total = 0;
         for (auto&& move : moves) {
             std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString()
                       << ": ";
@@ -168,7 +171,7 @@ bool MoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
     if (tokens.empty() == false) {
         std::string token = tokens.front();
-        Move        move = context.readChessboard().DeserializeMoveFromPGN(
+        Move move = context.readChessboard().DeserializeMoveFromPGN(
             token, context.readToPlay() == Set::WHITE);
 
         if (move.isInvalid()) {
@@ -196,7 +199,7 @@ void MoveHelpCommand(const std::string& command)
 bool EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
-    i32       value = evaluator.Evaluate(context.readChessboard(), 1);
+    i32 value = evaluator.Evaluate(context.readChessboard(), 1);
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
@@ -258,7 +261,7 @@ bool AvailableMovesCommand(std::list<std::string>&, GameContext& context)
 {
     std::cout << " Available Moves: \n";
     MoveGenerator generator;
-    auto          moves = generator.GeneratePossibleMoves(context);
+    auto moves = generator.GeneratePossibleMoves(context);
     for (auto&& move : moves) {
         std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
     }
@@ -271,6 +274,25 @@ void AvailableMovesHelpCommand(const std::string&)
     std::ostringstream ssCommand;
     ssCommand << "show";
     std::string helpText("Prints all available moves.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+}
+
+bool AboutCommand(std::list<std::string>&, GameContext&)
+{
+    MESSAGE() << " Elephant Gambit Open Source Chess Engine 2021-2023";  // EGOSCE
+    MESSAGE() << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << "-"
+              << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX
+              << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_STR << "-"
+              << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;
+    MESSAGE() << " Source: https://github.com/looak/elephant";
+    MESSAGE() << " Author: Alexander Loodin Ek\n";
+}
+
+void AboutHelpCommand(const std::string&)
+{
+    std::ostringstream ssCommand;
+    ssCommand << "about";
+    std::string helpText("Version etc.");
     std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
