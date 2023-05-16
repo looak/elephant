@@ -125,7 +125,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 [build-badge]:          https://img.shields.io/github/actions/workflow/status/looak/elephant/build.yml?logo=github&style=for-the-badge
 [test-badge]:           https://img.shields.io/github/actions/workflow/status/looak/elephant/test.yml?label=test&logo=github&style=for-the-badge
 [license-badge]:        https://img.shields.io/github/license/looak/elephant?style=flat-square
-[release-badge]:        https://img.shields.io/github/v/tag/looak/elephant?style=flat-square
-[commits-badge]:        https://img.shields.io/github/commits-since/looak/elephant/0.2.0-alpha.1?style=flat-square
+[release-badge]:        https://img.shields.io/github/v/release/looak/elephant?style=flat-square
+[commits-badge]:        https://img.shields.io/github/commits-since/looak/elephant/latest?style=flat-square
 [commit-activity-badge]:https://img.shields.io/github/commit-activity/w/looak/elephant?style=flat-square
 
