@@ -38,15 +38,13 @@ constexpr bool slides[6] = {
     false, false, true, true, true, false,
 };
 
-constexpr signed short moves0x88[6][8] = {
-    {-16, -32, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
-    {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-    {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
+constexpr signed short moves0x88[6][8] = {{-16, -32, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
+                                          {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
+                                          {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
 
-constexpr signed short attacks0x88[6][8] = {
-    {-15, -17, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
-    {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-    {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
+constexpr signed short attacks0x88[6][8] = {{-15, -17, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
+                                            {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
+                                            {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
 
 constexpr PieceType slidingPieceTypes[3] = {PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN};
 
@@ -54,14 +52,8 @@ class ChessPieceDef {
 public:
     static inline constexpr byte MoveCount(byte pIndex) { return moveCount[pIndex]; };
     static inline constexpr bool Slides(byte pIndex) { return slides[pIndex]; }
-    static inline constexpr signed short Moves0x88(byte pIndex, byte mIndex)
-    {
-        return moves0x88[pIndex][mIndex];
-    }
-    static inline constexpr signed short Attacks0x88(byte pIndex, byte mIndex)
-    {
-        return attacks0x88[pIndex][mIndex];
-    }
+    static inline constexpr signed short Moves0x88(byte pIndex, byte mIndex) { return moves0x88[pIndex][mIndex]; }
+    static inline constexpr signed short Attacks0x88(byte pIndex, byte mIndex) { return attacks0x88[pIndex][mIndex]; }
     static inline constexpr signed short Value(byte pIndex) { return pieceValues[pIndex]; }
     static inline constexpr bool IsDiagonalMove(signed short mvValue)
     {
@@ -71,6 +63,15 @@ public:
 
 struct ChessPiece {
 public:
+    template<Set s>
+    static constexpr Set FlipSet()
+    {
+        if constexpr (s == Set::WHITE)
+            return Set::BLACK;
+        else
+            return Set::WHITE;
+    }
+
     static Set FlipSet(Set source);
     static byte FlipSet(byte source);
     static ChessPiece None() { return ChessPiece(); }

@@ -46,14 +46,14 @@ typedef signed int i32;
 
 const u64 universe = 0xffffffffffffffffULL;
 
-#define a_file 0
-#define b_file 1
-#define c_file 2
-#define d_file 3
-#define e_file 4
-#define f_file 5
-#define g_file 6
-#define h_file 7
+#define file_a 0
+#define file_b 1
+#define file_c 2
+#define file_d 3
+#define file_e 4
+#define file_f 5
+#define file_g 6
+#define file_h 7
 
 #define pawnId 0
 #define knightId 1
@@ -62,5 +62,4 @@ const u64 universe = 0xffffffffffffffffULL;
 #define queenId 4
 #define kingId 5
 
-static const std::string c_startPositionFen =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

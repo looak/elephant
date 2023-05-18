@@ -24,6 +24,7 @@
  * @author Alexander Loodin Ek    */
 #pragma once
 #include <functional>
+#include "bitboard_constants.h"
 #include "chess_piece.h"
 #include "defines.h"
 
@@ -32,10 +33,10 @@ struct Notation;
 struct MaterialMask {
     u64 material[6]{};
 
-    u64 combine() const
+    inline constexpr u64 combine() const
     {
-        return material[pawnId] | material[knightId] | material[bishopId] | material[rookId] |
-               material[queenId] | material[kingId];
+        return material[pawnId] | material[knightId] | material[bishopId] | material[rookId] | material[queenId] |
+               material[kingId];
     }
 };
 
@@ -59,9 +60,9 @@ struct KingMask {
         pawnMask = false;
     }
 
-    u64  threats[8];
+    u64 threats[8];
     bool checked[8];
-    u64  knightsAndPawns;
+    u64 knightsAndPawns;
     bool knightOrPawnCheck;
     bool pawnMask;
 
@@ -96,10 +97,17 @@ struct KingMask {
     u64 combined() const
     {
         u64 result = 0;
+        result |= combinedPins();
+        result |= knightsAndPawns;
+        return result;
+    }
+
+    constexpr u64 combinedPins() const
+    {
+        u64 result = 0;
         for (int i = 0; i < 8; ++i) {
             result |= threats[i];
         }
-        result |= knightsAndPawns;
         return result;
     }
 
@@ -112,7 +120,8 @@ struct KingMask {
     }
 };
 
-inline KingMask operator&(const KingMask& lhs, const u64& rhs)
+inline KingMask
+operator&(const KingMask& lhs, const u64& rhs)
 {
     KingMask result;
     for (int i = 0; i < 8; ++i) {
@@ -122,7 +131,8 @@ inline KingMask operator&(const KingMask& lhs, const u64& rhs)
     return result;
 }
 
-inline KingMask operator&(const KingMask& lhs, const KingMask& rhs)
+inline KingMask
+operator&(const KingMask& lhs, const KingMask& rhs)
 {
     KingMask result;
     for (int i = 0; i < 8; ++i) {
@@ -132,7 +142,8 @@ inline KingMask operator&(const KingMask& lhs, const KingMask& rhs)
     return result;
 }
 
-inline KingMask operator^(const KingMask& lhs, const KingMask& rhs)
+inline KingMask
+operator^(const KingMask& lhs, const KingMask& rhs)
 {
     KingMask result;
     for (int i = 0; i < 8; ++i) {
@@ -155,12 +166,8 @@ public:
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
-    bool IsValidMove(Notation   source,
-                     ChessPiece piece,
-                     Notation   target,
-                     byte       castling,
-                     Notation   enPassant,
-                     u64        threatenedMask) const;
+    bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, Notation enPassant,
+                     u64 threatenedMask) const;
 
     /**
      * @brief Calculate the available moves for a given chess piece on the bitboard.
@@ -175,19 +182,24 @@ public:
      * @param checked Boolean flag indicating if the piece is checked.
      * @param kingMask A bitmask representing the king's potential threats and pins.
      * @return A bitmask representing the available moves for the given chess piece.  */
-    u64 calcAvailableMoves(Notation   source,
-                           ChessPiece piece,
-                           byte       castling,
-                           Notation   enPassant,
-                           u64        threatenedMask = 0,
-                           KingMask   checkedMask = KingMask(),
-                           KingMask   kingMask = KingMask()) const;
+    u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling, Notation enPassant, u64 threatenedMask = 0,
+                           KingMask checkedMask = KingMask(), KingMask kingMask = KingMask()) const;
     u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
     u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
-    u64 GetThreatenedSquaresWithMaterial(Notation   source,
-                                         ChessPiece piece,
-                                         bool       pierceKing = false) const;
+    u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;
+
+    template<Set s>
+    u64 calcAvailableMovesPawnsBulk() const;
+
+    template<Set s>
+    u64 calcAvailableAttacksPawnsBulk() const;
+
+    template<Set s>
+    u64 calcThreatenedSquaresPawnsBulk() const;
+
+    template<Set s>
+    u64 calcPinnedPiecesBulk(KingMask kingMask) const;
 
     /**
      * @brief Calculate the king's potential threats and pins.
@@ -199,30 +211,110 @@ public:
      * @param source Position on board of the king.
      * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
      * @return A mask struct containing a seperate mask for each direction.  */
-    KingMask     calcKingMask(ChessPiece                 king,
-                              Notation                   source,
-                              const MaterialSlidingMask& opponentSlidingMask) const;
-    u64          GetMaterialCombined(Set set) const;
-    u64          GetMaterial(ChessPiece piece) const;
+    KingMask calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const;
+    u64 GetMaterialCombined(Set set) const;
+    u64 GetMaterial(ChessPiece piece) const;
     MaterialMask GetMaterial(Set set) const;
 
 private:
-    u64          MaterialCombined(byte set) const;
-    u64          MaterialCombined() const;
-    u64          SlidingMaterialCombined(byte set) const;
-    u64          Castling(byte set, byte castling, u64 threatenedMask) const;
-    u64          calcAvailableMovesForPawn(u64        mat,
-                                           u64        opMat,
-                                           Notation   source,
-                                           ChessPiece piece,
-                                           Notation   enPassant,
-                                           u64        threatenedMask,
-                                           KingMask   checkedMask,
-                                           KingMask   kingMask) const;
-    u64          calcAvailableMovesForKing(u64        mat,
-                                           u64        threatenedMask,
-                                           Notation   source,
-                                           ChessPiece piece,
-                                           byte       castling) const;
+    u64 MaterialCombined(byte set) const;
+    u64 MaterialCombined() const;
+    u64 SlidingMaterialCombined(byte set) const;
+    u64 Castling(byte set, byte castling, u64 threatenedMask) const;
+    u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, Notation enPassant, u64 threatenedMask,
+                                  KingMask checkedMask, KingMask kingMask) const;
+    u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
     MaterialMask m_material[2];
 };
+
+template<Set s>
+[[nodiscard]] u64
+shiftForwardRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb << shifts::vertical;
+    }
+    else {
+        return bb >> shifts::vertical;
+    }
+}
+
+template<Set s>
+[[nodiscard]] u64
+shiftForwardLeftRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb << shifts::backward_diagonal;
+    }
+    else {
+        return bb >> shifts::forward_diagonal;
+    }
+}
+
+template<Set s>
+[[nodiscard]] u64
+shiftForwardRightRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb << shifts::forward_diagonal;
+    }
+    else {
+        return bb >> shifts::backward_diagonal;
+    }
+}
+
+template<Set s>
+u64
+Bitboard::calcAvailableMovesPawnsBulk() const
+{
+    u64 unoccupied = ~(m_material[0].combine() | m_material[1].combine());
+    u64 piecebb = m_material[(size_t)s].material[pawnId];
+    u64 mvsbb = ~universe;
+
+    mvsbb = shiftForwardRelative<s>(piecebb);
+    u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)s] & unoccupied;
+    mvsbb |= shiftForwardRelative<s>(doublePush);
+
+    return mvsbb & unoccupied;
+}
+
+template<Set s>
+u64
+Bitboard::calcAvailableAttacksPawnsBulk() const
+{
+    Set opSet = ChessPiece::FlipSet<s>();
+
+    u64 threats = calcThreatenedSquaresPawnsBulk<s>();
+    u64 opMaterial = m_material[(size_t)opSet].combine();
+
+    return threats & opMaterial;
+}
+
+template<Set s>
+u64
+Bitboard::calcThreatenedSquaresPawnsBulk() const
+{
+    u64 piecebb = m_material[(size_t)s].material[pawnId];
+
+    // special case for a file & h file
+    u64 afilePawns = piecebb & board_constants::fileaMask;
+    piecebb &= ~afilePawns;
+    afilePawns = shiftForwardRightRelative<s>(afilePawns);
+
+    u64 hfilePawns = piecebb & board_constants::filehMask;
+    piecebb &= ~hfilePawns;
+    hfilePawns = shiftForwardLeftRelative<s>(hfilePawns);
+
+    u64 threatbb = afilePawns | hfilePawns;
+    threatbb |= shiftForwardLeftRelative<s>(piecebb);
+    threatbb |= shiftForwardRightRelative<s>(piecebb);
+
+    return threatbb;
+}
+
+template<Set s>
+u64
+Bitboard::calcPinnedPiecesBulk(KingMask kingMask) const
+{
+    return kingMask
+}
