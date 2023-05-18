@@ -477,10 +477,7 @@ Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKi
             // do move
             sq0x88 += dir;
             if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            {
-                sliding = false;
                 break;
-            }
 
             // convert our sqr0x88 back to a square index
             curSqr = fr0x88(sq0x88);

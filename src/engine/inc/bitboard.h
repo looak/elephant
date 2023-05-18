@@ -191,6 +191,13 @@ public:
 
     template<Set s>
     u64 calcAvailableMovesPawnsBulk() const;
+    template<Set s, u8 pieceId = rookId>
+    u64 calcAvailableMovesRookBulk() const;
+    template<Set s, u8 pieceId = bishopId>
+    u64 calcAvailableMovesBishopBulk() const;
+
+    template<Set s>
+    MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
 
     template<Set s>
     u64 calcAvailableAttacksPawnsBulk() const;
@@ -198,7 +205,7 @@ public:
     template<Set s>
     u64 calcThreatenedSquaresPawnsBulk() const;
 
-    template<Set s>
+    template<Set s, u8 pieceId, u8 direction>
     u64 calcPinnedPiecesBulk(KingMask kingMask) const;
 
     /**
@@ -217,6 +224,9 @@ public:
     MaterialMask GetMaterial(Set set) const;
 
 private:
+    template<Set s, u8 direction, u8 pieceId>
+    u64 internalCalcAvailableMoves(u64 bounds) const;
+
     u64 MaterialCombined(byte set) const;
     u64 MaterialCombined() const;
     u64 SlidingMaterialCombined(byte set) const;
@@ -228,8 +238,8 @@ private:
 };
 
 template<Set s>
-[[nodiscard]] u64
-shiftForwardRelative(u64 bb)
+[[nodiscard]] constexpr u64
+shiftNorthRelative(u64 bb)
 {
     if constexpr (s == Set::WHITE) {
         return bb << shifts::vertical;
@@ -238,13 +248,48 @@ shiftForwardRelative(u64 bb)
         return bb >> shifts::vertical;
     }
 }
-
 template<Set s>
-[[nodiscard]] u64
-shiftForwardLeftRelative(u64 bb)
+[[nodiscard]] constexpr u64
+shiftEastRelative(u64 bb)
 {
     if constexpr (s == Set::WHITE) {
-        return bb << shifts::backward_diagonal;
+        return bb << shifts::horizontal;
+    }
+    else {
+        return bb >> shifts::horizontal;
+    }
+}
+
+template<Set s>
+[[nodiscard]] constexpr u64
+shiftSouthRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb >> shifts::vertical;
+    }
+    else {
+        return bb << shifts::vertical;
+    }
+}
+
+template<Set s>
+[[nodiscard]] constexpr u64
+shiftWestRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb >> shifts::horizontal;
+    }
+    else {
+        return bb << shifts::horizontal;
+    }
+}
+
+template<Set s>
+[[nodiscard]] constexpr u64
+shiftNorthEastRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb << shifts::forward_diagonal;
     }
     else {
         return bb >> shifts::forward_diagonal;
@@ -252,15 +297,71 @@ shiftForwardLeftRelative(u64 bb)
 }
 
 template<Set s>
-[[nodiscard]] u64
-shiftForwardRightRelative(u64 bb)
+[[nodiscard]] constexpr u64
+shiftSouthEastRelative(u64 bb)
 {
     if constexpr (s == Set::WHITE) {
+        return bb >> shifts::backward_diagonal;
+    }
+    else {
+        return bb << shifts::backward_diagonal;
+    }
+}
+
+template<Set s>
+[[nodiscard]] constexpr u64
+shiftSouthWestRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb >> shifts::forward_diagonal;
+    }
+    else {
         return bb << shifts::forward_diagonal;
+    }
+}
+
+template<Set s>
+[[nodiscard]] constexpr u64
+shiftNorthWestRelative(u64 bb)
+{
+    if constexpr (s == Set::WHITE) {
+        return bb << shifts::backward_diagonal;
     }
     else {
         return bb >> shifts::backward_diagonal;
     }
+}
+
+template<Set s, u8 direction>
+[[nodiscard]] constexpr u64
+shiftRelative(u64 bb)
+{
+    if constexpr (direction == north) {
+        return shiftNorthRelative<s>(bb);
+    }
+    else if constexpr (direction == east) {
+        return shiftEastRelative<s>(bb);
+    }
+    else if constexpr (direction == south) {
+        return shiftSouthRelative<s>(bb);
+    }
+    else if constexpr (direction == west) {
+        return shiftWestRelative<s>(bb);
+    }
+    else if constexpr (direction == northeast) {
+        return shiftNorthEastRelative<s>(bb);
+    }
+    else if constexpr (direction == southeast) {
+        return shiftSouthEastRelative<s>(bb);
+    }
+    else if constexpr (direction == southwest) {
+        return shiftSouthWestRelative<s>(bb);
+    }
+    else if constexpr (direction == northwest) {
+        return shiftNorthWestRelative<s>(bb);
+    }
+
+    FATAL_ASSERT(false) << "Invalid direction";
 }
 
 template<Set s>
@@ -271,11 +372,72 @@ Bitboard::calcAvailableMovesPawnsBulk() const
     u64 piecebb = m_material[(size_t)s].material[pawnId];
     u64 mvsbb = ~universe;
 
-    mvsbb = shiftForwardRelative<s>(piecebb);
+    mvsbb = shiftNorthRelative<s>(piecebb);
     u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)s] & unoccupied;
-    mvsbb |= shiftForwardRelative<s>(doublePush);
+    mvsbb |= shiftNorthRelative<s>(doublePush);
 
     return mvsbb & unoccupied;
+}
+
+template<Set s, u8 direction, u8 pieceId>
+u64
+Bitboard::internalCalcAvailableMoves(u64 bounds) const
+{
+    const u64 piecebb = m_material[(size_t)s].material[pieceId];
+    const u64 materialbb = m_material[(size_t)s].combine();
+
+    const Set opSet = ChessPiece::FlipSet<s>();
+    const u64 opMaterial = m_material[(size_t)opSet].combine();
+
+    bounds |= opMaterial;
+
+    u64 bbCopy = piecebb;
+    u64 moves = 0;
+    do {
+        u64 purge = bbCopy & bounds;
+        bbCopy &= ~purge;
+
+        bbCopy = shiftRelative<s, direction>(bbCopy);
+        bbCopy ^= (materialbb & bbCopy);
+        moves |= bbCopy;
+
+    } while (bbCopy > 0);
+
+    return moves;
+}
+
+template<Set s, u8 pieceId>
+u64
+Bitboard::calcAvailableMovesRookBulk() const
+{
+    u64 moves = 0;
+    u64 bounds = board_constants::boundsRelativeMasks[(size_t)s][north];
+    moves |= internalCalcAvailableMoves<s, north, pieceId>(bounds);
+
+    bounds = board_constants::boundsRelativeMasks[(size_t)s][east];
+    moves |= internalCalcAvailableMoves<s, east, pieceId>(bounds);
+
+    bounds = board_constants::boundsRelativeMasks[(size_t)s][south];
+    moves |= internalCalcAvailableMoves<s, south, pieceId>(bounds);
+
+    bounds = board_constants::boundsRelativeMasks[(size_t)s][west];
+    moves |= internalCalcAvailableMoves<s, west, pieceId>(bounds);
+    return moves;
+}
+
+template<Set s, u8 pieceId>
+u64
+Bitboard::calcAvailableMovesBishopBulk() const
+{
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
+
+    u64 moves = 0;
+    moves |= internalCalcAvailableMoves<s, northeast, pieceId>(bounds[north] | bounds[east]);
+    moves |= internalCalcAvailableMoves<s, southeast, pieceId>(bounds[south] | bounds[east]);
+    moves |= internalCalcAvailableMoves<s, southwest, pieceId>(bounds[south] | bounds[west]);
+    moves |= internalCalcAvailableMoves<s, northwest, pieceId>(bounds[north] | bounds[west]);
+
+    return moves;
 }
 
 template<Set s>
@@ -297,24 +459,44 @@ Bitboard::calcThreatenedSquaresPawnsBulk() const
     u64 piecebb = m_material[(size_t)s].material[pawnId];
 
     // special case for a file & h file
-    u64 afilePawns = piecebb & board_constants::fileaMask;
+    u64 afilePawns = piecebb & board_constants::boundsRelativeMasks[(size_t)s][west];
     piecebb &= ~afilePawns;
-    afilePawns = shiftForwardRightRelative<s>(afilePawns);
+    afilePawns = shiftNorthEastRelative<s>(afilePawns);
 
-    u64 hfilePawns = piecebb & board_constants::filehMask;
+    u64 hfilePawns = piecebb & board_constants::boundsRelativeMasks[(size_t)s][east];
     piecebb &= ~hfilePawns;
-    hfilePawns = shiftForwardLeftRelative<s>(hfilePawns);
+    hfilePawns = shiftNorthWestRelative<s>(hfilePawns);
 
     u64 threatbb = afilePawns | hfilePawns;
-    threatbb |= shiftForwardLeftRelative<s>(piecebb);
-    threatbb |= shiftForwardRightRelative<s>(piecebb);
+    threatbb |= shiftNorthWestRelative<s>(piecebb);
+    threatbb |= shiftNorthEastRelative<s>(piecebb);
 
     return threatbb;
 }
 
-template<Set s>
+template<Set s, u8 pieceId, u8 direction>
 u64
 Bitboard::calcPinnedPiecesBulk(KingMask kingMask) const
 {
-    return kingMask
+    return kingMask.threats[direction] & m_material[(size_t)s].material[pieceId];
+}
+
+template<Set s>
+MaterialSlidingMask
+Bitboard::calcMaterialSlidingMasksBulk() const
+{
+    u64 orthogonal = ~universe;
+    u64 diagonal = ~universe;
+
+    diagonal |= calcAvailableMovesBishopBulk<s>();
+    diagonal |= calcAvailableMovesBishopBulk<s, queenId>();
+
+    orthogonal |= calcAvailableMovesRookBulk<s>();
+    orthogonal |= calcAvailableMovesRookBulk<s, queenId>();
+
+    // add material
+    diagonal |= m_material[(size_t)s].material[bishopId] | m_material[(size_t)s].material[queenId];
+    orthogonal |= m_material[(size_t)s].material[rookId] | m_material[(size_t)s].material[queenId];
+
+    return {orthogonal, diagonal};
 }

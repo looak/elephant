@@ -1,4 +1,4 @@
-﻿// Elephant Gambit Chess Engine - a Chess AI
+// Elephant Gambit Chess Engine - a Chess AI
 // Copyright(C) 2021  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
@@ -61,5 +61,15 @@ const u64 universe = 0xffffffffffffffffULL;
 #define rookId 3
 #define queenId 4
 #define kingId 5
+
+#define north 0
+#define east 1
+#define south 2
+#define west 3
+
+#define northeast 4
+#define southeast 5
+#define southwest 6
+#define northwest 7
 
 static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

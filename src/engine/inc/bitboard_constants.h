@@ -3,12 +3,12 @@
 #include "defines.h"
 
 namespace shifts {
+static constexpr u64 horizontal = 1;
 static constexpr u64 vertical = 8;
 /**
  * Naming comes from forward slash and backslash relative to the set */
 static constexpr u64 forward_diagonal = 9;
 static constexpr u64 backward_diagonal = 7;
-
 }  // namespace shifts
 
 namespace board_constants {
@@ -30,16 +30,30 @@ static constexpr u64 filefMask = UINT64_C(0x2020202020202020);
 static constexpr u64 filegMask = UINT64_C(0x4040404040404040);
 static constexpr u64 filehMask = UINT64_C(0x8080808080808080);
 
+static constexpr u64 forwardDiagonalMasks[15] = {0x0100000000000000, 0x0201000000000000, 0x0402010000000000, 0x0804020100000000,
+                                                 0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
+                                                 0x0080402010080402, 0x0000804020100804, 0x0000008040201008, 0x0000000080402010,
+                                                 0x0000000000804020, 0x0000000000008040, 0x0000000000000080};
+
+static constexpr u64 backwardDiagonalMasks[15] = {
+    0x0000000000000001, 0x0000000000000102, 0x0000000000010204, 0x0000000001020408, 0x0000000102040810,
+    0x0000010204081020, 0x0001020408102040, 0x0102040810204080, 0x0204081020408000, 0x0408102040800000,
+    0x0810204080000000, 0x1020408000000000, 0x2040800000000000, 0x4080000000000000, 0x8000000000000000,
+};
+
 static constexpr u64 darkSquares = UINT64_C(0xAA55AA55AA55AA55);
 static constexpr u64 lightSquares = UINT64_C(0x55AA55AA55AA55AA);
 
 static constexpr u64 rankMasks[8] = {rank0Mask, rank1Mask, rank2Mask, rank3Mask, rank4Mask, rank5Mask, rank6Mask, rank7Mask};
 
 static constexpr u64 fileMasks[8] = {fileaMask, filebMask, filecMask, filedMask, fileeMask, filefMask, filegMask, filehMask};
+
+static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Mask, fileaMask},
+                                                  {rank0Mask, fileaMask, rank7Mask, filehMask}};
+
 }  // namespace board_constants
 
 namespace pawn_constants {
-static constexpr u64 attacks = UINT64_C(0x5);
 static constexpr u64 baseRank[2] = {board_constants::rank2Mask, board_constants::rank5Mask};
 }  // namespace pawn_constants
 
