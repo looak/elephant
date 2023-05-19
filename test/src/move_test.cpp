@@ -995,8 +995,7 @@ TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecaus
     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
 
     EXPECT_EQ(7, moves.size());
-    auto itr = std::find_if(moves.begin(), moves.end(),
-                            [](const Move& mv) { return mv.Piece == BLACKPAWN; });
+    auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.Piece == BLACKPAWN; });
 
     EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
 }
@@ -1025,8 +1024,7 @@ TEST_F(MoveFixture, PinnedQueen_White_CanNotMoveQueen)
     auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
 
     EXPECT_EQ(6, moves.size());
-    auto itr = std::find_if(moves.begin(), moves.end(),
-                            [](const Move& mv) { return mv.Piece == WHITEQUEEN; });
+    auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.Piece == WHITEQUEEN; });
     EXPECT_EQ(moves.end(), itr);
 }
 
@@ -1059,6 +1057,17 @@ TEST_F(MoveFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
 
     EXPECT_EQ(15, moves.size());
+}
+
+TEST_F(MoveFixture, KingMoves_Black_ThreatenedSquaresAndCapture)
+{
+    m_chessboard.PlacePiece(BLACKKING, d5);
+    m_chessboard.PlacePiece(WHITEROOK, e6);
+
+    auto moves = m_chessboard.calcAvailableMoves<Set::BLACK, Set::WHITE>();
+
+    u16 expectedMoves = 4;
+    EXPECT_EQ(expectedMoves, moves.size());
 }
 
 }  // namespace ElephantTest

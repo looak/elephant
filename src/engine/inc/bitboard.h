@@ -27,6 +27,7 @@
 #include "bitboard_constants.h"
 #include "chess_piece.h"
 #include "defines.h"
+#include "intrinsics.hpp"
 
 struct Notation;
 
@@ -162,12 +163,20 @@ public:
     Bitboard();
     Bitboard& operator=(const Bitboard& other);
 
+    /* Material Manpulators and readers */
+
     void Clear();
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
     bool IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, Notation enPassant,
                      u64 threatenedMask) const;
+
+    template<Set s>
+    u64 readCombinedMaterial() const;
+
+    template<Set s>
+    MaterialMask readMaterial() const;
 
     /**
      * @brief Calculate the available moves for a given chess piece on the bitboard.
@@ -184,17 +193,24 @@ public:
      * @return A bitmask representing the available moves for the given chess piece.  */
     u64 calcAvailableMoves(Notation source, ChessPiece piece, byte castling, Notation enPassant, u64 threatenedMask = 0,
                            KingMask checkedMask = KingMask(), KingMask kingMask = KingMask()) const;
-    u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
+    u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
     u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
-    u64 GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing = false) const;
 
     template<Set s>
     u64 calcAvailableMovesPawnsBulk() const;
+    template<Set s>
+    u64 calcAvailableMovesKnightBulk() const;
     template<Set s, u8 pieceId = rookId>
     u64 calcAvailableMovesRookBulk() const;
     template<Set s, u8 pieceId = bishopId>
     u64 calcAvailableMovesBishopBulk() const;
+    template<Set s>
+    u64 calcAvailableMovesQueenBulk() const;
+    template<Set us, Set op = opposing_set<us>()>
+    u64 calcAvailableMovesKingBulk() const;
+    template<Set s>
+    u64 calcAvailableMoves() const;
 
     template<Set s>
     MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
@@ -204,6 +220,23 @@ public:
 
     template<Set s>
     u64 calcThreatenedSquaresPawnsBulk() const;
+    template<Set s>
+    u64 calcThreatenedSquaresKnightBulk() const;
+    template<Set s, u8 pieceId = bishopId>
+    u64 calcThreatenedSquaresBishopBulk() const;
+    template<Set s, u8 pieceId = rookId>
+    u64 calcThreatenedSquaresRookBulk() const;
+    template<Set s>
+    u64 calcThreatenedSquaresQueensBulk() const;
+    template<Set s>
+    u64 calcThreatenedSquaresKingBulk() const;
+    template<Set s, bool includeMaterial, bool pierceKing = false>
+    u64 calcThreatenedSquares() const;
+
+    template<Set s, bool includeMaterial, bool pierceKing = false>
+    u64 calcThreatenedSquaresDiagonal() const;
+    template<Set s, bool includeMaterial, bool pierceKing = false>
+    u64 calcThreatenedSquaresOrthogonal() const;
 
     template<Set s, u8 pieceId, u8 direction>
     u64 calcPinnedPiecesBulk(KingMask kingMask) const;
@@ -234,7 +267,7 @@ private:
     u64 calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, Notation enPassant, u64 threatenedMask,
                                   KingMask checkedMask, KingMask kingMask) const;
     u64 calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const;
-    MaterialMask m_material[2];
+    mutable MaterialMask m_material[2];
 };
 
 template<Set s>
@@ -366,6 +399,25 @@ shiftRelative(u64 bb)
 
 template<Set s>
 u64
+Bitboard::readCombinedMaterial() const
+{
+    return readMaterial<s>().combine();
+}
+
+template<Set s>
+MaterialMask
+Bitboard::readMaterial() const
+{
+    if constexpr (s == Set::WHITE) {
+        return m_material[0];
+    }
+    else {
+        return m_material[1];
+    }
+}
+
+template<Set s>
+u64
 Bitboard::calcAvailableMovesPawnsBulk() const
 {
     u64 unoccupied = ~(m_material[0].combine() | m_material[1].combine());
@@ -384,8 +436,7 @@ u64
 Bitboard::internalCalcAvailableMoves(u64 bounds) const
 {
     const u64 piecebb = m_material[(size_t)s].material[pieceId];
-    const u64 materialbb = m_material[(size_t)s].combine();
-
+    const u64 materialbb = readCombinedMaterial<s>();
     const Set opSet = ChessPiece::FlipSet<s>();
     const u64 opMaterial = m_material[(size_t)opSet].combine();
 
@@ -398,11 +449,59 @@ Bitboard::internalCalcAvailableMoves(u64 bounds) const
         bbCopy &= ~purge;
 
         bbCopy = shiftRelative<s, direction>(bbCopy);
-        bbCopy ^= (materialbb & bbCopy);
         moves |= bbCopy;
+        bbCopy ^= (materialbb & bbCopy);
 
     } while (bbCopy > 0);
 
+    return moves;
+}
+
+template<Set s>
+u64
+Bitboard::calcAvailableMovesKnightBulk() const
+{
+    u64 result = 0;
+    const u64 knights = readMaterial<s>().material[knightId];
+    if (knights == 0)
+        return result;  // early out
+
+    const u8 moveCount = ChessPieceDef::MoveCount(knightId);
+
+    for (u8 moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
+        const u16 dir = ChessPieceDef::Attacks0x88(knightId, moveIndx);
+
+        u64 knightsCopy = knights;
+        while (knightsCopy > 0) {
+            byte curSqr = intrinsics::lsbIndex(knightsCopy);
+            knightsCopy = intrinsics::resetLsb(knightsCopy);
+            // build a 0x88 square out of current square.
+            signed char sq0x88 = to0x88(curSqr);
+            // do move
+            sq0x88 += dir;
+            if (sq0x88 & 0x88)  // validate move, are we still on the board?
+                break;
+
+            // convert our sqr0x88 back to a square index
+            curSqr = fr0x88(sq0x88);
+            // build a square mask from current square
+            u64 sqrMask = squareMaskTable[curSqr];
+            result |= sqrMask;
+        }
+    }
+
+    return result;
+}
+
+template<Set s, u8 pieceId>
+u64
+Bitboard::calcAvailableMovesBishopBulk() const
+{
+    const u64 materialbb = m_material[(size_t)s].combine();
+
+    u64 moves = calcThreatenedSquaresBishopBulk<s, pieceId>();
+
+    moves ^= (materialbb & moves);
     return moves;
 }
 
@@ -410,33 +509,32 @@ template<Set s, u8 pieceId>
 u64
 Bitboard::calcAvailableMovesRookBulk() const
 {
-    u64 moves = 0;
-    u64 bounds = board_constants::boundsRelativeMasks[(size_t)s][north];
-    moves |= internalCalcAvailableMoves<s, north, pieceId>(bounds);
+    const u64 materialbb = m_material[(size_t)s].combine();
 
-    bounds = board_constants::boundsRelativeMasks[(size_t)s][east];
-    moves |= internalCalcAvailableMoves<s, east, pieceId>(bounds);
+    u64 moves = calcThreatenedSquaresRookBulk<s, pieceId>();
 
-    bounds = board_constants::boundsRelativeMasks[(size_t)s][south];
-    moves |= internalCalcAvailableMoves<s, south, pieceId>(bounds);
-
-    bounds = board_constants::boundsRelativeMasks[(size_t)s][west];
-    moves |= internalCalcAvailableMoves<s, west, pieceId>(bounds);
+    moves ^= (materialbb & moves);
     return moves;
 }
 
-template<Set s, u8 pieceId>
+template<Set s>
 u64
-Bitboard::calcAvailableMovesBishopBulk() const
+Bitboard::calcAvailableMovesQueenBulk() const
 {
-    const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
-
     u64 moves = 0;
-    moves |= internalCalcAvailableMoves<s, northeast, pieceId>(bounds[north] | bounds[east]);
-    moves |= internalCalcAvailableMoves<s, southeast, pieceId>(bounds[south] | bounds[east]);
-    moves |= internalCalcAvailableMoves<s, southwest, pieceId>(bounds[south] | bounds[west]);
-    moves |= internalCalcAvailableMoves<s, northwest, pieceId>(bounds[north] | bounds[west]);
+    moves |= calcAvailableMovesBishopBulk<s, queenId>();
+    moves |= calcAvailableMovesRookBulk<s, queenId>();
+    return moves;
+}
 
+template<Set us, Set op>
+u64
+Bitboard::calcAvailableMovesKingBulk() const
+{
+    bool constexpr includeMaterial = false;
+    u64 treatened = calcThreatenedSquares<op, includeMaterial>();
+    u64 moves = calcThreatenedSquaresKingBulk<us>();
+    moves &= ~treatened;
     return moves;
 }
 
@@ -472,6 +570,174 @@ Bitboard::calcThreatenedSquaresPawnsBulk() const
     threatbb |= shiftNorthEastRelative<s>(piecebb);
 
     return threatbb;
+}
+
+template<Set s>
+u64
+Bitboard::calcThreatenedSquaresKnightBulk() const
+{
+    return calcAvailableMovesKnightBulk<s>();
+}
+
+template<Set s, u8 pieceId>
+u64
+Bitboard::calcThreatenedSquaresBishopBulk() const
+{
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
+
+    u64 moves = 0;
+    moves |= internalCalcAvailableMoves<s, northeast, pieceId>(bounds[north] | bounds[east]);
+    moves |= internalCalcAvailableMoves<s, southeast, pieceId>(bounds[south] | bounds[east]);
+    moves |= internalCalcAvailableMoves<s, southwest, pieceId>(bounds[south] | bounds[west]);
+    moves |= internalCalcAvailableMoves<s, northwest, pieceId>(bounds[north] | bounds[west]);
+
+    return moves;
+}
+
+template<Set s, u8 pieceId>
+u64
+Bitboard::calcThreatenedSquaresRookBulk() const
+{
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
+
+    u64 moves = 0;
+    moves |= internalCalcAvailableMoves<s, north, pieceId>(bounds[north]);
+    moves |= internalCalcAvailableMoves<s, east, pieceId>(bounds[east]);
+    moves |= internalCalcAvailableMoves<s, south, pieceId>(bounds[south]);
+    moves |= internalCalcAvailableMoves<s, west, pieceId>(bounds[west]);
+
+    return moves;
+}
+
+template<Set s>
+u64
+Bitboard::calcThreatenedSquaresQueensBulk() const
+{
+    u64 moves = 0;
+
+    moves |= calcThreatenedSquaresRookBulk<s, queenId>();
+    moves |= calcThreatenedSquaresBishopBulk<s, queenId>();
+
+    return moves;
+}
+
+template<Set s>
+u64
+Bitboard::calcThreatenedSquaresKingBulk() const
+{
+    size_t setIndx = (size_t)s;
+    u64 moves = 0;
+    const u64 kingSqrMask = m_material[setIndx].material[kingId];
+    if (kingSqrMask == 0)
+        return moves;
+
+    const i32 kingSqr = intrinsics::lsbIndex(kingSqrMask);
+
+    i32 newKingSqr = kingSqr - king_constants::maskOffset;
+
+    if (newKingSqr >= 0) {
+        moves = (king_constants::moveMask << newKingSqr);
+    }
+    else if (newKingSqr < 0) {
+        moves = (king_constants::moveMask >> -newKingSqr);
+    }
+
+    // clean up opposing side
+    if (kingSqrMask & board_constants::fileaMask)
+        moves ^= (moves & board_constants::filehMask);
+    else if (kingSqrMask & board_constants::filehMask)
+        moves ^= (moves & board_constants::fileaMask);
+
+    return moves;
+}
+
+template<Set s, bool includeMaterial, bool pierceKing>
+u64
+Bitboard::calcThreatenedSquares() const
+{
+    u64 result = ~universe;
+
+    [[maybe_unused]] u64 kingMask = 0;
+
+    // removing king from opmaterial so it doesn't stop our sliding.
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        kingMask = m_material[(size_t)opSet].material[kingId];
+        m_material[(size_t)opSet].material[kingId] = 0;
+    }
+
+    result |= calcThreatenedSquaresPawnsBulk<s>();
+    result |= calcAvailableMovesKnightBulk<s>();
+    result |= calcThreatenedSquaresBishopBulk<s>();
+    result |= calcThreatenedSquaresBishopBulk<s, queenId>();
+    result |= calcThreatenedSquaresRookBulk<s>();
+    result |= calcThreatenedSquaresRookBulk<s, queenId>();
+    result |= calcThreatenedSquaresKingBulk<s>();
+
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        m_material[(size_t)opSet].material[kingId] = kingMask;
+    }
+
+    if constexpr (includeMaterial)
+        result |= m_material[(size_t)s].combine();
+
+    return result;
+}
+
+template<Set s, bool includeMaterial, bool pierceKing>
+u64
+Bitboard::calcThreatenedSquaresDiagonal() const
+{
+    u64 result = ~universe;
+    [[maybe_unused]] u64 kingMask = 0;
+
+    // removing king from opmaterial so it doesn't stop our sliding.
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        kingMask = m_material[(size_t)opSet].material[kingId];
+        m_material[(size_t)opSet].material[kingId] = 0;
+    }
+
+    result |= calcThreatenedSquaresBishopBulk<s>();
+    result |= calcThreatenedSquaresBishopBulk<s, queenId>();
+
+    if constexpr (includeMaterial)
+        result |= m_material[(size_t)s].material[queenId] | m_material[(size_t)s].material[bishopId];
+
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        m_material[(size_t)opSet].material[kingId] = kingMask;
+    }
+
+    return result;
+}
+template<Set s, bool includeMaterial, bool pierceKing>
+u64
+Bitboard::calcThreatenedSquaresOrthogonal() const
+{
+    u64 result = ~universe;
+    [[maybe_unused]] u64 kingMask = 0;
+
+    // removing king from opmaterial so it doesn't stop our sliding.
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        kingMask = m_material[(size_t)opSet].material[kingId];
+        m_material[(size_t)opSet].material[kingId] = 0;
+    }
+
+    result |= calcThreatenedSquaresRookBulk<s>();
+    result |= calcThreatenedSquaresRookBulk<s, queenId>();
+
+    if constexpr (includeMaterial)
+        result |= m_material[(size_t)s].material[queenId] | m_material[(size_t)s].material[rookId];
+
+    if constexpr (pierceKing) {
+        Set opSet = ChessPiece::FlipSet<s>();
+        m_material[(size_t)opSet].material[kingId] = kingMask;
+    }
+
+    return result;
 }
 
 template<Set s, u8 pieceId, u8 direction>

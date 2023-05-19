@@ -57,6 +57,11 @@ namespace pawn_constants {
 static constexpr u64 baseRank[2] = {board_constants::rank2Mask, board_constants::rank5Mask};
 }  // namespace pawn_constants
 
+namespace king_constants {
+static constexpr u64 moveMask = UINT64_C(0x70507);
+static constexpr i32 maskOffset = 9;
+}  // namespace king_constants
+
 constexpr std::array<u64, 64>
 generateSquareLookupTable()
 {

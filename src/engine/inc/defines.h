@@ -1,4 +1,4 @@
-// Elephant Gambit Chess Engine - a Chess AI
+﻿// Elephant Gambit Chess Engine - a Chess AI
 // Copyright(C) 2021  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
@@ -36,7 +36,7 @@ constexpr bool is_amd64_x86 =
 
 typedef unsigned char byte;
 typedef unsigned char u8;
-typedef signed short u16;
+typedef std::uint16_t u16;
 typedef unsigned int u32;
 typedef std::uint64_t u64;
 typedef signed char i8;
@@ -45,6 +45,9 @@ typedef signed long long i64;
 typedef signed int i32;
 
 const u64 universe = 0xffffffffffffffffULL;
+
+#define to0x88(sqr) sqr + (sqr & ~7)
+#define fr0x88(sq0x88) (sq0x88 + (sq0x88 & 7)) >> 1
 
 #define file_a 0
 #define file_b 1

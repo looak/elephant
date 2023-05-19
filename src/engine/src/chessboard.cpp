@@ -924,15 +924,10 @@ Chessboard::calculateThreatenedMask(Set set) const
 {
     u64 mask = ~universe;
 
-    for (u32 pieceIndex = 0; pieceIndex < pieceIndexMax; ++pieceIndex) {
-        ChessPiece cp(set, (PieceType)(pieceIndex + 1));
-        u64 positions = m_material[cp.set()].readPieceBitboard(pieceIndex);
-        while (positions > 0) {
-            u32 sqr = m_material[cp.set()].readNextPiece(positions);
-            u64 threatMask = m_bitboard.calcThreatenedSquares(Notation(sqr), cp, true);
-            mask |= threatMask;
-        }
-    }
+    if (set == Set::WHITE)
+        mask = m_bitboard.calcThreatenedSquares<Set::WHITE, true>();
+    else
+        mask = m_bitboard.calcThreatenedSquares<Set::BLACK, true>();
 
     return mask;
 }
@@ -966,7 +961,14 @@ std::vector<Move>
 Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
 {
     Set opSet = ChessPiece::FlipSet(currentSet);
-    u64 threatenedMask = calculateThreatenedMask(opSet);
+    u64 threatenedMask = 0;
+
+    constexpr bool includeMaterial = false;
+    constexpr bool pierceKing = true;
+    if (opSet == Set::WHITE)
+        threatenedMask = m_bitboard.calcThreatenedSquares<Set::WHITE, includeMaterial, pierceKing>();
+    else
+        threatenedMask = m_bitboard.calcThreatenedSquares<Set::BLACK, includeMaterial, pierceKing>();
 
     int chkCount = 0;
     KingMask kingMask = calcKingMask(currentSet);
@@ -982,7 +984,8 @@ Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
         // remove en passant target from material
         ChessPiece pawn(opSet, PieceType::PAWN);
         m_bitboard.ClearPiece(pawn, m_enPassantTarget);
-        pawnKingMask = calcKingMask<false>(currentSet);
+        constexpr bool useCache = false;
+        pawnKingMask = calcKingMask<useCache>(currentSet);
         chkCount = 0;
         pawnCheckedMask = pawnKingMask.checkedMask(chkCount);
         pawnKingMask ^= pawnCheckedMask;
@@ -1239,3 +1242,45 @@ Chessboard::calculateEndGameCoeficient() const
 
     return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
 }
+
+template<Set us, Set op, bool captureMoves>
+std::vector<PackedMove>
+Chessboard::calcAvailableMoves()
+{
+    std::vector<PackedMove> moves;
+    // constexpr bool includeMaterial = false;
+    // constexpr bool pierceKing = true;
+    // u64 threatendMask = m_bitboard.calcThreatenedSquares<op, includeMaterial, pierceKing>();
+
+    const u64 opMaterial = m_bitboard.readCombinedMaterial<op>();
+
+    KingMask kingMask = calcKingMask(us);
+    u64 movesbb = m_bitboard.calcAvailableMovesKingBulk<us, op>();
+
+    if constexpr (captureMoves) {
+        movesbb &= opMaterial;
+    }
+
+    if (movesbb == 0)
+        return std::vector<PackedMove>();
+
+    i32 srcSqr = intrinsics::lsbIndex(movesbb);
+
+    while (movesbb != 0) {
+        i32 dstSqr = intrinsics::lsbIndex(movesbb);
+        movesbb = intrinsics::resetLsb(movesbb);
+
+        PackedMove move;
+        move.setSource(srcSqr);
+        move.setTarget(dstSqr);
+
+        moves.push_back(move);
+    }
+
+    return moves;
+}
+
+template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, false>();
+template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, true>();
+template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, false>();
+template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, true>();

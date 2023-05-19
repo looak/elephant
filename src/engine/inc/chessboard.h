@@ -25,6 +25,7 @@
 #include "notation.h"
 
 struct Move;
+struct PackedMove;
 
 // enum ChessboardPrint
 // {
@@ -151,12 +152,11 @@ public:
      * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */
     float calculateEndGameCoeficient() const;
 
-    std::vector<Move> GetAvailableMoves(Notation source,
-                                        ChessPiece piece,
-                                        u64 threatenedMask,
-                                        KingMask checkedMask,
-                                        KingMask kingMask,
-                                        bool captureMoves = false) const;
+    std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask,
+                                        KingMask kingMask, bool captureMoves = false) const;
+
+    template<Set us, Set opponent, bool captureMoves = false>
+    std::vector<PackedMove> calcAvailableMoves();
 
     /**
      * Calculates the available legal moves for the specified set.
@@ -169,7 +169,8 @@ public:
     /**
      * @brief Calculates a bitboard which shows opponents available moves, i.e.
      * threatened squares.
-     * @param set The set to calculate the threat against.     */
+     * @param set The set to calculate the threat against.
+     * Should be removed!*/
     u64 calculateThreatenedMask(Set set) const;
 
     /**
@@ -184,8 +185,7 @@ public:
     template<typename T, bool isConst = false>
     class ChessboardIterator {
         friend class Chessboard;
-        using reference =
-            typename std::conditional_t<isConst, const ChessboardTile&, ChessboardTile&>;
+        using reference = typename std::conditional_t<isConst, const ChessboardTile&, ChessboardTile&>;
 
     public:
         ChessboardIterator(const ChessboardIterator& other) :
@@ -302,16 +302,10 @@ private:
 
     bool UpdateEnPassant(Notation source, Notation target);
     void InternalMakeMove(Notation source, Notation target);
-    void InternalUnmakeMove(Notation source,
-                            Notation target,
-                            ChessPiece pieceToRmv,
-                            ChessPiece pieceToAdd);
+    void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
-    std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece,
-                                                                u64 threatenedMask,
-                                                                KingMask kingMask,
-                                                                KingMask checkedMask,
-                                                                bool captureMoves) const;
+    std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
+                                                                KingMask checkedMask, bool captureMoves) const;
 
     ChessboardTile& get(Notation position) { return editTile(position); }
     const ChessboardTile& get(Notation position) const { return readTile(position); }
@@ -346,27 +340,29 @@ private:
 };
 
 template<typename T, bool isConst>
-bool Chessboard::ChessboardIterator<T, isConst>::operator==(
-    const ChessboardIterator<T, isConst>& rhs) const
+bool
+Chessboard::ChessboardIterator<T, isConst>::operator==(const ChessboardIterator<T, isConst>& rhs) const
 {
     return &m_chessboard == &rhs.m_chessboard && m_position == rhs.m_position;
 }
 
 template<typename T, bool isConst>
-bool Chessboard::ChessboardIterator<T, isConst>::operator!=(
-    const ChessboardIterator<T, isConst>& rhs) const
+bool
+Chessboard::ChessboardIterator<T, isConst>::operator!=(const ChessboardIterator<T, isConst>& rhs) const
 {
     return !(*this == rhs);
 }
 
 template<typename T, bool isConst>
-bool Chessboard::ChessboardIterator<T, isConst>::end() const
+bool
+Chessboard::ChessboardIterator<T, isConst>::end() const
 {
     return m_index >= 64;
 }
 
 template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator++()
+Chessboard::ChessboardIterator<T, isConst>&
+Chessboard::ChessboardIterator<T, isConst>::operator++()
 {
     if (end())
         return *this;
@@ -376,8 +372,8 @@ Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, is
 }
 
 template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isConst>::operator++(
-    int)
+Chessboard::ChessboardIterator<T, isConst>
+Chessboard::ChessboardIterator<T, isConst>::operator++(int)
 {
     ChessboardIterator itr(*this);
     ++(*this);
@@ -385,8 +381,8 @@ Chessboard::ChessboardIterator<T, isConst> Chessboard::ChessboardIterator<T, isC
 }
 
 template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>& Chessboard::ChessboardIterator<T, isConst>::operator+=(
-    int incre)
+Chessboard::ChessboardIterator<T, isConst>&
+Chessboard::ChessboardIterator<T, isConst>::operator+=(int incre)
 {
     int temp_index = static_cast<int>(m_index);
     int result = temp_index + incre;

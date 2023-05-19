@@ -14,50 +14,54 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include "defines.h"
-#include "chess_piece.h"
-#include "notation.h"
 #include <vector>
+#include "chess_piece.h"
+#include "defines.h"
+#include "notation.h"
 
-enum MoveFlag : byte
-{
+enum MoveFlag : byte {
     Zero = 0,
     Capture = 1,
     Promotion = 2,
     Castle = 4,
     Check = 8,
-    EnPassant = 16,    
+    EnPassant = 16,
     Checkmate = 32,
-	Ambiguous = 64, // Used for disambiguation of moves
+    Ambiguous = 64,  // Used for disambiguation of moves
     Invalid = 128
 };
 
-inline MoveFlag operator|(MoveFlag a, MoveFlag b)
+inline MoveFlag
+operator|(MoveFlag a, MoveFlag b)
 {
     return static_cast<MoveFlag>(static_cast<byte>(a) | static_cast<byte>(b));
 }
 
-inline MoveFlag operator&(MoveFlag a, MoveFlag b)
+inline MoveFlag
+operator&(MoveFlag a, MoveFlag b)
 {
     return static_cast<MoveFlag>(static_cast<byte>(a) & static_cast<byte>(b));
 }
 
-inline MoveFlag& operator|=(MoveFlag& a, MoveFlag b) 
-{ 
+inline MoveFlag&
+operator|=(MoveFlag& a, MoveFlag b)
+{
     a = a | b;
     return a;
 }
 
-inline MoveFlag& operator&=(MoveFlag& a, MoveFlag b)
+inline MoveFlag&
+operator&=(MoveFlag& a, MoveFlag b)
 {
-	a = a & b;
-	return a;
+    a = a & b;
+    return a;
 }
 
-inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
+inline MoveFlag&
+operator^=(MoveFlag& a, MoveFlag b)
 {
-	a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
-	return a;
+    a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
+    return a;
 }
 
 /**
@@ -70,7 +74,7 @@ inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
  * bit 2 & 3 are special cases
  * during promotions bit 2 & 3 represent the promotion type
  * with typeIndex - 2, i.e. knight 0, bishop 1, rook 2 and queen 3
- * 
+ *
  * Move Type Encoding:
  * -------------------
  *         bit 16 bit 15 bit 14 bit 13
@@ -92,79 +96,83 @@ inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
  *    15     1      1      1      1      Queen-promo capture
  * ------------------------------------------------       */
 
-const int c_sourceSquareConstant = 0x3F;
-const int c_targetSquareConstant = 0xfc0;
+constexpr int c_sourceSquareConstant = 0x3F;
+constexpr int c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
-    QUIET_MOVES          = 0,
-    DOUBLE_PAWN_PUSH     = 1,
-    CASTLE               = 2,   
-    KING_CASTLE          = 2,
-    QUEEN_CASTLE         = 3,
-    CAPTURES             = 4,
-    EN_PASSANT_CAPTURE   = 5,
-    PROMOTIONS            = 8,
-    KNIGHT_PROMOTION     = 8,
-    BISHOP_PROMOTION     = 9,
-    ROOK_PROMOTION       = 10,
-    QUEEN_PROMOTION      = 11,
+    QUIET_MOVES = 0,
+    DOUBLE_PAWN_PUSH = 1,
+    CASTLE = 2,
+    KING_CASTLE = 2,
+    QUEEN_CASTLE = 3,
+    CAPTURES = 4,
+    EN_PASSANT_CAPTURE = 5,
+    PROMOTIONS = 8,
+    KNIGHT_PROMOTION = 8,
+    BISHOP_PROMOTION = 9,
+    ROOK_PROMOTION = 10,
+    QUEEN_PROMOTION = 11,
     KNIGHT_PROMO_CAPTURE = 12,
     BISHOP_PROMO_CAPTURE = 13,
-    ROOK_PROMO_CAPTURE   = 14,
-    QUEEN_PROMO_CAPTURE  = 15
+    ROOK_PROMO_CAPTURE = 14,
+    QUEEN_PROMO_CAPTURE = 15
 };
 
-struct PackedMove
-{
+struct PackedMove {
 public:
-    int sourceSqr() { return m_internals & 0x3F; }
-    int targetSqr() { return (m_internals >> 6) & 0x3F; }
-    bool isQuiet() { return (m_internals >> 12) == 0; }
-    bool isCapture() {return ((m_internals >> 12) & CAPTURES) == CAPTURES; }
-    bool isPromotion() {return ((m_internals >> 12) & PROMOTIONS) == PROMOTIONS; }
-    bool isCastling() {
+    inline int sourceSqr() const { return m_internals & c_sourceSquareConstant; }
+    inline int targetSqr() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+    inline bool isQuiet() const { return (m_internals >> 12) == 0; }
+    inline bool isCapture() const { return ((m_internals >> 12) & CAPTURES) == CAPTURES; }
+    inline bool isPromotion() const { return ((m_internals >> 12) & PROMOTIONS) == PROMOTIONS; }
+    inline bool isCastling() const
+    {
         u16 flag = m_internals >> 12;
         if (flag & PROMOTIONS)
             return false;
         return (flag & CASTLE);
-        }
-    bool isPawnDoublePush() { return ((m_internals >> 12) & 0xF) == 1; }
-    
-    int readPromoteToPieceType() { return ((m_internals >> 12) & 3)+2; }
+    }
+    inline bool isPawnDoublePush() const { return ((m_internals >> 12) & 0xF) == 1; }
+
+    inline int readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
     void set(u16 packed) { m_internals = packed; }
-    u16 read() const { return m_internals; }
+    inline u16 read() const { return m_internals; }
+
+    inline void setSource(int sqr) { m_internals |= (sqr & ~c_sourceSquareConstant); }
+    inline void setTarget(int sqr) { m_internals |= ((sqr & ~c_targetSquareConstant) << 6); }
 
 private:
-    u16 m_internals;    
+    u16 m_internals;
 };
 
-struct Move
-{
+static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
+
+struct Move {
 public:
     Move();
     Move(Notation source, Notation target);
     Move(const Move& other);
-	Move(Move&& other);
-    
+    Move(Move&& other);
+
     bool isCapture() const { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
     bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
-	bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
-	bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
+    bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
+    bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
     bool isCheckmate() const { return MoveFlag::Checkmate == (Flags & MoveFlag::Checkmate); }
-	bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
-	bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
+    bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
+    bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
     bool isInvalid() const { return MoveFlag::Invalid == (Flags & MoveFlag::Invalid); }
-    i16 calcCaptureValue() const; 
+    i16 calcCaptureValue() const;
 
-	void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
-	void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
-	void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
+    void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
+    void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
+    void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
     void setCastling(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Castle : Flags & ~MoveFlag::Castle); }
     void setInvalid(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Invalid : Flags & ~MoveFlag::Invalid); }
 
     PackedMove readPackedMove() const;
-        
+
     Move& operator=(const Move& other);
     std::string toString() const;
 
@@ -193,13 +201,14 @@ public:
     Move* NextMove;
 };
 
-inline bool operator==(const Move& lhs, const Move& rhs)
+inline bool
+operator==(const Move& lhs, const Move& rhs)
 {
-    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare && lhs.PromoteToPiece == rhs.PromoteToPiece;
+    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
+           lhs.PromoteToPiece == rhs.PromoteToPiece;
 }
 
-struct MoveResult
-{
+struct MoveResult {
     Notation SourceSquare;
     Notation TargetSquare;
 
@@ -216,4 +225,3 @@ struct MoveResult
     unsigned short NextMoveCount;
     Move* NextMove;
 };
-

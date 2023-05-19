@@ -31,6 +31,16 @@ enum class PieceType : byte {
 
 enum class Set : byte { WHITE = 0, BLACK = 1, NR_OF_SETS = 2 };
 
+template<Set s>
+constexpr Set
+opposing_set()
+{
+    if constexpr (s == Set::WHITE)
+        return Set::BLACK;
+
+    return Set::WHITE;
+}
+
 constexpr signed short pieceValues[6] = {100, 350, 350, 525, 1000, 10000};
 constexpr byte moveCount[6] = {2, 8, 4, 4, 8, 8};
 

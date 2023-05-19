@@ -4,9 +4,6 @@
 #include "log.h"
 #include "notation.h"
 
-#define to0x88(sqr) sqr + (sqr & ~7)
-#define fr0x88(sq0x88) (sq0x88 + (sq0x88 & 7)) >> 1
-
 Bitboard::Bitboard()
 {
     m_material[0] = {};
@@ -431,13 +428,13 @@ Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castling, N
     return ret;
 }
 
-u64
-Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing) const
-{
-    u64 retValue = calcThreatenedSquares(source, piece, pierceKing);
-    u64 mask = squareMaskTable[source.index()];
-    return retValue | mask;
-}
+// u64
+// Bitboard::GetThreatenedSquaresWithMaterial(Notation source, ChessPiece piece, bool pierceKing) const
+// {
+//     u64 retValue = calcThreatenedSquares(source, piece, pierceKing);
+//     u64 mask = squareMaskTable[source.index()];
+//     return retValue | mask;
+// }
 
 u64
 Bitboard::GetMaterial(ChessPiece piece) const
@@ -462,7 +459,7 @@ Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKi
         moveMod = -1;
 
     bool sliding = false;
-    opMatComb |= matComb;
+    matComb |= opMatComb;
 
     byte moveCount = ChessPieceDef::MoveCount(piece.index());
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
@@ -484,7 +481,7 @@ Bitboard::calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKi
             // build a square mask from current square
             u64 sqrMask = squareMaskTable[curSqr];
 
-            if ((opMatComb & sqrMask) > 0)
+            if ((matComb & sqrMask) > 0)
                 sliding = false;
 
             ret |= sqrMask;

@@ -98,6 +98,7 @@ TEST_F(BitboardFixture, King_Move_d4)
 {
     Bitboard board;
     auto K = WHITEKING;
+    board.PlacePiece(K, d4);
 
     // setup
     u64 expected = ~universe;
@@ -110,7 +111,7 @@ TEST_F(BitboardFixture, King_Move_d4)
     expected |= INT64_C(1) << e4.index();
     expected |= INT64_C(1) << e3.index();
 
-    u64 result = board.calcAvailableMoves(d4, K, 0, {});
+    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
@@ -127,6 +128,7 @@ TEST_F(BitboardFixture, Black_King_Move_e8)
 {
     Bitboard board;
     auto k = BLACKKING;
+    board.PlacePiece(k, e8);
 
     // setup
     u64 expected = ~universe;
@@ -136,7 +138,7 @@ TEST_F(BitboardFixture, Black_King_Move_e8)
     expected |= INT64_C(1) << f8.index();
     expected |= INT64_C(1) << f7.index();
 
-    u64 result = board.calcAvailableMoves(e8, k, 0, {});
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 }
 
@@ -187,6 +189,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     // each corner but one corner at a time.
     Bitboard board;
     auto k = BLACKKING;
+    board.PlacePiece(k, a1);
 
     // setup a1 corner
     u64 expected = ~universe;
@@ -194,34 +197,40 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << b2.index();
     expected |= INT64_C(1) << b1.index();
 
-    u64 result = board.calcAvailableMoves(a1, k, 0, {});
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 
     // setup a8 corner
+    board.ClearPiece(k, a1);
+    board.PlacePiece(k, a8);
     expected = ~universe;
     expected |= INT64_C(1) << b8.index();
     expected |= INT64_C(1) << b7.index();
     expected |= INT64_C(1) << a7.index();
 
-    result = board.calcAvailableMoves(a8, k, 0, {});
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 
     // setup h8 corner
+    board.ClearPiece(k, a8);
+    board.PlacePiece(k, h8);
     expected = ~universe;
     expected |= INT64_C(1) << h7.index();
     expected |= INT64_C(1) << g8.index();
     expected |= INT64_C(1) << g7.index();
 
-    result = board.calcAvailableMoves(h8, k, 0, {});
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 
     // setup h1 corner
+    board.ClearPiece(k, h8);
+    board.PlacePiece(k, h1);
     expected = ~universe;
     expected |= INT64_C(1) << h2.index();
     expected |= INT64_C(1) << g1.index();
     expected |= INT64_C(1) << g2.index();
 
-    result = board.calcAvailableMoves(h1, k, 0, {});
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 }
 
@@ -1448,7 +1457,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected |= INT64_C(1) << c4.index();
 
     // do
-    u64 result = board.calcThreatenedSquares(b3, P);
+    u64 result = board.calcThreatenedSquaresPawnsBulk<Set::WHITE>();
     // validate
     EXPECT_EQ(expected, result);
 
@@ -1457,7 +1466,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected |= INT64_C(1) << a5.index();
     expected |= INT64_C(1) << c5.index();
     // do
-    result = board.calcThreatenedSquares(b6, p);
+    result = board.calcThreatenedSquaresPawnsBulk<Set::BLACK>();
     // validate
     EXPECT_EQ(expected, result);
 
@@ -1465,7 +1474,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected = ~universe;
     expected |= INT64_C(1) << a5.index();
     // do
-    result = board.calcAttackedSquares(b6, p);
+    result = board.calcAvailableAttacksPawnsBulk<Set::BLACK>();
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1563,7 +1572,7 @@ TEST_F(BitboardFixture, Black_Rook_Threat_Blocked_By_Some_Pieces)
     expected |= INT64_C(1) << c1.index();
 
     // do
-    u64 result = board.calcThreatenedSquares(c3, r);
+    u64 result = board.calcThreatenedSquaresRookBulk<Set::BLACK>();
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1593,7 +1602,8 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToBlockCheck)
     expected |= INT64_C(1) << e3.index();
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(e2, R);
+    constexpr bool includeMaterial = true;
+    u64 threat = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
     KingMask kingMask = board.calcKingMask(k, e7, {threat, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
@@ -1631,13 +1641,14 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_OnlyAvailableMoveIsToCaptureThreat
     expected |= INT64_C(1) << e2.index();
 
     // do
-    u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    KingMask kingMask = board.calcKingMask(k, e7, {threatWithmat, 0});
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e7, {threatMask, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threatWithmat & kingMask.threats[i];
+        checkedMask.threats[i] = threatMask & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(c2, r, 0, {}, threatWithmat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(c2, r, 0, {}, threatMask, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1673,15 +1684,16 @@ TEST_F(BitboardFixture, PinnedPiece_Black_AbleToMoveAlongThreatenedSquares)
     expected |= INT64_C(1) << e6.index();
 
     // do
-    u64 threatWithmat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    KingMask kingMask = board.calcKingMask(k, e7, {threatWithmat, 0});
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e7, {threatMask, 0});
     KingMask checkedMask;  // we are not in check so this should be 0.
     // for (u8 i = 0; i < 8; ++i)
     // {
     //     // we are not in check
     //     checkedMask.threats[i] = 0;//threatWithmat & kingMask.threats[i];
     // }
-    u64 result = board.calcAvailableMoves(e4, r, 0, {}, threatWithmat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(e4, r, 0, {}, threatMask, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1711,13 +1723,14 @@ TEST_F(BitboardFixture, KingCheckedMask_Black_RookHasNoAvailableMoves)
     u64 expected = ~universe;
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(e2, R);
-    KingMask kingMask = board.calcKingMask(k, e7, {threat, 0});
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e7, {threatMask, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
+        checkedMask.threats[i] = threatMask & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(c1, r, 0, {}, threat, kingMask, kingMask);
+    u64 result = board.calcAvailableMoves(c1, r, 0, {}, threatMask, kingMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1747,13 +1760,14 @@ TEST_F(BitboardFixture, PinnedPiece_Black_PawnHasNoAvailableMovesSinceItsPinned)
     u64 expected = ~universe;
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(h7, R);
-    KingMask kingMask = board.calcKingMask(k, e7, {threat, 0});
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e7, {threatMask, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
+        checkedMask.threats[i] = threatMask & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threatMask, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1783,12 +1797,15 @@ TEST_F(BitboardFixture, PinnedPiece_White_PawnHasNoAvailableMovesSinceItsPinned)
     u64 expected = ~universe;
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(h5, R);
-    KingMask kingMask = board.calcKingMask(k, e5, {threat, 0});
+    constexpr bool includeMaterial = true;
+    u64 orthogonalThreat = board.calcThreatenedSquaresOrthogonal<Set::BLACK, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e5, {orthogonalThreat, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
+        checkedMask.threats[i] = orthogonalThreat & kingMask.threats[i];
     }
+
+    u64 threat = board.calcThreatenedSquares<Set::BLACK, includeMaterial>();
     u64 result = board.calcAvailableMoves(f5, p, 0, {}, threat, checkedMask, kingMask);
 
     // validate
@@ -1820,13 +1837,14 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanMoveIntoBlockingCheckButNoFurth
     expected |= INT64_C(1) << f6.index();
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(h6, R);
-    KingMask kingMask = board.calcKingMask(k, e6, {threat, 0});
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
+    KingMask kingMask = board.calcKingMask(k, e6, {threatMask, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
+        checkedMask.threats[i] = threatMask & kingMask.threats[i];
     }
-    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
+    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threatMask, checkedMask, kingMask);
 
     // validate
     EXPECT_EQ(expected, result);
@@ -1858,7 +1876,8 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanCaptureCheckingPiece)
     expected |= INT64_C(1) << g6.index();
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(g6, R);
+    constexpr bool includeMaterial = true;
+    u64 threat = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
     KingMask kingMask = board.calcKingMask(k, e6, {threat, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
@@ -1895,7 +1914,8 @@ TEST_F(BitboardFixture, CheckedMask_Black_PawnCanOnlyDoubleMoveToBlockCheck)
     expected |= INT64_C(1) << f5.index();
 
     // do
-    u64 threat = board.GetThreatenedSquaresWithMaterial(g5, R);
+    constexpr bool includeMaterial = true;
+    u64 threat = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
     KingMask kingMask = board.calcKingMask(k, e5, {threat, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
@@ -1932,7 +1952,7 @@ TEST_F(BitboardFixture, White_Queen_Threaten_Blocked_by_Pawns)
     expected |= INT64_C(1) << h1.index();
 
     // do
-    u64 threat = board.calcThreatenedSquares(d1, Q);
+    u64 threat = board.calcThreatenedSquaresQueensBulk<Set::WHITE>();
 
     // validate
     EXPECT_EQ(expected, threat);
@@ -1964,7 +1984,7 @@ TEST_F(BitboardFixture, Black_Rook_Threaten_Starting_Pos)
     expected |= INT64_C(1) << b8.index();
 
     // do
-    u64 threat = board.calcThreatenedSquares(a8, r);
+    u64 threat = board.calcThreatenedSquaresRookBulk<Set::BLACK>();
 
     // validate
     EXPECT_EQ(expected, threat);
@@ -2046,7 +2066,8 @@ TEST_F(BitboardFixture, CheckedMask_Black_BishopCanOnlyBlockOrCaptureToCancelChe
     expected |= INT64_C(1) << a8.index();
     expected |= INT64_C(1) << c8.index();
 
-    u64 threatMask = board.GetThreatenedSquaresWithMaterial(a8, WHITEROOK);
+    constexpr bool includeMaterial = true;
+    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>();
     KingMask kingMask = board.calcKingMask(BLACKKING, e8, {threatMask, 0});
     KingMask checkedMask;
     for (u8 i = 0; i < 8; ++i) {
@@ -2154,12 +2175,9 @@ TEST_F(BitboardFixture, KingMask_BishopAndQueenNotThreatening)
     u64 expected = ~universe;
 
     // build sliding mask
-    u64 diagonal = ~universe;
-    diagonal |= board.GetThreatenedSquaresWithMaterial(g7, BLACKBISHOP);
-    diagonal |= board.GetThreatenedSquaresWithMaterial(f3, BLACKBISHOP);
-
-    u64 orthogonal = ~universe;
-    orthogonal |= board.GetThreatenedSquaresWithMaterial(f3, BLACKROOK);
+    constexpr bool includeMaterial = true;
+    u64 diagonal = board.calcThreatenedSquaresDiagonal<Set::BLACK, includeMaterial>();
+    u64 orthogonal = board.calcThreatenedSquaresOrthogonal<Set::BLACK, includeMaterial>();
 
     // do
     u64 result = CombineKingMask(board.calcKingMask(WHITEKING, g1, {orthogonal, diagonal}));
@@ -2186,7 +2204,9 @@ TEST_F(BitboardFixture, ThreatenedMask_KingisPierced)
     board.PlacePiece(WHITEKING, g2);
 
     u64 orthogonal = ~universe;
-    orthogonal |= board.GetThreatenedSquaresWithMaterial(g7, BLACKROOK, /*pierce king*/ true);
+    constexpr bool includeMaterial = true;
+    constexpr bool kingisPierced = true;
+    orthogonal |= board.calcThreatenedSquares<Set::BLACK, includeMaterial, kingisPierced>();
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a7.index();
