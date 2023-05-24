@@ -44,7 +44,7 @@ TEST_F(MoveGeneratorFixture, WhiteKingAndPawn)
 
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto count = moveGenerator.CountMoves(result);
+    auto count = CountMoves(result);
     EXPECT_EQ(6, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -154,7 +154,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
 //         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
 //     }
 
-//     auto count = moveGenerator.CountMoves(result);
+//     auto count = CountMoves(result);
 //     EXPECT_EQ(8, count.Moves);
 //     EXPECT_EQ(4, count.Captures);
 //     EXPECT_EQ(0, count.EnPassants);
@@ -254,7 +254,7 @@ TEST_F(MoveGeneratorFixture, KingCanNotCastleWhileInCheck)
 
         return false;
     };
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(4, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -299,7 +299,7 @@ TEST_F(MoveGeneratorFixture, KingCanNotCastleBecauseItsBlockedByKnight)
 
         return false;
     };
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(3, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -446,7 +446,7 @@ TEST_F(MoveGeneratorFixture, BlackCaptureFromCheck)
         }
     }
 
-    auto count = moveGenerator.CountMoves(result);
+    auto count = CountMoves(result);
     EXPECT_EQ(5, count.Moves);
     EXPECT_EQ(1, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -476,7 +476,7 @@ TEST_F(MoveGeneratorFixture, BlackBishop)
     auto result = moveGenerator.GeneratePossibleMoves(testContext);
 
     // verify
-    auto count = moveGenerator.CountMoves(result);
+    auto count = CountMoves(result);
     EXPECT_EQ(7, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -524,7 +524,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
         return false;
     };
     // verify
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(1, count.Moves);
     EXPECT_EQ(1, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -533,7 +533,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopOnlyHasOneMove)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 
-    count = moveGenerator.CountMoves(result);
+    count = CountMoves(result);
     EXPECT_EQ(5, count.Moves);
     EXPECT_EQ(1, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -574,7 +574,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
         return false;
     };
     // verify
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(0, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -583,7 +583,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 
-    count = moveGenerator.CountMoves(result);
+    count = CountMoves(result);
     EXPECT_EQ(5, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -625,7 +625,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves_ThreateningAPiece)
         return false;
     };
     // verify
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(0, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -634,7 +634,7 @@ TEST_F(MoveGeneratorFixture, BlackBishopNoValidMoves_ThreateningAPiece)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 
-    count = moveGenerator.CountMoves(result);
+    count = CountMoves(result);
     EXPECT_EQ(5, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -676,7 +676,7 @@ TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
         return false;
     };
     // verify
-    auto count = moveGenerator.CountMoves(result, predicate);
+    auto count = CountMoves(result, predicate);
     EXPECT_EQ(7, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -693,7 +693,7 @@ TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
         return false;
     };
 
-    count = moveGenerator.CountMoves(result, pawnPredicate);
+    count = CountMoves(result, pawnPredicate);
     EXPECT_EQ(6, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -702,7 +702,7 @@ TEST_F(MoveGeneratorFixture, WhiteQueenBlockedByPawns)
     EXPECT_EQ(0, count.Checks);
     EXPECT_EQ(0, count.Checkmates);
 
-    count = moveGenerator.CountMoves(result);
+    count = CountMoves(result);
     EXPECT_EQ(13, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -741,7 +741,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing)
 
     // verify
     EXPECT_TRUE(checked);
-    auto count = moveGenerator.CountMoves(moves);
+    auto count = CountMoves(moves);
     EXPECT_EQ(3, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -780,7 +780,7 @@ TEST_F(MoveGeneratorFixture, OnlyValidMoveIsKing_RookVarient)
 
     // verify
     EXPECT_TRUE(checked);
-    auto count = moveGenerator.CountMoves(moves);
+    auto count = CountMoves(moves);
     EXPECT_EQ(3, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -829,7 +829,7 @@ TEST_F(MoveGeneratorFixture, PawnShouldHaveTwoMoves)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(2, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -882,7 +882,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(1, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -930,7 +930,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawnEnPassant_g2)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(1, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -965,10 +965,8 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3},
-                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
-                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
 
     // do
     Move move(e6, d5);  // pawn capture
@@ -976,10 +974,8 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
 
     // verify
     EXPECT_TRUE(result);
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3},
-                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2},
-                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(d5));
     EXPECT_NE(orgHash, testContext.readChessboard().readHash());
     EXPECT_TRUE(move.isCapture());
@@ -992,10 +988,8 @@ TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3},
-                                                blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
-                                                whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
     EXPECT_EQ(orgHash, testContext.readChessboard().readHash());
 }
 
@@ -1020,7 +1014,7 @@ TEST_F(MoveGeneratorFixture, KnightMovements)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(8, count.Moves);
     EXPECT_EQ(0, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -1063,7 +1057,7 @@ TEST_F(MoveGeneratorFixture, ScholarsMateQueenMovesIntoMate)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(13, count.Moves);
     EXPECT_EQ(3, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -1114,7 +1108,7 @@ TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
         return false;
     };
 
-    auto count = moveGenerator.CountMoves(moves, predicate);
+    auto count = CountMoves(moves, predicate);
     EXPECT_EQ(2, count.Moves);
     EXPECT_EQ(1, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
@@ -1133,7 +1127,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
     // verify
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto count = moveGenerator.CountMoves(moves);
+    auto count = CountMoves(moves);
     EXPECT_EQ(23, count.Moves);
 
     auto predicate = [](const Move& mv) {
@@ -1144,7 +1138,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
         return false;
     };
 
-    count = moveGenerator.CountMoves(moves, predicate);
+    count = CountMoves(moves, predicate);
     EXPECT_EQ(4, count.Moves);
 
     auto predicateRook = [](const Move& mv) {
@@ -1155,7 +1149,7 @@ TEST_F(MoveGeneratorFixture, MoreCastlingIssues)
         return false;
     };
 
-    count = moveGenerator.CountMoves(moves, predicateRook);
+    count = CountMoves(moves, predicateRook);
     EXPECT_EQ(4 + 8, count.Moves);
 }
 
@@ -1271,8 +1265,7 @@ TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto pawnMv = std::find_if(moves.begin(), moves.end(),
-                               [](const Move& mv) { return mv.TargetSquare == c2; });
+    auto pawnMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == c2; });
     ASSERT_NE(moves.end(), pawnMv);
     EXPECT_EQ(BLACKPAWN, pawnMv->Piece);
     EXPECT_EQ(c3, pawnMv->SourceSquare);
@@ -1297,8 +1290,7 @@ TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
     // do
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
-    auto knightMv = std::find_if(moves.begin(), moves.end(),
-                                 [](const Move& mv) { return mv.TargetSquare == b3; });
+    auto knightMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == b3; });
     EXPECT_EQ(moves.end(), knightMv);
     EXPECT_EQ(5, moves.size());
 }

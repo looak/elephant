@@ -16,7 +16,8 @@ static constexpr i32 c_maxScore = 32000;
 static constexpr i32 c_checmkateConstant = 24000;
 static constexpr i32 c_pvScore = 10000;
 
-int MoveGenerator::Perft(GameContext& context, int depth)
+int
+MoveGenerator::Perft(GameContext& context, int depth)
 {
     if (depth == 0) {
         return 1;
@@ -40,38 +41,8 @@ int MoveGenerator::Perft(GameContext& context, int depth)
     return count;
 }
 
-MoveCount MoveGenerator::CountMoves(const std::vector<Move>& moves,
-                                    MoveCount::Predicate predicate) const
-{
-    MoveCount result;
-
-    for (auto&& mv : moves) {
-        if (!predicate(mv))
-            continue;
-
-        if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
-            result.Captures++;
-        if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
-            result.Promotions++;
-        if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
-            result.EnPassants++;
-        if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
-            result.Castles++;
-        if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
-            result.Checks++;
-        if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate) {
-            result.Checks++;
-            result.Checkmates++;
-        }
-
-        result.Moves++;
-    }
-
-    return result;
-}
-
-std::map<PieceKey, std::vector<Move>> MoveGenerator::OrganizeMoves(
-    const std::vector<Move>& moves) const
+std::map<PieceKey, std::vector<Move>>
+MoveGenerator::OrganizeMoves(const std::vector<Move>& moves) const
 {
     std::map<PieceKey, std::vector<Move>> ret;
 
@@ -86,8 +57,8 @@ std::map<PieceKey, std::vector<Move>> MoveGenerator::OrganizeMoves(
     return ret;
 }
 
-std::vector<Move> MoveGenerator::GeneratePossibleMoves(const GameContext& context,
-                                                       bool captureMoves) const
+std::vector<Move>
+MoveGenerator::GeneratePossibleMoves(const GameContext& context, bool captureMoves) const
 {
     std::vector<Move> retMoves;
     auto currentSet = context.readToPlay();
@@ -98,13 +69,8 @@ std::vector<Move> MoveGenerator::GeneratePossibleMoves(const GameContext& contex
 }
 
 template<bool UseCache>
-i32 MoveGenerator::QuiescenceSearch(GameContext& context,
-                                    u32 depth,
-                                    u32 ply,
-                                    i32 alpha,
-                                    i32 beta,
-                                    i32 perspective,
-                                    u32& count)
+i32
+MoveGenerator::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count)
 {
     // something that we aren't considering here is moves that put opponent in check.
     i32 score = -c_maxScore;
@@ -124,26 +90,22 @@ i32 MoveGenerator::QuiescenceSearch(GameContext& context,
             else {
                 Evaluator evaluator;
 
-                i32 staticEval =
-                    perspective * evaluator.Evaluate(context.readChessboard(), perspective);
-                m_evaluationTable.emplace(context.readChessboard().readHash(),
-                                          EvaluationEntry{staticEval});
+                i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+                m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{staticEval});
                 return staticEval;
             }
         }
         else {
             Evaluator evaluator;
 
-            i32 staticEval =
-                perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+            i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
             return staticEval;
         }
     }
 
     for (auto&& mv : moves) {
         context.MakeLegalMove(mv);
-        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta,
-                                                            -alpha, -perspective, count));
+        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, -perspective, count));
         context.UnmakeMove(mv);
 
         ++count;
@@ -163,15 +125,9 @@ static float failHighFirst = 0.f;
 #endif
 
 template<bool UseCache>
-SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
-                                            SearchContext& searchContext,
-                                            u32 depth,
-                                            u32 ply,
-                                            i32 alpha,
-                                            i32 beta,
-                                            i32 perspective,
-                                            std::vector<Move>& pv,
-                                            u32 doNullMove)
+SearchResult
+MoveGenerator::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta,
+                               i32 perspective, std::vector<Move>& pv, u32 doNullMove)
 {
     const bool isChecked = context.readChessboard().isChecked(context.readToPlay());
 
@@ -189,16 +145,13 @@ SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
                     return {entry.score, Move()};
                 }
                 else {
-                    i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta,
-                                                           perspective, searchContext.count);
-                    m_evaluationTable.emplace(context.readChessboard().readHash(),
-                                              EvaluationEntry{score});
+                    i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective, searchContext.count);
+                    m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{score});
                     return {score, Move()};
                 }
             }
             else {
-                i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective,
-                                                       searchContext.count);
+                i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective, searchContext.count);
                 return {score, Move()};
             }
         }
@@ -217,9 +170,8 @@ SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
         auto cpy = context;
         Move nullMove{};
         cpy.MakeNullMove(nullMove);
-        auto nullResult =
-            AlphaBetaNegmax<UseCache>(cpy, searchContext, depth - 2, ply + 1, -beta, -beta + 1,
-                                      -perspective, localPv, doNullMove - 1);
+        auto nullResult = AlphaBetaNegmax<UseCache>(cpy, searchContext, depth - 2, ply + 1, -beta, -beta + 1, -perspective,
+                                                    localPv, doNullMove - 1);
         i32 score = -nullResult.score;
         cpy.UnmakeNullMove(nullMove);
 
@@ -235,8 +187,7 @@ SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
 
     if (moves.size() == 0) {
         if (isChecked)
-            return {-c_checmkateConstant + (i32)ply,
-                    Move()};  // negative "infinity" since we're in checkmate
+            return {-c_checmkateConstant + (i32)ply, Move()};  // negative "infinity" since we're in checkmate
 
         return {0, Move()};  // we're in stalemate
     }
@@ -250,8 +201,8 @@ SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
         context.MakeLegalMove(mv);
         // FATAL_ASSERT(context.MakeMove(mv));
         SearchResult result;
-        result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta,
-                                           -alpha, -perspective, localPv, doNullMove);
+        result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta, -alpha, -perspective, localPv,
+                                           doNullMove);
         i32 score = -result.score;
         context.UnmakeMove(mv);
 
@@ -293,7 +244,8 @@ SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
     return {bestScore, bestMove};
 }
 
-SearchResult MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
+SearchResult
+MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
 {
     // auto& stream = std::cout;  // should pass this forward from the outer uci calls or something?
 
@@ -367,8 +319,7 @@ SearchResult MoveGenerator::CalculateBestMove(GameContext& context, SearchParame
 
     for (u32 itrDepth = 1; itrDepth <= depth; ++itrDepth) {
         std::vector<Move> localPv(itrDepth + 1);
-        SearchResult result = AlphaBetaNegmax<false>(context, searchContext, itrDepth, 1, alpha,
-                                                     beta, perspective, localPv, 1);
+        SearchResult result = AlphaBetaNegmax<false>(context, searchContext, itrDepth, 1, alpha, beta, perspective, localPv, 1);
 
         searchContext.pv = std::move(localPv);
         bestResult = result;
@@ -393,20 +344,18 @@ SearchResult MoveGenerator::CalculateBestMove(GameContext& context, SearchParame
                 bestResult.ForcedMate = true;
             }
             checkmateDistance /= 2;
-            std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes "
-                      << searchContext.count << " time " << et << " pv" << pvSS.str() << "\n";
+            std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << searchContext.count
+                      << " time " << et << " pv" << pvSS.str() << "\n";
             break;  // don't need to search further if we found a forced mate.
         }
         else {
             float centipawn = bestResult.score / 100.f;
-            std::cout << "info score cp " << std::fixed << std::setprecision(2) << centipawn
-                      << " depth " << itrDepth << " nodes " << searchContext.count << " time " << et
-                      << " pv" << pvSS.str() << "\n";
+            std::cout << "info score cp " << std::fixed << std::setprecision(2) << centipawn << " depth " << itrDepth
+                      << " nodes " << searchContext.count << " time " << et << " pv" << pvSS.str() << "\n";
         }
 
         if (useMoveTime != false &&
-            TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(),
-                           bestResult.score) == false)
+            TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(), bestResult.score) == false)
             break;
 
         m_evaluationTable.clear();
@@ -427,7 +376,8 @@ SearchResult MoveGenerator::CalculateBestMove(GameContext& context, SearchParame
     return bestResult;
 }
 
-bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32, u32, u32 depth, i32)
+bool
+MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32, u32, u32 depth, i32)
 {
     // should return false if we want to abort our search.
     // how do we manage time?
@@ -466,7 +416,8 @@ struct MoveCompare {
     }
 } s_moveComparer;
 
-void MoveGenerator::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
+void
+MoveGenerator::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
 {
     // ply = ply - 1; // 0-indexed
     //    const Move& pvMv = searchContext.pv[ply];
