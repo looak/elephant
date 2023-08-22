@@ -1319,7 +1319,7 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
     std::string fen("8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3");
     FENParser::deserialize(fen.c_str(), testContext);
 
-    // do
+    // do stuff
     auto moves = moveGenerator.GeneratePossibleMoves(testContext);
 
     EXPECT_EQ(4, moves.size());
