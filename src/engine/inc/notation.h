@@ -15,67 +15,69 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include "defines.h"
 #include <string>
+#include "defines.h"
 
-struct Notation
-{	
-	static Notation BuildPosition(byte file, byte rank);
-	static bool Validate(const Notation& notation);
-	static std::string toString(const Notation& notation);
-	static char fileToChar(const Notation& notation);
-	static char rankToChar(const Notation& notation);
-	static Notation Invalid();
 
-	// Should Notation validate rank & file?
-	// Should Notation validate format of rank & file?
-	Notation() :
-		file(0xF),
-		rank(0xF)
-	{}
+struct Notation {
+    static Notation BuildPosition(byte file, byte rank);
+    static bool Validate(const Notation& notation);
+    static std::string toString(const Notation& notation);
+    static char fileToChar(const Notation& notation);
+    static char rankToChar(const Notation& notation);
+    static Notation Invalid();
 
-	explicit constexpr Notation(byte index) :
-		file(0xF),
-		rank(0xF)
-	{
-		if (index > 127)
-			LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
-		file = index % 8;
-		rank = index / 8;
-	}
+    // Should Notation validate rank & file?
+    // Should Notation validate format of rank & file?
+    Notation() :
+        file(0xF),
+        rank(0xF)
+    {
+    }
 
-	// when we read algebraic notations we might only have file or rank in some cases.
-	// in those cases the other value will be 9 to identify this as a value which needs to be
-	// looked up.
-	Notation(byte _file, byte _rank) :
-		file(_file),
-		rank(_rank)
-	{}
+    explicit constexpr Notation(byte index) :
+        file(0xF),
+        rank(0xF)
+    {
+        if (index > 127)
+            LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
+        file = mod_by_eight(index);
+        rank = index / 8;
+    }
 
-	Notation(Notation&& other) = default;
-	Notation(const Notation& other) = default;
+    // when we read algebraic notations we might only have file or rank in some cases.
+    // in those cases the other value will be 9 to identify this as a value which needs to be
+    // looked up.
+    Notation(byte _file, byte _rank) :
+        file(_file),
+        rank(_rank)
+    {
+    }
 
-	byte file : 4;
-	byte rank : 4;
+    Notation(Notation&& other) = default;
+    Notation(const Notation& other) = default;
 
-	constexpr inline byte index() const
-	{ 
+    byte file : 4;
+    byte rank : 4;
+
+    constexpr inline byte index() const
+    {
 #ifdef EG_DEBUGGING
-		if (isValid()) 
-			return (rank * 8) + file;
-		else
-			return 0xFF;
+        if (isValid())
+            return (rank * 8) + file;
+        else
+            return 0xFF;
 #else
-		return (rank * 8) + file;
+        return (rank * 8) + file;
 #endif
-	}
-	bool operator==(const Notation& rhs) const;
-	bool operator!=(const Notation& rhs) const;
-	bool operator<(const Notation& rhs) const;
-	Notation& operator=(Notation&& other);
-	Notation& operator=(const Notation& other);
-	bool isValid() const { return Validate(*this); }
-	std::string toString() const { return toString(*this); }
+    }
+    bool operator==(const Notation& rhs) const;
+    bool operator!=(const Notation& rhs) const;
+    bool operator<(const Notation& rhs) const;
+    Notation& operator=(Notation&& other);
+    Notation& operator=(const Notation& other);
+    bool isValid() const { return Validate(*this); }
+    std::string toString() const { return toString(*this); }
 };
 
 constexpr Notation InvalidNotation(127);

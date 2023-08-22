@@ -75,4 +75,9 @@ const u64 universe = 0xffffffffffffffffULL;
 #define southwest 6
 #define northwest 7
 
+// faster divide by eight
+// only works on positive integers
+// acording to own tests ~3x faster than regular mod by eight.
+#define mod_by_eight(v) (v & 7)
+
 static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

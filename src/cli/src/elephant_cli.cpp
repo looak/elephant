@@ -25,7 +25,8 @@ Application::Application()
     MESSAGE() << " `*Ybbd8*' 88  `*Ybbd8*' 88`YbbdP*'  88       88 `*8bbdP*Y8 88       88   *Y888";
     MESSAGE() << "                         88";
     MESSAGE() << "                         88                                               *j*m";
-    MESSAGE() << "                                                                       v: "
+    MESSAGE() << "\n                                                            a uci chess engine";
+    MESSAGE() << "                                                                      v: "
               << ELEPHANT_CLI_VERSION_STR;
 
 #ifdef EG_DEBUGGING

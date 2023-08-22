@@ -13,7 +13,9 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
-#pragma once
+#ifndef MOVE_HEADER
+#define MOVE_HEADER
+
 #include <vector>
 #include "chess_piece.h"
 #include "defines.h"
@@ -120,6 +122,11 @@ enum PackedMoveType {
 
 struct PackedMove {
 public:
+    static PackedMove NullMove() { return PackedMove{0x0}; };
+
+    PackedMove() = default;
+    PackedMove(u16 packed) { m_internals = packed; }
+
     inline int sourceSqr() const { return m_internals & c_sourceSquareConstant; }
     inline int targetSqr() const { return (m_internals >> 6) & c_sourceSquareConstant; }
     inline bool isQuiet() const { return (m_internals >> 12) == 0; }
@@ -142,11 +149,45 @@ public:
     inline void setSource(int sqr) { m_internals |= (sqr & ~c_sourceSquareConstant); }
     inline void setTarget(int sqr) { m_internals |= ((sqr & ~c_targetSquareConstant) << 6); }
 
+    // operators
+    bool operator==(const PackedMove& rhs) const { return m_internals == rhs.m_internals; }
+    bool operator!=(const PackedMove& rhs) const { return m_internals != rhs.m_internals; }
+
 private:
     u16 m_internals;
 };
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
+
+struct PrioratizedMove {
+    PrioratizedMove() = default;
+    PrioratizedMove(PackedMove move, int _priority) :
+        move(move),
+        priority(_priority)
+    {
+    }
+
+    PackedMove move;
+    i32 priority;
+};
+struct ScoredMove {
+    ScoredMove() = default;
+    ScoredMove(PackedMove move, int _score) :
+        move(move),
+        score(_score)
+    {
+    }
+
+    PackedMove move;
+    i32 score;
+};
+
+struct PrioratizedMoveComparator {
+    constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const
+    {
+        return lhs.priority < rhs.priority;
+    }
+};
 
 struct Move {
 public:
@@ -225,3 +266,5 @@ struct MoveResult {
     unsigned short NextMoveCount;
     Move* NextMove;
 };
+
+#endif  // MOVE_HEADER

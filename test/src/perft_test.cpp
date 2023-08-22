@@ -4,7 +4,7 @@
 #include "clock.hpp"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "move_generator.h"
+#include "search.h"
 
 #include <future>
 #include <thread>
@@ -18,25 +18,22 @@ public:
     };
     virtual void TearDown(){};
 
-    MoveCount CountMoves(
-        GameContext& context,
-        int depth,
-        MoveCount& count,
-        MoveCount::Predicate predicate = [](const Move&) { return true; })
+    MoveCount PerftCountMoves(
+        GameContext& context, int depth, MoveCount& count, MoveCount::Predicate predicate = [](const Move&) { return true; })
     {
         if (depth == 0) {
             return MoveCount();
         }
 
-        auto moves = m_moveGenerator.GeneratePossibleMoves(context);
-        count += m_moveGenerator.CountMoves(moves, predicate);
+        auto moves = m_search.GeneratePossibleMoves(context);
+        count += CountMoves(moves, predicate);
 
         if (depth > 1) {
             for (auto mv : moves) {
                 Move cpy(mv);
                 FATAL_ASSERT(context.MakeMove(cpy));
                 FATAL_ASSERT(cpy.Piece.isValid());
-                CountMoves(context, depth - 1, count, predicate);
+                PerftCountMoves(context, depth - 1, count, predicate);
                 context.UnmakeMove(cpy);
             }
         }
@@ -50,12 +47,12 @@ public:
             return 0;
         }
         else if (depth == 1) {
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             return moves.size();
         }
         else {
             size_t count = 0;
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             for (auto mv : moves) {
                 context.MakeMove(mv);
                 count += CountMovesAtDepth(context, depth - 1);
@@ -72,12 +69,12 @@ public:
             return 0;
         }
         else if (depth == 1) {
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             return moves.size();
         }
         else {
             size_t count = 0;
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             for (auto mv : moves) {
                 context.MakeMove(mv);
                 u32 newDepth = depth - 1;
@@ -96,20 +93,19 @@ public:
             return 0;
         }
         else if (depth == 1) {
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             return moves.size();
         }
         else {
             std::vector<std::future<size_t>> futures;
 
             size_t count = 0;
-            auto moves = m_moveGenerator.GeneratePossibleMoves(context);
+            auto moves = m_search.GeneratePossibleMoves(context);
             for (auto mv : moves) {
                 context.MakeMove(mv);
                 GameContext contextCopy(context);
                 u32 newDepth = depth - 1;
-                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth,
-                                         this, context, newDepth);
+                auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, newDepth);
 
                 futures.push_back(std::move(future));
                 context.UnmakeMove(mv);
@@ -123,7 +119,7 @@ public:
         }
     }
 
-    template<bool concurrent = true>
+    template<bool concurrent = false>
     void Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
     {
         Clock clock;
@@ -146,7 +142,7 @@ public:
     }
 
     GameContext m_context;
-    MoveGenerator m_moveGenerator;
+    Search m_search;
 };
 //////////////////////////////////////////////////////////////
 /*
@@ -167,36 +163,36 @@ TEST_F(PerftFixture, Position_Start)
 
     PrintBoard(m_context.readChessboard());
     // do
-    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+    auto moves = m_search.GeneratePossibleMoves(m_context);
 
     // verify
     {
         MoveCount count;
-        CountMoves(m_context, 1, count);
+        PerftCountMoves(m_context, 1, count);
         EXPECT_EQ(20, count.Moves);
     }
 
     {
         MoveCount count;
-        CountMoves(m_context, 2, count);
+        PerftCountMoves(m_context, 2, count);
         EXPECT_EQ(420, count.Moves);
     }
 
     {
         MoveCount count;
-        CountMoves(m_context, 3, count);
+        PerftCountMoves(m_context, 3, count);
         EXPECT_EQ(9322, count.Moves);
     }
 
     {
         MoveCount count;
-        CountMoves(m_context, 4, count);
+        PerftCountMoves(m_context, 4, count);
         EXPECT_EQ(206603, count.Moves);
     }
 
     {
         MoveCount count;
-        CountMoves(m_context, 5, count);
+        PerftCountMoves(m_context, 5, count);
         EXPECT_EQ(5072212, count.Moves);
     }
 }
@@ -245,10 +241,10 @@ TEST_F(PerftFixture, DISABLED_Position_Two)
     auto otherMoves = board.GetAvailableMoves(e1, WHITEKING, 0, KingMask(), KingMask());
 
     // do
-    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+    auto moves = m_search.GeneratePossibleMoves(m_context);
 
     // verify
-    auto count = m_moveGenerator.CountMoves(moves);
+    auto count = CountMoves(moves);
 
     EXPECT_EQ(48, count.Moves);
     EXPECT_EQ(8, count.Captures);
@@ -266,7 +262,7 @@ TEST_F(PerftFixture, DISABLED_Position_Two)
         return false;
     };
 
-    count = m_moveGenerator.CountMoves(moves, pawnPredicate);
+    count = CountMoves(moves, pawnPredicate);
 
     EXPECT_EQ(8, count.Moves);
     EXPECT_EQ(2, count.Captures);
@@ -287,7 +283,7 @@ TEST_F(PerftFixture, Position_Two_Depth3)
 
     // do & verify
     MoveCount count;
-    CountMoves(m_context, 3, count);
+    PerftCountMoves(m_context, 3, count);
 
     // verify
     EXPECT_EQ(2039 + 48 + 97862, count.Moves);
@@ -332,7 +328,7 @@ TEST_F(PerftFixture, Position_Three_Depth5)
 
     // do & verify
     MoveCount count;
-    CountMoves(m_context, 5, count);
+    PerftCountMoves(m_context, 5, count);
 
     // verify
     EXPECT_EQ(191 + 14 + 2812 + 43238 + 674624, count.Moves);
@@ -353,11 +349,11 @@ TEST_F(PerftFixture, DISABLED_Position_Three)
     PrintBoard(m_context.readChessboard());
 
     // do
-    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+    auto moves = m_search.GeneratePossibleMoves(m_context);
 
     // verify
-    auto count = m_moveGenerator.CountMoves(moves);
-    auto orgMoves = m_moveGenerator.OrganizeMoves(moves);
+    auto count = CountMoves(moves);
+    auto orgMoves = m_search.OrganizeMoves(moves);
 
     EXPECT_EQ(14, count.Moves);
     EXPECT_EQ(1, count.Captures);
@@ -375,7 +371,7 @@ TEST_F(PerftFixture, DISABLED_Position_Three)
         return false;
     };
 
-    count = m_moveGenerator.CountMoves(moves, pawnPredicate);
+    count = CountMoves(moves, pawnPredicate);
 
     EXPECT_EQ(4, count.Moves);
     EXPECT_EQ(0, count.Captures);
@@ -416,11 +412,11 @@ TEST_F(PerftFixture, DISABLED_Position_Four)
     PrintBoard(m_context.readChessboard());
 
     // do
-    auto moves = m_moveGenerator.GeneratePossibleMoves(m_context);
+    auto moves = m_search.GeneratePossibleMoves(m_context);
 
     // verify
-    auto count = m_moveGenerator.CountMoves(moves);
-    auto orgMoves = m_moveGenerator.OrganizeMoves(moves);
+    auto count = CountMoves(moves);
+    auto orgMoves = m_search.OrganizeMoves(moves);
 
     EXPECT_EQ(6, count.Moves);
     EXPECT_EQ(0, count.Captures);
@@ -439,7 +435,7 @@ TEST_F(PerftFixture, Position_Four_Depth3)
 
     // do & verify
     MoveCount count;
-    CountMoves(m_context, 3, count);
+    PerftCountMoves(m_context, 3, count);
 
     EXPECT_EQ(9737, count.Moves);
     EXPECT_EQ(1108, count.Captures);
@@ -450,30 +446,18 @@ TEST_F(PerftFixture, Position_Four_Depth3)
     // EXPECT_EQ(22, count.Checkmates);
 }
 
-TEST_F(PerftFixture, Catching_IllegalEnPassant)
-{
-    Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
-}
+TEST_F(PerftFixture, Catching_IllegalEnPassant) { Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6); }
 
-TEST_F(PerftFixture, Catching_IllegalEnPassantTwo)
-{
-    Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
-}
+TEST_F(PerftFixture, Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6); }
 
 TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
 {
     Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
 }
 
-TEST_F(PerftFixture, Catching_ShortCastlingCheck)
-{
-    Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6);
-}
+TEST_F(PerftFixture, Catching_ShortCastlingCheck) { Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6); }
 
-TEST_F(PerftFixture, Catching_LongCastlingGivesCheck)
-{
-    Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6);
-}
+TEST_F(PerftFixture, Catching_LongCastlingGivesCheck) { Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6); }
 
 TEST_F(PerftFixture, Catching_CastlingRights)
 {
@@ -485,35 +469,17 @@ TEST_F(PerftFixture, Catching_CastlingPrevented)
     Catching_TestFunction("r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4);
 }
 
-TEST_F(PerftFixture, Catching_PromoteOutOfCheck)
-{
-    Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6);
-}
+TEST_F(PerftFixture, Catching_PromoteOutOfCheck) { Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6); }
 
-TEST_F(PerftFixture, Catching_DiscoveredCheck)
-{
-    Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5);
-}
+TEST_F(PerftFixture, Catching_DiscoveredCheck) { Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5); }
 
-TEST_F(PerftFixture, Catching_PromoteToGiveCheck)
-{
-    Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6);
-}
+TEST_F(PerftFixture, Catching_PromoteToGiveCheck) { Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6); }
 
-TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck)
-{
-    Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6);
-}
+TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck) { Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6); }
 
-TEST_F(PerftFixture, Catching_SelfStalemate)
-{
-    Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6);
-}
+TEST_F(PerftFixture, Catching_SelfStalemate) { Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6); }
 
-TEST_F(PerftFixture, Catching_StalemateAndCheckmate)
-{
-    Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7);
-}
+TEST_F(PerftFixture, Catching_StalemateAndCheckmate) { Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7); }
 
 TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
 {
@@ -525,15 +491,13 @@ https://www.chessprogramming.net/perfect-perft/
 */
 TEST_F(PerftFixture, Catching_TwoHundrarMillionNodes_Twice)
 {
-    Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-                          193690690, 5);
+    Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
     Catching_TestFunction("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7);
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
 {
-    Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-                          706045033, 6);
+    Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6);
 }
 
 TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)

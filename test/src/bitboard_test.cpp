@@ -2229,4 +2229,119 @@ TEST_F(BitboardFixture, ThreatenedMask_KingisPierced)
     EXPECT_EQ(expected, orthogonal);
 }
 
+// 8 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ x ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ b ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ x ]
+// 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ x ][ . ][ b ][ . ][ . ][ . ][ . ]
+// 1 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, IsolateBishop_Black_OnlyOneBishopLeftInTheMask)
+{
+    Bitboard board;
+    board.PlacePiece(BLACKBISHOP, g7);
+    board.PlacePiece(BLACKBISHOP, d2);
+
+    u64 expected = 0xa000a0512a140215;
+    u64 movesbb = board.calcAvailableMovesBishopBulk<Set::BLACK>();
+    EXPECT_EQ(expected, movesbb);
+
+    expected = 0xa000a01008040201;
+    u64 moves = board.isolatePiece<Set::BLACK, bishopId>(g7, movesbb);
+    EXPECT_EQ(expected, moves);
+
+    expected = 0x804122140014;
+    moves = board.isolatePiece<Set::BLACK, bishopId>(d2, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolateBishop_Black_BishopsOnSameDiagonal)
+{
+    Bitboard board;
+    board.PlacePiece(BLACKBISHOP, c4);
+    board.PlacePiece(BLACKBISHOP, e2);
+
+    u64 expected = 0x4020118a402a0128;
+    u64 movesbb = board.calcAvailableMovesBishopBulk<Set::BLACK>();
+    EXPECT_EQ(expected, movesbb);
+
+    expected = 0x4020110a000a0100;
+    u64 moves = board.isolatePiece<Set::BLACK, bishopId>(c4, movesbb);
+    EXPECT_EQ(expected, moves);
+
+    expected = 0x8040280028;
+    moves = board.isolatePiece<Set::BLACK, bishopId>(e2, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolateRook_Black_OnlyOneRookLeftInMask)
+{
+    Bitboard board;
+    board.PlacePiece(BLACKROOK, g7);
+    board.PlacePiece(BLACKROOK, d2);
+
+    u64 expected = 0x40bf404040404040;
+    u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
+
+    u64 moves = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameRank)
+{
+    Bitboard board;
+    board.PlacePiece(BLACKROOK, g7);
+    board.PlacePiece(BLACKROOK, d7);
+
+    u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
+
+    u64 expected = 0x40b0404040404040;
+    u64 moves = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
+    EXPECT_EQ(expected, moves);
+
+    expected = 0x837080808080808;
+    moves = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameFile)
+{
+    Bitboard board;
+    board.PlacePiece(BLACKROOK, d4);
+    board.PlacePiece(BLACKROOK, d7);
+
+    u64 expected = 0x8f70808f7080808;
+    u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
+    EXPECT_EQ(expected, movesbb);
+
+    expected = 0x808f7080808;
+    u64 moves = board.isolatePiece<Set::BLACK, rookId>(d4, movesbb);
+    EXPECT_EQ(expected, moves);
+
+    expected = 0x8f7080800000000;
+    moves = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolatePawn_White_PawnOnRank)
+{
+    Bitboard board;
+    board.PlacePiece(WHITEPAWN, d4);
+    board.PlacePiece(WHITEPAWN, c2);
+
+    u64 expected = 0x804040000;
+    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    EXPECT_EQ(expected, movesbb);
+
+    expected = 0x800000000;
+    u64 moves = board.isolatePiece<Set::WHITE, pawnId>(d4, movesbb);
+    EXPECT_EQ(expected, moves);
+
+    expected = 0x4040000;
+    moves = board.isolatePiece<Set::WHITE, pawnId>(c2, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
 }  // namespace ElephantTest

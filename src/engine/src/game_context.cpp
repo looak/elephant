@@ -3,15 +3,15 @@
 #include "fen_parser.h"
 #include "hash_zorbist.h"
 #include "move.h"
-#include "move_generator.h"
-
+#include "search.h"
 
 #include <algorithm>
 #include <array>
 #include <iostream>
 #include <sstream>
 
-std::string PrintCastlingState(const Chessboard& board)
+std::string
+PrintCastlingState(const Chessboard& board)
 {
     std::string ret = "";
 
@@ -27,10 +27,11 @@ std::string PrintCastlingState(const Chessboard& board)
     return ret;
 }
 
-bool PrintBoard(const GameContext& context, const Move& move)
+bool
+PrintBoard(const GameContext& context, const Move& move)
 {
-    const Chessboard&                board = context.readChessboard();
-    auto                             boardItr = board.begin();
+    const Chessboard& board = context.readChessboard();
+    auto boardItr = board.begin();
     std::array<std::stringstream, 8> ranks;
 
     byte prevRank = -1;
@@ -52,13 +53,11 @@ bool PrintBoard(const GameContext& context, const Move& move)
     }
 
     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
-    std::cout << " > move: " << std::dec << (int)context.readMoveCount()
-              << "\tply: " << (int)context.readPly() << "\n";
+    std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
     std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
-    std::cout << " > prev move: " << Notation::toString(move.SourceSquare)
-              << Notation::toString(move.TargetSquare) << "\n";
+    std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
     std::string output;
     FENParser::serialize(context, output);
     std::cout << " > fen: " << output << "\n";
@@ -66,7 +65,8 @@ bool PrintBoard(const GameContext& context, const Move& move)
     return true;
 }
 
-void GameContext::Reset()
+void
+GameContext::Reset()
 {
     m_board.Clear();
     m_moveCount = 0;
@@ -75,14 +75,16 @@ void GameContext::Reset()
     m_moveHistory.clear();
 }
 
-void GameContext::NewGame()
+void
+GameContext::NewGame()
 {
     Reset();
     FENParser::deserialize(c_startPositionFen.c_str(), *this);
     m_toPlay = Set::WHITE;
 }
 
-bool GameContext::GameOver() const
+bool
+GameContext::GameOver() const
 {
     // if (m_fiftyMoveRule >= 50) // not fully implemented yet
     //     return true;
@@ -100,7 +102,8 @@ bool GameContext::GameOver() const
     return false;
 }
 
-bool GameContext::PlayMove(Move& move)
+bool
+GameContext::PlayMove(Move& move)
 {
     std::string pgn = m_board.SerializeMoveToPGN(move);
 
@@ -113,7 +116,8 @@ bool GameContext::PlayMove(Move& move)
     return true;
 }
 
-bool GameContext::MakeLegalMove(Move& move)
+bool
+GameContext::MakeLegalMove(Move& move)
 {
     m_board.MakeMoveUnchecked(move);
 
@@ -132,7 +136,8 @@ bool GameContext::MakeLegalMove(Move& move)
     return true;
 }
 
-bool GameContext::MakeMove(Move& move)
+bool
+GameContext::MakeMove(Move& move)
 {
     Move actualMove = move;
 
@@ -158,7 +163,8 @@ bool GameContext::MakeMove(Move& move)
     return true;
 }
 
-bool GameContext::UnmakeMove(const Move& move)
+bool
+GameContext::UnmakeMove(const Move& move)
 {
     if (m_board.UnmakeMove(move)) {
         if (move.Piece.getSet() == Set::BLACK)
@@ -179,7 +185,8 @@ bool GameContext::UnmakeMove(const Move& move)
     return false;
 }
 
-bool GameContext::MakeNullMove(Move& move)
+bool
+GameContext::MakeNullMove(Move& move)
 {
     m_board.MakeNullMove(move);
 
@@ -192,7 +199,8 @@ bool GameContext::MakeNullMove(Move& move)
     return true;
 }
 
-bool GameContext::UnmakeNullMove(const Move& move)
+bool
+GameContext::UnmakeNullMove(const Move& move)
 {
     m_board.UnmakeNullMove(move);
     if (m_toPlay == Set::WHITE)
@@ -204,14 +212,16 @@ bool GameContext::UnmakeNullMove(const Move& move)
     return true;
 }
 
-SearchResult GameContext::CalculateBestMove(SearchParameters params)
+SearchResult
+GameContext::CalculateBestMove(SearchParameters params)
 {
-    MoveGenerator generator;
-    return generator.CalculateBestMove(*this, params);
+    Search search;
+    return search.CalculateBestMove(*this, params);
 }
 
-bool GameContext::isGameOver() const
+bool
+GameContext::isGameOver() const
 {
-    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) ||
-           m_board.isStalemated(Set::WHITE) || m_board.isStalemated(Set::BLACK);
+    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) || m_board.isStalemated(Set::WHITE) ||
+           m_board.isStalemated(Set::BLACK);
 }

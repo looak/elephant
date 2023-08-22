@@ -48,7 +48,23 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
 
 </div>
 
+## Features
+* Engine:
+    * bitboards
+* Search:
+    * alpha beta neg max
+    * quiescence search
+    * null move pruning
+* Evaluation:
+    * material
+    * position tables
+* API:
+    * "user friendly" cli interface
+    * UCI compatible
+
 ## Goals & todo
+* tapered position evaluation
+* transposition table
 * multi threaded search
 * reach elo 2000
 * OpenBench - https://github.com/AndyGrant/OpenBench

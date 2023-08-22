@@ -86,7 +86,7 @@ struct SearchContext {
 
 // class MoveGenerator {};
 
-class MoveGenerator {
+class Search {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
 

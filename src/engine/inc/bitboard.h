@@ -195,7 +195,6 @@ public:
                            KingMask checkedMask = KingMask(), KingMask kingMask = KingMask()) const;
 
     u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
-    u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
 
     template<Set s>
     u64 calcAvailableMovesPawnsBulk() const;
@@ -209,8 +208,6 @@ public:
     u64 calcAvailableMovesQueenBulk() const;
     template<Set us, Set op = opposing_set<us>()>
     u64 calcAvailableMovesKingBulk() const;
-    template<Set s>
-    u64 calcAvailableMoves() const;
 
     template<Set s>
     MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
@@ -241,6 +238,14 @@ public:
     template<Set s, u8 pieceId, u8 direction>
     u64 calcPinnedPiecesBulk(KingMask kingMask) const;
 
+    template<Set s>
+    u64 isolatePiece(u8 pieceId, Notation source, u64 movesbb) const;
+
+    template<Set s, u8 pieceId>
+    u64 isolatePiece(Notation source, u64 movesbb) const;
+
+    i32 diffWestEast(Notation a, Notation b) const;
+
     /**
      * @brief Calculate the king's potential threats and pins.
      * This function calculates the king's potential threats and pins, taking into account the
@@ -257,8 +262,13 @@ public:
     MaterialMask GetMaterial(Set set) const;
 
 private:
+    u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
     template<Set s, u8 direction, u8 pieceId>
     u64 internalCalcAvailableMoves(u64 bounds) const;
+
+    u64 internalIsolatePawn(Set set, Notation source, u64 movesbb) const;
+    u64 internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
+    u64 internalIsolateRook(Set set, Notation source, u64 movesbb) const;
 
     u64 MaterialCombined(byte set) const;
     u64 MaterialCombined() const;
@@ -395,6 +405,98 @@ shiftRelative(u64 bb)
     }
 
     FATAL_ASSERT(false) << "Invalid direction";
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillWest(i16 file)
+{
+    u64 result = 0;
+    do {
+        result |= board_constants::fileMasks[file];
+        file--;
+    } while (file >= 0);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillEast(i16 file)
+{
+    u64 result = 0;
+    do {
+        result |= board_constants::fileMasks[file];
+        file++;
+    } while (file < 8);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillSouth(i16 rank)
+{
+    u64 result = 0;
+    do {
+        result |= board_constants::rankMasks[rank];
+        rank--;
+    } while (rank >= 0);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillNorth(i16 rank)
+{
+    u64 result = 0;
+    do {
+        result |= board_constants::rankMasks[rank];
+        rank++;
+    } while (rank < 8);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillNorthEast(i16 file, i16 rank)
+{
+    u64 result = 0;
+    i16 index = 7 + file - rank;
+    do {
+        result |= board_constants::backwardDiagonalMasks[index];
+        index++;
+    } while (index < 15);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillSouthEast(i16 file, i16 rank)
+{
+    u64 result = 0;
+    i16 index = 7 + file - rank;
+    do {
+        result |= board_constants::forwardDiagonalMasks[index];
+        index++;
+    } while (index < 15);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillSouthWest(i16 file, i16 rank)
+{
+    u64 result = 0;
+    i16 index = 7 + file - rank;
+    do {
+        result |= board_constants::backwardDiagonalMasks[index];
+        index--;
+    } while (index >= 0);
+    return result;
+}
+
+[[nodiscard]] constexpr u64
+inclusiveFillNorthWest(i16 file, i16 rank)
+{
+    u64 result = 0;
+    i16 index = 7 + file - rank;
+    do {
+        result |= board_constants::forwardDiagonalMasks[index];
+        index--;
+    } while (index >= 0);
+    return result;
 }
 
 template<Set s>
@@ -648,6 +750,8 @@ Bitboard::calcThreatenedSquaresKingBulk() const
     else if (kingSqrMask & board_constants::filehMask)
         moves ^= (moves & board_constants::fileaMask);
 
+    moves &= ~m_material[setIndx].combine();
+
     return moves;
 }
 
@@ -660,6 +764,7 @@ Bitboard::calcThreatenedSquares() const
     [[maybe_unused]] u64 kingMask = 0;
 
     // removing king from opmaterial so it doesn't stop our sliding.
+    // needs to be reset later on.
     if constexpr (pierceKing) {
         Set opSet = ChessPiece::FlipSet<s>();
         kingMask = m_material[(size_t)opSet].material[kingId];
@@ -765,4 +870,29 @@ Bitboard::calcMaterialSlidingMasksBulk() const
     orthogonal |= m_material[(size_t)s].material[rookId] | m_material[(size_t)s].material[queenId];
 
     return {orthogonal, diagonal};
+}
+
+template<Set us, u8 pieceId>
+u64
+Bitboard::isolatePiece(Notation source, u64 movesbb) const
+{
+    return isolatePiece<us>(pieceId, source, movesbb);
+}
+
+template<Set us>
+u64
+Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
+{
+    switch (pieceId) {
+        case pawnId:
+            return internalIsolatePawn(us, source, movesbb);
+        case bishopId:
+            return internalIsolateBishop(us, source, movesbb);
+        case rookId:
+            return internalIsolateRook(us, source, movesbb);
+        default:
+            FATAL_ASSERT(false) << "Not implemented";
+    }
+
+    return 0;
 }

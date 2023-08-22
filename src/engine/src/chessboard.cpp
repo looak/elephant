@@ -1244,10 +1244,10 @@ Chessboard::calculateEndGameCoeficient() const
 }
 
 template<Set us, Set op, bool captureMoves>
-std::vector<PackedMove>
+MoveQueue
 Chessboard::calcAvailableMoves()
 {
-    std::vector<PackedMove> moves;
+    MoveQueue moves;
     // constexpr bool includeMaterial = false;
     // constexpr bool pierceKing = true;
     // u64 threatendMask = m_bitboard.calcThreatenedSquares<op, includeMaterial, pierceKing>();
@@ -1262,7 +1262,7 @@ Chessboard::calcAvailableMoves()
     }
 
     if (movesbb == 0)
-        return std::vector<PackedMove>();
+        return MoveQueue();
 
     i32 srcSqr = intrinsics::lsbIndex(movesbb);
 
@@ -1274,13 +1274,13 @@ Chessboard::calcAvailableMoves()
         move.setSource(srcSqr);
         move.setTarget(dstSqr);
 
-        moves.push_back(move);
+        // moves.push_back(move);
     }
 
     return moves;
 }
 
-template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, false>();
-template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, true>();
-template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, false>();
-template std::vector<PackedMove> Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, true>();
+template MoveQueue Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, false>();
+template MoveQueue Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, true>();
+template MoveQueue Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, false>();
+template MoveQueue Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, true>();

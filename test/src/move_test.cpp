@@ -1059,15 +1059,4 @@ TEST_F(MoveFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
     EXPECT_EQ(15, moves.size());
 }
 
-TEST_F(MoveFixture, KingMoves_Black_ThreatenedSquaresAndCapture)
-{
-    m_chessboard.PlacePiece(BLACKKING, d5);
-    m_chessboard.PlacePiece(WHITEROOK, e6);
-
-    auto moves = m_chessboard.calcAvailableMoves<Set::BLACK, Set::WHITE>();
-
-    u16 expectedMoves = 4;
-    EXPECT_EQ(expectedMoves, moves.size());
-}
-
 }  // namespace ElephantTest

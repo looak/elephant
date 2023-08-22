@@ -594,3 +594,106 @@ Bitboard::SlidingMaterialCombined(byte set) const
 {
     return m_material[set].material[bishopId] | m_material[set].material[rookId] | m_material[set].material[queenId];
 }
+u64
+Bitboard::internalIsolatePawn(Set set, Notation source, u64 movesbb) const
+{
+    if (intrinsics::popcnt(m_material[(size_t)set].material[pawnId]) <= 1)
+        return movesbb;
+
+    return movesbb & board_constants::fileMasks[source.file];
+}
+
+u64
+Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const
+{
+    if (intrinsics::popcnt(m_material[(size_t)set].material[bishopId]) <= 1)
+        return movesbb;
+
+    // figure out forward diagnoal
+    u16 index = 7 + source.file - source.rank;
+    u64 forwardDiag = board_constants::forwardDiagonalMasks[index];
+    u16 bindex = source.file + source.rank;
+    u64 backwardDiag = board_constants::backwardDiagonalMasks[bindex];
+
+    u64 mask = forwardDiag | backwardDiag;
+    u64 pieceMask = mask & m_material[(size_t)set].material[bishopId];
+    i32 count = intrinsics::popcnt(pieceMask);
+    if (count == 1)
+        return movesbb & mask;
+
+    movesbb &= mask;
+    pieceMask &= ~squareMaskTable[source.index()];
+    i32 otherSquare = intrinsics::lsbIndex(pieceMask);
+    Notation other(otherSquare);
+
+    u64 excludeMask = 0;
+    i32 nsDiff = otherSquare - source.index();
+    i32 weDiff = diffWestEast(source, other);
+    if (nsDiff < 0) {
+        if (weDiff < 0)
+            excludeMask = inclusiveFillSouthWest(other.file, other.rank);
+        else
+            excludeMask = inclusiveFillSouthEast(other.file, other.rank);
+    }
+    else {
+        if (weDiff < 0)
+            excludeMask = inclusiveFillNorthWest(other.file, other.rank);
+        else
+            excludeMask = inclusiveFillNorthEast(other.file, other.rank);
+    }
+
+    movesbb &= ~excludeMask;
+    return movesbb & (forwardDiag | backwardDiag);
+}
+
+u64
+Bitboard::internalIsolateRook(Set set, Notation source, u64 movesbb) const
+{
+    if (intrinsics::popcnt(m_material[(size_t)set].material[rookId]) <= 1)
+        return movesbb;
+
+    u64 mask = board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank];
+    u64 pieceMask = mask & m_material[(size_t)set].material[rookId];
+    i32 count = intrinsics::popcnt(pieceMask);
+    if (count == 1)
+        return movesbb & mask;
+
+    movesbb &= mask;
+    pieceMask &= ~squareMaskTable[source.index()];
+    i32 otherSquare = intrinsics::lsbIndex(pieceMask);
+
+    i32 diff = otherSquare - source.index();
+    if ((pieceMask & board_constants::fileMasks[source.file]) == 0)  // not on same file
+    {
+        if (diff < 0) {
+            u64 excludeMask = inclusiveFillWest(source.file + diff);
+            movesbb &= ~excludeMask;
+        }
+        else {
+            u64 excludeMask = inclusiveFillEast(source.file + diff);
+            movesbb &= ~excludeMask;
+        }
+    }
+    else {
+        i32 shiftValue = abs(diff);  // - 8;
+        if (diff < 0) {
+            movesbb = movesbb >> shiftValue;
+            movesbb = movesbb << shiftValue;
+        }
+        else {
+            shiftValue -= 8;
+            movesbb = movesbb << shiftValue;
+            movesbb = movesbb >> shiftValue;
+        }
+    }
+
+    return movesbb;
+}
+
+i32
+Bitboard::diffWestEast(Notation a, Notation b) const
+{
+    i32 a_flattened = mod_by_eight(a.index());
+    i32 b_flattened = mod_by_eight(b.index());
+    return b_flattened - a_flattened;
+}

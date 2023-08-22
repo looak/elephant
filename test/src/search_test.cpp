@@ -4,20 +4,16 @@
 #include "clock.hpp"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "move_generator.h"
+#include "search.h"
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class SearchFixture : public ::testing::Test
-{
+class SearchFixture : public ::testing::Test {
 public:
-    virtual void SetUp()
-    {
+    virtual void SetUp(){
 
     };
-    virtual void TearDown() {};
-
+    virtual void TearDown(){};
 };
 
 ////////////////////////////////////////////////////////////////
@@ -32,7 +28,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     SearchParameters params;
     params.SearchDepth = 4;
-    // execute   
+    // execute
     SearchResult result = context.CalculateBestMove(params);
 
     i32 mateScore = 24000 - result.score;
@@ -54,9 +50,9 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     SearchParameters params;
     params.SearchDepth = 4;
 
-    //execute
+    // execute
     SearchResult result = context.CalculateBestMove(params);
-    
+
     i32 mateScore = 24000 - result.score;
     mateScore /= 2;
 
@@ -73,10 +69,10 @@ TEST_F(SearchFixture, WhiteForcedMate)
 
     SearchParameters params;
     params.SearchDepth = 3;
-    
+
     SearchResult result = context.CalculateBestMove(params);
     EXPECT_TRUE(result.ForcedMate);
 }
 
-} // namexpace ElephantTest
-// 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1
+}  // namespace ElephantTest
+   // 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1
