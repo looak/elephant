@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
-#include <map>
-#include <vector>
 #include <functional>
+#include <map>
 #include <optional>
+#include <vector>
 
 #include "defines.h"
 #include "evaluation_table.hpp"
@@ -31,50 +31,26 @@ struct SearchParameters;
 // #ifndef DEBUG_SEARCHING
 //     #define DEBUG_SEARCHING
 // #endif
-
-struct MoveCount
-{
-    typedef std::function<bool(const Move&)> Predicate;
-    void operator += (const MoveCount& rhs)
-    {
-        this->Captures 		+= rhs.Captures;
-        this->Promotions 	+= rhs.Promotions;
-        this->EnPassants 	+= rhs.EnPassants;
-        this->Castles 		+= rhs.Castles;
-        this->Checks 		+= rhs.Checks;
-        this->Checkmates 	+= rhs.Checkmates;
-        this->Moves 		+= rhs.Moves;
-    }
-    u32 Captures = 0;
-    u32 Promotions = 0;
-    u32 EnPassants = 0;
-    u32 Castles = 0;
-    u32 Checks = 0;
-    u32 Checkmates = 0;
-    u32 Moves = 0;
-};
-
-struct PieceKey
-{
+struct PieceKey {
     ChessPiece Piece;
     Notation SourceSqr;
 
-    bool operator<(const PieceKey& rhs) const 
-    { 
+    bool operator<(const PieceKey& rhs) const
+    {
         if (Piece == rhs.Piece)
             return SourceSqr < rhs.SourceSqr;
-        
+
         return Piece < rhs.Piece;
     }
 };
 
-struct SearchParameters
-{
+struct SearchParameters {
     SearchParameters() :
         SearchDepth(5),
         MoveTime(0)
-    {}
-    
+    {
+    }
+
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
     u32 SearchDepth = 5;
@@ -84,7 +60,7 @@ struct SearchParameters
     u32 MoveTime = 0;
 
     // time limit for white and black in milliseconds including increments.
-    // 0 = no time limit.    
+    // 0 = no time limit.
     u32 WhiteTimelimit = 0;
     u32 BlackTimelimit = 0;
     u32 WhiteTimeIncrement = 0;
@@ -95,37 +71,36 @@ struct SearchParameters
     bool Infinite = false;
 };
 
-struct SearchResult
-{
+struct SearchResult {
     i32 score;
     Move move;
     bool ForcedMate = false;
 };
 
-struct SearchContext
-{
+struct SearchContext {
     u32 count;
     std::vector<Move> pv;
     std::vector<std::array<Move, 3>> killerMoves;
     // maybe add history heuristic as well.
 };
 
-class MoveGenerator
-{
+// class MoveGenerator {};
+
+class MoveGenerator {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
 
-	int Perft(GameContext& context, int depth);
+    int Perft(GameContext& context, int depth);
 
-    MoveCount CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) { return true; }) const;
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
 
 private:
     template<bool UseCache>
-    SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, std::vector<Move>& pv, u32 doNullMove);
-    
+    SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta,
+                                 i32 perspective, std::vector<Move>& pv, u32 doNullMove);
+
     template<bool UseCache>
     i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count);
 
