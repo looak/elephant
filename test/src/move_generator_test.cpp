@@ -134,6 +134,23 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
  * [ ] Pawn can not block check if it puts king in check
  * [ ] Pawn can not capture enpassant if it puts king in check !!! */
 #pragma region PawnMoveGeneratioNTests
+
+TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_NothingBlockedNoCaptures)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(WHITEPAWN, e2);
+    board.PlacePiece(WHITEPAWN, h2);
+    board.PlacePiece(WHITEPAWN, f3);
+    board.PlacePiece(WHITEPAWN, b6);
+    board.PlacePiece(BLACKPAWN, b7);
+
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(6, result.size());
+}
+
 #pragma endregion
 
 #pragma region KnightMoveGenerationTests

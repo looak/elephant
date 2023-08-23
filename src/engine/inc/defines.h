@@ -81,3 +81,5 @@ const u64 universe = 0xffffffffffffffffULL;
 #define mod_by_eight(v) (v & 7)
 
 static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+#define EG_TESTING

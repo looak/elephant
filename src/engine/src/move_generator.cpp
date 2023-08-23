@@ -129,6 +129,12 @@ MoveGenerator::internalGenerateKingMoves()
     const auto& bb = m_context.readChessboard().readBitboard();
 
     u64 movesbb = m_moveMasks[(size_t)set].material[kingId];
+#if defined EG_DEBUGGING || defined EG_TESTING
+    // during testing and debugging king can be missing
+    if (movesbb == 0)
+        return;
+#endif
+
     i32 srcSqr = intrinsics::lsbIndex(bb.readMaterial<set>().material[kingId]);
 
     while (movesbb != 0) {
