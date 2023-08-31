@@ -55,6 +55,8 @@ static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Ma
 
 namespace pawn_constants {
 static constexpr u64 baseRank[2] = {board_constants::rank2Mask, board_constants::rank5Mask};
+static constexpr u64 promotionRank[2] = {board_constants::rank7Mask, board_constants::rank0Mask};
+static constexpr u64 moveMask = UINT64_C(0x10100);
 }  // namespace pawn_constants
 
 namespace king_constants {

@@ -118,12 +118,14 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
     EXPECT_EQ(4, result.size());
 }
 // }
-#pragma endregion
+#pragma endregion  // KingMoveGenerationTests
+
+#pragma region PawnMoveGenerationTests
 /** Pawn tests todo
- * [ ] Pawn can move forward
+ * [x] Pawn can move forward
  * [ ] Pawn can capture diagonally
- * [ ] Pawn can move two squares on first move
- * [ ] Pawn can not move two squares on second move
+ * [x] Pawn can move two squares on first move
+ * [x] Pawn can not move two squares on second move
  * [ ] Pawn can not move forward if blocked
  * [ ] Pawn can capture diagonally if blocked
  * [ ] Pawn can capture enpassant
@@ -133,9 +135,8 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
  * [ ] Pawn can capture checking piece
  * [ ] Pawn can not block check if it puts king in check
  * [ ] Pawn can not capture enpassant if it puts king in check !!! */
-#pragma region PawnMoveGeneratioNTests
 
-TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_NothingBlockedNoCaptures)
+TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptures)
 {
     // setup
     auto& board = testContext.editChessboard();
@@ -143,15 +144,43 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_NothingBlockedNoCaptures)
     board.PlacePiece(WHITEPAWN, h2);
     board.PlacePiece(WHITEPAWN, f3);
     board.PlacePiece(WHITEPAWN, b6);
-    board.PlacePiece(BLACKPAWN, b7);
+    board.PlacePiece(BLACKPAWN, a7);
+    board.PlacePiece(BLACKPAWN, c6);
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
 
     EXPECT_EQ(6, result.size());
+
+    testContext.editToPlay() = Set::BLACK;
+    MoveGenerator gen2(testContext);
+    auto result2 = buildMoveVector(gen2);
+
+    EXPECT_EQ(3, result2.size());
 }
 
-#pragma endregion
+TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(WHITEPAWN, b6);  // not blocked accounts for 1 move
+    board.PlacePiece(WHITEPAWN, e2);  // blocked by white pawn on e3
+    board.PlacePiece(WHITEPAWN, e3);  // blocking e2 and acounts for 1 move
+    board.PlacePiece(WHITEPAWN, f2);  // not blocked accounts for 2 moves
+    board.PlacePiece(WHITEPAWN, g5);  // blocked by black knight
+    board.PlacePiece(WHITEPAWN, g7);  // not blocked accounts for 1 move
+    board.PlacePiece(WHITEPAWN, h2);  // blocked by black pawn on h3
+
+    board.PlacePiece(BLACKKNIGHT, g6);  // blocking g5 but not g7
+    board.PlacePiece(BLACKPAWN, h3);    // blocking h2
+
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(5, result.size());
+}
+
+#pragma endregion  // PawnMoveGenerationTests
 
 #pragma region KnightMoveGenerationTests
 TEST_F(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
@@ -190,7 +219,7 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
         EXPECT_EQ(8, result.size());
     }
 }
-#pragma endregion
+#pragma endregion  // KnightMoveGenerationTests
 
 TEST_F(MoveGeneratorFixture, PawnPromotion)
 {

@@ -600,7 +600,9 @@ Bitboard::internalIsolatePawn(Set set, Notation source, u64 movesbb) const
     if (intrinsics::popcnt(m_material[(size_t)set].material[pawnId]) <= 1)
         return movesbb;
 
-    return movesbb & board_constants::fileMasks[source.file];
+    byte shiftValue = source.index() - ((byte)set * 16);
+    const u64 mask = pawn_constants::moveMask << shiftValue;
+    return movesbb & mask;
 }
 
 u64

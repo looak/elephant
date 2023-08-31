@@ -266,6 +266,13 @@ private:
     template<Set s, u8 direction, u8 pieceId>
     u64 internalCalcAvailableMoves(u64 bounds) const;
 
+    /**
+     * @brief Isolate a given pawn from the moves bitboard.
+     * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
+     * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square.
+     * @param set The set of the pawn.
+     * @param source The source square of the pawn.
+     * @param movesbb The moves bitboard.    */
     u64 internalIsolatePawn(Set set, Notation source, u64 movesbb) const;
     u64 internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
     u64 internalIsolateRook(Set set, Notation source, u64 movesbb) const;
@@ -766,6 +773,7 @@ Bitboard::calcThreatenedSquares() const
     // removing king from opmaterial so it doesn't stop our sliding.
     // needs to be reset later on.
     if constexpr (pierceKing) {
+        // can we build a scoped struct to make this a bit cleaner?
         Set opSet = ChessPiece::FlipSet<s>();
         kingMask = m_material[(size_t)opSet].material[kingId];
         m_material[(size_t)opSet].material[kingId] = 0;

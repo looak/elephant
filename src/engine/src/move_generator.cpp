@@ -62,25 +62,31 @@ MoveGenerator::internalGeneratePawnMoves()
 {
     const auto& bb = m_context.readChessboard().readBitboard();
 
-    u64 movesbb = m_moveMasks[(size_t)set].material[pawnId];
+    const u64 movesbb = m_moveMasks[(size_t)set].material[pawnId];
     if (movesbb == 0)
         return;
 
-    i32 srcSqr = intrinsics::lsbIndex(bb.readMaterial<set>().material[pawnId]);
+    // cache pawns in local variable which we'll use to iterate over all pawns.
+    u64 pawns = bb.readMaterial<set>().material[pawnId];
 
-    Notation srcNotation(srcSqr);
-    movesbb = bb.isolatePiece<set>(pawnId, srcNotation, movesbb);
+    while (pawns != 0) {
+        // build source square and remove pawn from pawns bitboard.
+        const i32 srcSqr = intrinsics::lsbIndex(pawns);
+        const Notation srcNotation(srcSqr);
+        pawns = intrinsics::resetLsb(pawns);
 
-    while (movesbb != 0) {
-        i32 dstSqr = intrinsics::lsbIndex(movesbb);
-        movesbb = intrinsics::resetLsb(movesbb);
+        u64 isolatedPawnMoves = bb.isolatePiece<set>(pawnId, srcNotation, movesbb);
+        while (isolatedPawnMoves != 0) {
+            i32 dstSqr = intrinsics::lsbIndex(isolatedPawnMoves);
+            isolatedPawnMoves = intrinsics::resetLsb(isolatedPawnMoves);
 
-        PackedMove move;
-        move.setSource(srcSqr);
-        move.setTarget(dstSqr);
+            PackedMove move;
+            move.setSource(srcSqr);
+            move.setTarget(dstSqr);
 
-        PrioratizedMove prioratizedMove(move, 1);
-        m_moves.push(prioratizedMove);
+            PrioratizedMove prioratizedMove(move, 1);
+            m_moves.push(prioratizedMove);
+        }
     }
 }
 template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>();
