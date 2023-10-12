@@ -270,10 +270,10 @@ private:
      * @brief Isolate a given pawn from the moves bitboard.
      * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
      * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square.
-     * @param set The set of the pawn.
      * @param source The source square of the pawn.
      * @param movesbb The moves bitboard.    */
-    u64 internalIsolatePawn(Set set, Notation source, u64 movesbb) const;
+    template<Set us>
+    u64 internalIsolatePawn(Notation source, u64 movesbb) const;
     u64 internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
     u64 internalIsolateRook(Set set, Notation source, u64 movesbb) const;
 
@@ -893,7 +893,7 @@ Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
 {
     switch (pieceId) {
         case pawnId:
-            return internalIsolatePawn(us, source, movesbb);
+            return internalIsolatePawn<us>(source, movesbb);
         case bishopId:
             return internalIsolateBishop(us, source, movesbb);
         case rookId:

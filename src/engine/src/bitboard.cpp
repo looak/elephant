@@ -594,16 +594,25 @@ Bitboard::SlidingMaterialCombined(byte set) const
 {
     return m_material[set].material[bishopId] | m_material[set].material[rookId] | m_material[set].material[queenId];
 }
+
+template<Set us>
 u64
-Bitboard::internalIsolatePawn(Set set, Notation source, u64 movesbb) const
+Bitboard::internalIsolatePawn(Notation source, u64 movesbb) const
 {
-    if (intrinsics::popcnt(m_material[(size_t)set].material[pawnId]) <= 1)
+    if (intrinsics::popcnt(m_material[(size_t)us].material[pawnId]) <= 1)
         return movesbb;
 
-    byte shiftValue = source.index() - ((byte)set * 16);
-    const u64 mask = pawn_constants::moveMask << shiftValue;
-    return movesbb & mask;
+    u64 unoccupied = ~(m_material[0].combine() | m_material[1].combine());
+
+    u64 mvsbb = UINT64_C(1) << source.index();
+    mvsbb = shiftNorthRelative<us>(mvsbb);
+    u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)us] & unoccupied;
+    mvsbb |= shiftNorthRelative<us>(doublePush);
+    return movesbb & mvsbb;
 }
+
+template u64 Bitboard::internalIsolatePawn<Set::WHITE>(Notation source, u64 movesbb) const;
+template u64 Bitboard::internalIsolatePawn<Set::BLACK>(Notation source, u64 movesbb) const;
 
 u64
 Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const

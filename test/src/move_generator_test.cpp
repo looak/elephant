@@ -21,17 +21,22 @@ public:
     };
     virtual void TearDown(){};
 
+    using MovePredicate = std::function<bool(const PackedMove&)>;
+
     /**
      * @brief Build a vector of moves from a move generator.
      * Since historically, move generator was recieving a vector of moves, but we changed
      * move gen to generate "next move", we need to build a vector of moves from the generator
      * for backwards compatability.
      * @param gen Move generator to build from.
+     * @param predicate Predicate to filter moves.
      * @return Vector of moves.     */
-    std::vector<PackedMove> buildMoveVector(MoveGenerator& gen) const
+    std::vector<PackedMove> buildMoveVector(MoveGenerator& gen, MovePredicate pred = nullptr) const
     {
         std::vector<PackedMove> result;
         while (auto mv = gen.generateNextMove() != PackedMove::NullMove()) {
+            if (pred && !pred(mv))
+                continue;
             result.push_back(mv);
         }
         return result;
@@ -136,6 +141,18 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
  * [ ] Pawn can not block check if it puts king in check
  * [ ] Pawn can not capture enpassant if it puts king in check !!! */
 
+/*
+ *   +------------------------+
+ * 8 | .  .  .  .  .  .  .  . |
+ * 7 | p  .  .  .  .  .  .  . |
+ * 6 | .  P  p  .  p  .  .  . |
+ * 5 | .  .  .  .  .  .  .  . |
+ * 4 | .  .  .  .  .  .  .  . |
+ * 3 | .  .  .  p  .  P  .  . |
+ * 2 | .  p  .  .  P  .  P  . |
+ * 1 | .  .  .  .  .  .  .  . |
+ *   +------------------------+
+ *     a  b  c  d  e  f  g  h     */
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptures)
 {
     // setup
@@ -146,18 +163,33 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptur
     board.PlacePiece(WHITEPAWN, b6);
     board.PlacePiece(BLACKPAWN, a7);
     board.PlacePiece(BLACKPAWN, c6);
+    board.PlacePiece(BLACKPAWN, b2);
+    board.PlacePiece(BLACKPAWN, d3);
+
+    auto predicate = [](const PackedMove& mv) { return !mv.isCapture(); };
 
     MoveGenerator gen(testContext);
-    auto result = buildMoveVector(gen);
+    auto result = buildMoveVector(gen, predicate);
 
     EXPECT_EQ(6, result.size());
 
     testContext.editToPlay() = Set::BLACK;
     MoveGenerator gen2(testContext);
-    auto result2 = buildMoveVector(gen2);
+    auto result2 = buildMoveVector(gen2, predicate);
 
-    EXPECT_EQ(3, result2.size());
+    EXPECT_EQ(5, result2.size());
 }
+
+/*
+ *   a b c d e f g h
+ * 8 . . . . . . . .
+ * 7 . . . . . . P .
+ * 6 . P . . . . n .
+ * 5 . . . . . . P .
+ * 4 . . . . . . . .
+ * 3 . . . . P . . p
+ * 2 . . . . P P . P
+ * 1 . . . . . . . .  */
 
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
 {
