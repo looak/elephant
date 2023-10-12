@@ -239,10 +239,10 @@ public:
     u64 calcPinnedPiecesBulk(KingMask kingMask) const;
 
     template<Set s>
-    u64 isolatePiece(u8 pieceId, Notation source, u64 movesbb) const;
+    std::tuple<u64, u64> isolatePiece(u8 pieceId, Notation source, u64 movesbb) const;
 
     template<Set s, u8 pieceId>
-    u64 isolatePiece(Notation source, u64 movesbb) const;
+    std::tuple<u64, u64> isolatePiece(Notation source, u64 movesbb) const;
 
     i32 diffWestEast(Notation a, Notation b) const;
 
@@ -273,9 +273,9 @@ private:
      * @param source The source square of the pawn.
      * @param movesbb The moves bitboard.    */
     template<Set us>
-    u64 internalIsolatePawn(Notation source, u64 movesbb) const;
-    u64 internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
-    u64 internalIsolateRook(Set set, Notation source, u64 movesbb) const;
+    std::tuple<u64, u64> internalIsolatePawn(Notation source, u64 movesbb) const;
+    std::tuple<u64, u64> internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
+    std::tuple<u64, u64> internalIsolateRook(Set set, Notation source, u64 movesbb) const;
 
     u64 MaterialCombined(byte set) const;
     u64 MaterialCombined() const;
@@ -881,14 +881,14 @@ Bitboard::calcMaterialSlidingMasksBulk() const
 }
 
 template<Set us, u8 pieceId>
-u64
+std::tuple<u64, u64>
 Bitboard::isolatePiece(Notation source, u64 movesbb) const
 {
     return isolatePiece<us>(pieceId, source, movesbb);
 }
 
 template<Set us>
-u64
+std::tuple<u64, u64>
 Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
 {
     switch (pieceId) {
@@ -902,5 +902,5 @@ Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
             FATAL_ASSERT(false) << "Not implemented";
     }
 
-    return 0;
+    return {0, 0};
 }

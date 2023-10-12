@@ -34,11 +34,16 @@ public:
     std::vector<PackedMove> buildMoveVector(MoveGenerator& gen, MovePredicate pred = nullptr) const
     {
         std::vector<PackedMove> result;
-        while (auto mv = gen.generateNextMove() != PackedMove::NullMove()) {
-            if (pred && !pred(mv))
+        auto mv = gen.generateNextMove();
+        do {
+            if (pred && !pred(mv)) {
+                mv = gen.generateNextMove();
                 continue;
+            }
+
             result.push_back(mv);
-        }
+            mv = gen.generateNextMove();
+        } while (mv != PackedMove::NullMove());
         return result;
     }
 
@@ -131,7 +136,7 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
  * [ ] Pawn can capture diagonally
  * [x] Pawn can move two squares on first move
  * [x] Pawn can not move two squares on second move
- * [ ] Pawn can not move forward if blocked
+ * [x] Pawn can not move forward if blocked
  * [ ] Pawn can capture diagonally if blocked
  * [ ] Pawn can capture enpassant
  * [ ] Pawn can not capture enpassant if not enpassantable
@@ -190,7 +195,6 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptur
  * 3 . . . . P . . p
  * 2 . . . . P P . P
  * 1 . . . . . . . .  */
-
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
 {
     // setup
@@ -210,6 +214,23 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward
     auto result = buildMoveVector(gen);
 
     EXPECT_EQ(5, result.size());
+}
+
+TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
+{
+    // setup
+    std::string fen("8/8/8/5pp1/2Pp1P2/2P1P3/8/8 w - - 0 1");
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    auto predicate = [](const PackedMove& mv) { return mv.isCapture(); };
+
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+    EXPECT_EQ(5, result.size());
+
+    MoveGenerator gen2(testContext);
+    auto captures = buildMoveVector(gen2, predicate);
+    EXPECT_EQ(3, captures.size());
 }
 
 #pragma endregion  // PawnMoveGenerationTests

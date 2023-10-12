@@ -2247,14 +2247,17 @@ TEST_F(BitboardFixture, IsolateBishop_Black_OnlyOneBishopLeftInTheMask)
     u64 expected = 0xa000a0512a140215;
     u64 movesbb = board.calcAvailableMovesBishopBulk<Set::BLACK>();
     EXPECT_EQ(expected, movesbb);
+    {
+        expected = 0xa000a01008040201;
+        auto [moves, attacks] = board.isolatePiece<Set::BLACK, bishopId>(g7, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 
-    expected = 0xa000a01008040201;
-    u64 moves = board.isolatePiece<Set::BLACK, bishopId>(g7, movesbb);
-    EXPECT_EQ(expected, moves);
-
-    expected = 0x804122140014;
-    moves = board.isolatePiece<Set::BLACK, bishopId>(d2, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        expected = 0x804122140014;
+        auto [moves, attacks] = board.isolatePiece<Set::BLACK, bishopId>(d2, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 }
 
 TEST_F(BitboardFixture, IsolateBishop_Black_BishopsOnSameDiagonal)
@@ -2267,13 +2270,17 @@ TEST_F(BitboardFixture, IsolateBishop_Black_BishopsOnSameDiagonal)
     u64 movesbb = board.calcAvailableMovesBishopBulk<Set::BLACK>();
     EXPECT_EQ(expected, movesbb);
 
-    expected = 0x4020110a000a0100;
-    u64 moves = board.isolatePiece<Set::BLACK, bishopId>(c4, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        expected = 0x4020110a000a0100;
+        auto [moves, attks] = board.isolatePiece<Set::BLACK, bishopId>(c4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 
-    expected = 0x8040280028;
-    moves = board.isolatePiece<Set::BLACK, bishopId>(e2, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        expected = 0x8040280028;
+        auto [moves, attks] = board.isolatePiece<Set::BLACK, bishopId>(e2, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 }
 
 TEST_F(BitboardFixture, IsolateRook_Black_OnlyOneRookLeftInMask)
@@ -2285,7 +2292,7 @@ TEST_F(BitboardFixture, IsolateRook_Black_OnlyOneRookLeftInMask)
     u64 expected = 0x40bf404040404040;
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
 
-    u64 moves = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
+    auto [moves, attks] = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
     EXPECT_EQ(expected, moves);
 }
 
@@ -2296,14 +2303,16 @@ TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameRank)
     board.PlacePiece(BLACKROOK, d7);
 
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
-
-    u64 expected = 0x40b0404040404040;
-    u64 moves = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
-    EXPECT_EQ(expected, moves);
-
-    expected = 0x837080808080808;
-    moves = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        u64 expected = 0x40b0404040404040;
+        auto [moves, attks] = board.isolatePiece<Set::BLACK, rookId>(g7, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
+    {
+        u64 expected = 0x837080808080808;
+        auto [moves, attks] = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 }
 
 TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameFile)
@@ -2316,13 +2325,16 @@ TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameFile)
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>();
     EXPECT_EQ(expected, movesbb);
 
-    expected = 0x808f7080808;
-    u64 moves = board.isolatePiece<Set::BLACK, rookId>(d4, movesbb);
-    EXPECT_EQ(expected, moves);
-
-    expected = 0x8f7080800000000;
-    moves = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        expected = 0x808f7080808;
+        auto [moves, attk] = board.isolatePiece<Set::BLACK, rookId>(d4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
+    {
+        expected = 0x8f7080800000000;
+        auto [moves, attk] = board.isolatePiece<Set::BLACK, rookId>(d7, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 }
 
 TEST_F(BitboardFixture, IsolatePawn_White_PawnOnRank)
@@ -2335,12 +2347,14 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnRank)
     u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
     EXPECT_EQ(expected, movesbb);
 
-    expected = 0x800000000;
-    u64 moves = board.isolatePiece<Set::WHITE, pawnId>(d4, movesbb);
-    EXPECT_EQ(expected, moves);
+    {
+        expected = 0x800000000;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(d4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
 
     expected = 0x4040000;
-    moves = board.isolatePiece<Set::WHITE, pawnId>(c2, movesbb);
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(c2, movesbb);
     EXPECT_EQ(expected, moves);
 }
 

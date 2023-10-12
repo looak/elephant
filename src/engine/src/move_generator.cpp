@@ -75,7 +75,19 @@ MoveGenerator::internalGeneratePawnMoves()
         const Notation srcNotation(srcSqr);
         pawns = intrinsics::resetLsb(pawns);
 
-        u64 isolatedPawnMoves = bb.isolatePiece<set>(pawnId, srcNotation, movesbb);
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = bb.isolatePiece<set>(pawnId, srcNotation, movesbb);
+        while (isolatedPawnAttacks != 0) {
+            i32 dstSqr = intrinsics::lsbIndex(isolatedPawnAttacks);
+            isolatedPawnAttacks = intrinsics::resetLsb(isolatedPawnAttacks);
+
+            PackedMove move;
+            move.setSource(srcSqr);
+            move.setTarget(dstSqr);
+            move.setCapture(true);
+
+            PrioratizedMove prioratizedMove(move, 1);
+            m_moves.push(prioratizedMove);
+        }
         while (isolatedPawnMoves != 0) {
             i32 dstSqr = intrinsics::lsbIndex(isolatedPawnMoves);
             isolatedPawnMoves = intrinsics::resetLsb(isolatedPawnMoves);

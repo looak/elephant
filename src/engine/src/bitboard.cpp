@@ -596,29 +596,37 @@ Bitboard::SlidingMaterialCombined(byte set) const
 }
 
 template<Set us>
-u64
+std::tuple<u64, u64>
 Bitboard::internalIsolatePawn(Notation source, u64 movesbb) const
 {
     if (intrinsics::popcnt(m_material[(size_t)us].material[pawnId]) <= 1)
-        return movesbb;
+        return {movesbb, 0};
 
     u64 unoccupied = ~(m_material[0].combine() | m_material[1].combine());
 
-    u64 mvsbb = UINT64_C(1) << source.index();
-    mvsbb = shiftNorthRelative<us>(mvsbb);
-    u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)us] & unoccupied;
-    mvsbb |= shiftNorthRelative<us>(doublePush);
-    return movesbb & mvsbb;
+    u64 srcMask = UINT64_C(1) << source.index();
+    u64 isolatedbb = shiftNorthRelative<us>(srcMask);
+    u64 doublePush = isolatedbb & pawn_constants::baseRank[(size_t)us] & unoccupied;
+    isolatedbb |= shiftNorthRelative<us>(doublePush);
+
+    u64 threatns = 0;
+    if ((srcMask & board_constants::boundsRelativeMasks[(size_t)us][west]) == 0)
+        threatns |= shiftNorthWestRelative<us>(srcMask);
+    if ((srcMask & board_constants::boundsRelativeMasks[(size_t)us][east]) == 0)
+        threatns |= shiftNorthEastRelative<us>(srcMask);
+
+    auto them = opposing_set<us>();
+    return {movesbb & isolatedbb, m_material[(size_t)them].combine() & threatns};
 }
 
-template u64 Bitboard::internalIsolatePawn<Set::WHITE>(Notation source, u64 movesbb) const;
-template u64 Bitboard::internalIsolatePawn<Set::BLACK>(Notation source, u64 movesbb) const;
+template std::tuple<u64, u64> Bitboard::internalIsolatePawn<Set::WHITE>(Notation source, u64 movesbb) const;
+template std::tuple<u64, u64> Bitboard::internalIsolatePawn<Set::BLACK>(Notation source, u64 movesbb) const;
 
-u64
+std::tuple<u64, u64>
 Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const
 {
     if (intrinsics::popcnt(m_material[(size_t)set].material[bishopId]) <= 1)
-        return movesbb;
+        return {movesbb, 0};
 
     // figure out forward diagnoal
     u16 index = 7 + source.file - source.rank;
@@ -630,7 +638,7 @@ Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const
     u64 pieceMask = mask & m_material[(size_t)set].material[bishopId];
     i32 count = intrinsics::popcnt(pieceMask);
     if (count == 1)
-        return movesbb & mask;
+        return {movesbb & mask, 0};
 
     movesbb &= mask;
     pieceMask &= ~squareMaskTable[source.index()];
@@ -654,20 +662,20 @@ Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const
     }
 
     movesbb &= ~excludeMask;
-    return movesbb & (forwardDiag | backwardDiag);
+    return {movesbb & (forwardDiag | backwardDiag), 0};
 }
 
-u64
+std::tuple<u64, u64>
 Bitboard::internalIsolateRook(Set set, Notation source, u64 movesbb) const
 {
     if (intrinsics::popcnt(m_material[(size_t)set].material[rookId]) <= 1)
-        return movesbb;
+        return {movesbb, 0};
 
     u64 mask = board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank];
     u64 pieceMask = mask & m_material[(size_t)set].material[rookId];
     i32 count = intrinsics::popcnt(pieceMask);
     if (count == 1)
-        return movesbb & mask;
+        return {movesbb & mask, 0};
 
     movesbb &= mask;
     pieceMask &= ~squareMaskTable[source.index()];
@@ -698,7 +706,7 @@ Bitboard::internalIsolateRook(Set set, Notation source, u64 movesbb) const
         }
     }
 
-    return movesbb;
+    return {movesbb, 0};
 }
 
 i32

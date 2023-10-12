@@ -148,6 +148,7 @@ public:
 
     inline void setSource(int sqr) { m_internals |= (sqr & ~c_sourceSquareConstant); }
     inline void setTarget(int sqr) { m_internals |= ((sqr & ~c_targetSquareConstant) << 6); }
+    inline void setCapture(bool value) { m_internals |= (value ? CAPTURES : 0); }
 
     // operators
     bool operator==(const PackedMove& rhs) const { return m_internals == rhs.m_internals; }
