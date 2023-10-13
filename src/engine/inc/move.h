@@ -124,8 +124,14 @@ struct PackedMove {
 public:
     static PackedMove NullMove() { return PackedMove{0x0}; };
 
-    PackedMove() = default;
-    PackedMove(u16 packed) { m_internals = packed; }
+    PackedMove() :
+        m_internals(0)
+    {
+    }
+    PackedMove(u16 packed) :
+        m_internals(packed)
+    {
+    }
 
     inline int sourceSqr() const { return m_internals & c_sourceSquareConstant; }
     inline int targetSqr() const { return (m_internals >> 6) & c_sourceSquareConstant; }
@@ -146,16 +152,44 @@ public:
     void set(u16 packed) { m_internals = packed; }
     inline u16 read() const { return m_internals; }
 
-    inline void setSource(int sqr) { m_internals |= (sqr & ~c_sourceSquareConstant); }
-    inline void setTarget(int sqr) { m_internals |= ((sqr & ~c_targetSquareConstant) << 6); }
-    inline void setCapture(bool value) { m_internals |= (value ? CAPTURES : 0); }
+    inline void setSource(int sqr)
+    {
+        m_internals &= ~c_sourceSquareConstant;
+        m_internals |= (sqr & c_sourceSquareConstant);
+    }
+    inline void setTarget(int sqr)
+    {
+        m_internals &= ~c_targetSquareConstant;
+        m_internals |= ((sqr & c_sourceSquareConstant) << 6);
+    }
+    inline void setCapture(bool value)
+    {
+        if (value == true)
+            m_internals |= CAPTURES << 12;
+        else
+            m_internals &= ~(CAPTURES << 12);
+    }
 
     // operators
     bool operator==(const PackedMove& rhs) const { return m_internals == rhs.m_internals; }
     bool operator!=(const PackedMove& rhs) const { return m_internals != rhs.m_internals; }
+    operator bool() const { return m_internals != 0; }
 
 private:
-    u16 m_internals;
+    union {
+        u16 m_internals;
+        struct {
+            // public:
+            //     internals_struct() = default;
+            //     internals_struct(u16 data) { memcpy(this, &data, sizeof(u16)); }
+            u16 src : 6;
+            u16 trg : 6;
+            u16 flag : 1;
+            u16 castle : 1;
+            u16 capture : 1;
+            u16 promote : 1;
+        } m_internals_struct;
+    };
 };
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");

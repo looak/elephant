@@ -1145,7 +1145,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesBlack_NothingIsBlocked)
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ p ][ . ][ p ][ . ]
 // 6 [ . ][ . ][ p ][ p ][ x ][ . ][ n ][ . ]
-// 5 [ . ][ . ][ B ][ x ][ p ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ xB][ x ][ p ][ . ][ . ][ . ]
 // 4 [ . ][ . ][ . ][ n ][ x ][ . ][ . ][ . ]
 // 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 2 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
@@ -1176,6 +1176,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesBlack_Blocked)
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << c5.index();
     expected |= INT64_C(1) << e6.index();
     expected |= INT64_C(1) << e4.index();
 
@@ -1191,7 +1192,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesBlack_Blocked)
 // 6 [ . ][ . ][ . ][ p ][ . ][ . ][ . ][ x ]
 // 5 [ . ][ . ][ . ][ P ][ . ][ . ][ . ][ P ]
 // 4 [ . ][ x ][ x ][ . ][ . ][ . ][ B ][ . ]
-// 3 [ . ][ x ][ P ][ . ][ . ][ n ][ x ][ . ]
+// 3 [ . ][ x ][ P ][ . ][ . ][ xn][ x ][ . ]
 // 2 [ . ][ P ][ . ][ . ][ . ][ P ][ P ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
@@ -1220,6 +1221,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesWhite_SomeMixOfBlockedAndNonBlocked)
     expected |= INT64_C(1) << b4.index();
     expected |= INT64_C(1) << c4.index();
     expected |= INT64_C(1) << e8.index();
+    expected |= INT64_C(1) << f3.index();
     expected |= INT64_C(1) << g3.index();
     expected |= INT64_C(1) << h6.index();
 

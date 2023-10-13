@@ -507,13 +507,6 @@ inclusiveFillNorthWest(i16 file, i16 rank)
 }
 
 template<Set s>
-u64
-Bitboard::readCombinedMaterial() const
-{
-    return readMaterial<s>().combine();
-}
-
-template<Set s>
 MaterialMask
 Bitboard::readMaterial() const
 {
@@ -523,21 +516,6 @@ Bitboard::readMaterial() const
     else {
         return m_material[1];
     }
-}
-
-template<Set s>
-u64
-Bitboard::calcAvailableMovesPawnsBulk() const
-{
-    u64 unoccupied = ~(m_material[0].combine() | m_material[1].combine());
-    u64 piecebb = m_material[(size_t)s].material[pawnId];
-    u64 mvsbb = ~universe;
-
-    mvsbb = shiftNorthRelative<s>(piecebb);
-    u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)s] & unoccupied;
-    mvsbb |= shiftNorthRelative<s>(doublePush);
-
-    return mvsbb & unoccupied;
 }
 
 template<Set s, u8 direction, u8 pieceId>

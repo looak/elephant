@@ -716,3 +716,36 @@ Bitboard::diffWestEast(Notation a, Notation b) const
     i32 b_flattened = mod_by_eight(b.index());
     return b_flattened - a_flattened;
 }
+
+template<Set s>
+u64
+Bitboard::calcAvailableMovesPawnsBulk() const
+{
+    const u64 usMat = m_material[(size_t)s].combine();
+    const u64 opMat = m_material[(size_t)opposing_set<s>()].combine();
+    const u64 unoccupied = ~(usMat | opMat);
+    const u64 piecebb = m_material[(size_t)s].material[pawnId];
+    u64 mvsbb = ~universe;
+
+    mvsbb = shiftNorthRelative<s>(piecebb);
+    u64 doublePush = mvsbb & pawn_constants::baseRank[(size_t)s] & unoccupied;
+    mvsbb |= shiftNorthRelative<s>(doublePush);
+
+    mvsbb &= unoccupied;
+
+    mvsbb |= opMat & calcThreatenedSquaresPawnsBulk<s>();
+    return mvsbb;
+}
+
+template u64 Bitboard::calcAvailableMovesPawnsBulk<Set::WHITE>() const;
+template u64 Bitboard::calcAvailableMovesPawnsBulk<Set::BLACK>() const;
+
+template<Set s>
+u64
+Bitboard::readCombinedMaterial() const
+{
+    return readMaterial<s>().combine();
+}
+
+template u64 Bitboard::readCombinedMaterial<Set::WHITE>() const;
+template u64 Bitboard::readCombinedMaterial<Set::BLACK>() const;

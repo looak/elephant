@@ -34,16 +34,13 @@ public:
     std::vector<PackedMove> buildMoveVector(MoveGenerator& gen, MovePredicate pred = nullptr) const
     {
         std::vector<PackedMove> result;
-        auto mv = gen.generateNextMove();
-        do {
-            if (pred && !pred(mv)) {
-                mv = gen.generateNextMove();
+        while (auto mv = gen.generateNextMove()) {
+            if (pred && !pred(mv))
                 continue;
-            }
 
             result.push_back(mv);
-            mv = gen.generateNextMove();
-        } while (mv != PackedMove::NullMove());
+        }
+
         return result;
     }
 
@@ -133,11 +130,11 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
 #pragma region PawnMoveGenerationTests
 /** Pawn tests todo
  * [x] Pawn can move forward
- * [ ] Pawn can capture diagonally
+ * [x] Pawn can capture diagonally
  * [x] Pawn can move two squares on first move
  * [x] Pawn can not move two squares on second move
  * [x] Pawn can not move forward if blocked
- * [ ] Pawn can capture diagonally if blocked
+ * [x] Pawn can capture diagonally if blocked
  * [ ] Pawn can capture enpassant
  * [ ] Pawn can not capture enpassant if not enpassantable
  * [ ] Pawn can block check

@@ -136,6 +136,41 @@ TEST_F(MoveFixture, PackedMoves_FromMove)
     EXPECT_FALSE(pmv.isPromotion());
 }
 
+TEST_F(MoveFixture, PackedMove)
+{
+    // setup
+    int sourceSqr = 42;
+    int targetSqr = 61;
+    PackedMove pmv;
+    pmv.setSource(sourceSqr);
+    pmv.setTarget(targetSqr);
+
+    // verify
+    EXPECT_EQ(sourceSqr, pmv.sourceSqr());
+    EXPECT_EQ(targetSqr, pmv.targetSqr());
+    EXPECT_FALSE(pmv.isCapture());
+
+    // change
+    sourceSqr = 7;
+    targetSqr = 63;
+    pmv.setSource(sourceSqr);
+    pmv.setTarget(targetSqr);
+    pmv.setCapture(true);
+
+    // verify
+    EXPECT_EQ(sourceSqr, pmv.sourceSqr());
+    EXPECT_EQ(targetSqr, pmv.targetSqr());
+    EXPECT_TRUE(pmv.isCapture());
+
+    // unset capture
+    pmv.setCapture(false);
+
+    // verify
+    EXPECT_FALSE(pmv.isCapture());
+    EXPECT_EQ(sourceSqr, pmv.sourceSqr());
+    EXPECT_EQ(targetSqr, pmv.targetSqr());
+}
+
 TEST_F(MoveFixture, PawnMoves_enpassant_white)
 {
     // setup
