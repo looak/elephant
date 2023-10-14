@@ -55,6 +55,8 @@ private:
     template<Set set>
     void internalGenerateKingMoves();
 
+    void genPackedMovesFromBitboard(u64 movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue);
+
     const GameContext& m_context;
     PriorityMoveQueue m_moves;
     std::vector<PackedMove> m_returnedMoves;

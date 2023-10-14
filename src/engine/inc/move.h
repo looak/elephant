@@ -176,6 +176,9 @@ public:
     operator bool() const { return m_internals != 0; }
 
 private:
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
     union {
         u16 m_internals;
         struct {
@@ -191,6 +194,8 @@ private:
         } m_internals_struct;
     };
 };
+
+#pragma clang diagnostic pop
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 

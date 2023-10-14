@@ -2339,7 +2339,7 @@ TEST_F(BitboardFixture, IsolateRook_Black_RooksAreOnSameFile)
     }
 }
 
-TEST_F(BitboardFixture, IsolatePawn_White_PawnOnRank)
+TEST_F(BitboardFixture, IsolatePawn_White_PawnOnDifferentRankAndFile)
 {
     Bitboard board;
     board.PlacePiece(WHITEPAWN, d4);
@@ -2357,6 +2357,48 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnRank)
 
     expected = 0x4040000;
     auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(c2, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolatePawn_White_PawnOnSameRank)
+{
+    Bitboard board;
+    board.PlacePiece(WHITEPAWN, d4);
+    board.PlacePiece(WHITEPAWN, e4);
+
+    u64 expected = 0x1800000000;
+    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    EXPECT_EQ(expected, movesbb);
+
+    {
+        expected = 0x800000000;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(d4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
+
+    expected = 0x1000000000;
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(e4, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolatePawn_White_PawnOnSameFile)
+{
+    Bitboard board;
+    board.PlacePiece(WHITEPAWN, d4);
+    board.PlacePiece(WHITEPAWN, d2);
+
+    u64 expected = 0x800080000;
+    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    EXPECT_EQ(expected, movesbb);
+
+    {
+        expected = 0x800000000;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(d4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
+
+    expected = 0x80000;
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(d2, movesbb);
     EXPECT_EQ(expected, moves);
 }
 

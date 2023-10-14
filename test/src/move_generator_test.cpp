@@ -228,6 +228,11 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
     MoveGenerator gen2(testContext);
     auto captures = buildMoveVector(gen2, predicate);
     EXPECT_EQ(3, captures.size());
+
+    testContext.editToPlay() = Set::BLACK;
+    MoveGenerator gen_black(testContext);
+    auto result_black = buildMoveVector(gen_black, predicate);
+    EXPECT_EQ(3, result_black.size());
 }
 
 #pragma endregion  // PawnMoveGenerationTests

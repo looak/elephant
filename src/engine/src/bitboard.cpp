@@ -622,6 +622,13 @@ Bitboard::internalIsolatePawn(Notation source, u64 movesbb) const
 template std::tuple<u64, u64> Bitboard::internalIsolatePawn<Set::WHITE>(Notation source, u64 movesbb) const;
 template std::tuple<u64, u64> Bitboard::internalIsolatePawn<Set::BLACK>(Notation source, u64 movesbb) const;
 
+template<Set us>
+std::tuple<u64, u64>
+Bitboard::internalIsolateKnight(Notation source, u64 movesbb) const
+{
+    return {0, 0};
+}
+
 std::tuple<u64, u64>
 Bitboard::internalIsolateBishop(Set set, Notation source, u64 movesbb) const
 {
@@ -749,3 +756,26 @@ Bitboard::readCombinedMaterial() const
 
 template u64 Bitboard::readCombinedMaterial<Set::WHITE>() const;
 template u64 Bitboard::readCombinedMaterial<Set::BLACK>() const;
+
+template<Set us>
+std::tuple<u64, u64>
+Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
+{
+    switch (pieceId) {
+        case pawnId:
+            return internalIsolatePawn<us>(source, movesbb);
+        case bishopId:
+            return internalIsolateBishop(us, source, movesbb);
+        case rookId:
+            return internalIsolateRook(us, source, movesbb);
+        case knightId:
+            return internalIsolateKnight<us>(source, movesbb);
+        default:
+            FATAL_ASSERT(false) << "Not implemented";
+    }
+
+    return {0, 0};
+}
+
+template std::tuple<u64, u64> Bitboard::isolatePiece<Set::WHITE>(u8 pieceId, Notation source, u64 movesbb) const;
+template std::tuple<u64, u64> Bitboard::isolatePiece<Set::BLACK>(u8 pieceId, Notation source, u64 movesbb) const;

@@ -274,6 +274,8 @@ private:
      * @param movesbb The moves bitboard.    */
     template<Set us>
     std::tuple<u64, u64> internalIsolatePawn(Notation source, u64 movesbb) const;
+    template<Set us>
+    std::tuple<u64, u64> internalIsolateKnight(Notation source, u64 movesbb) const;
     std::tuple<u64, u64> internalIsolateBishop(Set set, Notation source, u64 movesbb) const;
     std::tuple<u64, u64> internalIsolateRook(Set set, Notation source, u64 movesbb) const;
 
@@ -863,22 +865,4 @@ std::tuple<u64, u64>
 Bitboard::isolatePiece(Notation source, u64 movesbb) const
 {
     return isolatePiece<us>(pieceId, source, movesbb);
-}
-
-template<Set us>
-std::tuple<u64, u64>
-Bitboard::isolatePiece(u8 pieceId, Notation source, u64 movesbb) const
-{
-    switch (pieceId) {
-        case pawnId:
-            return internalIsolatePawn<us>(source, movesbb);
-        case bishopId:
-            return internalIsolateBishop(us, source, movesbb);
-        case rookId:
-            return internalIsolateRook(us, source, movesbb);
-        default:
-            FATAL_ASSERT(false) << "Not implemented";
-    }
-
-    return {0, 0};
 }
