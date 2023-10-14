@@ -726,7 +726,7 @@ Bitboard::diffWestEast(Notation a, Notation b) const
 
 template<Set s>
 u64
-Bitboard::calcAvailableMovesPawnsBulk() const
+Bitboard::calcAvailableMovesPawnBulk() const
 {
     const u64 usMat = m_material[(size_t)s].combine();
     const u64 opMat = m_material[(size_t)opposing_set<s>()].combine();
@@ -740,12 +740,12 @@ Bitboard::calcAvailableMovesPawnsBulk() const
 
     mvsbb &= unoccupied;
 
-    mvsbb |= opMat & calcThreatenedSquaresPawnsBulk<s>();
+    mvsbb |= opMat & calcThreatenedSquaresPawnBulk<s>();
     return mvsbb;
 }
 
-template u64 Bitboard::calcAvailableMovesPawnsBulk<Set::WHITE>() const;
-template u64 Bitboard::calcAvailableMovesPawnsBulk<Set::BLACK>() const;
+template u64 Bitboard::calcAvailableMovesPawnBulk<Set::WHITE>() const;
+template u64 Bitboard::calcAvailableMovesPawnBulk<Set::BLACK>() const;
 
 template<Set s>
 u64

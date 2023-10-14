@@ -1136,7 +1136,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesBlack_NothingIsBlocked)
     expected |= INT64_C(1) << g5.index();
 
     // do
-    u64 result = board.calcAvailableMovesPawnsBulk<Set::BLACK>();
+    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1181,7 +1181,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesBlack_Blocked)
     expected |= INT64_C(1) << e4.index();
 
     // do
-    u64 result = board.calcAvailableMovesPawnsBulk<Set::BLACK>();
+    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1226,7 +1226,7 @@ TEST_F(BitboardFixture, Bulk_PawnMovesWhite_SomeMixOfBlockedAndNonBlocked)
     expected |= INT64_C(1) << h6.index();
 
     // do
-    u64 result = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    u64 result = board.calcAvailableMovesPawnBulk<Set::WHITE>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1261,7 +1261,7 @@ TEST_F(BitboardFixture, Bulk_PawnThreatsWhite_ThereShouldBeAFewThreatenedSquares
     expected |= INT64_C(1) << g3.index();
 
     // do
-    u64 result = board.calcThreatenedSquaresPawnsBulk<Set::WHITE>();
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1296,7 +1296,7 @@ TEST_F(BitboardFixture, Bulk_PawnThreatsBlack_ThereShouldBeAFewThreatenedSquares
     expected |= INT64_C(1) << g4.index();
 
     // do
-    u64 result = board.calcThreatenedSquaresPawnsBulk<Set::BLACK>();
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::BLACK>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1336,7 +1336,7 @@ TEST_F(BitboardFixture, Bulk_PawnAttacksWhite_ThereShouldBeAFewAttackedPieces)
     expected |= INT64_C(1) << e4.index();
 
     // do
-    u64 result = board.calcAvailableAttacksPawnsBulk<Set::WHITE>();
+    u64 result = board.calcAvailableAttacksPawnBulk<Set::WHITE>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -1459,7 +1459,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected |= INT64_C(1) << c4.index();
 
     // do
-    u64 result = board.calcThreatenedSquaresPawnsBulk<Set::WHITE>();
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>();
     // validate
     EXPECT_EQ(expected, result);
 
@@ -1468,7 +1468,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected |= INT64_C(1) << a5.index();
     expected |= INT64_C(1) << c5.index();
     // do
-    result = board.calcThreatenedSquaresPawnsBulk<Set::BLACK>();
+    result = board.calcThreatenedSquaresPawnBulk<Set::BLACK>();
     // validate
     EXPECT_EQ(expected, result);
 
@@ -1476,7 +1476,7 @@ TEST_F(BitboardFixture, White_Pawn_Threaten)
     expected = ~universe;
     expected |= INT64_C(1) << a5.index();
     // do
-    result = board.calcAvailableAttacksPawnsBulk<Set::BLACK>();
+    result = board.calcAvailableAttacksPawnBulk<Set::BLACK>();
     // validate
     EXPECT_EQ(expected, result);
 }
@@ -1954,7 +1954,7 @@ TEST_F(BitboardFixture, White_Queen_Threaten_Blocked_by_Pawns)
     expected |= INT64_C(1) << h1.index();
 
     // do
-    u64 threat = board.calcThreatenedSquaresQueensBulk<Set::WHITE>();
+    u64 threat = board.calcThreatenedSquaresQueenBulk<Set::WHITE>();
 
     // validate
     EXPECT_EQ(expected, threat);
@@ -2346,7 +2346,7 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnDifferentRankAndFile)
     board.PlacePiece(WHITEPAWN, c2);
 
     u64 expected = 0x804040000;
-    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    u64 movesbb = board.calcAvailableMovesPawnBulk<Set::WHITE>();
     EXPECT_EQ(expected, movesbb);
 
     {
@@ -2367,7 +2367,7 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnSameRank)
     board.PlacePiece(WHITEPAWN, e4);
 
     u64 expected = 0x1800000000;
-    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    u64 movesbb = board.calcAvailableMovesPawnBulk<Set::WHITE>();
     EXPECT_EQ(expected, movesbb);
 
     {
@@ -2388,7 +2388,7 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnSameFile)
     board.PlacePiece(WHITEPAWN, d2);
 
     u64 expected = 0x800080000;
-    u64 movesbb = board.calcAvailableMovesPawnsBulk<Set::WHITE>();
+    u64 movesbb = board.calcAvailableMovesPawnBulk<Set::WHITE>();
     EXPECT_EQ(expected, movesbb);
 
     {
@@ -2399,6 +2399,27 @@ TEST_F(BitboardFixture, IsolatePawn_White_PawnOnSameFile)
 
     expected = 0x80000;
     auto [moves, attks] = board.isolatePiece<Set::WHITE, pawnId>(d2, movesbb);
+    EXPECT_EQ(expected, moves);
+}
+
+TEST_F(BitboardFixture, IsolateKnight_White_TwoKnightsNotSharingSquares)
+{
+    Bitboard board;
+    board.PlacePiece(WHITEKNIGHT, d4);
+    board.PlacePiece(WHITEKNIGHT, e2);
+
+    u64 expected = 0x1422a0321410;
+    u64 movesbb = board.calcAvailableMovesKnightBulk<Set::WHITE>();
+    EXPECT_EQ(expected, movesbb);
+
+    {
+        expected = 0x4000000000000000;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(d4, movesbb);
+        EXPECT_EQ(expected, moves);
+    }
+
+    expected = 0x2000000000000000;
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(e2, movesbb);
     EXPECT_EQ(expected, moves);
 }
 

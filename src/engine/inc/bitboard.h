@@ -197,7 +197,7 @@ public:
     u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
     template<Set s>
-    u64 calcAvailableMovesPawnsBulk() const;
+    u64 calcAvailableMovesPawnBulk() const;
     template<Set s>
     u64 calcAvailableMovesKnightBulk() const;
     template<Set s, u8 pieceId = rookId>
@@ -213,10 +213,10 @@ public:
     MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
 
     template<Set s>
-    u64 calcAvailableAttacksPawnsBulk() const;
+    u64 calcAvailableAttacksPawnBulk() const;
 
     template<Set s>
-    u64 calcThreatenedSquaresPawnsBulk() const;
+    u64 calcThreatenedSquaresPawnBulk() const;
     template<Set s>
     u64 calcThreatenedSquaresKnightBulk() const;
     template<Set s, u8 pieceId = bishopId>
@@ -224,7 +224,7 @@ public:
     template<Set s, u8 pieceId = rookId>
     u64 calcThreatenedSquaresRookBulk() const;
     template<Set s>
-    u64 calcThreatenedSquaresQueensBulk() const;
+    u64 calcThreatenedSquaresQueenBulk() const;
     template<Set s>
     u64 calcThreatenedSquaresKingBulk() const;
     template<Set s, bool includeMaterial, bool pierceKing = false>
@@ -629,11 +629,11 @@ Bitboard::calcAvailableMovesKingBulk() const
 
 template<Set s>
 u64
-Bitboard::calcAvailableAttacksPawnsBulk() const
+Bitboard::calcAvailableAttacksPawnBulk() const
 {
     Set opSet = ChessPiece::FlipSet<s>();
 
-    u64 threats = calcThreatenedSquaresPawnsBulk<s>();
+    u64 threats = calcThreatenedSquaresPawnBulk<s>();
     u64 opMaterial = m_material[(size_t)opSet].combine();
 
     return threats & opMaterial;
@@ -641,7 +641,7 @@ Bitboard::calcAvailableAttacksPawnsBulk() const
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresPawnsBulk() const
+Bitboard::calcThreatenedSquaresPawnBulk() const
 {
     u64 piecebb = m_material[(size_t)s].material[pawnId];
 
@@ -700,7 +700,7 @@ Bitboard::calcThreatenedSquaresRookBulk() const
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresQueensBulk() const
+Bitboard::calcThreatenedSquaresQueenBulk() const
 {
     u64 moves = 0;
 
@@ -759,7 +759,7 @@ Bitboard::calcThreatenedSquares() const
         m_material[(size_t)opSet].material[kingId] = 0;
     }
 
-    result |= calcThreatenedSquaresPawnsBulk<s>();
+    result |= calcThreatenedSquaresPawnBulk<s>();
     result |= calcAvailableMovesKnightBulk<s>();
     result |= calcThreatenedSquaresBishopBulk<s>();
     result |= calcThreatenedSquaresBishopBulk<s, queenId>();

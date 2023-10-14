@@ -201,7 +201,7 @@ void
 MoveGenerator::initializeMoveMasks(MaterialMask& target)
 {
     const auto& bb = m_context.readChessboard().readBitboard();
-    target.material[pawnId] = bb.calcAvailableMovesPawnsBulk<set>();
+    target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>();
     target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>();
     target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>();
     target.material[rookId] = bb.calcAvailableMovesRookBulk<set>();
