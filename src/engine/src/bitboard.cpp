@@ -425,7 +425,7 @@ Bitboard::calcAvailableMoves(Notation source, ChessPiece piece, byte castling, N
     if (checked || pinned)
         ret &= threatened;
 
-    return ret;
+    return 0;
 }
 
 // u64

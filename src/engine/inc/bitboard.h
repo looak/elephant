@@ -207,7 +207,7 @@ public:
     template<Set s>
     u64 calcAvailableMovesQueenBulk() const;
     template<Set us, Set op = opposing_set<us>()>
-    u64 calcAvailableMovesKingBulk() const;
+    u64 calcAvailableMovesKingBulk(byte castlingRights) const;
 
     template<Set s>
     MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
@@ -618,12 +618,14 @@ Bitboard::calcAvailableMovesQueenBulk() const
 
 template<Set us, Set op>
 u64
-Bitboard::calcAvailableMovesKingBulk() const
+Bitboard::calcAvailableMovesKingBulk(byte castlingRights) const
 {
     bool constexpr includeMaterial = false;
-    u64 treatened = calcThreatenedSquares<op, includeMaterial>();
+    bool constexpr pierceKing = true;
+    u64 treatened = calcThreatenedSquares<op, includeMaterial, pierceKing>();
     u64 moves = calcThreatenedSquaresKingBulk<us>();
     moves &= ~treatened;
+    moves |= Castling((byte)us, castlingRights, treatened);
     return moves;
 }
 

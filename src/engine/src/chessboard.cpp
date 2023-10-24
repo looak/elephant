@@ -1255,7 +1255,7 @@ Chessboard::calcAvailableMoves()
     const u64 opMaterial = m_bitboard.readCombinedMaterial<op>();
 
     KingMask kingMask = calcKingMask(us);
-    u64 movesbb = m_bitboard.calcAvailableMovesKingBulk<us, op>();
+    u64 movesbb = m_bitboard.calcAvailableMovesKingBulk<us, op>(0);
 
     if constexpr (captureMoves) {
         movesbb &= opMaterial;

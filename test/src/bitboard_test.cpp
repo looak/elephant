@@ -20,7 +20,7 @@ public:
 
 ////////////////////////////////////////////////////////////////
 
-TEST_F(BitboardFixture, ValidSquare)
+TEST_F(BitboardFixture, Utils_StaticSquareValidation_JustShouldNotFail)
 {
     Notation n(0);
     bool result = Bitboard::IsValidSquare(n);
@@ -61,7 +61,7 @@ TEST_F(BitboardFixture, ValidSquare)
 // 2 [ . ][ . ][ . ][ x ][ x ][ x ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ x ][ K ][ x ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, King_Move_e1)
+TEST_F(BitboardFixture, King_OnlyWhiteKingOnBoard_e1_ShouldHaveMoves)
 {
     Bitboard board;
     auto K = WHITEKING;
@@ -81,7 +81,7 @@ TEST_F(BitboardFixture, King_Move_e1)
     // f2 should be available for moving
     expected |= INT64_C(1) << f2.index();
 
-    auto result = board.calcAvailableMoves(e1, K, 0, {});
+    auto result = board.calcAvailableMovesKingBulk<Set::WHITE>(0);
     EXPECT_EQ(expected, result);
 }
 
@@ -94,7 +94,7 @@ TEST_F(BitboardFixture, King_Move_e1)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, King_Move_d4)
+TEST_F(BitboardFixture, King_OnlyWhiteKingOnBoard_d4_ShouldHaveMoves)
 {
     Bitboard board;
     auto K = WHITEKING;
@@ -111,7 +111,7 @@ TEST_F(BitboardFixture, King_Move_d4)
     expected |= INT64_C(1) << e4.index();
     expected |= INT64_C(1) << e3.index();
 
-    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>();
+    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>(0);
     EXPECT_EQ(expected, result);
 }
 
@@ -124,7 +124,7 @@ TEST_F(BitboardFixture, King_Move_d4)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_King_Move_e8)
+TEST_F(BitboardFixture, King_OnlyBlackKingOnBoard_e8_ShouldHaveMoves)
 {
     Bitboard board;
     auto k = BLACKKING;
@@ -138,20 +138,20 @@ TEST_F(BitboardFixture, Black_King_Move_e8)
     expected |= INT64_C(1) << f8.index();
     expected |= INT64_C(1) << f7.index();
 
-    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>();
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>(0);
     EXPECT_EQ(expected, result);
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ . ][ . ][ xq][ x ][ x ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ x ][ K ][ x ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ x ][ x ][ x ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ xq][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ K ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
 // 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_King_Attack_d5)
+TEST_F(BitboardFixture, King_WhiteKingBlackQueen_d5_CaptureQueenShouldBeAvailable)
 {
     Bitboard board;
     auto K = WHITEKING;
@@ -162,16 +162,11 @@ TEST_F(BitboardFixture, Black_King_Attack_d5)
 
     // setup
     u64 expected = ~universe;
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << c5.index();
-    expected |= INT64_C(1) << c4.index();
-    expected |= INT64_C(1) << d6.index();
-    expected |= INT64_C(1) << d4.index();
-    expected |= INT64_C(1) << e6.index();
-    expected |= INT64_C(1) << e5.index();
-    expected |= INT64_C(1) << e4.index();
+    expected |= INT64_C(1) << c6.index();  // capture queen
+    expected |= INT64_C(1) << d4.index();  // move out of check
+    expected |= INT64_C(1) << e5.index();  // move out of check
 
-    u64 result = board.calcAvailableMoves(d5, K, 0, {});
+    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>(0);
     EXPECT_EQ(expected, result);
 }
 
@@ -184,7 +179,7 @@ TEST_F(BitboardFixture, Black_King_Attack_d5)
 // 2 [ x ][ x ][ . ][ . ][ . ][ . ][ x ][ x ]
 // 1 [ k ][ x ][ . ][ . ][ . ][ . ][ x ][ k ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, King_InEachCorner)
+TEST_F(BitboardFixture, King_InEachCorner_NoWrapAroundOfMovesOnBoard)
 {
     // each corner but one corner at a time.
     Bitboard board;
@@ -197,7 +192,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << b2.index();
     expected |= INT64_C(1) << b1.index();
 
-    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>();
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>(0);
     EXPECT_EQ(expected, result);
 
     // setup a8 corner
@@ -208,7 +203,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << b7.index();
     expected |= INT64_C(1) << a7.index();
 
-    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>(0);
     EXPECT_EQ(expected, result);
 
     // setup h8 corner
@@ -219,7 +214,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << g8.index();
     expected |= INT64_C(1) << g7.index();
 
-    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>(0);
     EXPECT_EQ(expected, result);
 
     // setup h1 corner
@@ -230,7 +225,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
     expected |= INT64_C(1) << g1.index();
     expected |= INT64_C(1) << g2.index();
 
-    result = board.calcAvailableMovesKingBulk<Set::BLACK>();
+    result = board.calcAvailableMovesKingBulk<Set::BLACK>(0);
     EXPECT_EQ(expected, result);
 }
 
@@ -243,7 +238,7 @@ TEST_F(BitboardFixture, King_InEachCorner)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_King_Moves_With_Rooks)
+TEST_F(BitboardFixture, King_BlackCastlingRights_AllAvailable)
 {
     Bitboard board;
     auto k = BLACKKING;
@@ -262,7 +257,7 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks)
     expected |= INT64_C(1) << g8.index();
 
     byte castling = 0xc;  // black has not moved king nor rooks and should have all castling available.
-    u64 result = board.calcAvailableMoves(e8, k, castling, {});
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>(castling);
     EXPECT_EQ(expected, result);
 }
 
@@ -275,7 +270,7 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_King_Moves_With_Rooks_NoCastling)
+TEST_F(BitboardFixture, King_BlackCastlingRights_WhiteHasAvailableShouldNotAffectBlack)
 {
     Bitboard board;
     auto k = BLACKKING;
@@ -291,7 +286,8 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks_NoCastling)
     expected |= INT64_C(1) << f8.index();
     expected |= INT64_C(1) << f7.index();
 
-    u64 result = board.calcAvailableMoves(e8, k, 0x3, {});
+    byte castling = 0x3;  // white has castling rights but black does not.
+    u64 result = board.calcAvailableMovesKingBulk<Set::BLACK>(castling);
     EXPECT_EQ(expected, result);
 }
 
@@ -304,7 +300,7 @@ TEST_F(BitboardFixture, Black_King_Moves_With_Rooks_NoCastling)
 // 2 [ . ][ . ][ . ][ x ][ x ][ x ][ . ][ . ]
 // 1 [ R ][ . ][ x ][ x ][ K ][ x ][ x ][ R ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_King_Moves_With_Rooks)
+TEST_F(BitboardFixture, King_WhiteCasstlingRights_AllAvailable)
 {
     Bitboard board;
     auto K = WHITEKING;
@@ -322,7 +318,8 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks)
     expected |= INT64_C(1) << f1.index();
     expected |= INT64_C(1) << g1.index();
 
-    u64 result = board.calcAvailableMoves(e1, K, 0x3, {});
+    byte castlingRights = 0x3;
+    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>(castlingRights);
     EXPECT_EQ(expected, result);
 }
 
@@ -335,7 +332,7 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks)
 // 2 [ . ][ . ][ . ][ x ][ x ][ x ][ . ][ . ]
 // 1 [ R ][ . ][ . ][ Q ][ K ][ x ][ x ][ R ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_King_Moves_With_Rooks_Blocked)
+TEST_F(BitboardFixture, King_WhiteCastlingRights_OnlyKingSideAvailableQueenBlockingQueenSide)
 {
     Bitboard board;
     auto K = WHITEKING;
@@ -353,7 +350,369 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks_Blocked)
     expected |= INT64_C(1) << f1.index();
     expected |= INT64_C(1) << g1.index();
 
-    u64 result = board.calcAvailableMoves(e1, K, 0x3, {});
+    byte castlingRights = 0x3;
+    u64 result = board.calcAvailableMovesKingBulk<Set::WHITE>(castlingRights);
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ N ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_White_BlockedByOwnPiece)
+{
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto N = WHITEKNIGHT;
+    board.PlacePiece(P, c2);
+    board.PlacePiece(N, c3);
+
+    // setup
+    u64 expected = 0x0;
+
+    u64 result = board.calcAvailableMovesPawnBulk<Set::WHITE>();
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_Black_DoubleMoveAvailable)
+{
+    Bitboard board;
+    auto p = BLACKPAWN;
+    board.PlacePiece(p, e7);
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << e5.index();
+
+    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ p ][ . ]
+// 6 [ . ][ . ][ . ][ p ][ x ][ . ][ x ][ . ]
+// 5 [ . ][ . ][ . ][ x ][ x ][ . ][ x ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkMovesBlack_NothingIsBlocked)
+{
+    // setup
+    Bitboard board;
+    auto p = BLACKPAWN;
+
+    board.PlacePiece(p, b2);
+    board.PlacePiece(p, d6);
+    board.PlacePiece(p, e7);
+    board.PlacePiece(p, g7);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << b1.index();
+    expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << e5.index();
+    expected |= INT64_C(1) << g6.index();
+    expected |= INT64_C(1) << g5.index();
+
+    // do
+    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ p ][ . ]
+// 6 [ . ][ . ][ p ][ p ][ x ][ . ][ n ][ . ]
+// 5 [ . ][ . ][ xB][ x ][ p ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ n ][ x ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ R ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkMovesBlack_SomePawnsAreBlocked)
+{
+    // setup
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto R = WHITEROOK;
+    auto B = WHITEBISHOP;
+    auto n = BLACKKNIGHT;
+
+    board.PlacePiece(p, b2);
+    board.PlacePiece(R, b1);
+
+    board.PlacePiece(p, c6);
+    board.PlacePiece(B, c5);
+
+    board.PlacePiece(p, d6);
+    board.PlacePiece(n, d4);
+
+    board.PlacePiece(p, e7);
+    board.PlacePiece(p, e5);
+    board.PlacePiece(p, g7);
+    board.PlacePiece(n, g6);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << c5.index();  // available capture
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << e4.index();
+
+    // do
+    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ P ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ p ][ . ][ . ][ . ][ x ]
+// 5 [ . ][ . ][ . ][ P ][ . ][ . ][ . ][ P ]
+// 4 [ . ][ x ][ x ][ . ][ . ][ . ][ B ][ . ]
+// 3 [ . ][ x ][ P ][ . ][ . ][ xn][ x ][ . ]
+// 2 [ . ][ P ][ . ][ . ][ . ][ P ][ P ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkMovesWhite_SomeMixOfBlockedAndNonBlocked)
+{
+    // setup
+    Bitboard board;
+    auto p = BLACKPAWN;
+    auto P = WHITEPAWN;
+    auto B = WHITEBISHOP;
+    auto n = BLACKKNIGHT;
+
+    board.PlacePiece(P, b2);
+    board.PlacePiece(P, c3);
+    board.PlacePiece(P, d5);
+    board.PlacePiece(p, d6);
+    board.PlacePiece(P, e7);
+    board.PlacePiece(P, f2);
+    board.PlacePiece(n, f3);
+    board.PlacePiece(P, g2);
+    board.PlacePiece(B, g4);
+    board.PlacePiece(P, h5);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << b3.index();
+    expected |= INT64_C(1) << b4.index();
+    expected |= INT64_C(1) << c4.index();
+    expected |= INT64_C(1) << e8.index();
+    expected |= INT64_C(1) << f3.index();
+    expected |= INT64_C(1) << g3.index();
+    expected |= INT64_C(1) << h6.index();
+
+    // do
+    u64 result = board.calcAvailableMovesPawnBulk<Set::WHITE>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ P ][ x ][ . ][ x ][ . ][ . ][ x ][ . ]
+// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ P ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkThreatsWhite_ThereShouldBeAFewThreatenedSquares)
+{
+    // setup
+    Bitboard board;
+    auto P = WHITEPAWN;
+
+    board.PlacePiece(P, a3);
+    board.PlacePiece(P, b5);
+    board.PlacePiece(P, c2);
+    board.PlacePiece(P, h2);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a6.index();
+    expected |= INT64_C(1) << b3.index();
+    expected |= INT64_C(1) << b4.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << d3.index();
+    expected |= INT64_C(1) << g3.index();
+
+    // do
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ p ]
+// 4 [ . ][ . ][ . ][ p ][ . ][ . ][ x ][ . ]
+// 3 [ p ][ . ][ x ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkThreatsBlack_ThereShouldBeAFewThreatenedSquares)
+{
+    // setup
+    Bitboard board;
+    auto p = BLACKPAWN;
+
+    board.PlacePiece(p, a3);
+    board.PlacePiece(p, b7);
+    board.PlacePiece(p, d4);
+    board.PlacePiece(p, h5);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a6.index();
+    expected |= INT64_C(1) << b2.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << c3.index();
+    expected |= INT64_C(1) << e3.index();
+    expected |= INT64_C(1) << g4.index();
+
+    // do
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::BLACK>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ px][ . ][ nx][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ xn][ . ][ . ][ . ]
+// 3 [ q ][ . ][ . ][ P ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ P ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Pawn_BulkAttacksWhite_ThereShouldBeAFewAttackedPieces)
+{
+    // setup
+    Bitboard board;
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+    auto n = BLACKKNIGHT;
+    auto q = BLACKQUEEN;
+
+    board.PlacePiece(P, b5);
+    board.PlacePiece(P, c2);
+    board.PlacePiece(P, d3);
+    board.PlacePiece(P, h2);
+
+    board.PlacePiece(p, a6);
+    board.PlacePiece(q, a3);
+    board.PlacePiece(n, c6);
+    board.PlacePiece(n, e4);
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a6.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << e4.index();
+
+    // do
+    u64 result = board.calcAvailableAttacksPawnBulk<Set::WHITE>();
+
+    // verify
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ b ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ x ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Bishop_BulkCalculateAvailableMoveBitboard_BishopOnEmptyBoard)
+{
+    Bitboard board;
+    auto b = BLACKBISHOP;
+
+    board.PlacePiece(b, b7);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a8.index();
+    expected |= INT64_C(1) << a6.index();
+    expected |= INT64_C(1) << c8.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << e4.index();
+    expected |= INT64_C(1) << f3.index();
+    expected |= INT64_C(1) << g2.index();
+    expected |= INT64_C(1) << h1.index();
+
+    u64 result = board.calcAvailableMovesBishopBulk<Set::BLACK>();
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ B ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ x ][ . ][ x ][ . ][ . ][ . ][ x ]
+// 4 [ . ][ . ][ x ][ . ][ x ][ . ][ x ][ . ]
+// 3 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ B ][ . ][ x ][ . ]
+// 1 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ x ]
+//     A    B    C    D    E    F    G    H
+TEST_F(BitboardFixture, Bishop_BulkCalculateAvailableMoveBitboard_TwoWhiteBishopsOnEmptyBoard)
+{
+    Bitboard board;
+    auto B = WHITEBISHOP;
+
+    board.PlacePiece(B, b7);
+    board.PlacePiece(B, e2);
+
+    // setup
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << a8.index();
+    expected |= INT64_C(1) << a6.index();
+
+    expected |= INT64_C(1) << b5.index();
+
+    expected |= INT64_C(1) << c8.index();
+    expected |= INT64_C(1) << c6.index();
+    expected |= INT64_C(1) << c4.index();
+
+    expected |= INT64_C(1) << d5.index();
+    expected |= INT64_C(1) << d3.index();
+    expected |= INT64_C(1) << d1.index();
+
+    expected |= INT64_C(1) << e4.index();
+
+    expected |= INT64_C(1) << f3.index();
+    expected |= INT64_C(1) << f1.index();
+
+    expected |= INT64_C(1) << g4.index();
+    expected |= INT64_C(1) << g2.index();
+
+    expected |= INT64_C(1) << h5.index();
+    expected |= INT64_C(1) << h1.index();
+
+    u64 result = board.calcAvailableMovesBishopBulk<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
@@ -366,10 +725,11 @@ TEST_F(BitboardFixture, White_King_Moves_With_Rooks_Blocked)
 // 2 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_Rook_Move)
+TEST_F(BitboardFixture, Rook_BulkCalculateAvailableMoveBitboard_EmptyBoardWhite)
 {
     Bitboard board;
     auto R = WHITEROOK;
+    board.PlacePiece(R, d4);
 
     // setup
     u64 expected = ~universe;
@@ -388,7 +748,7 @@ TEST_F(BitboardFixture, White_Rook_Move)
     expected |= INT64_C(1) << d7.index();
     expected |= INT64_C(1) << d8.index();
 
-    u64 result = board.calcAvailableMoves(d4, R, 0, {});
+    u64 result = board.calcAvailableMovesRookBulk<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
@@ -401,42 +761,7 @@ TEST_F(BitboardFixture, White_Rook_Move)
 // 2 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_Rook_Move)
-{
-    Bitboard board;
-    auto r = BLACKROOK;
-
-    // setup
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a7.index();
-    expected |= INT64_C(1) << c7.index();
-    expected |= INT64_C(1) << d7.index();
-    expected |= INT64_C(1) << e7.index();
-    expected |= INT64_C(1) << f7.index();
-    expected |= INT64_C(1) << g7.index();
-    expected |= INT64_C(1) << h7.index();
-    expected |= INT64_C(1) << b1.index();
-    expected |= INT64_C(1) << b2.index();
-    expected |= INT64_C(1) << b3.index();
-    expected |= INT64_C(1) << b4.index();
-    expected |= INT64_C(1) << b5.index();
-    expected |= INT64_C(1) << b6.index();
-    expected |= INT64_C(1) << b8.index();
-
-    u64 result = board.calcAvailableMoves(b7, r, 0, {});
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ x ][ r ][ x ][ x ][ x ][ x ][ x ][ x ]
-// 6 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_Black_RooksMove)
+TEST_F(BitboardFixture, Rook_BulkCalculateAvailableMoveBitboard_EmptyBoardBlack)
 {
     Bitboard board;
     auto r = BLACKROOK;
@@ -473,7 +798,7 @@ TEST_F(BitboardFixture, Bulk_Black_RooksMove)
 // 2 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ x ]
 // 1 [ x ][ x ][ x ][ x ][ x ][ x ][ x ][ r ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_Black_TwoRooksMove)
+TEST_F(BitboardFixture, Rook_BulkCalculateAvailableMoveBitboard_TwoBlackRooksOnEmptyBoard)
 {
     Bitboard board;
     auto r = BLACKROOK;
@@ -514,82 +839,51 @@ TEST_F(BitboardFixture, Bulk_Black_TwoRooksMove)
     EXPECT_EQ(expected, result);
 }
 
-// 8 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ b ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
-// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ x ]
+// 8 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 7 [ x ][ r ][ x ][ x ][ r ][ x ][ n ][ . ]
+// 6 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 5 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 3 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 1 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_Black_BishopMove)
+TEST_F(BitboardFixture, Rook_BulkCalculateAvailableMoveBitboard_TwoRooksMoveBlockEachOtherAndByKnight)
 {
     Bitboard board;
-    auto b = BLACKBISHOP;
-
-    board.PlacePiece(b, b7);
+    auto r = BLACKROOK;
+    auto n = BLACKKNIGHT;
+    board.PlacePiece(r, b7);
+    board.PlacePiece(r, e7);
+    board.PlacePiece(n, g7);
 
     // setup
     u64 expected = ~universe;
-    expected |= INT64_C(1) << a8.index();
-    expected |= INT64_C(1) << a6.index();
-    expected |= INT64_C(1) << c8.index();
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << d5.index();
-    expected |= INT64_C(1) << e4.index();
-    expected |= INT64_C(1) << f3.index();
-    expected |= INT64_C(1) << g2.index();
-    expected |= INT64_C(1) << h1.index();
+    expected |= INT64_C(1) << a7.index();
 
-    u64 result = board.calcAvailableMovesBishopBulk<Set::BLACK>();
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ B ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ x ][ . ][ x ][ . ][ . ][ . ][ x ]
-// 4 [ . ][ . ][ x ][ . ][ x ][ . ][ x ][ . ]
-// 3 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ . ]
-// 2 [ . ][ . ][ . ][ . ][ B ][ . ][ x ][ . ]
-// 1 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ x ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_White_TwoBishopMove)
-{
-    Bitboard board;
-    auto B = WHITEBISHOP;
-
-    board.PlacePiece(B, b7);
-    board.PlacePiece(B, e2);
-
-    // setup
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a8.index();
-    expected |= INT64_C(1) << a6.index();
-
+    expected |= INT64_C(1) << b1.index();
+    expected |= INT64_C(1) << b2.index();
+    expected |= INT64_C(1) << b3.index();
+    expected |= INT64_C(1) << b4.index();
     expected |= INT64_C(1) << b5.index();
+    expected |= INT64_C(1) << b6.index();
+    expected |= INT64_C(1) << b8.index();
 
-    expected |= INT64_C(1) << c8.index();
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << c4.index();
+    expected |= INT64_C(1) << c7.index();
 
-    expected |= INT64_C(1) << d5.index();
-    expected |= INT64_C(1) << d3.index();
-    expected |= INT64_C(1) << d1.index();
+    expected |= INT64_C(1) << d7.index();
 
+    expected |= INT64_C(1) << e8.index();
+    expected |= INT64_C(1) << e6.index();
+    expected |= INT64_C(1) << e5.index();
     expected |= INT64_C(1) << e4.index();
+    expected |= INT64_C(1) << e3.index();
+    expected |= INT64_C(1) << e2.index();
+    expected |= INT64_C(1) << e1.index();
 
-    expected |= INT64_C(1) << f3.index();
-    expected |= INT64_C(1) << f1.index();
+    expected |= INT64_C(1) << f7.index();
 
-    expected |= INT64_C(1) << g4.index();
-    expected |= INT64_C(1) << g2.index();
-
-    expected |= INT64_C(1) << h5.index();
-    expected |= INT64_C(1) << h1.index();
-
-    u64 result = board.calcAvailableMovesBishopBulk<Set::WHITE>();
+    u64 result = board.calcAvailableMovesRookBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 }
 
@@ -602,7 +896,7 @@ TEST_F(BitboardFixture, Bulk_White_TwoBishopMove)
 // 2 [ x ][ x ][ x ][ x ][ Q ][ x ][ x ][ x ]
 // 1 [ . ][ x ][ . ][ x ][ x ][ x ][ . ][ x ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_White_TwoQueensMove)
+TEST_F(BitboardFixture, Queen_BulkCalculateAvailableMoveBitboard_TwoWhiteQueensOnEmptyBoard)
 {
     Bitboard board;
     auto Q = WHITEQUEEN;
@@ -673,7 +967,7 @@ TEST_F(BitboardFixture, Bulk_White_TwoQueensMove)
 // 2 [ x ][ x ][ x ][ x ][ Q ][ x ][ xn][ . ]
 // 1 [ . ][ x ][ . ][ x ][ x ][ x ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_White_TwoQueensCanCaptureKnight)
+TEST_F(BitboardFixture, Queen_BulkCalculateAvailableMoveBitboard_TwoQueensCanCaptureKnight)
 {
     Bitboard board;
     auto Q = WHITEQUEEN;
@@ -732,54 +1026,6 @@ TEST_F(BitboardFixture, Bulk_White_TwoQueensCanCaptureKnight)
 
     u64 result = board.calcAvailableMovesBishopBulk<Set::WHITE, queenId>();
     result |= board.calcAvailableMovesRookBulk<Set::WHITE, queenId>();
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 7 [ x ][ r ][ x ][ x ][ r ][ x ][ n ][ . ]
-// 6 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 5 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 4 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 3 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 2 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 1 [ . ][ x ][ . ][ . ][ x ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_Black_TwoRooksMoveBlockEachOtherAndByKnight)
-{
-    Bitboard board;
-    auto r = BLACKROOK;
-    auto n = BLACKKNIGHT;
-    board.PlacePiece(r, b7);
-    board.PlacePiece(r, e7);
-    board.PlacePiece(n, g7);
-
-    // setup
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a7.index();
-
-    expected |= INT64_C(1) << b1.index();
-    expected |= INT64_C(1) << b2.index();
-    expected |= INT64_C(1) << b3.index();
-    expected |= INT64_C(1) << b4.index();
-    expected |= INT64_C(1) << b5.index();
-    expected |= INT64_C(1) << b6.index();
-    expected |= INT64_C(1) << b8.index();
-
-    expected |= INT64_C(1) << c7.index();
-
-    expected |= INT64_C(1) << d7.index();
-
-    expected |= INT64_C(1) << e8.index();
-    expected |= INT64_C(1) << e6.index();
-    expected |= INT64_C(1) << e5.index();
-    expected |= INT64_C(1) << e4.index();
-    expected |= INT64_C(1) << e3.index();
-    expected |= INT64_C(1) << e2.index();
-    expected |= INT64_C(1) << e1.index();
-
-    expected |= INT64_C(1) << f7.index();
-
-    u64 result = board.calcAvailableMovesRookBulk<Set::BLACK>();
     EXPECT_EQ(expected, result);
 }
 
@@ -978,10 +1224,11 @@ TEST_F(BitboardFixture, Black_Queen_Moves_Capture_Available)
 // 2 [ . ][ N ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_Knight_Move_b2)
+TEST_F(BitboardFixture, Knight_MovesFromB2_ShouldIdentifyBoundsOfBoard)
 {
     Bitboard board;
     auto N = WHITEKNIGHT;
+    board.PlacePiece(N, b2);
 
     // setup
     u64 expected = ~universe;
@@ -990,7 +1237,7 @@ TEST_F(BitboardFixture, White_Knight_Move_b2)
     expected |= INT64_C(1) << d3.index();
     expected |= INT64_C(1) << d1.index();
 
-    u64 result = board.calcAvailableMoves(b2, N, 0, {});
+    u64 result = board.calcAvailableMovesKnightBulk<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
@@ -1062,286 +1309,6 @@ TEST_F(BitboardFixture, White_Pawn_Move_b2)
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ N ][ . ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_Pawn_Move_b2_blocked)
-{
-    Bitboard board;
-    auto P = WHITEPAWN;
-    auto N = WHITEKNIGHT;
-    board.PlacePiece(N, c3);
-
-    // setup
-    u64 expected = ~universe;
-
-    u64 result = board.calcAvailableMoves(c2, P, 0, {});
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ . ][ . ]
-// 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Black_Pawn_Move_e7)
-{
-    Bitboard board;
-    auto p = BLACKPAWN;
-
-    // setup
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << e6.index();
-    expected |= INT64_C(1) << e5.index();
-
-    u64 result = board.calcAvailableMoves(e7, p, 0, {});
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ p ][ . ]
-// 6 [ . ][ . ][ . ][ p ][ x ][ . ][ x ][ . ]
-// 5 [ . ][ . ][ . ][ x ][ x ][ . ][ x ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnMovesBlack_NothingIsBlocked)
-{
-    // setup
-    Bitboard board;
-    auto p = BLACKPAWN;
-
-    board.PlacePiece(p, b2);
-    board.PlacePiece(p, d6);
-    board.PlacePiece(p, e7);
-    board.PlacePiece(p, g7);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << b1.index();
-    expected |= INT64_C(1) << d5.index();
-    expected |= INT64_C(1) << e6.index();
-    expected |= INT64_C(1) << e5.index();
-    expected |= INT64_C(1) << g6.index();
-    expected |= INT64_C(1) << g5.index();
-
-    // do
-    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ p ][ . ][ p ][ . ]
-// 6 [ . ][ . ][ p ][ p ][ x ][ . ][ n ][ . ]
-// 5 [ . ][ . ][ xB][ x ][ p ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ n ][ x ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ R ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnMovesBlack_Blocked)
-{
-    // setup
-    Bitboard board;
-    auto p = BLACKPAWN;
-    auto R = WHITEROOK;
-    auto B = WHITEBISHOP;
-    auto n = BLACKKNIGHT;
-
-    board.PlacePiece(p, b2);
-    board.PlacePiece(R, b1);
-
-    board.PlacePiece(p, c6);
-    board.PlacePiece(B, c5);
-
-    board.PlacePiece(p, d6);
-    board.PlacePiece(n, d4);
-
-    board.PlacePiece(p, e7);
-    board.PlacePiece(p, e5);
-    board.PlacePiece(p, g7);
-    board.PlacePiece(n, g6);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << d5.index();
-    expected |= INT64_C(1) << c5.index();
-    expected |= INT64_C(1) << e6.index();
-    expected |= INT64_C(1) << e4.index();
-
-    // do
-    u64 result = board.calcAvailableMovesPawnBulk<Set::BLACK>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ P ][ . ][ . ][ . ]
-// 6 [ . ][ . ][ . ][ p ][ . ][ . ][ . ][ x ]
-// 5 [ . ][ . ][ . ][ P ][ . ][ . ][ . ][ P ]
-// 4 [ . ][ x ][ x ][ . ][ . ][ . ][ B ][ . ]
-// 3 [ . ][ x ][ P ][ . ][ . ][ xn][ x ][ . ]
-// 2 [ . ][ P ][ . ][ . ][ . ][ P ][ P ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnMovesWhite_SomeMixOfBlockedAndNonBlocked)
-{
-    // setup
-    Bitboard board;
-    auto p = BLACKPAWN;
-    auto P = WHITEPAWN;
-    auto B = WHITEBISHOP;
-    auto n = BLACKKNIGHT;
-
-    board.PlacePiece(P, b2);
-    board.PlacePiece(P, c3);
-    board.PlacePiece(P, d5);
-    board.PlacePiece(p, d6);
-    board.PlacePiece(P, e7);
-    board.PlacePiece(P, f2);
-    board.PlacePiece(n, f3);
-    board.PlacePiece(P, g2);
-    board.PlacePiece(B, g4);
-    board.PlacePiece(P, h5);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << b3.index();
-    expected |= INT64_C(1) << b4.index();
-    expected |= INT64_C(1) << c4.index();
-    expected |= INT64_C(1) << e8.index();
-    expected |= INT64_C(1) << f3.index();
-    expected |= INT64_C(1) << g3.index();
-    expected |= INT64_C(1) << h6.index();
-
-    // do
-    u64 result = board.calcAvailableMovesPawnBulk<Set::WHITE>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ P ][ x ][ . ][ x ][ . ][ . ][ x ][ . ]
-// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ P ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnThreatsWhite_ThereShouldBeAFewThreatenedSquares)
-{
-    // setup
-    Bitboard board;
-    auto P = WHITEPAWN;
-
-    board.PlacePiece(P, a3);
-    board.PlacePiece(P, b5);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, h2);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a6.index();
-    expected |= INT64_C(1) << b3.index();
-    expected |= INT64_C(1) << b4.index();
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << d3.index();
-    expected |= INT64_C(1) << g3.index();
-
-    // do
-    u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ p ]
-// 4 [ . ][ . ][ . ][ p ][ . ][ . ][ x ][ . ]
-// 3 [ p ][ . ][ x ][ . ][ x ][ . ][ . ][ . ]
-// 2 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnThreatsBlack_ThereShouldBeAFewThreatenedSquares)
-{
-    // setup
-    Bitboard board;
-    auto p = BLACKPAWN;
-
-    board.PlacePiece(p, a3);
-    board.PlacePiece(p, b7);
-    board.PlacePiece(p, d4);
-    board.PlacePiece(p, h5);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a6.index();
-    expected |= INT64_C(1) << b2.index();
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << c3.index();
-    expected |= INT64_C(1) << e3.index();
-    expected |= INT64_C(1) << g4.index();
-
-    // do
-    u64 result = board.calcThreatenedSquaresPawnBulk<Set::BLACK>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 6 [ px][ . ][ nx][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ xn][ . ][ . ][ . ]
-// 3 [ q ][ . ][ . ][ P ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ . ][ P ][ . ][ . ][ . ][ . ][ P ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, Bulk_PawnAttacksWhite_ThereShouldBeAFewAttackedPieces)
-{
-    // setup
-    Bitboard board;
-    auto P = WHITEPAWN;
-    auto p = BLACKPAWN;
-    auto n = BLACKKNIGHT;
-    auto q = BLACKQUEEN;
-
-    board.PlacePiece(P, b5);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, d3);
-    board.PlacePiece(P, h2);
-
-    board.PlacePiece(p, a6);
-    board.PlacePiece(q, a3);
-    board.PlacePiece(n, c6);
-    board.PlacePiece(n, e4);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a6.index();
-    expected |= INT64_C(1) << c6.index();
-    expected |= INT64_C(1) << e4.index();
-
-    // do
-    u64 result = board.calcAvailableAttacksPawnBulk<Set::WHITE>();
-
-    // verify
-    EXPECT_EQ(expected, result);
-}
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
 // 6 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
 // 5 [ . ][ N ][ . ][ . ][ . ][ . ][ . ][ . ]
@@ -1388,7 +1355,7 @@ TEST_F(BitboardFixture, White_Knight_Move_b5)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(BitboardFixture, White_Knight_Attack_e3)
+TEST_F(BitboardFixture, Knight_Threat_ThreateningToCaptureOpponentsBishop)
 {
     Bitboard board;
     auto N = WHITEKNIGHT;
@@ -1403,7 +1370,7 @@ TEST_F(BitboardFixture, White_Knight_Attack_e3)
     u64 expected = ~universe;
     expected |= INT64_C(1) << d5.index();
 
-    u64 result = board.calcAttackedSquares(e3, N);
+    u64 result = board.calcThreatenedSquaresKnightBulk<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
@@ -2413,12 +2380,12 @@ TEST_F(BitboardFixture, IsolateKnight_White_TwoKnightsNotSharingSquares)
     EXPECT_EQ(expected, movesbb);
 
     {
-        expected = 0x4000000000000000;
+        expected = 0x142200221400;
         auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(d4, movesbb);
         EXPECT_EQ(expected, moves);
     }
 
-    expected = 0x2000000000000000;
+    expected = 0xa0100010;
     auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(e2, movesbb);
     EXPECT_EQ(expected, moves);
 }

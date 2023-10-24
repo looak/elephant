@@ -206,7 +206,7 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target)
     target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>();
     target.material[rookId] = bb.calcAvailableMovesRookBulk<set>();
     target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>();
-    target.material[kingId] = bb.calcAvailableMovesKingBulk<set>();
+    target.material[kingId] = bb.calcAvailableMovesKingBulk<set>(0);
 }
 
 template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target);
