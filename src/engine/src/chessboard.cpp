@@ -213,8 +213,8 @@ Chessboard::Clear()
 bool
 Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 {
-    if (!Bitboard::IsValidSquare(target))
-        return false;
+    // if (!Bitboard::IsValidSquare(target))
+    //     return false;
 
     const auto& tsqrPiece = m_tiles[target.index()].readPiece();
     if (tsqrPiece != ChessPiece()) {
@@ -536,8 +536,8 @@ Chessboard::InternalMakeMove(Notation source, Notation target)
 bool
 Chessboard::VerifyMove(const Move& move) const
 {
-    if (!Bitboard::IsValidSquare(move.SourceSquare) || !Bitboard::IsValidSquare(move.TargetSquare))
-        return false;
+    // if (!Bitboard::IsValidSquare(move.SourceSquare) || !Bitboard::IsValidSquare(move.TargetSquare))
+    //     return false;
 
     const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
     if (piece == ChessPiece())

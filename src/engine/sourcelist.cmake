@@ -15,7 +15,7 @@ ${ENGINE_INC_DIR}/elephant_gambit_config.h
 ${ENGINE_INC_DIR}/defines.h
 ${ENGINE_INC_DIR}/libpopcnt.h
 
-${ENGINE_INC_DIR}/bitboard.h
+${ENGINE_INC_DIR}/bitboard.hpp
 ${ENGINE_INC_DIR}/chessboard.h
 ${ENGINE_INC_DIR}/chess_piece.h
 ${ENGINE_INC_DIR}/clock.hpp
@@ -30,6 +30,7 @@ ${ENGINE_INC_DIR}/material.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/move_generator.hpp
+${ENGINE_INC_DIR}/position.hpp
 ${ENGINE_INC_DIR}/search.h
 ${ENGINE_INC_DIR}/transposition_table.hpp
 ${ENGINE_INC_DIR}/uci.hpp
@@ -53,6 +54,7 @@ ${ENGINE_SRC_DIR}/material.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
+${ENGINE_SRC_DIR}/position.cpp
 ${ENGINE_SRC_DIR}/search.cpp
 ${ENGINE_SRC_DIR}/transposition_table.cpp
 ${ENGINE_SRC_DIR}/uci.cpp

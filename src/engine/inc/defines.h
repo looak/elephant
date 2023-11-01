@@ -34,8 +34,8 @@ constexpr bool is_amd64_x86 =
 #endif
 }  // namespace platform
 
-typedef unsigned char byte;
-typedef unsigned char u8;
+typedef std::uint8_t byte;
+typedef std::uint8_t u8;
 typedef std::uint16_t u16;
 typedef unsigned int u32;
 typedef std::uint64_t u64;

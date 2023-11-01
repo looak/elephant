@@ -154,14 +154,14 @@ operator^(const KingMask& lhs, const KingMask& rhs)
     return result;
 }
 
-class Bitboard {
+class Position {
 public:
     static bool IsValidSquare(signed short currSqr);
     static bool IsValidSquare(Notation source);
 
 public:
-    Bitboard();
-    Bitboard& operator=(const Bitboard& other);
+    Position();
+    Position& operator=(const Position& other);
 
     /* Material Manpulators and readers */
 
@@ -290,227 +290,8 @@ private:
 };
 
 template<Set s>
-[[nodiscard]] constexpr u64
-shiftNorthRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb << shifts::vertical;
-    }
-    else {
-        return bb >> shifts::vertical;
-    }
-}
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftEastRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb << shifts::horizontal;
-    }
-    else {
-        return bb >> shifts::horizontal;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftSouthRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb >> shifts::vertical;
-    }
-    else {
-        return bb << shifts::vertical;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftWestRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb >> shifts::horizontal;
-    }
-    else {
-        return bb << shifts::horizontal;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftNorthEastRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb << shifts::forward_diagonal;
-    }
-    else {
-        return bb >> shifts::forward_diagonal;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftSouthEastRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb >> shifts::backward_diagonal;
-    }
-    else {
-        return bb << shifts::backward_diagonal;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftSouthWestRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb >> shifts::forward_diagonal;
-    }
-    else {
-        return bb << shifts::forward_diagonal;
-    }
-}
-
-template<Set s>
-[[nodiscard]] constexpr u64
-shiftNorthWestRelative(u64 bb)
-{
-    if constexpr (s == Set::WHITE) {
-        return bb << shifts::backward_diagonal;
-    }
-    else {
-        return bb >> shifts::backward_diagonal;
-    }
-}
-
-template<Set s, u8 direction>
-[[nodiscard]] constexpr u64
-shiftRelative(u64 bb)
-{
-    if constexpr (direction == north) {
-        return shiftNorthRelative<s>(bb);
-    }
-    else if constexpr (direction == east) {
-        return shiftEastRelative<s>(bb);
-    }
-    else if constexpr (direction == south) {
-        return shiftSouthRelative<s>(bb);
-    }
-    else if constexpr (direction == west) {
-        return shiftWestRelative<s>(bb);
-    }
-    else if constexpr (direction == northeast) {
-        return shiftNorthEastRelative<s>(bb);
-    }
-    else if constexpr (direction == southeast) {
-        return shiftSouthEastRelative<s>(bb);
-    }
-    else if constexpr (direction == southwest) {
-        return shiftSouthWestRelative<s>(bb);
-    }
-    else if constexpr (direction == northwest) {
-        return shiftNorthWestRelative<s>(bb);
-    }
-
-    FATAL_ASSERT(false) << "Invalid direction";
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillWest(i16 file)
-{
-    u64 result = 0;
-    do {
-        result |= board_constants::fileMasks[file];
-        file--;
-    } while (file >= 0);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillEast(i16 file)
-{
-    u64 result = 0;
-    do {
-        result |= board_constants::fileMasks[file];
-        file++;
-    } while (file < 8);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillSouth(i16 rank)
-{
-    u64 result = 0;
-    do {
-        result |= board_constants::rankMasks[rank];
-        rank--;
-    } while (rank >= 0);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillNorth(i16 rank)
-{
-    u64 result = 0;
-    do {
-        result |= board_constants::rankMasks[rank];
-        rank++;
-    } while (rank < 8);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillNorthEast(i16 file, i16 rank)
-{
-    u64 result = 0;
-    i16 index = 7 + file - rank;
-    do {
-        result |= board_constants::backwardDiagonalMasks[index];
-        index++;
-    } while (index < 15);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillSouthEast(i16 file, i16 rank)
-{
-    u64 result = 0;
-    i16 index = 7 + file - rank;
-    do {
-        result |= board_constants::forwardDiagonalMasks[index];
-        index++;
-    } while (index < 15);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillSouthWest(i16 file, i16 rank)
-{
-    u64 result = 0;
-    i16 index = 7 + file - rank;
-    do {
-        result |= board_constants::backwardDiagonalMasks[index];
-        index--;
-    } while (index >= 0);
-    return result;
-}
-
-[[nodiscard]] constexpr u64
-inclusiveFillNorthWest(i16 file, i16 rank)
-{
-    u64 result = 0;
-    i16 index = 7 + file - rank;
-    do {
-        result |= board_constants::forwardDiagonalMasks[index];
-        index--;
-    } while (index >= 0);
-    return result;
-}
-
-template<Set s>
 MaterialMask
-Bitboard::readMaterial() const
+Position::readMaterial() const
 {
     if constexpr (s == Set::WHITE) {
         return m_material[0];
@@ -522,7 +303,7 @@ Bitboard::readMaterial() const
 
 template<Set s, u8 direction, u8 pieceId>
 u64
-Bitboard::internalCalcAvailableMoves(u64 bounds) const
+Position::internalCalcAvailableMoves(u64 bounds) const
 {
     const u64 piecebb = m_material[(size_t)s].material[pieceId];
     const u64 materialbb = readCombinedMaterial<s>();
@@ -537,7 +318,7 @@ Bitboard::internalCalcAvailableMoves(u64 bounds) const
         u64 purge = bbCopy & bounds;
         bbCopy &= ~purge;
 
-        bbCopy = shiftRelative<s, direction>(bbCopy);
+        // // bbCopy = shiftRelative<s, direction>(bbCopy);
         moves |= bbCopy;
         bbCopy ^= (materialbb & bbCopy);
 
@@ -548,7 +329,7 @@ Bitboard::internalCalcAvailableMoves(u64 bounds) const
 
 template<Set s>
 u64
-Bitboard::calcAvailableMovesKnightBulk() const
+Position::calcAvailableMovesKnightBulk() const
 {
     u64 result = 0;
     const u64 knights = readMaterial<s>().material[knightId];
@@ -584,7 +365,7 @@ Bitboard::calcAvailableMovesKnightBulk() const
 
 template<Set s, u8 pieceId>
 u64
-Bitboard::calcAvailableMovesBishopBulk() const
+Position::calcAvailableMovesBishopBulk() const
 {
     const u64 materialbb = m_material[(size_t)s].combine();
 
@@ -596,7 +377,7 @@ Bitboard::calcAvailableMovesBishopBulk() const
 
 template<Set s, u8 pieceId>
 u64
-Bitboard::calcAvailableMovesRookBulk() const
+Position::calcAvailableMovesRookBulk() const
 {
     const u64 materialbb = m_material[(size_t)s].combine();
 
@@ -608,7 +389,7 @@ Bitboard::calcAvailableMovesRookBulk() const
 
 template<Set s>
 u64
-Bitboard::calcAvailableMovesQueenBulk() const
+Position::calcAvailableMovesQueenBulk() const
 {
     u64 moves = 0;
     moves |= calcAvailableMovesBishopBulk<s, queenId>();
@@ -618,7 +399,7 @@ Bitboard::calcAvailableMovesQueenBulk() const
 
 template<Set us, Set op>
 u64
-Bitboard::calcAvailableMovesKingBulk(byte castlingRights) const
+Position::calcAvailableMovesKingBulk(byte castlingRights) const
 {
     bool constexpr includeMaterial = false;
     bool constexpr pierceKing = true;
@@ -631,7 +412,7 @@ Bitboard::calcAvailableMovesKingBulk(byte castlingRights) const
 
 template<Set s>
 u64
-Bitboard::calcAvailableAttacksPawnBulk() const
+Position::calcAvailableAttacksPawnBulk() const
 {
     Set opSet = ChessPiece::FlipSet<s>();
 
@@ -643,36 +424,36 @@ Bitboard::calcAvailableAttacksPawnBulk() const
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresPawnBulk() const
+Position::calcThreatenedSquaresPawnBulk() const
 {
     u64 piecebb = m_material[(size_t)s].material[pawnId];
 
     // special case for a file & h file
     u64 afilePawns = piecebb & board_constants::boundsRelativeMasks[(size_t)s][west];
     piecebb &= ~afilePawns;
-    afilePawns = shiftNorthEastRelative<s>(afilePawns);
+    // afilePawns = shiftNorthEastRelative<s>(afilePawns);
 
     u64 hfilePawns = piecebb & board_constants::boundsRelativeMasks[(size_t)s][east];
     piecebb &= ~hfilePawns;
-    hfilePawns = shiftNorthWestRelative<s>(hfilePawns);
+    // hfilePawns = shiftNorthWestRelative<s>(hfilePawns);
 
     u64 threatbb = afilePawns | hfilePawns;
-    threatbb |= shiftNorthWestRelative<s>(piecebb);
-    threatbb |= shiftNorthEastRelative<s>(piecebb);
+    // threatbb |= shiftNorthWestRelative<s>(piecebb);
+    // threatbb |= shiftNorthEastRelative<s>(piecebb);
 
     return threatbb;
 }
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresKnightBulk() const
+Position::calcThreatenedSquaresKnightBulk() const
 {
     return calcAvailableMovesKnightBulk<s>();
 }
 
 template<Set s, u8 pieceId>
 u64
-Bitboard::calcThreatenedSquaresBishopBulk() const
+Position::calcThreatenedSquaresBishopBulk() const
 {
     const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
 
@@ -687,7 +468,7 @@ Bitboard::calcThreatenedSquaresBishopBulk() const
 
 template<Set s, u8 pieceId>
 u64
-Bitboard::calcThreatenedSquaresRookBulk() const
+Position::calcThreatenedSquaresRookBulk() const
 {
     const auto bounds = board_constants::boundsRelativeMasks[(size_t)s];
 
@@ -702,7 +483,7 @@ Bitboard::calcThreatenedSquaresRookBulk() const
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresQueenBulk() const
+Position::calcThreatenedSquaresQueenBulk() const
 {
     u64 moves = 0;
 
@@ -714,7 +495,7 @@ Bitboard::calcThreatenedSquaresQueenBulk() const
 
 template<Set s>
 u64
-Bitboard::calcThreatenedSquaresKingBulk() const
+Position::calcThreatenedSquaresKingBulk() const
 {
     size_t setIndx = (size_t)s;
     u64 moves = 0;
@@ -746,7 +527,7 @@ Bitboard::calcThreatenedSquaresKingBulk() const
 
 template<Set s, bool includeMaterial, bool pierceKing>
 u64
-Bitboard::calcThreatenedSquares() const
+Position::calcThreatenedSquares() const
 {
     u64 result = ~universe;
 
@@ -782,7 +563,7 @@ Bitboard::calcThreatenedSquares() const
 
 template<Set s, bool includeMaterial, bool pierceKing>
 u64
-Bitboard::calcThreatenedSquaresDiagonal() const
+Position::calcThreatenedSquaresDiagonal() const
 {
     u64 result = ~universe;
     [[maybe_unused]] u64 kingMask = 0;
@@ -809,7 +590,7 @@ Bitboard::calcThreatenedSquaresDiagonal() const
 }
 template<Set s, bool includeMaterial, bool pierceKing>
 u64
-Bitboard::calcThreatenedSquaresOrthogonal() const
+Position::calcThreatenedSquaresOrthogonal() const
 {
     u64 result = ~universe;
     [[maybe_unused]] u64 kingMask = 0;
@@ -837,14 +618,14 @@ Bitboard::calcThreatenedSquaresOrthogonal() const
 
 template<Set s, u8 pieceId, u8 direction>
 u64
-Bitboard::calcPinnedPiecesBulk(KingMask kingMask) const
+Position::calcPinnedPiecesBulk(KingMask kingMask) const
 {
     return kingMask.threats[direction] & m_material[(size_t)s].material[pieceId];
 }
 
 template<Set s>
 MaterialSlidingMask
-Bitboard::calcMaterialSlidingMasksBulk() const
+Position::calcMaterialSlidingMasksBulk() const
 {
     u64 orthogonal = ~universe;
     u64 diagonal = ~universe;
@@ -864,7 +645,7 @@ Bitboard::calcMaterialSlidingMasksBulk() const
 
 template<Set us, u8 pieceId>
 std::tuple<u64, u64>
-Bitboard::isolatePiece(Notation source, u64 movesbb) const
+Position::isolatePiece(Notation source, u64 movesbb) const
 {
     return isolatePiece<us>(pieceId, source, movesbb);
 }

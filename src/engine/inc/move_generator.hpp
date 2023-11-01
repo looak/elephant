@@ -17,8 +17,9 @@
 #define MOVE_GENERATOR_HEADER
 
 #include <queue>
-#include "bitboard.h"
 #include "move.h"
+#include "position.hpp"
+
 
 class GameContext;
 

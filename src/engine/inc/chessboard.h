@@ -20,10 +20,10 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "bitboard.h"
 #include "chess_piece.h"
 #include "material.h"
 #include "notation.h"
+#include "position.hpp"
 
 struct Move;
 struct PackedMove;
@@ -251,7 +251,7 @@ public:
     bool setCastlingState(u8 castlingState);
     CastlingStateInfo& editCastlingState() { return m_castlingInfo; }
     ChessboardTile& editTile(Notation position);
-    const Bitboard& readBitboard() const { return m_bitboard; }
+    const Position& readBitboard() const { return m_bitboard; }
     const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
 
     /**
@@ -323,7 +323,7 @@ private:
 
     ChessboardTile m_tiles[64];
 
-    mutable Bitboard m_bitboard;
+    mutable Position m_bitboard;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];

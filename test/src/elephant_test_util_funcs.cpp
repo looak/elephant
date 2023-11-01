@@ -1,12 +1,13 @@
 #include <algorithm>
 #include <array>
 #include <sstream>
-#include "bitboard.h"
 #include "chessboard.h"
 #include "elephant_test_utils.h"
 #include "game_context.h"
 #include "log.h"
 #include "move.h"
+#include "position.hpp"
+
 
 namespace ElephantTest {
 //
