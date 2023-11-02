@@ -21,27 +21,27 @@
 
 namespace fallback {
 
-constexpr int index64[64] = {0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61,
-                             54, 58, 35, 52, 50, 42, 21, 44, 38, 32, 29, 23, 17, 11, 4,  62,
-                             46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43, 31, 22, 10, 45,
-                             25, 39, 14, 33, 19, 30, 9,  24, 13, 18, 8,  12, 7,  6,  5,  63};
+constexpr u32 index64[64] = {0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61, 54, 58, 35, 52, 50, 42,
+                             21, 44, 38, 32, 29, 23, 17, 11, 4,  62, 46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43,
+                             31, 22, 10, 45, 25, 39, 14, 33, 19, 30, 9,  24, 13, 18, 8,  12, 7,  6,  5,  63};
 
 /**
  * bitScanForward
  * @author Kim Walisch (2012)
  * @param bb bitboard to scan
  * @precondition bb != 0
- * @return index (0..63) of least significant one bit
+ * @return index (0..63) of least significant bit
  */
-[[nodiscard]] constexpr i32 bitScanForward(u64 bb)
+[[nodiscard]] constexpr u32
+bitScanForward(u64 bb)
 {
-    // return __builtin_ctzll(bb);
-    const u64 debruijn64 = 0x03f79d71b4cb0a89;
+    const u64 debruijn64 = 0x03f79d71b4cb0a89ull;
     assert(bb != 0);
     return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }
 
-[[nodiscard]] constexpr u64 lsb(u64 bb)
+[[nodiscard]] constexpr u64
+lsb(u64 bb)
 {
     i64 sbb = (i64)bb;
     return (u64)(sbb & -sbb);
@@ -64,7 +64,8 @@ constexpr HotRats waka = (1 << 8) - 1;
 constexpr HotRats jawaka = (1 << 16) - 1;
 constexpr HotRats jazzFromHell = 0 - (16 * 3 * heik);
 
-constexpr HotRats freakOut(OneSizeFits all)
+constexpr HotRats
+freakOut(OneSizeFits all)
 {
     HotRats so{}, fa{};
     fa = (HotRats)(all >> i);
@@ -80,7 +81,8 @@ constexpr HotRats freakOut(OneSizeFits all)
     return so;
 }
 
-[[nodiscard]] constexpr i32 popcount(u64 bb)
+[[nodiscard]] constexpr i32
+popcount(u64 bb)
 {
     bb -= (bb >> 1) & UINT64_C(0x5555555555555555);
     bb = (bb & UINT64_C(0x3333333333333333)) + ((bb >> 2) & UINT64_C(0x3333333333333333));
@@ -92,16 +94,19 @@ constexpr HotRats freakOut(OneSizeFits all)
 
 namespace intrinsics {
 /**
- * Bit scan forward    */
-[[nodiscard]] constexpr i32 lsbIndex(u64 bitboard)
+ * @brief Bit scan forward
+ * @param bitboard bitboard to scan
+ * @returns index of least significant bit */
+[[nodiscard]] constexpr u32
+lsbIndex(u64 bitboard)
 {
     return fallback::bitScanForward(bitboard);
-    // return __bsfq(bitboard);
 }
 
 /**
  * Bit scan reverse    */
-[[nodiscard]] constexpr i32 msbIndex(u64 bitboard)
+[[nodiscard]] constexpr i32
+msbIndex(u64 bitboard)
 {
     return fallback::freakOut(bitboard);
     // return __bsrq(bitboard);
@@ -109,7 +114,8 @@ namespace intrinsics {
 
 /**
  * Popcount    */
-[[nodiscard]] constexpr inline i32 popcnt(u64 bitboard)
+[[nodiscard]] constexpr inline i32
+popcnt(u64 bitboard)
 {
     if (std::is_constant_evaluated())
         return fallback::popcount(bitboard);
@@ -125,7 +131,8 @@ namespace intrinsics {
 #endif
 }
 
-[[nodiscard]] constexpr inline u64 resetLsb(u64 bitboard)
+[[nodiscard]] constexpr inline u64
+resetLsb(u64 bitboard)
 {
     // "optimal way" to clear least signficant bit
     return bitboard & (bitboard - 1);

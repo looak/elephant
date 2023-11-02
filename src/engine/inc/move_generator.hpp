@@ -20,7 +20,6 @@
 #include "move.h"
 #include "position.hpp"
 
-
 class GameContext;
 
 typedef std::priority_queue<PrioratizedMove, std::vector<PrioratizedMove>, PrioratizedMoveComparator> PriorityMoveQueue;
@@ -56,7 +55,7 @@ private:
     template<Set set>
     void internalGenerateKingMoves();
 
-    void genPackedMovesFromBitboard(u64 movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue);
+    void genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue);
 
     const GameContext& m_context;
     PriorityMoveQueue m_moves;

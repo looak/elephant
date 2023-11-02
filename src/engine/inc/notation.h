@@ -18,7 +18,6 @@
 #include <string>
 #include "defines.h"
 
-
 struct Notation {
     static Notation BuildPosition(byte file, byte rank);
     static bool Validate(const Notation& notation);
@@ -71,6 +70,9 @@ struct Notation {
         return (rank * 8) + file;
 #endif
     }
+
+    constexpr Square toSquare() const { return static_cast<Square>(index()); }
+
     bool operator==(const Notation& rhs) const;
     bool operator!=(const Notation& rhs) const;
     bool operator<(const Notation& rhs) const;

@@ -38,7 +38,7 @@ template<Set set>
 PackedMove
 MoveGenerator::generateNextMove()
 {
-    if (m_moveMasks[(size_t)set].combine() == 0)
+    if (m_moveMasks[(size_t)set].combine().empty())
         return PackedMove::NullMove();
 
     if (m_returnedMoves.empty()) {
@@ -60,25 +60,23 @@ template<Set set>
 void
 MoveGenerator::internalGeneratePawnMoves()
 {
-    const auto& bb = m_context.readChessboard().readBitboard();
+    const auto& pos = m_context.readChessboard().readBitboard();
 
-    const u64 movesbb = m_moveMasks[(size_t)set].material[pawnId];
+    const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
     if (movesbb == 0)
         return;
 
     // cache pawns in local variable which we'll use to iterate over all pawns.
-    u64 pawns = bb.readMaterial<set>().material[pawnId];
+    Bitboard pawns = pos.readMaterial<set>().material[pawnId];
 
     while (pawns != 0) {
         // build source square and remove pawn from pawns bitboard.
-        const i32 srcSqr = intrinsics::lsbIndex(pawns);
+        const i32 srcSqr = pawns.popLsb();
         const Notation srcNotation(srcSqr);
-        pawns = intrinsics::resetLsb(pawns);
 
-        auto [isolatedPawnMoves, isolatedPawnAttacks] = bb.isolatePiece<set>(pawnId, srcNotation, movesbb);
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb);
         while (isolatedPawnAttacks != 0) {
-            i32 dstSqr = intrinsics::lsbIndex(isolatedPawnAttacks);
-            isolatedPawnAttacks = intrinsics::resetLsb(isolatedPawnAttacks);
+            i32 dstSqr = isolatedPawnAttacks.popLsb();
 
             PackedMove move;
             move.setSource(srcSqr);
@@ -89,8 +87,7 @@ MoveGenerator::internalGeneratePawnMoves()
             m_moves.push(prioratizedMove);
         }
         while (isolatedPawnMoves != 0) {
-            i32 dstSqr = intrinsics::lsbIndex(isolatedPawnMoves);
-            isolatedPawnMoves = intrinsics::resetLsb(isolatedPawnMoves);
+            i32 dstSqr = isolatedPawnMoves.popLsb();
 
             PackedMove move;
             move.setSource(srcSqr);
@@ -110,17 +107,16 @@ MoveGenerator::internalGenerateKnightMoves()
 {
     const auto& bb = m_context.readChessboard().readBitboard();
 
-    const u64 movesbb = m_moveMasks[(size_t)set].material[knightId];
+    const Bitboard movesbb = m_moveMasks[(size_t)set].material[knightId];
     if (movesbb == 0)
         return;
 
-    u64 knights = bb.readMaterial<set>().material[knightId];
+    Bitboard knights = bb.readMaterial<set>().material[knightId];
 
     while (knights != 0) {
         // build source square and remove knight from cached material bitboard.
-        const i32 srcSqr = intrinsics::lsbIndex(knights);
+        const i32 srcSqr = knights.popLsb();
         const Notation srcNotation(srcSqr);
-        knights = intrinsics::resetLsb(knights);
 
         auto [isolatedKnightMoves, isolatedKnightAttks] = bb.isolatePiece<set>(knightId, srcNotation, movesbb);
         genPackedMovesFromBitboard(isolatedKnightAttks, srcSqr, true, m_moves);
@@ -164,18 +160,17 @@ MoveGenerator::internalGenerateKingMoves()
 {
     const auto& bb = m_context.readChessboard().readBitboard();
 
-    u64 movesbb = m_moveMasks[(size_t)set].material[kingId];
+    Bitboard movesbb = m_moveMasks[(size_t)set].material[kingId];
 #if defined EG_DEBUGGING || defined EG_TESTING
     // during testing and debugging king can be missing
     if (movesbb == 0)
         return;
 #endif
 
-    i32 srcSqr = intrinsics::lsbIndex(bb.readMaterial<set>().material[kingId]);
+    u32 srcSqr = bb.readMaterial<set>().material[kingId].lsbIndex();
 
     while (movesbb != 0) {
-        i32 dstSqr = intrinsics::lsbIndex(movesbb);
-        movesbb = intrinsics::resetLsb(movesbb);
+        i32 dstSqr = movesbb.popLsb();
 
         PackedMove move;
         move.setSource(srcSqr);
@@ -206,18 +201,17 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target)
     target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>();
     target.material[rookId] = bb.calcAvailableMovesRookBulk<set>();
     target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>();
-    target.material[kingId] = bb.calcAvailableMovesKingBulk<set>(0);
+    target.material[kingId] = bb.calcAvailableMovesKing<set>(0);
 }
 
 template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target);
 template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target);
 
 void
-MoveGenerator::genPackedMovesFromBitboard(u64 movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue)
+MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue)
 {
     while (movesbb != 0) {
-        i32 dstSqr = intrinsics::lsbIndex(movesbb);
-        movesbb = intrinsics::resetLsb(movesbb);
+        i32 dstSqr = movesbb.popLsb();
 
         PackedMove move;
         move.setSource(srcSqr);

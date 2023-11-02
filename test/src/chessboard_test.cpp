@@ -714,16 +714,16 @@ TEST_F(ChessboardFixture, Constructor_Copy)
 
     auto orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::BLACK);
     auto cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::BLACK);
-    orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
-    cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
+    orgMask = orgSlidingMask.orthogonal.read() | orgSlidingMask.diagonal.read();
+    cpyMask = cpySlidingMask.orthogonal.read() | cpySlidingMask.diagonal.read();
 
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);
 
     orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::WHITE);
     cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::WHITE);
-    orgMask = orgSlidingMask.orthogonal | orgSlidingMask.diagonal;
-    cpyMask = cpySlidingMask.orthogonal | cpySlidingMask.diagonal;
+    orgMask = orgSlidingMask.orthogonal.read() | orgSlidingMask.diagonal.read();
+    cpyMask = cpySlidingMask.orthogonal.read() | cpySlidingMask.diagonal.read();
     EXPECT_EQ(orgMask, cpyMask);
 
     orgMask = m_gameOfTheCentury.calculateThreatenedMask(Set::BLACK);

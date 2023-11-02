@@ -122,66 +122,66 @@ i32
 Evaluator::EvaluatePawnStructure(const Chessboard& board)
 {
     i32 result = 0;
-    float egCoeficient = board.calculateEndGameCoeficient();
+    // float egCoeficient = board.calculateEndGameCoeficient();
 
-    u64 whitePawns = board.readBitboard().GetMaterial({Set::WHITE, PieceType::PAWN});
-    u64 blackPawns = board.readBitboard().GetMaterial({Set::BLACK, PieceType::PAWN});
+    // u64 whitePawns = board.readBitboard().GetMaterial({Set::WHITE, PieceType::PAWN});
+    // u64 blackPawns = board.readBitboard().GetMaterial({Set::BLACK, PieceType::PAWN});
 
-    for (i8 idx = 0; idx < 8; ++idx) {
-        // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
-        // result in 1 if we have 3 pawns this will result in 1. Maybe we should use and 2?
-        result += (evaluator_data::doubledPawnScore * egCoeficient) *
-                  (intrinsics::popcnt(whitePawns & board_constants::fileMasks[idx]) >> 1);
-        result -= (evaluator_data::doubledPawnScore * egCoeficient) *
-                  (intrinsics::popcnt(blackPawns & board_constants::fileMasks[idx]) >> 1);
+    // for (i8 idx = 0; idx < 8; ++idx) {
+    //     // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
+    //     // result in 1 if we have 3 pawns this will result in 1. Maybe we should use and 2?
+    //     result += (evaluator_data::doubledPawnScore * egCoeficient) *
+    //               (intrinsics::popcnt(whitePawns & board_constants::fileMasks[idx]) >> 1);
+    //     result -= (evaluator_data::doubledPawnScore * egCoeficient) *
+    //               (intrinsics::popcnt(blackPawns & board_constants::fileMasks[idx]) >> 1);
 
-        // build neighbour files mask
-        u64 neighbourMask = 0;
-        if (idx > 0)
-            neighbourMask |= board_constants::fileMasks[idx - 1];
-        if (idx < 7)
-            neighbourMask |= board_constants::fileMasks[idx + 1];
+    //     // build neighbour files mask
+    //     u64 neighbourMask = 0;
+    //     if (idx > 0)
+    //         neighbourMask |= board_constants::fileMasks[idx - 1];
+    //     if (idx < 7)
+    //         neighbourMask |= board_constants::fileMasks[idx + 1];
 
-        if (whitePawns & board_constants::fileMasks[idx]) {
-            // figure out if pawn is isolated
-            if ((whitePawns & neighbourMask) == 0) {
-                result += evaluator_data::isolatedPawnScore * egCoeficient;
-            }
+    //     if (whitePawns & board_constants::fileMasks[idx]) {
+    //         // figure out if pawn is isolated
+    //         if ((whitePawns & neighbourMask) == 0) {
+    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
+    //         }
 
-            // figure out if pawn is passed
-            if ((blackPawns & board_constants::fileMasks[idx]) == 0) {
-                u64 opposingNeighbours = blackPawns & neighbourMask;
-                if (opposingNeighbours == 0) {
-                    result += evaluator_data::passedPawnScore * egCoeficient;
-                }
-                else {
-                    i32 pawnSqr = intrinsics::msbIndex(whitePawns & board_constants::fileMasks[idx]);
-                    if (EvaluatePassedPawn<std::less<i32>>(board, pawnSqr, opposingNeighbours))
-                        result += evaluator_data::passedPawnScore * egCoeficient;
-                }
-            }
-        }
+    //         // figure out if pawn is passed
+    //         if ((blackPawns & board_constants::fileMasks[idx]) == 0) {
+    //             u64 opposingNeighbours = blackPawns & neighbourMask;
+    //             if (opposingNeighbours == 0) {
+    //                 result += evaluator_data::passedPawnScore * egCoeficient;
+    //             }
+    //             else {
+    //                 i32 pawnSqr = intrinsics::msbIndex(whitePawns & board_constants::fileMasks[idx]);
+    //                 if (EvaluatePassedPawn<std::less<i32>>(board, pawnSqr, opposingNeighbours))
+    //                     result += evaluator_data::passedPawnScore * egCoeficient;
+    //             }
+    //         }
+    //     }
 
-        if (blackPawns & board_constants::fileMasks[idx]) {
-            // figure out if pawn is isolated
-            if (blackPawns & neighbourMask) {
-                result += evaluator_data::isolatedPawnScore * egCoeficient;
-            }
+    //     if (blackPawns & board_constants::fileMasks[idx]) {
+    //         // figure out if pawn is isolated
+    //         if (blackPawns & neighbourMask) {
+    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
+    //         }
 
-            // figure out if pawn is passed
-            if ((whitePawns & board_constants::fileMasks[idx]) == 0) {
-                u64 opposingNeighbours = whitePawns & neighbourMask;
-                if (opposingNeighbours == 0) {
-                    result += evaluator_data::passedPawnScore * egCoeficient;
-                }
-                else {
-                    i32 pawnSqr = intrinsics::lsbIndex(blackPawns & board_constants::fileMasks[idx]);
-                    if (EvaluatePassedPawn<std::greater<i32>>(board, pawnSqr, opposingNeighbours))
-                        result += evaluator_data::passedPawnScore * egCoeficient;
-                }
-            }
-        }
-    }
+    //         // figure out if pawn is passed
+    //         if ((whitePawns & board_constants::fileMasks[idx]) == 0) {
+    //             u64 opposingNeighbours = whitePawns & neighbourMask;
+    //             if (opposingNeighbours == 0) {
+    //                 result += evaluator_data::passedPawnScore * egCoeficient;
+    //             }
+    //             else {
+    //                 i32 pawnSqr = intrinsics::lsbIndex(blackPawns & board_constants::fileMasks[idx]);
+    //                 if (EvaluatePassedPawn<std::greater<i32>>(board, pawnSqr, opposingNeighbours))
+    //                     result += evaluator_data::passedPawnScore * egCoeficient;
+    //             }
+    //         }
+    //     }
+    // }
 
     return result;
 }

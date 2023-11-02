@@ -19,15 +19,6 @@
 
 struct ChessPiece {
 public:
-    template<Set s>
-    static constexpr Set FlipSet()
-    {
-        if constexpr (s == Set::WHITE)
-            return Set::BLACK;
-        else
-            return Set::WHITE;
-    }
-
     static Set FlipSet(Set source);
     static byte FlipSet(byte source);
     static ChessPiece None() { return ChessPiece(); }

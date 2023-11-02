@@ -30,8 +30,6 @@ struct PackedMove;
 struct PrioratizedMove;
 struct PrioratizedMoveComparator;
 
-typedef std::priority_queue<PrioratizedMove, std::vector<PrioratizedMove>, PrioratizedMoveComparator> MoveQueue;
-
 // enum ChessboardPrint
 // {
 //     NONE = 0x00,
@@ -159,9 +157,6 @@ public:
 
     std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask,
                                         KingMask kingMask, bool captureMoves = false) const;
-
-    template<Set us, Set opponent = opposing_set<us>(), bool captureMoves = false>
-    MoveQueue calcAvailableMoves();
 
     /**
      * Calculates the available legal moves for the specified set.

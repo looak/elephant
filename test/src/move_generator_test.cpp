@@ -54,6 +54,7 @@ TEST_F(MoveGeneratorFixture, Empty)
     MoveGenerator gen(testContext);
     PackedMove move = gen.generateNextMove();
     EXPECT_EQ(0, move.read());
+    EXPECT_EQ(PackedMove::NullMove(), move);
 }
 
 #pragma region KingMoveGenerationTests

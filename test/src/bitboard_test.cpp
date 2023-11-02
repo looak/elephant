@@ -22,22 +22,22 @@ TEST_F(BitboardFixture, EmptyBitboard_BitboardShouldBeZero)
 
 TEST_F(BitboardFixture, BitwiseNotOperator_BitboardShouldOppositeOfOriginal)
 {
-    Bitboard orig(0xFFAAFFAAFFAAFFAA);
+    Bitboard orig(0xFFAAFFAAFFAAFFAAULL);
     Bitboard bitwiseNot(~orig);
-    u64 expected = 0x55005500550055;
+    u64 expected = 0x55005500550055ULL;
     EXPECT_EQ(bitwiseNot.read(), expected);
 }
 
 TEST_F(BitboardFixture, AssignmentOperator_ShouldBeEqualAfterAssignment)
 {
-    Bitboard orig(0xFFAAFFAAFFAAFFAA);
+    Bitboard orig(0xFFAAFFAAFFAAFFAAULL);
     Bitboard copy = orig;
     EXPECT_EQ(copy.read(), orig.read());
 }
 
 TEST_F(BitboardFixture, EqualsOperator_ShouldBeEqualAndNotEqual)
 {
-    Bitboard orig(0xFFAAFFAAFFAAFFAA);
+    Bitboard orig(0xFFAAFFAAFFAAFFAAULL);
     Bitboard copy = orig;
     EXPECT_TRUE(copy == orig);
     EXPECT_FALSE(copy != orig);
@@ -49,49 +49,49 @@ TEST_F(BitboardFixture, EqualsOperator_ShouldBeEqualAndNotEqual)
 
 TEST_F(BitboardFixture, BitwiseOrOperator_ExpectingCorrectOr)
 {
-    Bitboard vertical(0x1818181818181818);
-    Bitboard horizontal(0xFFFF000000);
+    Bitboard vertical(0x1818181818181818ULL);
+    Bitboard horizontal(0xFFFF000000ULL);
     Bitboard empty;
     empty = vertical | empty;
     EXPECT_EQ(empty, vertical);
     Bitboard result = vertical | horizontal;
-    EXPECT_EQ(result, 0x181818FFFF181818);
+    EXPECT_EQ(result, 0x181818FFFF181818ULL);
 
     vertical |= horizontal;
-    EXPECT_EQ(vertical, 0x181818FFFF181818);
+    EXPECT_EQ(vertical, 0x181818FFFF181818ULL);
 }
 
 TEST_F(BitboardFixture, BitwiseAndOperator_ExpectingCorrectAnd)
 {
-    Bitboard vertical(0x1818181818181818);
-    Bitboard horizontal(0xFFFF000000);
+    Bitboard vertical(0x1818181818181818ULL);
+    Bitboard horizontal(0xFFFF000000ULL);
     Bitboard empty;
     empty = vertical & empty;
-    EXPECT_EQ(empty, 0x0);
+    EXPECT_EQ(empty, 0x0ULL);
     Bitboard result = vertical & horizontal;
-    EXPECT_EQ(result, 0x1818000000);
+    EXPECT_EQ(result, 0x1818000000ULL);
 
     vertical &= horizontal;
-    EXPECT_EQ(vertical, 0x1818000000);
+    EXPECT_EQ(vertical, 0x1818000000ULL);
 }
 
 TEST_F(BitboardFixture, BitwiseXorOperator_ExpectingCorrectXor)
 {
-    Bitboard vertical(0x1818181818181818);
-    Bitboard horizontal(0xFFFF000000);
+    Bitboard vertical(0x1818181818181818ULL);
+    Bitboard horizontal(0xFFFF000000ULL);
     Bitboard empty;
     empty = vertical ^ empty;
     EXPECT_EQ(empty, vertical);
     Bitboard result = vertical ^ horizontal;
-    EXPECT_EQ(result, 0x181818E7E7181818);
+    EXPECT_EQ(result, 0x181818E7E7181818ULL);
 
     vertical ^= horizontal;
-    EXPECT_EQ(vertical, 0x181818E7E7181818);
+    EXPECT_EQ(vertical, 0x181818E7E7181818ULL);
 }
 
 TEST_F(BitboardFixture, SquareBracketOperator_ReadingSpecificSquares)
 {
-    const Bitboard bb(0x8100001818000081);
+    const Bitboard bb(0x8100001818000081ULL);
     EXPECT_EQ(bb[Square::A1], true);
     EXPECT_EQ(bb[Square::A2], false);
     EXPECT_EQ(bb[Square::A3], false);
@@ -167,8 +167,8 @@ TEST_F(BitboardFixture, SquareBracketOperator_ReadingSpecificSquares)
 
 TEST_F(BitboardFixture, SquareBracketOperator_WritingSpecificSquare)
 {
-    Bitboard bb(0x8100001818000081);
-    Bitboard expected(0x8100001818000081);
+    Bitboard bb(0x8100001818000081ULL);
+    Bitboard expected(0x8100001818000081ULL);
     EXPECT_TRUE(bb[Square::A1]);
     bb[Square::A1] = true;
     EXPECT_TRUE(bb[Square::A1]);
@@ -176,7 +176,7 @@ TEST_F(BitboardFixture, SquareBracketOperator_WritingSpecificSquare)
 
     bb[Square::A1] = false;
     EXPECT_FALSE(bb[Square::A1]);
-    expected = 0x8100001818000080;
+    expected = 0x8100001818000080ULL;
     EXPECT_EQ(bb, expected);
 
     EXPECT_FALSE(bb[Square::F3]);
@@ -186,7 +186,199 @@ TEST_F(BitboardFixture, SquareBracketOperator_WritingSpecificSquare)
 
     bb[Square::F3] = true;
     EXPECT_TRUE(bb[Square::F3]);
-    expected = 0x8100001818200080;
+    expected = 0x8100001818200080ULL;
+    EXPECT_EQ(bb, expected);
+}
+
+TEST_F(BitboardFixture, InclusiveFillWest_ExpectedToBeFilledFromGivenFileToWestEdge)
+{
+    Bitboard bb(0x0ULL);
+    bb = bb.inclusiveFillWest(file_e);
+
+    u64 expected = 0x1F1F1F1F1F1F1F1F;
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, InclusiveFillRest_ExpectedToBeFilledFromGivenFileToEdge)
+{
+    Bitboard bb(0x0ULL);
+    bb = bb.inclusiveFillEast(file_b);
+    u64 expected = 0xFEFEFEFEFEFEFEFEULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    i8 rank6 = 5;  // zero indexed;
+    bb = bb.inclusiveFillNorth(rank6);
+    expected = 0xFFFFFF0000000000ULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    i8 rank8 = 7;  // zero indexed;
+    bb = bb.inclusiveFillSouth(rank8);
+    expected = 0xFFFFFFFFFFFFFFFFULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillSouth(rank_1);
+    expected = 0xff;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillNorth(rank_8);
+    expected = 0xff00000000000000ULL;
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, InclusiveFillNorthEast_ExpectedToBeFilledFromGivenPositionToNorthEastCorner)
+{
+    Bitboard bb(0x0);
+
+    bb = bb.inclusiveFillNorthEast(file_e, rank_6);
+
+    u64 expected = 0xfcf8f0e0c0800000ULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillNorthEast(file_f, rank_5);
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillNorthEast(file_b, rank_4);
+    expected = 0xfffffffffefcf8f0ULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillNorthEast(file_h, rank_8);
+    expected = 0x8000000000000000ULL;
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, InclusiveFillSouthWest_ExpectedToBeFilledFromGivenPositionToSouthWestCorner)
+{
+    Bitboard bb(0x0);
+
+    bb = bb.inclusiveFillSouthWest(file_c, rank_5);
+    u64 expected = 0x103070f1f3f7fULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillSouthWest(file_c, rank_2);
+    expected = 0x103070fULL;
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, InclusiveFillForwardDiagonal_ExpectedToBeFilledFromGivenPositionToNorthWestCornerOrSouthEastCorner)
+{
+    Bitboard bb(0x0ULL);
+
+    bb = bb.inclusiveFillNorthWest(file_c, rank_6);
+    u64 expected = 0x1f0f070301000000ULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillNorthWest(file_b, rank_7);
+    expected = 0x703010000000000ULL;
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = bb.inclusiveFillSouthEast(file_h, rank_4);
+    expected = 0x80c0e0f0ULL;
+    EXPECT_EQ(bb.read(), expected);
+}
+
+// from the perspective of white player
+TEST_F(BitboardFixture, ShiftsNorth_ExpectBitsToBeShiftedNorthOnBoard)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x1e00000000ULL;
+
+    bb = bb.shiftNorth();
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = 0xff000000;
+    expected = 0xff00000000ULL;
+    bb = bb.shiftNorth();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsSouth_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x1e0000ULL;
+
+    bb = bb.shiftSouth();
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = 0xff000000;
+    expected = 0xff0000ULL;
+    bb = bb.shiftSouth();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsEast_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x3c000000ULL;
+
+    bb = bb.shiftEast();
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = 0xff000000;
+    expected = 0x1fe000000ULL;
+    bb = bb.shiftEast();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsWest_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x3c000000ULL);
+    u64 expected = 0x1e000000ULL;
+
+    bb = bb.shiftWest();
+    EXPECT_EQ(bb.read(), expected);
+
+    bb = 0x1fe000000;
+    expected = 0xff000000ULL;
+    bb = bb.shiftWest();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsNorthEast_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x3c00000000ULL;
+
+    bb = bb.shiftNorthEast();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsNorthWest_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0xf00000000ULL;
+
+    bb = bb.shiftNorthWest();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsSouthEast_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x3c0000ULL;
+
+    bb = bb.shiftSouthEast();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftsSouthWest_ExpectShiftsToWorkProperly)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0xf0000ULL;
+
+    bb = bb.shiftSouthWest();
+    EXPECT_EQ(bb.read(), expected);
+}
+
+TEST_F(BitboardFixture, ShiftNorthRelative_ShiftsAccordingToGivenSet)
+{
+    Bitboard bb(0x1e000000ULL);
+    u64 expected = 0x1e0000ULL;
+
+    bb = bb.shiftNorthRelative<Set::BLACK>();
+    EXPECT_EQ(bb, expected);
+
+    expected = 0x1e000000ULL;
+    bb = bb.shiftNorthRelative<Set::WHITE>();
     EXPECT_EQ(bb, expected);
 }
 

@@ -925,9 +925,9 @@ Chessboard::calculateThreatenedMask(Set set) const
     u64 mask = ~universe;
 
     if (set == Set::WHITE)
-        mask = m_bitboard.calcThreatenedSquares<Set::WHITE, true>();
+        mask = m_bitboard.calcThreatenedSquares<Set::WHITE, true>().read();
     else
-        mask = m_bitboard.calcThreatenedSquares<Set::BLACK, true>();
+        mask = m_bitboard.calcThreatenedSquares<Set::BLACK, true>().read();
 
     return mask;
 }
@@ -966,9 +966,9 @@ Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
     constexpr bool includeMaterial = false;
     constexpr bool pierceKing = true;
     if (opSet == Set::WHITE)
-        threatenedMask = m_bitboard.calcThreatenedSquares<Set::WHITE, includeMaterial, pierceKing>();
+        threatenedMask = m_bitboard.calcThreatenedSquares<Set::WHITE, includeMaterial, pierceKing>().read();
     else
-        threatenedMask = m_bitboard.calcThreatenedSquares<Set::BLACK, includeMaterial, pierceKing>();
+        threatenedMask = m_bitboard.calcThreatenedSquares<Set::BLACK, includeMaterial, pierceKing>().read();
 
     int chkCount = 0;
     KingMask kingMask = calcKingMask(currentSet);
@@ -1031,7 +1031,7 @@ Chessboard::InternalIsMoveCheck(Move& move) const
 {
     u64 attackedMask = m_bitboard.calcAttackedSquares(move.TargetSquare, move.isPromotion() ? move.PromoteToPiece : move.Piece);
     ChessPiece kingPiece(ChessPiece::FlipSet(move.Piece.getSet()), PieceType::KING);
-    u64 kingPosition = m_bitboard.GetMaterial(kingPiece);
+    u64 kingPosition = m_bitboard.GetMaterial(kingPiece).read();
     return (attackedMask & kingPosition) != 0;
 }
 
@@ -1057,7 +1057,7 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
     u64 movesbb =
         m_bitboard.calcAvailableMoves(source, piece, castlingState, m_enPassant, threatenedMask, checkedMask, kingMask);
     MaterialMask opMaterialMask = m_bitboard.GetMaterial(ChessPiece::FlipSet(piece.getSet()));
-    u64 opMaterial = opMaterialMask.combine();
+    u64 opMaterial = opMaterialMask.combine().read();
 
     if (captureMoves) {
         movesbb &= opMaterial;
@@ -1234,53 +1234,9 @@ Chessboard::calculateEndGameCoeficient() const
 
     i32 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue +=
-            ChessPieceDef::Value(index) * intrinsics::popcnt(m_bitboard.GetMaterial(Set::WHITE).material[index]);
-        boardMaterialCombinedValue +=
-            ChessPieceDef::Value(index) * intrinsics::popcnt(m_bitboard.GetMaterial(Set::BLACK).material[index]);
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_bitboard.readMaterial<Set::WHITE>()[index].count();
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_bitboard.readMaterial<Set::BLACK>()[index].count();
     }
 
     return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
 }
-
-template<Set us, Set op, bool captureMoves>
-MoveQueue
-Chessboard::calcAvailableMoves()
-{
-    MoveQueue moves;
-    // constexpr bool includeMaterial = false;
-    // constexpr bool pierceKing = true;
-    // u64 threatendMask = m_bitboard.calcThreatenedSquares<op, includeMaterial, pierceKing>();
-
-    const u64 opMaterial = m_bitboard.readCombinedMaterial<op>();
-
-    KingMask kingMask = calcKingMask(us);
-    u64 movesbb = m_bitboard.calcAvailableMovesKingBulk<us, op>(0);
-
-    if constexpr (captureMoves) {
-        movesbb &= opMaterial;
-    }
-
-    if (movesbb == 0)
-        return MoveQueue();
-
-    i32 srcSqr = intrinsics::lsbIndex(movesbb);
-
-    while (movesbb != 0) {
-        i32 dstSqr = intrinsics::lsbIndex(movesbb);
-        movesbb = intrinsics::resetLsb(movesbb);
-
-        PackedMove move;
-        move.setSource(srcSqr);
-        move.setTarget(dstSqr);
-
-        // moves.push_back(move);
-    }
-
-    return moves;
-}
-
-template MoveQueue Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, false>();
-template MoveQueue Chessboard::calcAvailableMoves<Set::WHITE, Set::BLACK, true>();
-template MoveQueue Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, false>();
-template MoveQueue Chessboard::calcAvailableMoves<Set::BLACK, Set::WHITE, true>();

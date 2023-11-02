@@ -22,13 +22,13 @@
 
 enum class PieceType : byte {
     NON = 0,
-    PAWN = 1,
-    KNIGHT = 2,
-    BISHOP = 3,
-    ROOK = 4,
-    QUEEN = 5,
-    KING = 6,
-    NR_OF_PIECES = 7,
+    PAWN = pawnId + 1,
+    KNIGHT = knightId + 1,
+    BISHOP = bishopId + 1,
+    ROOK = rookId + 1,
+    QUEEN = queenId + 1,
+    KING = kingId + 1,
+    NR_OF_PIECES = KING + 1,
 };
 
 enum class Set : byte { WHITE = 0, BLACK = 1, NR_OF_SETS = 2 };
