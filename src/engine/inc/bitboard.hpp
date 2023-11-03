@@ -103,6 +103,9 @@ public:
      * @brief resets board to 0    */
     void reset() { m_board = 0; }
 
+    [[nodiscard]] constexpr Bitboard shiftRight(u8 shift) const { return Bitboard(m_board >> shift); }
+    [[nodiscard]] constexpr Bitboard shiftLeft(u8 shift) const { return Bitboard(m_board << shift); }
+
 #pragma region operators
     constexpr Bitboard& operator=(const Bitboard& rhs)
     {
@@ -154,6 +157,9 @@ public:
     [[nodiscard]] constexpr Bitboard operator&(u64 rhs) const { return Bitboard(m_board & rhs); }
     [[nodiscard]] constexpr Bitboard operator^(u64 rhs) const { return Bitboard(m_board ^ rhs); }
 
+    [[nodiscard]] constexpr Bitboard operator<<(u64 rhs) const { return shiftLeft(rhs); }
+    [[nodiscard]] constexpr Bitboard operator>>(u64 rhs) const { return shiftRight(rhs); }
+
     [[nodiscard]] constexpr Bitboard operator~() const { return Bitboard(~m_board); };
     [[nodiscard]] explicit constexpr operator bool() const { return !empty(); }
 
@@ -180,10 +186,23 @@ public:
     [[nodiscard]] constexpr Bitboard shiftSouthWest() const { return Bitboard(m_board >> shifts::forward_diagonal); }
     [[nodiscard]] constexpr Bitboard shiftNorthWest() const { return Bitboard(m_board << shifts::backward_diagonal); }
 
+    template<Set us, u8 direction>
+    [[nodiscard]] constexpr Bitboard shiftRelative() const;
+
     template<Set us>
     [[nodiscard]] constexpr Bitboard shiftNorthRelative() const;
     template<Set us>
+    [[nodiscard]] constexpr Bitboard shiftEastRelative() const;
+    template<Set us>
+    [[nodiscard]] constexpr Bitboard shiftSouthRelative() const;
+    template<Set us>
+    [[nodiscard]] constexpr Bitboard shiftWestRelative() const;
+    template<Set us>
     [[nodiscard]] constexpr Bitboard shiftNorthEastRelative() const;
+    template<Set us>
+    [[nodiscard]] constexpr Bitboard shiftSouthEastRelative() const;
+    template<Set us>
+    [[nodiscard]] constexpr Bitboard shiftSouthWestRelative() const;
     template<Set us>
     [[nodiscard]] constexpr Bitboard shiftNorthWestRelative() const;
 #pragma endregion  // shifts
@@ -253,6 +272,38 @@ private:
     u64 m_board;
 };
 
+template<Set us, u8 direction>
+[[nodiscard]] constexpr Bitboard
+Bitboard::shiftRelative() const
+{
+    if constexpr (direction == north) {
+        return shiftNorthRelative<us>();
+    }
+    else if constexpr (direction == east) {
+        return shiftEastRelative<us>();
+    }
+    else if constexpr (direction == south) {
+        return shiftSouthRelative<us>();
+    }
+    else if constexpr (direction == west) {
+        return shiftWestRelative<us>();
+    }
+    else if constexpr (direction == northeast) {
+        return shiftNorthEastRelative<us>();
+    }
+    else if constexpr (direction == southeast) {
+        return shiftSouthEastRelative<us>();
+    }
+    else if constexpr (direction == southwest) {
+        return shiftSouthWestRelative<us>();
+    }
+    else if constexpr (direction == northwest) {
+        return shiftNorthWestRelative<us>();
+    }
+
+    FATAL_ASSERT(false) << "Invalid direction";
+}
+
 template<Set us>
 constexpr Bitboard
 Bitboard::shiftNorthRelative() const
@@ -262,6 +313,77 @@ Bitboard::shiftNorthRelative() const
     }
     else {
         return shiftSouth();
+    }
+}
+template<Set us>
+constexpr Bitboard
+Bitboard::shiftEastRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftEast();
+    }
+    else {
+        return shiftWest();
+    }
+}
+
+template<Set us>
+constexpr Bitboard
+Bitboard::shiftSouthRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftSouth();
+    }
+    else {
+        return shiftNorth();
+    }
+}
+
+template<Set us>
+constexpr Bitboard
+Bitboard::shiftWestRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftWest();
+    }
+    else {
+        return shiftEast();
+    }
+}
+
+template<Set us>
+[[nodiscard]] constexpr Bitboard
+Bitboard::shiftNorthEastRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftNorthEast();
+    }
+    else {
+        return shiftSouthWest();
+    }
+}
+
+template<Set us>
+[[nodiscard]] constexpr Bitboard
+Bitboard::shiftSouthEastRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftSouthEast();
+    }
+    else {
+        return shiftNorthWest();
+    }
+}
+
+template<Set us>
+[[nodiscard]] constexpr Bitboard
+Bitboard::shiftSouthWestRelative() const
+{
+    if constexpr (us == Set::WHITE) {
+        return shiftSouthWest();
+    }
+    else {
+        return shiftNorthEast();
     }
 }
 
@@ -277,15 +399,4 @@ Bitboard::shiftNorthWestRelative() const
     }
 }
 
-template<Set us>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftNorthEastRelative() const
-{
-    if constexpr (us == Set::WHITE) {
-        return shiftNorthEast();
-    }
-    else {
-        return shiftSouthWest();
-    }
-}
 #endif  // BITBOARD_HEADER
