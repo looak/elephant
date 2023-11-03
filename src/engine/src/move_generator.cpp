@@ -50,6 +50,8 @@ MoveGenerator::generateNextMove()
         generateMoves<set, kingId>();
     }
 
+    FATAL_ASSERT(!m_moves.empty()) << "This should never be able to happen since our bitboards have moves in them.";
+
     auto move = m_moves.top();
     m_moves.pop();
     m_returnedMoves.push_back(move.move);
@@ -63,19 +65,19 @@ MoveGenerator::internalGeneratePawnMoves()
     const auto& pos = m_context.readChessboard().readBitboard();
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
-    if (movesbb == 0)
+    if (movesbb.empty())
         return;
 
     // cache pawns in local variable which we'll use to iterate over all pawns.
     Bitboard pawns = pos.readMaterial<set>().material[pawnId];
 
-    while (pawns != 0) {
+    while (pawns.empty() == false) {
         // build source square and remove pawn from pawns bitboard.
         const i32 srcSqr = pawns.popLsb();
         const Notation srcNotation(srcSqr);
 
         auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb);
-        while (isolatedPawnAttacks != 0) {
+        while (isolatedPawnAttacks.empty() == false) {
             i32 dstSqr = isolatedPawnAttacks.popLsb();
 
             PackedMove move;
@@ -86,7 +88,7 @@ MoveGenerator::internalGeneratePawnMoves()
             PrioratizedMove prioratizedMove(move, 1);
             m_moves.push(prioratizedMove);
         }
-        while (isolatedPawnMoves != 0) {
+        while (isolatedPawnMoves.empty() == false) {
             i32 dstSqr = isolatedPawnMoves.popLsb();
 
             PackedMove move;
@@ -108,19 +110,19 @@ MoveGenerator::internalGenerateKnightMoves()
     const auto& bb = m_context.readChessboard().readBitboard();
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[knightId];
-    if (movesbb == 0)
+    if (movesbb.empty())
         return;
 
     Bitboard knights = bb.readMaterial<set>().material[knightId];
 
-    while (knights != 0) {
+    while (knights.empty() == false) {
         // build source square and remove knight from cached material bitboard.
         const i32 srcSqr = knights.popLsb();
         const Notation srcNotation(srcSqr);
 
         auto [isolatedKnightMoves, isolatedKnightAttks] = bb.isolatePiece<set>(knightId, srcNotation, movesbb);
-        genPackedMovesFromBitboard(isolatedKnightAttks, srcSqr, true, m_moves);
-        genPackedMovesFromBitboard(isolatedKnightMoves, srcSqr, false, m_moves);
+        genPackedMovesFromBitboard(isolatedKnightAttks, srcSqr, /*are captures*/ true, m_moves);
+        genPackedMovesFromBitboard(isolatedKnightMoves, srcSqr, /*are captures*/ false, m_moves);
     }
 }
 
@@ -163,13 +165,13 @@ MoveGenerator::internalGenerateKingMoves()
     Bitboard movesbb = m_moveMasks[(size_t)set].material[kingId];
 #if defined EG_DEBUGGING || defined EG_TESTING
     // during testing and debugging king can be missing
-    if (movesbb == 0)
+    if (movesbb.empty())
         return;
 #endif
 
     u32 srcSqr = bb.readMaterial<set>().material[kingId].lsbIndex();
 
-    while (movesbb != 0) {
+    while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
 
         PackedMove move;
@@ -210,7 +212,7 @@ template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& targe
 void
 MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue)
 {
-    while (movesbb != 0) {
+    while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
 
         PackedMove move;

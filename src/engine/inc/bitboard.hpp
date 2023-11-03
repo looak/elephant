@@ -89,6 +89,8 @@ public:
         return intrinsics::resetLsb(m_board);
     }
 
+    /**
+     * @brief returns the least significant bit and unsets it, board can't be empty     */
     [[nodiscard]] constexpr u32 popLsb()
     {
         FATAL_ASSERT(!empty());
@@ -96,6 +98,10 @@ public:
         m_board = resetLsb();
         return index;
     }
+
+    /**
+     * @brief resets board to 0    */
+    void reset() { m_board = 0; }
 
 #pragma region operators
     constexpr Bitboard& operator=(const Bitboard& rhs)

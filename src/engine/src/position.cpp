@@ -60,7 +60,6 @@ Position::ClearPiece(ChessPiece piece, Notation target)
 bool
 Position::PlacePiece(ChessPiece piece, Notation target)
 {
-    //    u64 mask = squareMaskTable[target.index()];
     auto sqr = target.toSquare();
     Bitboard& piecebb = m_material[piece.set()].material[piece.index()];
     piecebb[sqr] = true;
@@ -593,16 +592,15 @@ template<Set us>
 std::tuple<Bitboard, Bitboard>
 Position::internalIsolatePawn(Notation source, Bitboard movesbb) const
 {
+    Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+    if (readMaterial<us>()[pawnId].count() <= 1) {
+        return {movesbb ^ opMatCombined, movesbb & opMatCombined};
+    }
+
     const size_t usIndx = static_cast<size_t>(us);
-    if (m_material[usIndx].material[pawnId].count() <= 1)
-        return {movesbb, 0};
-
-    const size_t themIndx = static_cast<size_t>(opposing_set<us>());
-
-    Bitboard unoccupied = ~(m_material[usIndx].combine() | m_material[themIndx].combine());
-
-    auto srcMask = Bitboard(squareMaskTable[source.index()]);
+    Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);
     Bitboard isolatedbb = srcMask.shiftNorthRelative<us>();
+    Bitboard unoccupied = ~(readMaterial<us>().combine() | opMatCombined);
     Bitboard doublePush = isolatedbb & pawn_constants::baseRank[usIndx] & unoccupied;
     isolatedbb |= doublePush.shiftNorthRelative<us>();
 
@@ -612,7 +610,7 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb) const
     if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
         threatns |= srcMask.shiftNorthEastRelative<us>();
 
-    return {movesbb & isolatedbb.read(), (m_material[themIndx].combine() & threatns).read()};
+    return {movesbb & isolatedbb, (opMatCombined & threatns)};
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::WHITE>(Notation source, Bitboard movesbb) const;
@@ -620,9 +618,33 @@ template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::BLACK
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateKnight(Notation source, Bitboard movesbb) const
+Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb) const
 {
-    return {0, 0};
+    Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+    if (readMaterial<us>()[knightId].count() <= 1)
+        return {movesbb ^ opMatCombined, movesbb & opMatCombined};
+
+    Bitboard isolatedbb;
+
+    const u8 moveCount = ChessPieceDef::MoveCount(knightId);
+    for (u8 moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
+        byte curSqr = source.index();
+        // build a 0x88 square out of current square.
+        signed char sq0x88 = to0x88(curSqr);
+        // do move
+        const u16 dir = ChessPieceDef::Attacks0x88(knightId, moveIndx);
+        sq0x88 += dir;
+        if (sq0x88 & 0x88)  // validate move, are we still on the board?
+            continue;
+
+        // convert our sqr0x88 back to a square index
+        curSqr = fr0x88(sq0x88);
+        // build a square mask from current square
+        u64 sqrMask = squareMaskTable[curSqr];
+        isolatedbb |= sqrMask;
+    }
+
+    return {isolatedbb ^ opMatCombined, isolatedbb & opMatCombined};
 }
 
 std::tuple<Bitboard, Bitboard>
@@ -757,7 +779,7 @@ Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb) const
         case rookId:
             return internalIsolateRook(us, source, movesbb);
         case knightId:
-            return internalIsolateKnight<us>(source, movesbb);
+            return internalIsolateKnightMoves<us>(source, movesbb);
         default:
             FATAL_ASSERT(false) << "Not implemented";
     }

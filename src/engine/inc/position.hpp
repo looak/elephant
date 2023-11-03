@@ -15,9 +15,9 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 /**
- * @file bitboard.h
- * @brief Backend of this chess engine. Represents the chessboard as a 64bit
- * integer where each bit represents a square on the board. By using this
+ * @file position.hpp
+ * @brief Backend of this chess engine. Represents the chessboard as a few 64bit
+ * integers where each bit represents a square on the board. By using this
  * representation we can optimize the move generation and evaluation of the
  * board. The board is built up by 12 bitboards, one for each piece type.
  *
@@ -44,6 +44,46 @@ struct MaterialMask {
     [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
     [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
 };
+
+// this would be 8 x 64bits, i.e. 64 bytes per position rather than the currently used
+// 12 x 64bits, i.e. 96 bytes per position.
+// struct MaterialPositionMask {
+//     Bitboard set[2];
+//     Bitboard material[6];
+
+//     template<Set us>
+//     [[nodiscard]] constexpr Bitboard operator[](i32 pieceId)
+//     {
+//         if constexpr (us == Set::WHITE) {
+//             return material[pieceId] & set[0];
+//         }
+//         else {
+//             return material[pieceId] & set[1];
+//         }
+//     }
+//     template<Set us>
+//     [[nodiscard]] constexpr Bitboard operator[](i32 pieceId) const
+//     {
+//         if constexpr (us == Set::WHITE) {
+//             return material[pieceId] & set[0];
+//         }
+//         else {
+//             return material[pieceId] & set[1];
+//         }
+//     }
+
+//     [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
+//     [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
+
+//     template<Set us>
+//     [[nodiscard]] constexpr Bitboard combine() const
+//     {
+//         if constexpr (us == Set::WHITE) {
+//             return set[0];
+//         }
+//         return set[1];
+//     }
+// };
 
 struct MaterialSlidingMask {
     Bitboard orthogonal;
@@ -179,6 +219,9 @@ public:
     template<Set us>
     MaterialMask readMaterial() const;
 
+    template<Set us>
+    MaterialMask& writeMaterial();
+
     /**
      * @brief Calculate the available moves for a given chess piece on the bitboard.
      * This function calculates the legal moves for the specified chess piece on the bitboard,
@@ -260,7 +303,7 @@ public:
     KingMask calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const;
     Bitboard GetMaterialCombined(Set uset) const;
     Bitboard GetMaterial(ChessPiece piece) const;
-    MaterialMask GetMaterial(Set uset) const;
+    MaterialMask GetMaterial(Set set) const;
 
 private:
     u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
@@ -276,7 +319,7 @@ private:
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateKnight(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb) const;
     std::tuple<Bitboard, Bitboard> internalIsolateBishop(Set uset, Notation source, Bitboard movesbb) const;
     std::tuple<Bitboard, Bitboard> internalIsolateRook(Set uset, Notation source, Bitboard movesbb) const;
 
@@ -302,11 +345,23 @@ Position::readMaterial() const
     }
 }
 
+template<Set us>
+MaterialMask&
+Position::writeMaterial()
+{
+    if constexpr (us == Set::WHITE) {
+        return m_material[0];
+    }
+    else {
+        return m_material[1];
+    }
+}
+
 template<Set us, u8 direction, u8 pieceId>
 Bitboard
 Position::internalCalcAvailableMoves(Bitboard bounds) const
 {
-    const Bitboard piecebb = readMaterial<us>().material[pieceId];
+    const Bitboard piecebb = readMaterial<us>()[pieceId];
     const Bitboard materialbb = readMaterial<us>().combine();
     const Bitboard opMaterial = readMaterial<opposing_set<us>()>().combine();
 
@@ -332,7 +387,7 @@ Bitboard
 Position::calcAvailableMovesKnightBulk() const
 {
     Bitboard result = 0;
-    const Bitboard knights = readMaterial<us>().material[knightId];
+    const Bitboard knights = readMaterial<us>()[knightId];
     if (knights == 0)
         return result;  // early out
 
@@ -349,7 +404,7 @@ Position::calcAvailableMovesKnightBulk() const
             // do move
             sq0x88 += dir;
             if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                break;
+                continue;
 
             // convert our sqr0x88 back to a square index
             curSqr = fr0x88(sq0x88);
@@ -400,10 +455,10 @@ template<Set us>
 Bitboard
 Position::calcAvailableAttacksPawnBulk() const
 {
-    Set opSet = ChessPiece::FlipSet<s>();
+    constexpr Set op = opposing_set<us>();
 
     u64 threats = calcThreatenedSquaresPawnBulk<s>();
-    u64 opMaterial = m_material[(size_t)opSet].combine();
+    u64 opMaterial = readMaterial<op>().combine();
 
     return threats & opMaterial;
 }
@@ -468,7 +523,7 @@ Position::calcThreatenedSquaresDiagonal() const
     // removing king from opmaterial so it doesn't stop our sliding.
     if constexpr (pierceKing) {
         kingMask = readMaterial<opSet>()[kingId];
-        readMaterial<opSet>()[kingId] = 0;
+        writeMaterial<opSet>()[kingId] = 0;
     }
 
     result |= calcThreatenedSquaresBishopBulk<us>();
@@ -476,11 +531,11 @@ Position::calcThreatenedSquaresDiagonal() const
 
     if constexpr (includeMaterial) {
         const size_t usIndx = static_cast<size_t>(us);
-        result |= readMaterial<us>().material[queenId] | readMaterial<us>().material[bishopId];
+        result |= readMaterial<us>()[queenId] | readMaterial<us>()[bishopId];
     }
 
     if constexpr (pierceKing)
-        readMaterial<opSet>()[kingId] = kingMask;
+        writeMaterial<opSet>()[kingId] = kingMask;
 
     return result;
 }
@@ -493,20 +548,20 @@ Position::calcThreatenedSquaresOrthogonal() const
 
     // removing king from opmaterial so it doesn't stop our sliding.
     if constexpr (pierceKing) {
-        Set opSet = ChessPiece::FlipSet<s>();
-        kingMask = m_material[(size_t)opSet].material[kingId];
-        m_material[(size_t)opSet].material[kingId] = 0;
+        constexpr Set op = opposing_set<us>();
+        kingMask = readMaterial<op>()[kingId];
+        readMaterial<op>()[kingId] = 0;
     }
 
     result |= calcThreatenedSquaresRookBulk<s>();
     result |= calcThreatenedSquaresRookBulk<s, queenId>();
 
     if constexpr (includeMaterial)
-        result |= m_material[(size_t)us].material[queenId] | m_material[(size_t)us].material[rookId];
+        result |= readMaterial<us>()[queenId] | readMaterial<us>()[rookId];
 
     if constexpr (pierceKing) {
-        Set opSet = ChessPiece::FlipSet<s>();
-        m_material[(size_t)opSet].material[kingId] = kingMask;
+        constexpr Set op = opposing_set<us>();
+        readMaterial<op>[kingId] = kingMask;
     }
 
     return result;
@@ -517,16 +572,15 @@ Bitboard
 Position::calcThreatenedSquares() const
 {
     Bitboard result = ~universe;
-
+    constexpr Set op = opposing_set<us>();
     [[maybe_unused]] Bitboard kingMask = 0;
 
     // removing king from opmaterial so it doesn't stop our sliding.
     // needs to be reset later on.
     if constexpr (pierceKing) {
         // can we build a scoped struct to make this a bit cleaner?
-        size_t opSet = static_cast<size_t>(opposing_set<us>());
-        kingMask = m_material[opSet].material[kingId];
-        m_material[opSet].material[kingId] = 0;
+        kingMask = readMaterial<op>()[kingId];
+        readMaterial<op>()[kingId] = 0;
     }
 
     result |= calcThreatenedSquaresPawnBulk<us>();
@@ -537,13 +591,11 @@ Position::calcThreatenedSquares() const
     result |= calcThreatenedSquaresRookBulk<us, queenId>();
     result |= calcThreatenedSquaresKing<us>();
 
-    if constexpr (pierceKing) {
-        size_t opSet = static_cast<size_t>(opposing_set<us>());
-        m_material[opSet].material[kingId] = kingMask;
-    }
+    if constexpr (pierceKing)
+        readMaterial<op>()[kingId] = kingMask;
 
     if constexpr (includeMaterial)
-        result |= m_material[(size_t)us].combine();
+        result |= readMaterial<us>().combine();
 
     return result;
 }
@@ -552,7 +604,7 @@ template<Set us, u8 pieceId, u8 direction>
 Bitboard
 Position::calcPinnedPiecesBulk(KingMask kingMask) const
 {
-    return kingMask.threats[direction] & m_material[(size_t)us].material[pieceId];
+    return kingMask.threats[direction] & readMaterial<us>()[pieceId];
 }
 
 template<Set us>
