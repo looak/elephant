@@ -152,8 +152,6 @@ Chessboard::Chessboard(const Chessboard& other) :
     m_kings[1].second = Notation(other.m_kings[1].second);
 
     m_bitboard = other.m_bitboard;
-    m_material[0] = other.m_material[0];
-    m_material[1] = other.m_material[1];
 }
 
 std::string
@@ -206,8 +204,6 @@ Chessboard::Clear()
     m_kings[1].first = ChessPiece();
     m_kings[1].second = Notation();
     m_bitboard.Clear();
-    m_material[0].Clear();
-    m_material[1].Clear();
 }
 
 bool
@@ -232,8 +228,6 @@ Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
     m_tiles[target.index()].editPiece() = piece;
     m_bitboard.PlacePiece(piece, target);
 
-    m_material[piece.set()].AddPiece(piece, target);
-
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
     return true;
 }
@@ -241,53 +235,53 @@ Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 Move
 Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) const
 {
-    Move mv = Move::fromPGN(pgn, isWhiteMove);
+    // Move mv = Move::fromPGN(pgn, isWhiteMove);
 
-    if (mv.SourceSquare.isValid())
-        return mv;
+    // if (mv.SourceSquare.isValid())
+    //     return mv;
 
-    u64 targetMask = UINT64_C(1) << mv.TargetSquare.index();
+    // u64 targetMask = UINT64_C(1) << mv.TargetSquare.index();
 
-    const auto notations = m_material[mv.Piece.set()].buildPlacementsOfPiece(mv.Piece);
-    std::vector<Notation> possibleSources;
+    // const auto notations = m_material[mv.Piece.set()].buildPlacementsOfPiece(mv.Piece);
+    // std::vector<Notation> possibleSources;
 
-    // currently this won't care if a move is legal or not.
-    for (const auto& notation : notations) {
-        auto moveMask = m_bitboard.calcAvailableMoves(notation, mv.Piece, 0, {});
-        if (moveMask & targetMask)
-            possibleSources.push_back(notation);
-    }
+    // // currently this won't care if a move is legal or not.
+    // for (const auto& notation : notations) {
+    //     auto moveMask = m_bitboard.calcAvailableMoves(notation, mv.Piece, 0, {});
+    //     if (moveMask & targetMask)
+    //         possibleSources.push_back(notation);
+    // }
 
-    if (possibleSources.size() == 1) {
-        mv.SourceSquare = possibleSources[0];
-        mv.setAmbiguous(false);
-        mv.setInvalid(false);
-        return mv;
-    }
-    else {
-        // during deserialization there was additional information in the pgn to disambiguate the
-        // move
-        if (mv.SourceSquare.file == 9) {  // we are looking for a piece on given rank
-            for (const auto& notation : possibleSources) {
-                if (notation.rank == mv.SourceSquare.rank) {
-                    mv.SourceSquare = notation;
-                    mv.setAmbiguous(false);
-                    mv.setInvalid(false);
-                    return mv;
-                }
-            }
-        }
-        else if (mv.SourceSquare.rank == 9) {  // we are looking for a piece on given file
-            for (const auto& notation : possibleSources) {
-                if (notation.file == mv.SourceSquare.file) {
-                    mv.SourceSquare = notation;
-                    mv.setAmbiguous(false);
-                    mv.setInvalid(false);
-                    return mv;
-                }
-            }
-        }
-    }
+    // if (possibleSources.size() == 1) {
+    //     mv.SourceSquare = possibleSources[0];
+    //     mv.setAmbiguous(false);
+    //     mv.setInvalid(false);
+    //     return mv;
+    // }
+    // else {
+    //     // during deserialization there was additional information in the pgn to disambiguate the
+    //     // move
+    //     if (mv.SourceSquare.file == 9) {  // we are looking for a piece on given rank
+    //         for (const auto& notation : possibleSources) {
+    //             if (notation.rank == mv.SourceSquare.rank) {
+    //                 mv.SourceSquare = notation;
+    //                 mv.setAmbiguous(false);
+    //                 mv.setInvalid(false);
+    //                 return mv;
+    //             }
+    //         }
+    //     }
+    //     else if (mv.SourceSquare.rank == 9) {  // we are looking for a piece on given file
+    //         for (const auto& notation : possibleSources) {
+    //             if (notation.file == mv.SourceSquare.file) {
+    //                 mv.SourceSquare = notation;
+    //                 mv.setAmbiguous(false);
+    //                 mv.setInvalid(false);
+    //                 return mv;
+    //             }
+    //         }
+    //     }
+    // }
 
     return Move::Invalid();
 }
@@ -297,53 +291,53 @@ std::string
 Chessboard::SerializeMoveToPGN(const Move& move) const
 {
     std::string pgn = "";
-    if (move.Piece.isPawn()) {
-        if (move.isCapture()) {
-            pgn += Notation::fileToChar(move.SourceSquare);
-            pgn += "x";
-        }
+    // if (move.Piece.isPawn()) {
+    //     if (move.isCapture()) {
+    //         pgn += Notation::fileToChar(move.SourceSquare);
+    //         pgn += "x";
+    //     }
 
-        pgn += Notation::toString(move.TargetSquare);
-        if (move.isPromotion()) {
-            pgn += "=";
-            pgn += move.PromoteToPiece.toString();
-        }
-    }
-    else if (move.isCastling()) {
-        if (move.TargetSquare.file == 6)
-            pgn += "O-O";
-        else
-            pgn += "O-O-O";
-    }
-    else {
-        pgn += std::toupper(move.Piece.toString());
-        u64 curMask = UINT64_C(1) << move.TargetSquare.index();
+    //     pgn += Notation::toString(move.TargetSquare);
+    //     if (move.isPromotion()) {
+    //         pgn += "=";
+    //         pgn += move.PromoteToPiece.toString();
+    //     }
+    // }
+    // else if (move.isCastling()) {
+    //     if (move.TargetSquare.file == 6)
+    //         pgn += "O-O";
+    //     else
+    //         pgn += "O-O-O";
+    // }
+    // else {
+    //     pgn += std::toupper(move.Piece.toString());
+    //     u64 curMask = UINT64_C(1) << move.TargetSquare.index();
 
-        // do we need to be more specific?
-        auto notations = m_material[move.Piece.set()].buildPlacementsOfPiece(move.Piece);
-        if (notations.size() > 1) {
-            // remove self from list.
-            std::erase_if(notations, [&](const Notation& n) { return n == move.SourceSquare; });
+    //     // do we need to be more specific?
+    //     auto notations = m_material[move.Piece.set()].buildPlacementsOfPiece(move.Piece);
+    //     if (notations.size() > 1) {
+    //         // remove self from list.
+    //         std::erase_if(notations, [&](const Notation& n) { return n == move.SourceSquare; });
 
-            for (const auto& pos : notations) {
-                u64 moveMask = m_bitboard.calcAvailableMoves(pos, move.Piece, 0, {});
-                if (moveMask & curMask) {
-                    // this assumes there are only two pieces of the same type on the board
-                    // which will break if we ever support chess960 or pawns are promoted.
-                    if (pos.file == move.SourceSquare.file)
-                        pgn += Notation::rankToChar(pos);
-                    else if (pos.rank == move.SourceSquare.rank)
-                        pgn += Notation::fileToChar(pos);
-                    else
-                        pgn += pos.toString();
-                }
-            }
-        }
+    //         for (const auto& pos : notations) {
+    //             u64 moveMask = m_bitboard.calcAvailableMoves(pos, move.Piece, 0, {});
+    //             if (moveMask & curMask) {
+    //                 // this assumes there are only two pieces of the same type on the board
+    //                 // which will break if we ever support chess960 or pawns are promoted.
+    //                 if (pos.file == move.SourceSquare.file)
+    //                     pgn += Notation::rankToChar(pos);
+    //                 else if (pos.rank == move.SourceSquare.rank)
+    //                     pgn += Notation::fileToChar(pos);
+    //                 else
+    //                     pgn += pos.toString();
+    //             }
+    //         }
+    //     }
 
-        if (m_tiles[move.TargetSquare.index()].readPiece().isValid())
-            pgn += "x";
-        pgn += move.TargetSquare.toString();
-    }
+    //     if (m_tiles[move.TargetSquare.index()].readPiece().isValid())
+    //         pgn += "x";
+    //     pgn += move.TargetSquare.toString();
+    // }
 
     return pgn;
 }
@@ -399,7 +393,7 @@ Chessboard::InternalHandlePawnMove(Move& move)
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare);
 
         m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
-        m_material[move.Piece.set()].PromotePiece(move.PromoteToPiece, move.SourceSquare);
+
         m_bitboard.ClearPiece(move.Piece, move.SourceSquare);
         m_bitboard.PlacePiece(move.PromoteToPiece, move.SourceSquare);
         move.Flags |= MoveFlag::Promotion;
@@ -521,8 +515,6 @@ Chessboard::InternalMakeMove(Notation source, Notation target)
 
     m_bitboard.ClearPiece(piece, source);
     m_bitboard.PlacePiece(piece, target);
-
-    m_material[piece.set()].MovePiece(piece, source, target);
 
     // update hash
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
@@ -652,7 +644,6 @@ Chessboard::UnmakeMove(const Move& move)
 
             m_tiles[m_enPassantTarget.index()].editPiece() = move.CapturedPiece;
             m_bitboard.PlacePiece(move.CapturedPiece, m_enPassantTarget);
-            m_material[move.CapturedPiece.set()].AddPiece(move.CapturedPiece, m_enPassantTarget);
 
             m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, m_enPassantTarget);
             m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_enPassant);
@@ -660,7 +651,6 @@ Chessboard::UnmakeMove(const Move& move)
         else {
             m_tiles[move.TargetSquare.index()].editPiece() = move.CapturedPiece;
             m_bitboard.PlacePiece(move.CapturedPiece, move.TargetSquare);
-            m_material[move.CapturedPiece.set()].AddPiece(move.CapturedPiece, move.TargetSquare);
 
             m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.CapturedPiece, move.TargetSquare);
         }
@@ -681,9 +671,6 @@ Chessboard::InternalUnmakeMove(Notation source, Notation target, ChessPiece piec
     // unmake bitboard
     m_bitboard.ClearPiece(pieceToRmv, target);
     m_bitboard.PlacePiece(pieceToAdd, source);
-
-    // unmake material
-    m_material[pieceToAdd.set()].UnmakePieceMove(pieceToAdd, pieceToRmv, source, target);
 
     // update hash
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, pieceToRmv, target);
@@ -805,7 +792,6 @@ Chessboard::InternalHandleCapture(Move& move, Notation pieceTarget)
         if (move.CapturedPiece.getType() == PieceType::ROOK)
             InternalHandleRookMovedOrCaptured(move, move.TargetSquare);
 
-        m_material[move.CapturedPiece.set()].RemovePiece(move.CapturedPiece, pieceTarget);
         m_bitboard.ClearPiece(move.CapturedPiece, pieceTarget);
 
         // remove piece from hash
@@ -947,12 +933,12 @@ Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 thre
 {
     std::vector<Move> result;
 
-    u64 pieceBitboard = m_material[piece.set()].readPieceBitboard(piece.index());
-    while (pieceBitboard > 0) {
-        u32 sqr = m_material[piece.set()].readNextPiece(pieceBitboard);
-        auto moves = GetAvailableMoves(Notation(sqr), piece, threatenedMask, checkedMask, kingMask, captureMoves);
-        result.insert(result.end(), moves.begin(), moves.end());
-    }
+    // u64 pieceBitboard = m_material[piece.set()].readPieceBitboard(piece.index());
+    // while (pieceBitboard > 0) {
+    //     u32 sqr = m_material[piece.set()].readNextPiece(pieceBitboard);
+    //     auto moves = GetAvailableMoves(Notation(sqr), piece, threatenedMask, checkedMask, kingMask, captureMoves);
+    //     result.insert(result.end(), moves.begin(), moves.end());
+    // }
 
     return result;
 }

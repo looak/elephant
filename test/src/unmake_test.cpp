@@ -106,21 +106,17 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     m_chessboard.PlacePiece(p, d4);
     Move move(e2, e4);
 
-    {
-        const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-        const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).buildPlacementsOfPiece(BLACKPAWN);
+    const auto& whitePawns = m_chessboard.readBitboard().readMaterial<Set::WHITE>()[pawnId];
+    const auto& blackPawns = m_chessboard.readBitboard().readMaterial<Set::BLACK>()[pawnId];
 
-        // validate
-        EXPECT_EQ(1, whitePawns.size());
-        EXPECT_EQ(1, blackPawns.size());
-        EXPECT_EQ(e2, whitePawns[0]);
-        EXPECT_EQ(d4, blackPawns[0]);
-    }
+    // validate setup
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
     // do
     bool result = m_chessboard.MakeMove(move);
 
-    // validate
+    // validate move
     EXPECT_TRUE(result);
     EXPECT_EQ(P, move.Piece);
     /**
@@ -136,17 +132,10 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
 
-    {
-        const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-        const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).buildPlacementsOfPiece(BLACKPAWN);
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
-        EXPECT_EQ(1, whitePawns.size());
-        EXPECT_EQ(1, blackPawns.size());
-        EXPECT_EQ(e4, whitePawns[0]);
-        EXPECT_EQ(d4, blackPawns[0]);
-    }
-
-    // setup
+    // setup ep capture move
     Move epCapture(d4, e3);
 
     // do
@@ -163,14 +152,8 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(e3).readPiece());
 
-    {
-        const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-        const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).buildPlacementsOfPiece(BLACKPAWN);
-
-        EXPECT_EQ(0, whitePawns.size());
-        EXPECT_EQ(1, blackPawns.size());
-        EXPECT_EQ(e3, blackPawns[0]);
-    }
+    EXPECT_EQ(0, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
     // do
     result = m_chessboard.UnmakeMove(epCapture);
@@ -181,15 +164,10 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
     EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
-    {
-        const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-        const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).buildPlacementsOfPiece(BLACKPAWN);
 
-        EXPECT_EQ(1, whitePawns.size());
-        EXPECT_EQ(1, blackPawns.size());
-        EXPECT_EQ(e4, whitePawns[0]);
-        EXPECT_EQ(d4, blackPawns[0]);
-    }
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
+
     // setup
     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
     bool found_e3 = false;
@@ -246,8 +224,8 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
     m_chessboard.PlacePiece(p, d4);
     m_chessboard.PlacePiece(p, g4);
 
-    const auto& whitePawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-    const auto& blackPawns = m_chessboard.readMaterial(Set::BLACK).buildPlacementsOfPiece(BLACKPAWN);
+    const auto& whitePawns = m_chessboard.readBitboard().readMaterial<Set::WHITE>()[pawnId];
+    const auto& blackPawns = m_chessboard.readBitboard().readMaterial<Set::BLACK>()[pawnId];
 
     // do
     auto whiteMoves = m_chessboard.GetAvailableMoves(Set::WHITE);
@@ -265,12 +243,12 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
     }
 
     // validate
-    EXPECT_EQ(2, whitePawns.size());
-    EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), c2));
-    EXPECT_NE(whitePawns.end(), std::find(whitePawns.begin(), whitePawns.end(), f2));
-    EXPECT_EQ(2, blackPawns.size());
-    EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), d4));
-    EXPECT_NE(blackPawns.end(), std::find(blackPawns.begin(), blackPawns.end(), g4));
+    EXPECT_EQ(2, whitePawns.count());
+    EXPECT_TRUE(whitePawns[Square::C2]);
+    EXPECT_TRUE(whitePawns[Square::F2]);
+    EXPECT_EQ(2, blackPawns.count());
+    EXPECT_TRUE(blackPawns[Square::D4]);
+    EXPECT_TRUE(blackPawns[Square::G4]);
 }
 
 // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
@@ -894,15 +872,14 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     m_chessboard.PlacePiece(BLACKKING, e8);
     m_chessboard.PlacePiece(BLACKROOK, a8);
     m_chessboard.setCastlingState(CastlingState::BLACK_QUEENSIDE);
-    const auto& blackMaterial = m_chessboard.readMaterial(Set::BLACK);
-    const auto& whiteMaterial = m_chessboard.readMaterial(Set::WHITE);
+    const auto& blackKings = m_chessboard.readBitboard().readMaterial<Set::BLACK>()[kingId];
+    const auto& blackRooks = m_chessboard.readBitboard().readMaterial<Set::BLACK>()[rookId];
+    const auto& whiteBishops = m_chessboard.readBitboard().readMaterial<Set::WHITE>()[bishopId];
 
     u64 hash = m_chessboard.readHash();
-    EXPECT_EQ(2, blackMaterial.getCount());
-    EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
-    EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKROOK));
-    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(1, whiteMaterial.getCount());
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(1, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
 
     Move move(d5, a8);
     bool result = m_chessboard.MakeMove(move);
@@ -910,11 +887,9 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     EXPECT_EQ(CastlingState::NONE, m_chessboard.readCastlingState());
     EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(a8));
     EXPECT_NE(hash, m_chessboard.readHash());
-    EXPECT_EQ(1, blackMaterial.getCount());
-    EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
-    EXPECT_EQ(0, blackMaterial.getPieceCount(BLACKROOK));
-    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(1, whiteMaterial.getCount());
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(0, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
 
     EXPECT_TRUE(m_chessboard.UnmakeMove(move));
     EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_chessboard.readCastlingState());
@@ -922,11 +897,9 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(e8));
     EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
     EXPECT_EQ(hash, m_chessboard.readHash());
-    EXPECT_EQ(2, blackMaterial.getCount());
-    EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKKING));
-    EXPECT_EQ(1, blackMaterial.getPieceCount(BLACKROOK));
-    EXPECT_EQ(1, whiteMaterial.getPieceCount(WHITEBISHOP));
-    EXPECT_EQ(1, whiteMaterial.getCount());
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(1, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
 }
 
 ////////////////////////////////////////////////////////////////

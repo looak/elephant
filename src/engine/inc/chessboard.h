@@ -21,7 +21,6 @@
 #include <utility>
 #include <vector>
 #include "chess_piece.h"
-#include "material.h"
 #include "notation.h"
 #include "position.hpp"
 
@@ -200,7 +199,6 @@ public:
     CastlingStateInfo& editCastlingState() { return m_castlingInfo; }
     ChessboardTile& editTile(Notation position);
     const Position& readBitboard() const { return m_bitboard; }
-    const Material& readMaterial(Set set) const { return m_material[(size_t)set]; }
 
     /**
      * @brief the sliding material of given set represented ini a bitboard.
@@ -286,8 +284,6 @@ private:
     Notation m_enPassant;
     // the square the pawn moved to when it moved 2 squares
     Notation m_enPassantTarget;
-
-    std::array<Material, 2> m_material;
 
     mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
 };

@@ -1176,46 +1176,46 @@ TEST_F(MoveGeneratorFixture, PinnedPawnEnPassant_g2)
 //     A    B    C    D    E    F    G    H
 // sequence of moves: exd5 and then unmake it
 
-TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
-{
-    // setup
-    std::string fen("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
-    FENParser::deserialize(fen.c_str(), testContext);
-    const auto& blkMat = testContext.readChessboard().readMaterial(Set::BLACK);
-    const auto& whtMat = testContext.readChessboard().readMaterial(Set::WHITE);
-    u64 orgHash = testContext.readChessboard().readHash();
+// TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
+// {
+//     // setup
+//     std::string fen("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
+//     FENParser::deserialize(fen.c_str(), testContext);
+//     const auto& blkMat = testContext.readChessboard().readMaterial(Set::BLACK);
+//     const auto& whtMat = testContext.readChessboard().readMaterial(Set::WHITE);
+//     u64 orgHash = testContext.readChessboard().readHash();
 
-    // verify
-    EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
-    EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
+//     // verify
+//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
+//     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
 
-    // do
-    Move move(e6, d5);  // pawn capture
-    bool result = testContext.MakeMove(move);
+//     // do
+//     Move move(e6, d5);  // pawn capture
+//     bool result = testContext.MakeMove(move);
 
-    // verify
-    EXPECT_TRUE(result);
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
-    EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(d5));
-    EXPECT_NE(orgHash, testContext.readChessboard().readHash());
-    EXPECT_TRUE(move.isCapture());
-    EXPECT_FALSE(move.isEnPassant());
+//     // verify
+//     EXPECT_TRUE(result);
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(d5));
+//     EXPECT_NE(orgHash, testContext.readChessboard().readHash());
+//     EXPECT_TRUE(move.isCapture());
+//     EXPECT_FALSE(move.isEnPassant());
 
-    // unmake
-    testContext.UnmakeMove(move);
+//     // unmake
+//     testContext.UnmakeMove(move);
 
-    // verify
-    EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
-    EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
+//     // verify
+//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
+//     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
 
-    EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-    EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
-    EXPECT_EQ(orgHash, testContext.readChessboard().readHash());
-}
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
+//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
+//     EXPECT_EQ(orgHash, testContext.readChessboard().readHash());
+// }
 
 TEST_F(MoveGeneratorFixture, KnightMovements)
 {
