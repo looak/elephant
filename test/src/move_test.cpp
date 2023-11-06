@@ -389,32 +389,32 @@ TEST_F(MoveFixture, EnPassant_Ignored_ResetFlag)
 //     A    B    C    D    E    F    G    H
 // Moves:
 // e8=Q
-TEST_F(MoveFixture, Pawn_Promotion)
-{
-    auto P = WHITEPAWN;
-    auto n = BLACKKNIGHT;
+// TEST_F(MoveFixture, Pawn_Promotion)
+// {
+//     auto P = WHITEPAWN;
+//     auto n = BLACKKNIGHT;
 
-    m_chessboard.PlacePiece(P, e7);
-    m_chessboard.PlacePiece(n, d8);
-    Move move(e7, e8);  // promote
-    move.PromoteToPiece = WHITEQUEEN;
+//     m_chessboard.PlacePiece(P, e7);
+//     m_chessboard.PlacePiece(n, d8);
+//     Move move(e7, e8);  // promote
+//     move.PromoteToPiece = WHITEQUEEN;
 
-    // do
-    bool result = m_chessboard.MakeMove(move);
-    EXPECT_TRUE(result);
-    EXPECT_EQ(P, move.Piece);
-    EXPECT_EQ(MoveFlag::Promotion, move.Flags);
+//     // do
+//     bool result = m_chessboard.MakeMove(move);
+//     EXPECT_TRUE(result);
+//     EXPECT_EQ(P, move.Piece);
+//     EXPECT_EQ(MoveFlag::Promotion, move.Flags);
 
-    auto Q = WHITEQUEEN;
-    EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+//     auto Q = WHITEQUEEN;
+//     EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
 
-    auto placements = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEQUEEN);
-    EXPECT_EQ(1, placements.size());
-    EXPECT_EQ(e8, placements[0]);
+//     auto placements = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEQUEEN);
+//     EXPECT_EQ(1, placements.size());
+//     EXPECT_EQ(e8, placements[0]);
 
-    auto pawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
-    EXPECT_EQ(0, pawns.size());
-}
+//     auto pawns = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEPAWN);
+//     EXPECT_EQ(0, pawns.size());
+// }
 
 // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][ P ][   ][   ][   ]

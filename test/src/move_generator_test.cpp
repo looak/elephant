@@ -49,13 +49,14 @@ public:
 };
 ////////////////////////////////////////////////////////////////
 
-TEST_F(MoveGeneratorFixture, Empty)
-{
-    MoveGenerator gen(testContext);
-    PackedMove move = gen.generateNextMove();
-    EXPECT_EQ(0, move.read());
-    EXPECT_EQ(PackedMove::NullMove(), move);
-}
+// move generator asserts if the board is empty
+// TEST_F(MoveGeneratorFixture, Empty)
+// {
+//     MoveGenerator gen(testContext);
+//     PackedMove move = gen.generateNextMove();
+//     EXPECT_EQ(0, move.read());
+//     EXPECT_EQ(PackedMove::NullMove(), move);
+// }
 
 #pragma region KingMoveGenerationTests
 //{ King move generation tests
@@ -66,6 +67,7 @@ TEST_F(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(WHITEKING, e4);
+    board.PlacePiece(BLACKKING, e8);
     MoveGenerator gen(testContext);
 
     auto result = buildMoveVector(gen);
@@ -77,6 +79,7 @@ TEST_F(MoveGeneratorFixture, KingFromE1_White_FiveMovesAvailable)
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
     MoveGenerator gen(testContext);
 
     auto result = buildMoveVector(gen);
@@ -88,6 +91,7 @@ TEST_F(MoveGeneratorFixture, KingFromE8_Black_FiveMovesAvailable)
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(WHITEKING, e1);
     testContext.editToPlay() = Set::BLACK;
 
     MoveGenerator gen(testContext);
@@ -102,6 +106,7 @@ TEST_F(MoveGeneratorFixture, KingAndPawn_White_PawnBlocksOneMoveOfKingButHasDoub
     auto& board = testContext.editChessboard();
     board.PlacePiece(WHITEKING, e1);
     board.PlacePiece(WHITEPAWN, e2);
+    board.PlacePiece(BLACKKING, e8);
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
@@ -117,6 +122,7 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(WHITEKNIGHT, d7);
+    board.PlacePiece(WHITEKING, e1);
 
     testContext.editToPlay() = Set::BLACK;
 
@@ -146,14 +152,14 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
 
 /*
  *   +------------------------+
- * 8 | .  .  .  .  .  .  .  . |
+ * 8 | .  .  .  .  k  .  .  . |
  * 7 | p  .  .  .  .  .  .  . |
  * 6 | .  P  p  .  p  .  .  . |
  * 5 | .  .  .  .  .  .  .  . |
  * 4 | .  .  .  .  .  .  .  . |
  * 3 | .  .  .  p  .  P  .  . |
  * 2 | .  p  .  .  P  .  P  . |
- * 1 | .  .  .  .  .  .  .  . |
+ * 1 | .  .  .  .  K  .  .  . |
  *   +------------------------+
  *     a  b  c  d  e  f  g  h     */
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptures)
@@ -168,31 +174,33 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedNoCaptur
     board.PlacePiece(BLACKPAWN, c6);
     board.PlacePiece(BLACKPAWN, b2);
     board.PlacePiece(BLACKPAWN, d3);
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
 
     auto predicate = [](const PackedMove& mv) { return !mv.isCapture(); };
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen, predicate);
 
-    EXPECT_EQ(6, result.size());
+    EXPECT_EQ(10, result.size());
 
     testContext.editToPlay() = Set::BLACK;
     MoveGenerator gen2(testContext);
     auto result2 = buildMoveVector(gen2, predicate);
 
-    EXPECT_EQ(5, result2.size());
+    EXPECT_EQ(10, result2.size());
 }
 
 /*
  *   a b c d e f g h
- * 8 . . . . . . . .
+ * 8 . . . . k . . .
  * 7 . . . . . . P .
  * 6 . P . . . . n .
  * 5 . . . . . . P .
  * 4 . . . . . . . .
  * 3 . . . . P . . p
  * 2 . . . . P P . P
- * 1 . . . . . . . .  */
+ * 1 . . . . K . . .  */
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
 {
     // setup
@@ -208,10 +216,13 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward
     board.PlacePiece(BLACKKNIGHT, g6);  // blocking g5 but not g7
     board.PlacePiece(BLACKPAWN, h3);    // blocking h2
 
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
+
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
 
-    EXPECT_EQ(5, result.size());
+    EXPECT_EQ(8, result.size());
 }
 
 TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
@@ -219,12 +230,14 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
     // setup
     std::string fen("8/8/8/5pp1/2Pp1P2/2P1P3/8/8 w - - 0 1");
     FENParser::deserialize(fen.c_str(), testContext);
+    testContext.editChessboard().PlacePiece(WHITEKING, e1);
+    testContext.editChessboard().PlacePiece(BLACKKING, e8);
 
     auto predicate = [](const PackedMove& mv) { return mv.isCapture(); };
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
-    EXPECT_EQ(5, result.size());
+    EXPECT_EQ(10, result.size());
 
     MoveGenerator gen2(testContext);
     auto captures = buildMoveVector(gen2, predicate);
@@ -245,24 +258,28 @@ TEST_F(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
     auto& board = testContext.editChessboard();
     board.PlacePiece(WHITEKNIGHT, e4);
     board.PlacePiece(BLACKKNIGHT, f6);
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
 
-    EXPECT_EQ(8, result.size());
+    EXPECT_EQ(13, result.size());
 }
 
 TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
 {
     // setup
     auto& board = testContext.editChessboard();
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(WHITEKNIGHT, a1);
     {  // testing a1, should only have two moves available
 
         MoveGenerator gen(testContext);
         auto result = buildMoveVector(gen);
 
-        EXPECT_EQ(2, result.size());
+        EXPECT_EQ(7, result.size());
     }
     board.PlacePiece(WHITEKNIGHT, h1);
     board.PlacePiece(WHITEKNIGHT, a8);
@@ -272,7 +289,7 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
         MoveGenerator gen(testContext);
         auto result = buildMoveVector(gen);
 
-        EXPECT_EQ(8, result.size());
+        EXPECT_EQ(13, result.size());
     }
 }
 #pragma endregion  // KnightMoveGenerationTests
@@ -281,6 +298,8 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
 {
     // setup
     auto& board = testContext.editChessboard();
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKPAWN, a2);
     testContext.editToPlay() = Set::BLACK;
 
@@ -384,6 +403,7 @@ TEST_F(MoveGeneratorFixture, Check)
     // setup
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(WHITEKING, e1);
     board.PlacePiece(BLACKROOK, d8);
     board.PlacePiece(WHITEKING, e1);
 

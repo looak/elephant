@@ -1672,37 +1672,6 @@ TEST_F(PositionFixture, Rook_KingMask_CanCaptureCheckingPiece)
     EXPECT_EQ(expected, rookMoves.read());
 }
 
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
-// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ p ][ . ][ . ][ . ][ . ]
-// 2 [ . ][ . ][ . ][ . ][ xR][ . ][ . ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, Pawn_KingMask_CanCaptureCheckingPiece)
-{
-    Position pos;
-    auto p = BLACKPAWN;
-    auto k = BLACKKING;
-    auto R = WHITEROOK;
-
-    // setup
-    pos.PlacePiece(p, d3);
-    pos.PlacePiece(k, e7);
-    pos.PlacePiece(R, e2);
-
-    // do
-    KingMask km = pos.calcKingMask<Set::BLACK>();
-    Bitboard pawnMoveBB = pos.calcAvailableMovesPawnBulk<Set::BLACK>(km);
-
-    // validate
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << e2.index();
-    EXPECT_EQ(expected, pawnMoveBB.read());
-}
-
 /**
  * 8 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
  * 7 [ . ][ x ][ . ][ . ][ . ][ k ][ . ][ . ]
@@ -1873,13 +1842,13 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
     Position pos;
     auto P = WHITEPAWN;
     auto K = WHITEKING;
-    auto r = BLACKROOK;
+    auto b = BLACKBISHOP;
 
     // setup
     pos.PlacePiece(P, f6);
     pos.PlacePiece(P, c5);
     pos.PlacePiece(K, e5);
-    pos.PlacePiece(r, h5);
+    pos.PlacePiece(b, g7);
 
     // do
     KingMask kingMask = pos.calcKingMask<Set::WHITE>();
@@ -1912,72 +1881,65 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, CheckedMask_Black_PawnCanMoveIntoBlockingCheckButNoFurther)
+TEST_F(PositionFixture, Pawn_KingMask_PawnCanMoveIntoBlockingCheckButNoFurther)
 {
-    Position board;
+    Position pos;
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
 
     // setup
-    board.PlacePiece(p, f7);
-    board.PlacePiece(k, e6);
-    board.PlacePiece(R, h6);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << f6.index();
+    pos.PlacePiece(p, f7);
+    pos.PlacePiece(k, e6);
+    pos.PlacePiece(R, h6);
 
     // do
-    constexpr bool includeMaterial = true;
-    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>().read();
-    KingMask kingMask = board.calcKingMask(k, e6, {threatMask, 0});
-    KingMask checkedMask;
-    for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threatMask & kingMask.threats[i];
-    }
-    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threatMask, checkedMask, kingMask);
+    KingMask kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard pawnMoves = pos.calcAvailableMovesPawnBulk<Set::BLACK>(kingMask);
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, pawnId>(f7, pawnMoves, kingMask);
 
-    // validate
-    EXPECT_EQ(expected, result);
+        // validate
+        u64 expected = 0x200000000000ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0x0;
+        EXPECT_EQ(expected, attacks.read());
+    }
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ . ][ p ][ . ][ . ]
-// 6 [ . ][ . ][ . ][ . ][ K ][ . ][ R ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ k ][ . ][ R ][ . ]
 // 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, CheckedMask_Black_PawnCanCaptureCheckingPiece)
+TEST_F(PositionFixture, Pawn_KingMask_CanCaptureCheckingPiece)
 {
-    Position board;
+    Position pos;
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
 
     // setup
-    board.PlacePiece(p, f7);
-    board.PlacePiece(k, e6);
-    board.PlacePiece(R, g6);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << f6.index();
-    expected |= INT64_C(1) << g6.index();
+    pos.PlacePiece(p, f7);
+    pos.PlacePiece(k, e6);
+    pos.PlacePiece(R, g6);
 
     // do
-    constexpr bool includeMaterial = true;
-    u64 threat = board.calcThreatenedSquares<Set::WHITE, includeMaterial>().read();
-    KingMask kingMask = board.calcKingMask(k, e6, {threat, 0});
-    KingMask checkedMask;
-    for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
-    }
-    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
+    KingMask kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard pawnMoves = pos.calcAvailableMovesPawnBulk<Set::BLACK>(kingMask);
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, pawnId>(f7, pawnMoves, kingMask);
 
-    // validate
-    EXPECT_EQ(expected, result);
+        // validate
+        u64 expected = 0x200000000000ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0x400000000000;
+        EXPECT_EQ(expected, attacks.read());
+    }
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
@@ -1989,33 +1951,30 @@ TEST_F(PositionFixture, CheckedMask_Black_PawnCanCaptureCheckingPiece)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, CheckedMask_Black_PawnCanOnlyDoubleMoveToBlockCheck)
+TEST_F(PositionFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
 {
-    Position board;
+    Position pos;
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
 
     // setup
-    board.PlacePiece(p, f7);
-    board.PlacePiece(k, e5);
-    board.PlacePiece(R, g5);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << f5.index();
+    pos.PlacePiece(p, f7);
+    pos.PlacePiece(k, e5);
+    pos.PlacePiece(R, g5);
 
     // do
-    constexpr bool includeMaterial = true;
-    u64 threat = board.calcThreatenedSquares<Set::WHITE, includeMaterial>().read();
-    KingMask kingMask = board.calcKingMask(k, e5, {threat, 0});
-    KingMask checkedMask;
-    for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threat & kingMask.threats[i];
-    }
-    u64 result = board.calcAvailableMoves(f7, p, 0, {}, threat, checkedMask, kingMask);
+    KingMask kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard pawnMoves = pos.calcAvailableMovesPawnBulk<Set::BLACK>(kingMask);
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, pawnId>(f7, pawnMoves, kingMask);
 
-    // validate
-    EXPECT_EQ(expected, result);
+        // validate
+        u64 expected = 0x2000000000ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0x0ull;
+        EXPECT_EQ(expected, attacks.read());
+    }
 }
 
 TEST_F(PositionFixture, White_Queen_Threaten_Blocked_by_Pawns)
@@ -2058,7 +2017,7 @@ TEST_F(PositionFixture, White_Queen_Threaten_Blocked_by_Pawns)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, Black_Rook_Threaten_Starting_Pos)
+TEST_F(PositionFixture, Rook_ThreatenMask_FromStartingPos)
 {
     Position board;
     auto r = BLACKROOK;
@@ -2092,6 +2051,7 @@ TEST_F(PositionFixture, Black_Rook_Threaten_Starting_Pos)
 //     A    B    C    D    E    F    G    H
 TEST_F(PositionFixture, KingMask_Pawns)
 {
+    // as of november 2023 I don't know what the point of this code is.
     Position board;
     auto k = BLACKKING;
     auto P = WHITEPAWN;
@@ -2119,32 +2079,27 @@ TEST_F(PositionFixture, KingMask_Pawns)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, CheckedMask_Black_BishopCanOnlyBlockOrCaptureToCancelCheck)
+TEST_F(PositionFixture, Bishop_KingMask_AvailableMovesAreCaptureCheckingPieceOrBlockingCheck)
 {
-    Position board;
+    Position pos;
 
     // setup
-    board.PlacePiece(WHITEROOK, a8);
-    board.PlacePiece(BLACKBISHOP, b7);
-    board.PlacePiece(BLACKKING, e8);
-
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << a8.index();
-    expected |= INT64_C(1) << c8.index();
-
-    constexpr bool includeMaterial = true;
-    u64 threatMask = board.calcThreatenedSquares<Set::WHITE, includeMaterial>().read();
-    KingMask kingMask = board.calcKingMask(BLACKKING, e8, {threatMask, 0});
-    KingMask checkedMask;
-    for (u8 i = 0; i < 8; ++i) {
-        checkedMask.threats[i] = threatMask & kingMask.threats[i];
-    }
+    pos.PlacePiece(WHITEROOK, a8);
+    pos.PlacePiece(BLACKBISHOP, b7);
+    pos.PlacePiece(BLACKKING, e8);
 
     // do
-    u64 result = board.calcAvailableMoves(b7, BLACKBISHOP, 0, {}, threatMask, checkedMask, kingMask);
+    KingMask kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard pawnMoves = pos.calcAvailableMovesBishopBulk<Set::BLACK>(kingMask);
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(b7, pawnMoves, kingMask);
 
-    // validate
-    EXPECT_EQ(expected, result);
+        // validate
+        u64 expected = 0x400000000000000ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0x100000000000000ull;
+        EXPECT_EQ(expected, attacks.read());
+    }
 }
 
 // 8 [ r ][ B ][ . ][ . ][ k ][ . ][ . ][ . ]
@@ -2156,14 +2111,14 @@ TEST_F(PositionFixture, CheckedMask_Black_BishopCanOnlyBlockOrCaptureToCancelChe
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, Castling_BlockedByOpponentPieceInBetween)
+TEST_F(PositionFixture, King_Castling_BlockedByOpponentPieceInBetween)
 {
-    Position board;
+    Position pos;
 
     // setup
-    board.PlacePiece(BLACKROOK, a8);
-    board.PlacePiece(WHITEBISHOP, b8);
-    board.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(BLACKROOK, a8);
+    pos.PlacePiece(WHITEBISHOP, b8);
+    pos.PlacePiece(BLACKKING, e8);
 
     // queen side castling available
     byte castling = 8;
@@ -2176,10 +2131,10 @@ TEST_F(PositionFixture, Castling_BlockedByOpponentPieceInBetween)
     expected |= INT64_C(1) << f7.index();
 
     // do
-    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, {}, 0, KingMask(), KingMask());
+    Bitboard result = pos.calcAvailableMovesKing<Set::BLACK>(castling);
 
     // validate
-    EXPECT_EQ(expected, result);
+    EXPECT_EQ(expected, result.read());
 }
 
 // 8 [ r ][ n ][ . ][ . ][ k ][ . ][ . ][ r ]
@@ -2191,14 +2146,14 @@ TEST_F(PositionFixture, Castling_BlockedByOpponentPieceInBetween)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, Castling_BlockedByOwnPieceInBetween)
+TEST_F(PositionFixture, King_Castling_BlockedByOwnPieceInBetween)
 {
-    Position board;
+    Position pos;
 
     // setup
-    board.PlacePiece(BLACKROOK, a8);
-    board.PlacePiece(BLACKKNIGHT, b8);
-    board.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(BLACKROOK, a8);
+    pos.PlacePiece(BLACKKNIGHT, b8);
+    pos.PlacePiece(BLACKKING, e8);
 
     // queen side castling available
     byte castling = 8 + 4;
@@ -2212,10 +2167,10 @@ TEST_F(PositionFixture, Castling_BlockedByOwnPieceInBetween)
     expected |= INT64_C(1) << f7.index();
 
     // do
-    u64 result = board.calcAvailableMoves(e8, BLACKKING, castling, {}, 0, KingMask(), KingMask());
+    Bitboard result = pos.calcAvailableMovesKing<Set::BLACK>(castling);
 
     // validate
-    EXPECT_EQ(expected, result);
+    EXPECT_EQ(expected, result.read());
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
