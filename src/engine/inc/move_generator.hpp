@@ -40,20 +40,20 @@ private:
     PackedMove generateNextMove();
 
     template<Set set, u8 pieceId>
-    void generateMoves();
+    void generateMoves(const KingMask& kingmask);
 
     template<Set set>
-    void internalGeneratePawnMoves();
+    void internalGeneratePawnMoves(const KingMask& kingmask);
     template<Set set>
-    void internalGenerateKnightMoves();
+    void internalGenerateKnightMoves(const KingMask& kingmask);
     template<Set set>
-    void internalGenerateBishopMoves();
+    void internalGenerateBishopMoves(const KingMask& kingmask);
     template<Set set>
-    void internalGenerateRookMoves();
+    void internalGenerateRookMoves(const KingMask& kingmask);
     template<Set set>
-    void internalGenerateQueenMoves();
+    void internalGenerateQueenMoves(const KingMask& kingmask);
     template<Set set>
-    void internalGenerateKingMoves();
+    void internalGenerateKingMoves(const KingMask& kingmask);
 
     void genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue);
 
@@ -64,30 +64,31 @@ private:
     // pseudo legal move masks for each piece type
     MaterialMask m_moveMasks[2];
     bool m_movesGenerated;
+    KingMask m_kingMask[2];
 };
 
 template<Set set, u8 pieceId>
 void
-MoveGenerator::generateMoves()
+MoveGenerator::generateMoves(const KingMask& kingmask)
 {
     switch (pieceId) {
         case pawnId:
-            internalGeneratePawnMoves<set>();
+            internalGeneratePawnMoves<set>(kingmask);
             break;
         case knightId:
-            internalGenerateKnightMoves<set>();
+            internalGenerateKnightMoves<set>(kingmask);
             break;
         case bishopId:
-            internalGenerateBishopMoves<set>();
+            internalGenerateBishopMoves<set>(kingmask);
             break;
         case rookId:
-            internalGenerateRookMoves<set>();
+            internalGenerateRookMoves<set>(kingmask);
             break;
         case queenId:
-            internalGenerateQueenMoves<set>();
+            internalGenerateQueenMoves<set>(kingmask);
             break;
         case kingId:
-            internalGenerateKingMoves<set>();
+            internalGenerateKingMoves<set>(kingmask);
             break;
 
         default:

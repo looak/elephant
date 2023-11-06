@@ -38,16 +38,17 @@ template<Set set>
 PackedMove
 MoveGenerator::generateNextMove()
 {
-    if (m_moveMasks[(size_t)set].combine().empty())
+    const size_t setIndx = static_cast<size_t>(set);
+    if (m_moveMasks[setIndx].combine().empty())
         return PackedMove::NullMove();
 
     if (m_returnedMoves.empty()) {
-        generateMoves<set, pawnId>();
-        generateMoves<set, knightId>();
-        generateMoves<set, bishopId>();
-        generateMoves<set, rookId>();
-        generateMoves<set, queenId>();
-        generateMoves<set, kingId>();
+        generateMoves<set, pawnId>(m_kingMask[setIndx]);
+        generateMoves<set, knightId>(m_kingMask[setIndx]);
+        generateMoves<set, bishopId>(m_kingMask[setIndx]);
+        generateMoves<set, rookId>(m_kingMask[setIndx]);
+        generateMoves<set, queenId>(m_kingMask[setIndx]);
+        generateMoves<set, kingId>(m_kingMask[setIndx]);
     }
 
     FATAL_ASSERT(!m_moves.empty()) << "This should never be able to happen since our bitboards have moves in them.";
@@ -60,7 +61,7 @@ MoveGenerator::generateNextMove()
 
 template<Set set>
 void
-MoveGenerator::internalGeneratePawnMoves()
+MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
 {
     const auto& pos = m_context.readChessboard().readBitboard();
 
@@ -76,7 +77,7 @@ MoveGenerator::internalGeneratePawnMoves()
         const i32 srcSqr = pawns.popLsb();
         const Notation srcNotation(srcSqr);
 
-        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb);
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, kingMask);
         while (isolatedPawnAttacks.empty() == false) {
             i32 dstSqr = isolatedPawnAttacks.popLsb();
 
@@ -100,12 +101,12 @@ MoveGenerator::internalGeneratePawnMoves()
         }
     }
 }
-template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>();
-template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>();
+template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingMask& kingMask);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateKnightMoves()
+MoveGenerator::internalGenerateKnightMoves(const KingMask& kingMask)
 {
     const auto& bb = m_context.readChessboard().readBitboard();
 
@@ -120,45 +121,45 @@ MoveGenerator::internalGenerateKnightMoves()
         const i32 srcSqr = knights.popLsb();
         const Notation srcNotation(srcSqr);
 
-        auto [isolatedKnightMoves, isolatedKnightAttks] = bb.isolatePiece<set>(knightId, srcNotation, movesbb);
+        auto [isolatedKnightMoves, isolatedKnightAttks] = bb.isolatePiece<set>(knightId, srcNotation, movesbb, kingMask);
         genPackedMovesFromBitboard(isolatedKnightAttks, srcSqr, /*are captures*/ true, m_moves);
         genPackedMovesFromBitboard(isolatedKnightMoves, srcSqr, /*are captures*/ false, m_moves);
     }
 }
 
-template void MoveGenerator::internalGenerateKnightMoves<Set::WHITE>();
-template void MoveGenerator::internalGenerateKnightMoves<Set::BLACK>();
+template void MoveGenerator::internalGenerateKnightMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateKnightMoves<Set::BLACK>(const KingMask& kingMask);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateBishopMoves()
+MoveGenerator::internalGenerateBishopMoves(const KingMask& kingMask)
 {
 }
 
-template void MoveGenerator::internalGenerateBishopMoves<Set::WHITE>();
-template void MoveGenerator::internalGenerateBishopMoves<Set::BLACK>();
+template void MoveGenerator::internalGenerateBishopMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateBishopMoves<Set::BLACK>(const KingMask& kingMask);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateRookMoves()
+MoveGenerator::internalGenerateRookMoves(const KingMask& kingMask)
 {
 }
 
-template void MoveGenerator::internalGenerateRookMoves<Set::WHITE>();
-template void MoveGenerator::internalGenerateRookMoves<Set::BLACK>();
+template void MoveGenerator::internalGenerateRookMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateRookMoves<Set::BLACK>(const KingMask& kingMask);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateQueenMoves()
+MoveGenerator::internalGenerateQueenMoves(const KingMask& kingMask)
 {
 }
 
-template void MoveGenerator::internalGenerateQueenMoves<Set::WHITE>();
-template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>();
+template void MoveGenerator::internalGenerateQueenMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingMask& kingMask);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateKingMoves()
+MoveGenerator::internalGenerateKingMoves(const KingMask& kingMask)
 {
     const auto& bb = m_context.readChessboard().readBitboard();
 
@@ -183,8 +184,8 @@ MoveGenerator::internalGenerateKingMoves()
     }
 }
 
-template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>();
-template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>();
+template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>(const KingMask& kingMask);
 
 void
 MoveGenerator::initializeMoveGenerator()
@@ -198,11 +199,13 @@ void
 MoveGenerator::initializeMoveMasks(MaterialMask& target)
 {
     const auto& bb = m_context.readChessboard().readBitboard();
-    target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>();
-    target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>();
-    target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>();
-    target.material[rookId] = bb.calcAvailableMovesRookBulk<set>();
-    target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>();
+    const size_t setIndx = static_cast<size_t>(set);
+    m_kingMask[setIndx] = bb.calcKingMask<set>();
+    target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
+    target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
+    target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
+    target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
+    target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
     target.material[kingId] = bb.calcAvailableMovesKing<set>(0);
 }
 

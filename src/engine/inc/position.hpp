@@ -94,15 +94,13 @@ struct MaterialSlidingMask {
  * @brief KingMask, used to figure out pinned pieces and if king is in check. Each bitboard is a
  * direction of where the threat comes from. */
 struct KingMask {
-    KingMask()
+    KingMask() :
+        threats{0, 0, 0, 0, 0, 0, 0, 0},
+        checked{false, false, false, false, false, false, false, false},
+        knightsAndPawns(0),
+        knightOrPawnCheck(false),
+        pawnMask(false)
     {
-        for (int i = 0; i < 8; ++i) {
-            threats[i] = 0;
-            checked[i] = false;
-        }
-        knightsAndPawns = 0;
-        knightOrPawnCheck = false;
-        pawnMask = false;
     }
 
     u64 threats[8];
@@ -137,6 +135,16 @@ struct KingMask {
             }
         }
         return knightsAndPawns == 0;
+    }
+
+    [[nodiscard]] constexpr bool isChecked() const
+    {
+        for (int i = 0; i < 8; ++i) {
+            if (checked[i]) {
+                return true;
+            }
+        }
+        return knightOrPawnCheck;
     }
 
     u64 combined() const
@@ -273,8 +281,11 @@ public:
     }
     Bitboard readBitboard() const
     {
-        Square sq = readSquare();
-        return squareMaskTable[(size_t)sq];
+        if (*this == true) {
+            Square sq = readSquare();
+            return squareMaskTable[(size_t)sq];
+        }
+        return 0;
     }
 
 private:
@@ -338,15 +349,15 @@ public:
     u64 calcAttackedSquares(Notation source, ChessPiece piece) const;
 
     template<Set us>
-    Bitboard calcAvailableMovesPawnBulk() const;
+    Bitboard calcAvailableMovesPawnBulk(const KingMask& kingMask) const;
     template<Set us>
-    Bitboard calcAvailableMovesKnightBulk() const;
+    Bitboard calcAvailableMovesKnightBulk(const KingMask& kingMask) const;
     template<Set us, u8 pieceId = rookId>
-    Bitboard calcAvailableMovesRookBulk() const;
+    Bitboard calcAvailableMovesRookBulk(const KingMask& kingMask) const;
     template<Set us, u8 pieceId = bishopId>
-    Bitboard calcAvailableMovesBishopBulk() const;
+    Bitboard calcAvailableMovesBishopBulk(const KingMask& kingMask) const;
     template<Set us>
-    Bitboard calcAvailableMovesQueenBulk() const;
+    Bitboard calcAvailableMovesQueenBulk(const KingMask& kingMask) const;
     template<Set us, Set op = opposing_set<us>()>
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
 
@@ -354,7 +365,7 @@ public:
     MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
 
     template<Set us>
-    Bitboard calcAvailableAttacksPawnBulk() const;
+    Bitboard calcAvailableAttacksPawnBulk(const KingMask& kingMask) const;
 
     template<Set us>
     Bitboard calcThreatenedSquaresPawnBulk() const;
@@ -376,14 +387,11 @@ public:
     template<Set us, bool includeMaterial, bool pierceKing = false>
     Bitboard calcThreatenedSquaresOrthogonal() const;
 
-    template<Set us, u8 pieceId, u8 direction>
-    Bitboard calcPinnedPiecesBulk(KingMask kingMask) const;
-
     template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingMask& kingMask) const;
 
     template<Set us, u8 pieceId>
-    std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
 
     i32 diffWestEast(Notation a, Notation b) const;
 
@@ -398,6 +406,8 @@ public:
      * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
      * @return A mask struct containing a seperate mask for each direction.  */
     KingMask calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const;
+    template<Set us>
+    KingMask calcKingMask() const;
     Bitboard GetMaterialCombined(Set uset) const;
     Bitboard GetMaterial(ChessPiece piece) const;
     MaterialMask GetMaterial(Set set) const;
@@ -405,18 +415,18 @@ public:
 private:
     u64 calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing = false) const;
     template<Set us, u8 direction, u8 pieceId>
-    Bitboard internalCalcAvailableMoves(Bitboard bounds) const;
+    Bitboard internalCalculateThreat(Bitboard bounds) const;
 
     /**
      * @brief Isolate a given pawn from the moves bitboard.
      * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
      * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square.     */
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb) const;
 
@@ -459,7 +469,7 @@ Position::writeMaterial()
 
 template<Set us, u8 direction, u8 pieceId>
 Bitboard
-Position::internalCalcAvailableMoves(Bitboard bounds) const
+Position::internalCalculateThreat(Bitboard bounds) const
 {
     const Bitboard piecebb = readMaterial<us>()[pieceId];
     const Bitboard materialbb = readMaterial<us>().combine();
@@ -480,42 +490,6 @@ Position::internalCalcAvailableMoves(Bitboard bounds) const
     } while (bbCopy.empty() == false);
 
     return moves;
-}
-
-template<Set us>
-Bitboard
-Position::calcAvailableMovesKnightBulk() const
-{
-    Bitboard result = 0;
-    const Bitboard ourMaterial = readMaterial<us>().combine();
-    const Bitboard knights = readMaterial<us>()[knightId];
-    if (knights == 0)
-        return result;  // early out
-
-    const u8 moveCount = ChessPieceDef::MoveCount(knightId);
-
-    for (u8 moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        const u16 dir = ChessPieceDef::Attacks0x88(knightId, moveIndx);
-
-        Bitboard knightsCopy = knights;
-        while (knightsCopy.empty() == false) {
-            byte curSqr = knightsCopy.popLsb();
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                continue;
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-            result |= sqrMask;
-        }
-    }
-
-    return result & ~ourMaterial;
 }
 
 template<Set us, bool includeMaterial, bool pierceKing>
@@ -588,7 +562,7 @@ Position::calcThreatenedSquares() const
     }
 
     result |= calcThreatenedSquaresPawnBulk<us>();
-    result |= calcAvailableMovesKnightBulk<us>();
+    result |= calcThreatenedSquaresKnightBulk<us>();
     result |= calcThreatenedSquaresBishopBulk<us>();
     result |= calcThreatenedSquaresBishopBulk<us, queenId>();
     result |= calcThreatenedSquaresRookBulk<us>();
@@ -604,13 +578,6 @@ Position::calcThreatenedSquares() const
     return result;
 }
 
-template<Set us, u8 pieceId, u8 direction>
-Bitboard
-Position::calcPinnedPiecesBulk(KingMask kingMask) const
-{
-    return kingMask.threats[direction] & readMaterial<us>()[pieceId];
-}
-
 template<Set us>
 MaterialSlidingMask
 Position::calcMaterialSlidingMasksBulk() const
@@ -618,11 +585,11 @@ Position::calcMaterialSlidingMasksBulk() const
     Bitboard orthogonal;
     Bitboard diagonal;
 
-    diagonal |= calcAvailableMovesBishopBulk<us>();
-    diagonal |= calcAvailableMovesBishopBulk<us, queenId>();
+    diagonal |= calcThreatenedSquaresBishopBulk<us>();
+    diagonal |= calcThreatenedSquaresBishopBulk<us, queenId>();
 
-    orthogonal |= calcAvailableMovesRookBulk<us>();
-    orthogonal |= calcAvailableMovesRookBulk<us, queenId>();
+    orthogonal |= calcThreatenedSquaresRookBulk<us>();
+    orthogonal |= calcThreatenedSquaresRookBulk<us, queenId>();
 
     // add material
     diagonal |= readMaterial<us>()[bishopId] | readMaterial<us>()[queenId];
@@ -633,7 +600,7 @@ Position::calcMaterialSlidingMasksBulk() const
 
 template<Set us, u8 pieceId>
 std::tuple<Bitboard, Bitboard>
-Position::isolatePiece(Notation source, Bitboard movesbb) const
+Position::isolatePiece(Notation source, Bitboard movesbb, const KingMask& kingMask) const
 {
-    return isolatePiece<us>(pieceId, source, movesbb);
+    return isolatePiece<us>(pieceId, source, movesbb, kingMask);
 }
