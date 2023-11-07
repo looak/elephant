@@ -40,6 +40,8 @@ Position::operator=(const Position& other)
     m_material[1] = {};
     m_material[0] = other.m_material[0];
     m_material[1] = other.m_material[1];
+    m_castlingState = other.m_castlingState;
+    m_enpassantState = other.m_enpassantState;
     return *this;
 }
 
@@ -75,9 +77,9 @@ Position::Clear()
 bool
 Position::ClearPiece(ChessPiece piece, Notation target)
 {
-    u64 mask = squareMaskTable[target.index()];
-    m_material[piece.set()].material[piece.index()] ^= mask;
-
+    Square sqr = target.toSquare();
+    Bitboard& piecebb = m_material[piece.set()].material[piece.index()];
+    piecebb[sqr] = false;
     return true;
 }
 

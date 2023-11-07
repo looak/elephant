@@ -1,38 +1,36 @@
 #include "fen_parser.h"
 #include <cctype>
+#include <charconv>
 #include <cstdlib>
+#include <list>
 #include <sstream>
 #include <string>
-#include <list>
-#include <charconv>
 
-#include "defines.h"
 #include "chessboard.h"
+#include "defines.h"
 #include "game_context.h"
 
-bool deserializeCastling(const std::string& castlingStr, GameContext& outputContext)
+bool
+deserializeCastling(const std::string& castlingStr, GameContext& outputContext)
 {
     byte castlingState = 0x00;
-    if (castlingStr[0] != '-')
-    {
-        for (char cstling : castlingStr)
-        {
-            switch (cstling)
-            {
-            case 'k':
-                castlingState |= 0x04;
-                break;
-            case 'q':
-                castlingState |= 0x08;
-                break;
-            case 'K':
-                castlingState |= 0x01;
-                break;
-            case 'Q':
-                castlingState |= 0x02;
-                break;
-            default:
-                return false;
+    if (castlingStr[0] != '-') {
+        for (char cstling : castlingStr) {
+            switch (cstling) {
+                case 'k':
+                    castlingState |= 0x04;
+                    break;
+                case 'q':
+                    castlingState |= 0x08;
+                    break;
+                case 'K':
+                    castlingState |= 0x01;
+                    break;
+                case 'Q':
+                    castlingState |= 0x02;
+                    break;
+                default:
+                    return false;
             }
         }
     }
@@ -41,13 +39,13 @@ bool deserializeCastling(const std::string& castlingStr, GameContext& outputCont
     return true;
 }
 
-bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
+bool
+deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 {
     std::istringstream ssboard(boardStr);
     std::list<std::string> ranks;
     std::string rank;
-    while (std::getline(ssboard, rank, '/'))
-    {
+    while (std::getline(ssboard, rank, '/')) {
         ranks.push_back(rank);
     }
 
@@ -56,30 +54,25 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 
     auto& board = outputContext.editChessboard();
     auto boardItr = board.begin();
-    while (!ranks.empty())
-    {
+    while (!ranks.empty()) {
         const char* rdr = ranks.back().c_str();
-        while (*rdr != '\0')
-        {
+        while (*rdr != '\0') {
             char nullterminated_value[2];
             nullterminated_value[0] = *rdr;
             nullterminated_value[1] = '\0';
 
             char value = nullterminated_value[0];
 
-            if (std::isdigit(value))
-            {
+            if (std::isdigit(value)) {
                 signed short steps = 0;
                 std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
                 boardItr += steps;
             }
-            else if (value == '/')
-            {
+            else if (value == '/') {
                 ++boardItr;
             }
-            else
-            {
+            else {
                 ChessPiece piece;
                 if (!piece.fromString(value))
                     return false;
@@ -97,7 +90,8 @@ bool deserializeBoard(const std::string& boardStr, GameContext& outputContext)
     return true;
 }
 
-bool deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
+bool
+deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
 {
     char value = std::tolower(toPlayStr[0]);
     if (value == 'w')
@@ -110,11 +104,11 @@ bool deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
     return true;
 }
 
-bool deserializeEnPassant(const std::string& enPassantStr, GameContext& outputContext)
+bool
+deserializeEnPassant(const std::string& enPassantStr, GameContext& outputContext)
 {
     outputContext.editChessboard().setEnPassant(Notation());
-    if (enPassantStr.size() > 1)
-    {
+    if (enPassantStr.size() > 1) {
         byte file = enPassantStr[0];
         byte rank = (byte)std::atoi(&enPassantStr[1]);
         outputContext.editChessboard().setEnPassant(Notation::BuildPosition(file, rank));
@@ -122,13 +116,13 @@ bool deserializeEnPassant(const std::string& enPassantStr, GameContext& outputCo
     return true;
 }
 
-bool FENParser::deserialize(const char* input, GameContext& outputContext)
+bool
+FENParser::deserialize(const char* input, GameContext& outputContext)
 {
     std::istringstream ssfen(input);
     std::list<std::string> tokens;
     std::string token;
-    while (std::getline(ssfen, token, ' '))
-    {
+    while (std::getline(ssfen, token, ' ')) {
         tokens.push_back(token);
     }
 
@@ -172,7 +166,8 @@ bool FENParser::deserialize(const char* input, GameContext& outputContext)
     return true;
 }
 
-bool FENParser::serialize(const GameContext& inputContext, std::string& resultFen)
+bool
+FENParser::serialize(const GameContext& inputContext, std::string& resultFen)
 {
     const auto& board = inputContext.readChessboard();
 
@@ -186,37 +181,32 @@ bool FENParser::serialize(const GameContext& inputContext, std::string& resultFe
     return true;
 }
 
-bool FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen)
+bool
+FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen)
 {
-        auto itr = board.begin();
+    auto itr = board.begin();
 
     std::vector<std::string> ranks;
     byte rank = itr.rank();
     std::string strngBuilder;
     int emptyFiles = 0;
-    while (itr != board.end())
-    {
-        if ((*itr).readPiece().isValid())
-        {
-            if (emptyFiles > 0)
-            {
+    while (itr != board.end()) {
+        if ((*itr).readPiece().isValid()) {
+            if (emptyFiles > 0) {
                 strngBuilder += std::to_string(emptyFiles);
                 emptyFiles = 0;
             }
 
             strngBuilder += itr.get().readPiece().toString();
         }
-        else
-        {
+        else {
             emptyFiles++;
         }
 
         itr++;
 
-        if (rank != itr.rank())
-        {
-            if (emptyFiles > 0)
-            {
+        if (rank != itr.rank()) {
+            if (emptyFiles > 0) {
                 strngBuilder += std::to_string(emptyFiles);
                 emptyFiles = 0;
             }
@@ -229,8 +219,7 @@ bool FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resu
 
     auto rankItr = ranks.rbegin();
     strngBuilder.clear();
-    while (true)
-    {
+    while (true) {
         strngBuilder += (*rankItr);
         rankItr++;
 
@@ -250,28 +239,28 @@ bool FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resu
 
     resultFen += ' ';
 
-    if (board.readCastlingState() > 0)
-    {
-        if (board.readCastlingState() & 1)
+    auto castlingState = board.readCastlingState();
+    byte rawCastlingState = castlingState.raw();
+    if (rawCastlingState > 0) {
+        if (rawCastlingState & 1)
             resultFen += "K";
-        if (board.readCastlingState() & 2)
+        if (rawCastlingState & 2)
             resultFen += "Q";
-        if (board.readCastlingState() & 4)
+        if (rawCastlingState & 4)
             resultFen += "k";
-        if (board.readCastlingState() & 8)
+        if (rawCastlingState & 8)
             resultFen += "q";
     }
-    else
-    {
+    else {
         resultFen += '-';
     }
 
     resultFen += ' ';
 
-    if (Notation::Validate(board.readEnPassant()))
-        resultFen += Notation::toString(board.readEnPassant());
+    if (board.readPosition().readEnPassant())
+        resultFen += board.readPosition().readEnPassant().toString();
     else
         resultFen += '-';
 
-    return true;        
+    return true;
 }

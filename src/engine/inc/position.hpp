@@ -29,6 +29,7 @@
 #include "chess_piece.h"
 #include "defines.h"
 #include "intrinsics.hpp"
+#include "notation.h"
 
 struct Notation;
 
@@ -43,6 +44,13 @@ struct MaterialMask {
 
     [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
     [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
+
+    [[nodiscard]] constexpr const Bitboard& kings() const { return material[kingId]; }
+    [[nodiscard]] constexpr const Bitboard& queens() const { return material[queenId]; }
+    [[nodiscard]] constexpr const Bitboard& rooks() const { return material[rookId]; }
+    [[nodiscard]] constexpr const Bitboard& bishops() const { return material[bishopId]; }
+    [[nodiscard]] constexpr const Bitboard& knights() const { return material[knightId]; }
+    [[nodiscard]] constexpr const Bitboard& pawns() const { return material[pawnId]; }
 };
 
 // this would be 8 x 64bits, i.e. 64 bytes per position rather than the currently used
@@ -224,6 +232,7 @@ public:
 
     bool hasAll() const { return m_innerState == ALL; }
     bool hasAny() const { return m_innerState != NONE; }
+    bool hasNone() const { return m_innerState == NONE; }
     bool hasWhite() const { return m_innerState & WHITE_ALL; }
     bool hasBlack() const { return m_innerState & BLACK_ALL; }
     bool hasWhiteKingSide() const { return m_innerState & WHITE_KINGSIDE; }
@@ -247,6 +256,9 @@ public:
     void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
     void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
 
+    byte raw() { return m_innerState; }
+    void write(byte state) { m_innerState = state; }
+
     std::string toString() const;
 
 private:
@@ -258,15 +270,13 @@ public:
     EnPassantStateInfo() = default;
     operator bool() const { return m_innerState != 0; }
     void clear() { m_innerState = 0; }
-    // read & write will mainly be used by make / unmake to track state.
-    byte read() const { return m_innerState; }
-    void write(byte state) { m_innerState = state; }
-    void writeEnPassant(Square sq, Set set)
+
+    void writeSquare(Square sq)
     {
         m_innerState = static_cast<byte>(sq);
         m_innerState = m_innerState << 2;
         m_innerState += 1;
-        m_innerState += ((byte)set << 1);
+        // m_innerState += ((byte)set << 1);
     }
 
     Square readSquare() const { return static_cast<Square>(m_innerState >> 2); }
@@ -287,6 +297,18 @@ public:
         }
         return 0;
     }
+
+    std::string toString() const
+    {
+        if (*this == true) {
+            return Notation::toString(readSquare());
+        }
+        return "-";
+    }
+
+    // read & write will mainly be used by make / unmake to track state.
+    byte read() const { return m_innerState; }
+    void write(byte state) { m_innerState = state; }
 
 private:
     // [sqr] [sqr] [sqr] [sqr] [sqr] [sqr] [set] [hasEnPassant]
@@ -322,13 +344,14 @@ public:
                      u64 threatenedMask) const;
 
     template<Set us>
-    MaterialMask readMaterial() const;
+    const MaterialMask& readMaterial() const;
 
-    template<Set us>
-    MaterialMask& writeMaterial();
-
-    EnPassantStateInfo& writeEnPassant() { return m_enpassantState; }
+    EnPassantStateInfo& editEnPassant() { return m_enpassantState; }
     EnPassantStateInfo readEnPassant() const { return m_enpassantState; }
+
+    CastlingStateInfo& editCastling() { return m_castlingState; }
+    CastlingStateInfo readCastling() const { return m_castlingState; }
+    const CastlingStateInfo& refCastling() const { return m_castlingState; }
 
     /**
      * @brief Calculate the available moves for a given chess piece on the bitboard.
@@ -444,20 +467,8 @@ private:
 };
 
 template<Set us>
-MaterialMask
+const MaterialMask&
 Position::readMaterial() const
-{
-    if constexpr (us == Set::WHITE) {
-        return m_material[0];
-    }
-    else {
-        return m_material[1];
-    }
-}
-
-template<Set us>
-MaterialMask&
-Position::writeMaterial()
 {
     if constexpr (us == Set::WHITE) {
         return m_material[0];
@@ -503,7 +514,7 @@ Position::calcThreatenedSquaresDiagonal() const
     // removing king from opmaterial so it doesn't stop our sliding.
     if constexpr (pierceKing) {
         kingMask = readMaterial<opSet>()[kingId];
-        writeMaterial<opSet>()[kingId] = 0;
+        editMaterial<opSet>()[kingId] = 0;
     }
 
     result |= calcThreatenedSquaresBishopBulk<us>();
@@ -513,7 +524,7 @@ Position::calcThreatenedSquaresDiagonal() const
         result |= readMaterial<us>()[queenId] | readMaterial<us>()[bishopId];
 
     if constexpr (pierceKing)
-        writeMaterial<opSet>()[kingId] = kingMask;
+        editMaterial<opSet>()[kingId] = kingMask;
 
     return result;
 }
@@ -528,7 +539,7 @@ Position::calcThreatenedSquaresOrthogonal() const
     if constexpr (pierceKing) {
         constexpr Set op = opposing_set<us>();
         kingMask = readMaterial<op>()[kingId];
-        writeMaterial<op>()[kingId] = 0;
+        editMaterial<op>()[kingId] = 0;
     }
 
     result |= calcThreatenedSquaresRookBulk<us>();
@@ -539,7 +550,7 @@ Position::calcThreatenedSquaresOrthogonal() const
 
     if constexpr (pierceKing) {
         constexpr Set op = opposing_set<us>();
-        writeMaterial<op>()[kingId] = kingMask;
+        editMaterial<op>()[kingId] = kingMask;
     }
 
     return result;

@@ -15,13 +15,13 @@ PrintCastlingState(const Chessboard& board)
 {
     std::string ret = "";
 
-    if (board.readCastlingState() & 1)
+    if (board.readCastlingState().hasWhiteKingSide())
         ret += "K";
-    if (board.readCastlingState() & 2)
+    if (board.readCastlingState().hasWhiteQueenSide())
         ret += "Q";
-    if (board.readCastlingState() & 4)
+    if (board.readCastlingState().hasBlackKingSide())
         ret += "k";
-    if (board.readCastlingState() & 8)
+    if (board.readCastlingState().hasBlackQueenSide())
         ret += "q";
 
     return ret;
@@ -119,19 +119,19 @@ GameContext::PlayMove(Move& move)
 bool
 GameContext::MakeLegalMove(Move& move)
 {
-    m_board.MakeMoveUnchecked(move);
+    // m_board.MakeMoveUnchecked(move);
 
-    if (move.Piece.getSet() == Set::BLACK)
-        m_moveCount++;
+    // if (move.Piece.getSet() == Set::BLACK)
+    //     m_moveCount++;
 
-    if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-        m_fiftyMoveRule = 0;
-    else
-        m_fiftyMoveRule++;
+    // if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
+    //     m_fiftyMoveRule = 0;
+    // else
+    //     m_fiftyMoveRule++;
 
-    m_plyCount++;
+    // m_plyCount++;
 
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
 
     return true;
 }
@@ -139,48 +139,48 @@ GameContext::MakeLegalMove(Move& move)
 bool
 GameContext::MakeMove(Move& move)
 {
-    Move actualMove = move;
+    // Move actualMove = move;
 
-    if (!m_board.MakeMove(actualMove))
-        return false;
+    // if (!m_board.MakeMove(actualMove))
+    //     return false;
 
-    if (actualMove.isInvalid())
-        return false;
+    // if (actualMove.isInvalid())
+    //     return false;
 
-    if (actualMove.Piece.getSet() == Set::BLACK)
-        m_moveCount++;
+    // if (actualMove.Piece.getSet() == Set::BLACK)
+    //     m_moveCount++;
 
-    if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
-        m_fiftyMoveRule = 0;
-    else
-        m_fiftyMoveRule++;
+    // if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
+    //     m_fiftyMoveRule = 0;
+    // else
+    //     m_fiftyMoveRule++;
 
-    m_plyCount++;
+    // m_plyCount++;
 
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
 
-    move = actualMove;
+    // move = actualMove;
     return true;
 }
 
 bool
 GameContext::UnmakeMove(const Move& move)
 {
-    if (m_board.UnmakeMove(move)) {
-        if (move.Piece.getSet() == Set::BLACK)
-            m_moveCount--;
+    // if (m_board.UnmakeMove(move)) {
+    //     if (move.Piece.getSet() == Set::BLACK)
+    //         m_moveCount--;
 
-        if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-            m_fiftyMoveRule = 0;
-        else
-            m_fiftyMoveRule--;
+    //     if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
+    //         m_fiftyMoveRule = 0;
+    //     else
+    //         m_fiftyMoveRule--;
 
-        m_plyCount--;
+    //     m_plyCount--;
 
-        m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    //     m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
 
-        return true;
-    }
+    //     return true;
+    // }
 
     return false;
 }
@@ -188,27 +188,27 @@ GameContext::UnmakeMove(const Move& move)
 bool
 GameContext::MakeNullMove(Move& move)
 {
-    m_board.MakeNullMove(move);
+    // m_board.MakeNullMove(move);
 
-    if (m_toPlay == Set::BLACK)
-        m_moveCount++;
+    // if (m_toPlay == Set::BLACK)
+    //     m_moveCount++;
 
-    m_fiftyMoveRule++;
-    m_plyCount++;
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    // m_fiftyMoveRule++;
+    // m_plyCount++;
+    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
     return true;
 }
 
 bool
 GameContext::UnmakeNullMove(const Move& move)
 {
-    m_board.UnmakeNullMove(move);
-    if (m_toPlay == Set::WHITE)
-        m_moveCount--;
+    // m_board.UnmakeNullMove(move);
+    // if (m_toPlay == Set::WHITE)
+    //     m_moveCount--;
 
-    --m_fiftyMoveRule;
-    --m_plyCount;
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    // --m_fiftyMoveRule;
+    // --m_plyCount;
+    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
     return true;
 }
 

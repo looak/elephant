@@ -382,6 +382,22 @@ TEST_F(BitboardFixture, ShiftNorthRelative_ShiftsAccordingToGivenSet)
     EXPECT_EQ(bb, expected);
 }
 
+TEST_F(BitboardFixture, CombineBitobards_VariadicTemplateCombineMethod)
+{
+    Bitboard bb1(0x40200000000ull);
+    Bitboard bb2(0x81000000000ull);
+    Bitboard bb3(0x40200ull);
+
+    Bitboard expected(0xc1200040200ull);
+
+    Bitboard result = bb1.combine(bb1, bb2, bb3);
+    EXPECT_EQ(result, expected);
+
+    result = bb1.combine(bb2, bb3);
+    expected = 0x81000040200ull;
+    EXPECT_EQ(result, expected);
+}
+
 ////////////////////////////////////////////////////////////////
 
 }  // namespace ElephantTest

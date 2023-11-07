@@ -21,24 +21,21 @@
 #include <utility>
 #include <vector>
 #include "chess_piece.h"
+#include "move.h"
 #include "notation.h"
 #include "position.hpp"
 
 struct Move;
-struct PackedMove;
 struct PrioratizedMove;
 struct PrioratizedMoveComparator;
 
-// enum ChessboardPrint
-// {
-//     NONE = 0x00,
-//     MOVE = 0x01,
-//     CASTLING = 0x02,
-//     EN_PASSANT = 0x04,
-//     HASH = 0x08,
-//     FEN = 0x10,
-//     ALL = MOVE | CASTLING | EN_PASSANT | HASH | FEN
-// }
+struct MoveUndoUnit {
+    PackedMove move;
+    ChessPiece capturedPiece;
+    CastlingStateInfo castlingState;
+    EnPassantStateInfo enPassantState;
+    u64 hash;
+};
 
 struct ChessboardTile {
     friend class Chessboard;
@@ -64,8 +61,8 @@ private:
 };
 /**
  * The Chessboard class represents a chess board and its current state.
- * It provides functions for moving and placing chess pieces, as well as
- * tracking the state of the game.
+ * It provides functions for moving and placing chess pieces, and updates
+ * all underlying state accordingly.
  *
  * @author Alexander Loodin Ek
  */
@@ -78,12 +75,18 @@ public:
     void Clear();
     bool PlacePiece(ChessPiece piece, Notation target, bool overwrite = false);
 
-    bool MakeMove(Move& move);
-    bool MakeMoveUnchecked(Move& move);
-    bool UnmakeMove(const Move& move);
+    template<bool validation>
+    MoveUndoUnit MakeMove(const PackedMove move, ChessPiece pieceToPromoteTo = ChessPiece::None());
 
-    bool MakeNullMove(Move& move);
-    bool UnmakeNullMove(const Move& move);
+    template<typename... placementpairs>
+    bool PlacePieces(placementpairs... placements);
+
+    // bool MakeMove(Move& move);
+    // bool MakeMoveUnchecked(Move& move);
+    // bool UnmakeMove(const Move& move);
+
+    // bool MakeNullMove(Move& move);
+    // bool UnmakeNullMove(const Move& move);
 
     /**
      * @brief Takes a move and serializes it to a unambigous Portable Game
@@ -196,9 +199,8 @@ public:
      * @return true if the en passant square was set */
     bool setEnPassant(Notation notation);
     bool setCastlingState(u8 castlingState);
-    CastlingStateInfo& editCastlingState() { return m_castlingInfo; }
     ChessboardTile& editTile(Notation position);
-    const Position& readBitboard() const { return m_bitboard; }
+    const Position& readPosition() const { return m_position; }
 
     /**
      * @brief the sliding material of given set represented ini a bitboard.
@@ -213,9 +215,7 @@ public:
      * @return A pair of bitboards representing the squares that are threatened by sliding pieces
      * moving orthogonally and diagonally, respectively.     */
     MaterialSlidingMask readSlidingMaterialMask(Set set) const;
-    Notation readEnPassant() const { return m_enPassant; }
-    byte readCastlingState() const { return m_castlingState; }
-    const CastlingStateInfo& readCastlingStateInfo() const { return m_castlingInfo; }
+    CastlingStateInfo readCastlingState() const { return m_position.readCastling(); }
     u64 readHash() const { return m_hash; }
     const ChessboardTile& readTile(Notation position) const;
     ChessPiece readPieceAt(Notation notation) const;
@@ -227,31 +227,37 @@ public:
     std::string toString() const;
 
 private:
+    template<typename piece, typename square, typename... placements>
+    bool InternalProcessEvenPlacementPairs(const piece& p, const square& sqr, const placements&... _placements);
+
+    bool InternalProcessEvenPlacementPairs() { return true; }
+
     /**
      * Internal helper function for handling the movement of a pawn chess piece.
      *
      * @param move The move being made.
      * @return The updated target location for the pawn, in case we double moved the piece and
      * target differ.*/
-    Notation InternalHandlePawnMove(Move& move);
-    void InternalHandleRookMove(Move& move, Notation targetRook, Notation rookMove);
-    void InternalHandleRookMovedOrCaptured(Move& move, Notation rookSquare);
-    void UpdateCastlingState(Move& move, byte mask);
+    Square InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoState);
+    void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
+                                MoveUndoUnit& undoState);
+    void InternalHandleRookMovedOrCaptured(const PackedMove move, Notation rookSquare, MoveUndoUnit& undoState);
+    void InternalUpdateCastlingState(const PackedMove move, byte mask, MoveUndoUnit& undoState);
 
     /**
      * Internal helper function for handling the movement of a king chess piece.
      *
      * @param move The move being made.
+     * @param set The set of the king being moved.
      * @param targetRook The position of the rook that will be involved in the castle move (if any).
      * @param rookMove The position that the rook will move to during the castle move (if any).
      * @return True if the move is a castle move, false otherwise. */
-    bool InternalHandleKingMove(Move& move, Notation& targetRook, Notation& rookMove);
-    void InternalHandleKingRookMove(Move& move);
-    void InternalHandleCapture(Move& move, Notation pieceTarget);
+    bool InternalHandleKingMove(const PackedMove move, Set set, Notation& targetRook, Notation& rookMove,
+                                MoveUndoUnit& undoState);
+    void InternalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState);
+    void InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState);
 
-    bool InternalIsMoveCheck(Move& move) const;
-
-    bool UpdateEnPassant(Notation source, Notation target);
+    bool InternalUpdateEnPassant(Notation source, Notation target);
     void InternalMakeMove(Notation source, Notation target);
     void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
@@ -261,6 +267,7 @@ private:
     ChessboardTile& get(Notation position) { return editTile(position); }
     const ChessboardTile& get(Notation position) const { return readTile(position); }
 
+    bool InternalIsMoveCheck(Move& move) const;
     int IsMoveCastling(const Move& move) const;
     bool IsPromoting(const Move& move) const;
     bool VerifyMove(const Move& move) const;
@@ -269,21 +276,10 @@ private:
 
     ChessboardTile m_tiles[64];
 
-    mutable Position m_bitboard;
+    Position m_position;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];
-
-    union {
-        // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-        byte m_castlingState;
-        CastlingStateInfo m_castlingInfo;
-    };
-
-    // when a pawn moves 2 squares, this is the square it can be captured on
-    Notation m_enPassant;
-    // the square the pawn moved to when it moved 2 squares
-    Notation m_enPassantTarget;
 
     mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
 };
@@ -341,4 +337,22 @@ Chessboard::ChessboardIterator<T, isConst>::operator+=(int incre)
     m_index = static_cast<unsigned char>(result);
     m_position = Notation(m_index);
     return *this;
+}
+
+template<typename piece, typename square, typename... placements>
+bool
+Chessboard::InternalProcessEvenPlacementPairs(const piece& p, const square& sqr, const placements&... _placements)
+{
+    if (PlacePiece(p, sqr) == false)
+        return false;
+
+    return InternalProcessEvenPlacementPairs(_placements...);
+}
+
+template<typename... placements>
+bool
+Chessboard::PlacePieces(placements... _placement)
+{
+    static_assert(sizeof...(_placement) % 2 == 0, "Number of arguments must be even");
+    return InternalProcessEvenPlacementPairs(_placement...);
 }

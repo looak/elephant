@@ -133,8 +133,11 @@ public:
     {
     }
 
-    inline int sourceSqr() const { return m_internals & c_sourceSquareConstant; }
-    inline int targetSqr() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+    inline Square sourceSqr() const { return static_cast<Square>(source()); }
+    inline Square targetSqr() const { return static_cast<Square>(target()); }
+    inline i32 source() const { return m_internals & c_sourceSquareConstant; }
+    inline i32 target() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+
     inline bool isQuiet() const { return (m_internals >> 12) == 0; }
     inline bool isCapture() const { return ((m_internals >> 12) & CAPTURES) == CAPTURES; }
     inline bool isPromotion() const { return ((m_internals >> 12) & PROMOTIONS) == PROMOTIONS; }
@@ -147,20 +150,31 @@ public:
     }
     inline bool isPawnDoublePush() const { return ((m_internals >> 12) & 0xF) == 1; }
 
-    inline int readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
+    inline i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
     void set(u16 packed) { m_internals = packed; }
     inline u16 read() const { return m_internals; }
 
-    inline void setSource(int sqr)
+    inline void setSource(u16 source)
     {
         m_internals &= ~c_sourceSquareConstant;
-        m_internals |= (sqr & c_sourceSquareConstant);
+        m_internals |= (source & c_sourceSquareConstant);
     }
-    inline void setTarget(int sqr)
+    inline void setSource(Square sqr)
+    {
+        u16 u16sqr = static_cast<u16>(sqr);
+        setSource(u16sqr);
+    }
+
+    inline void setTarget(u16 target)
     {
         m_internals &= ~c_targetSquareConstant;
-        m_internals |= ((sqr & c_sourceSquareConstant) << 6);
+        m_internals |= ((target & c_sourceSquareConstant) << 6);
+    }
+    inline void setTarget(Square sqr)
+    {
+        u16 u16sqr = static_cast<u16>(sqr);
+        setTarget(u16sqr);
     }
     inline void setCapture(bool value)
     {

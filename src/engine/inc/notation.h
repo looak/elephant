@@ -44,6 +44,13 @@ struct Notation {
         rank = index / 8;
     }
 
+    constexpr Notation(Square sqr)
+    {
+        i32 indx = static_cast<i32>(sqr);
+        file = mod_by_eight(indx);
+        rank = indx / 8;
+    }
+
     // when we read algebraic notations we might only have file or rank in some cases.
     // in those cases the other value will be 9 to identify this as a value which needs to be
     // looked up.

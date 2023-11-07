@@ -103,6 +103,16 @@ public:
      * @brief resets board to 0    */
     void reset() { m_board = 0; }
 
+    /**
+     * @brief combine given bitboards   */
+    template<typename... Args>
+    [[nodiscard]] Bitboard combine(Bitboard first, Args... args) const
+    {
+        return first | combine(args...);
+    }
+
+    [[nodiscard]] constexpr Bitboard shiftNorth(u8 shift) const { return Bitboard(m_board << shift); }
+
     [[nodiscard]] constexpr Bitboard shiftRight(u8 shift) const { return Bitboard(m_board >> shift); }
     [[nodiscard]] constexpr Bitboard shiftLeft(u8 shift) const { return Bitboard(m_board << shift); }
 
@@ -269,6 +279,9 @@ public:
 #pragma endregion  // fill
 
 private:
+    // internal combine for end of variadic template recursion
+    [[nodiscard]] Bitboard combine() const { return Bitboard(0); }
+
     u64 m_board;
 };
 

@@ -37,6 +37,7 @@ public:
     bool isQueen() const { return type() == 5; }
     bool isKing() const { return type() == 6; }
     bool isWhite() const { return set() == 0; }
+    bool isBlack() const { return set() == 1; }
 
     bool operator==(const ChessPiece& rhs) const;
     bool operator!=(const ChessPiece& rhs) const;

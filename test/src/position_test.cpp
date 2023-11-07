@@ -857,7 +857,7 @@ TEST_F(PositionFixture, Pawn_EnPassant_BlackShouldBeAbleToCaptureWhitePawn)
     // setup
     pos.PlacePiece(P, g4);
     pos.PlacePiece(p, f4);
-    pos.writeEnPassant().writeEnPassant(g3.toSquare(), Set::WHITE);
+    pos.editEnPassant().writeSquare(g3.toSquare());
     //  do
     KingMask empty{};
     u64 result = pos.calcAvailableMovesPawnBulk<Set::BLACK>(empty).read();
@@ -887,7 +887,7 @@ TEST_F(PositionFixture, Pawn_EnPassantWhitePerspective_AvailableEnPassantCapture
     // setup
     pos.PlacePiece(P, g5);
     pos.PlacePiece(p, f5);
-    pos.writeEnPassant().writeEnPassant(f6.toSquare(), Set::BLACK);
+    pos.editEnPassant().writeSquare(f6.toSquare());
 
     // do
     KingMask empty{};
@@ -1210,7 +1210,7 @@ TEST_F(PositionFixture, Pawn_EnPassantIsolate_BothBlackPawnsShouldBeAbleToCaptur
     pos.PlacePiece(P, g4);
     pos.PlacePiece(p, f4);
     pos.PlacePiece(p, h4);
-    pos.writeEnPassant().writeEnPassant(g3.toSquare(), Set::WHITE);
+    pos.editEnPassant().writeSquare(g3.toSquare());
     KingMask empty{};
     Bitboard movesbb = pos.calcAvailableMovesPawnBulk<Set::BLACK>(empty);
 

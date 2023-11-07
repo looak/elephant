@@ -63,7 +63,7 @@ template<Set set>
 void
 MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
 {
-    const auto& pos = m_context.readChessboard().readBitboard();
+    const auto& pos = m_context.readChessboard().readPosition();
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
     if (movesbb.empty())
@@ -108,7 +108,7 @@ template<Set set>
 void
 MoveGenerator::internalGenerateKnightMoves(const KingMask& kingMask)
 {
-    const auto& bb = m_context.readChessboard().readBitboard();
+    const auto& bb = m_context.readChessboard().readPosition();
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[knightId];
     if (movesbb.empty())
@@ -161,7 +161,7 @@ template<Set set>
 void
 MoveGenerator::internalGenerateKingMoves(const KingMask& kingMask)
 {
-    const auto& bb = m_context.readChessboard().readBitboard();
+    const auto& bb = m_context.readChessboard().readPosition();
 
     Bitboard movesbb = m_moveMasks[(size_t)set].material[kingId];
 #if defined EG_DEBUGGING || defined EG_TESTING
@@ -198,7 +198,7 @@ template<Set set>
 void
 MoveGenerator::initializeMoveMasks(MaterialMask& target)
 {
-    const auto& bb = m_context.readChessboard().readBitboard();
+    const auto& bb = m_context.readChessboard().readPosition();
     const size_t setIndx = static_cast<size_t>(set);
     m_kingMask[setIndx] = bb.calcKingMask<set>();
     target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
@@ -219,8 +219,8 @@ MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool cap
         i32 dstSqr = movesbb.popLsb();
 
         PackedMove move;
-        move.setSource(srcSqr);
-        move.setTarget(dstSqr);
+        move.setSource(static_cast<Square>(srcSqr));
+        move.setTarget(static_cast<Square>(dstSqr));
         move.setCapture(capture);
 
         PrioratizedMove prioratizedMove(move, 1);
