@@ -417,10 +417,8 @@ Chessboard::InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoStat
     if (pieceTarget == m_position.readEnPassant().readSquare()) {
         // changing piece target to the position of the pawn being capturing enpassant
         pieceTarget = m_position.readEnPassant().readTarget();
-        undoState.capturedPiece = m_tiles[(u8)pieceTarget].readPiece();
 
-        if (undoState.capturedPiece.getType() != PieceType::PAWN)
-            LOG_ERROR() << "No Pawn in expected EnPassant target square!";
+        // could validate that there is a pawn on the target square.
     }
 
     // update hash, start by removing old en passant if there was one.

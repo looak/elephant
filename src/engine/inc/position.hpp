@@ -279,7 +279,14 @@ public:
         // m_innerState += ((byte)set << 1);
     }
 
-    Square readSquare() const { return static_cast<Square>(m_innerState >> 2); }
+    Square readSquare() const
+    {
+        if (*this)
+            return static_cast<Square>(m_innerState >> 2);
+        else
+            return Square::NullSQ;
+    }
+
     Square readTarget() const
     {
         byte sq = m_innerState >> 2;

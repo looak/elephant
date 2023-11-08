@@ -132,6 +132,12 @@ public:
         m_internals(packed)
     {
     }
+    PackedMove(Square source, Square target) :
+        m_internals(0)
+    {
+        setSource(source);
+        setTarget(target);
+    }
 
     inline Square sourceSqr() const { return static_cast<Square>(source()); }
     inline Square targetSqr() const { return static_cast<Square>(target()); }

@@ -1,21 +1,21 @@
-// #include <gtest/gtest.h>
-// #include "chess_piece.h"
-// #include "chessboard.h"
-// #include "elephant_test_utils.h"
-// #include "move.h"
+#include <gtest/gtest.h>
+#include "chess_piece.h"
+#include "chessboard.h"
+#include "elephant_test_utils.h"
+#include "move.h"
 
-// namespace ElephantTest {
-// ////////////////////////////////////////////////////////////////
-// class UnmakeFixture : public ::testing::Test {
-// public:
-//     virtual void SetUp(){
+namespace ElephantTest {
+////////////////////////////////////////////////////////////////
+class UnmakeFixture : public ::testing::Test {
+public:
+    virtual void SetUp(){
 
-//     };
-//     virtual void TearDown(){};
+    };
+    virtual void TearDown(){};
 
-//     Chessboard m_chessboard;
-// };
-// ////////////////////////////////////////////////////////////////
+    Chessboard m_chessboard;
+};
+////////////////////////////////////////////////////////////////
 
 // // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -87,122 +87,121 @@
 //     }
 // }
 
-// // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 4 [   ][   ][   ][ p ][   ][   ][   ][   ]
-// // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 2 [   ][   ][   ][   ][ P ][   ][   ][   ]
-// // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-// //     A    B    C    D    E    F    G    H
-// // Moves:
-// // 1. e4 dxe3 e.p.
-// TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
-// {
-//     auto P = WHITEPAWN;
-//     auto p = BLACKPAWN;
-//     m_chessboard.PlacePiece(P, e2);
-//     m_chessboard.PlacePiece(p, d4);
-//     Move move(e2, e4);
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][ p ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][ P ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// 1. e4 dxe3 e.p.
+TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
+{
+    auto P = WHITEPAWN;
+    auto p = BLACKPAWN;
+    m_chessboard.PlacePiece(P, e2);
+    m_chessboard.PlacePiece(p, d4);
 
-//     const auto& whitePawns = m_chessboard.readPosition().readMaterial<Set::WHITE>()[pawnId];
-//     const auto& blackPawns = m_chessboard.readPosition().readMaterial<Set::BLACK>()[pawnId];
+    const auto& whitePawns = m_chessboard.readPosition().readMaterial<Set::WHITE>().pawns();
+    const auto& blackPawns = m_chessboard.readPosition().readMaterial<Set::BLACK>().pawns();
 
-//     // validate setup
-//     EXPECT_EQ(1, whitePawns.count());
-//     EXPECT_EQ(1, blackPawns.count());
+    // validate setup
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
-//     // do
-//     bool result = m_chessboard.MakeMove(move);
+    // move white pawn to e4
+    PackedMove move;
+    move.setSource(Square::E2);
+    move.setTarget(Square::E4);
+    auto undoUnit = m_chessboard.MakeMove<false>(move);
 
-//     // validate move
-//     EXPECT_TRUE(result);
-//     EXPECT_EQ(P, move.Piece);
-//     /**
-//      * En passant is a special pawn capture move in chess where a pawn captures an opposing pawn
-//      * that has just advanced two squares from its starting position, as if it had only advanced
-//      * one square. The capturing pawn moves diagonally to the square that the opposing pawn passed
-//      * over, and the captured pawn is removed from the board.
-//      */
-//     EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
-//     EXPECT_FALSE(move.isEnPassant());
+    // validate move
+    EXPECT_EQ(undoUnit.move, move);
 
-//     EXPECT_EQ(e3, m_chessboard.readEnPassant());
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+    /**
+     * En passant is a special pawn capture move in chess where a pawn captures an opposing pawn
+     * that has just advanced two squares from its starting position, as if it had only advanced
+     * one square. The capturing pawn moves diagonally to the square that the opposing pawn passed
+     * over, and the captured pawn is removed from the board.     */
+    EXPECT_EQ(Square::E3, m_chessboard.readPosition().readEnPassant().readSquare());
+    EXPECT_TRUE(m_chessboard.readPosition().readEnPassant());
+    EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
+    EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
 
-//     EXPECT_EQ(1, whitePawns.count());
-//     EXPECT_EQ(1, blackPawns.count());
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
-//     // setup ep capture move
-//     Move epCapture(d4, e3);
+    // setup ep capture move
+    PackedMove epCapture(Square::D4, Square::E3);
+    epCapture.setCapture(true);
 
-//     // do
-//     result = m_chessboard.MakeMove(epCapture);
+    // do
+    auto epUndo = m_chessboard.MakeMove<false>(epCapture);
 
-//     // validate
-//     EXPECT_TRUE(result);
-//     EXPECT_EQ(p, epCapture.Piece);
-//     EXPECT_EQ(MoveFlag::Capture, epCapture.Flags & MoveFlag::Capture);
-//     EXPECT_EQ(MoveFlag::EnPassant, epCapture.Flags & MoveFlag::EnPassant);
+    // validate
+    EXPECT_EQ(epCapture, epUndo.move);
+    EXPECT_EQ(Square::NullSQ, m_chessboard.readPosition().readEnPassant().readSquare());
+    EXPECT_FALSE(m_chessboard.readPosition().readEnPassant());
 
-//     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(e3).readPiece());
+    ChessPiece exp;  // default, "empty" piece
+    EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
+    EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
+    EXPECT_EQ(p, m_chessboard.readTile(e3).readPiece());
 
-//     EXPECT_EQ(0, whitePawns.count());
-//     EXPECT_EQ(1, blackPawns.count());
+    EXPECT_EQ(0, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
-//     // do
-//     result = m_chessboard.UnmakeMove(epCapture);
+    // // do
+    // result = m_chessboard.UnmakeMove(epCapture);
 
-//     // validate
-//     EXPECT_TRUE(result);
-//     EXPECT_EQ(e3, m_chessboard.readEnPassant());
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
-//     EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
+    // // validate
+    // EXPECT_TRUE(result);
+    // EXPECT_EQ(e3, m_chessboard.readEnPassant());
+    // EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
+    // EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+    // EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
 
-//     EXPECT_EQ(1, whitePawns.count());
-//     EXPECT_EQ(1, blackPawns.count());
+    // EXPECT_EQ(1, whitePawns.count());
+    // EXPECT_EQ(1, blackPawns.count());
 
-//     // setup
-//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
-//     bool found_e3 = false;
-//     bool found_d3 = false;
+    // // setup
+    // auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+    // bool found_e3 = false;
+    // bool found_d3 = false;
 
-//     // validate
-//     EXPECT_EQ(2, moves.size());
-//     for (auto mv : moves) {
-//         // do
-//         result = m_chessboard.MakeMove(mv);
-//         EXPECT_TRUE(result);
+    // // validate
+    // EXPECT_EQ(2, moves.size());
+    // for (auto mv : moves) {
+    //     // do
+    //     result = m_chessboard.MakeMove(mv);
+    //     EXPECT_TRUE(result);
 
-//         // validate
-//         if (mv.TargetSquare == e3) {
-//             EXPECT_EQ(WHITEPAWN, mv.CapturedPiece);
-//             EXPECT_EQ(MoveFlag::Capture, mv.Flags & MoveFlag::Capture);
-//             EXPECT_EQ(MoveFlag::EnPassant, mv.Flags & MoveFlag::EnPassant);
-//             found_e3 = true;
-//         }
-//         else {
-//             EXPECT_EQ(d3, mv.TargetSquare);
-//             EXPECT_EQ(exp, mv.CapturedPiece);  // no capture
-//             EXPECT_EQ(MoveFlag::Zero, mv.Flags);
-//             found_d3 = true;
-//         }
+    //     // validate
+    //     if (mv.TargetSquare == e3) {
+    //         EXPECT_EQ(WHITEPAWN, mv.CapturedPiece);
+    //         EXPECT_EQ(MoveFlag::Capture, mv.Flags & MoveFlag::Capture);
+    //         EXPECT_EQ(MoveFlag::EnPassant, mv.Flags & MoveFlag::EnPassant);
+    //         found_e3 = true;
+    //     }
+    //     else {
+    //         EXPECT_EQ(d3, mv.TargetSquare);
+    //         EXPECT_EQ(exp, mv.CapturedPiece);  // no capture
+    //         EXPECT_EQ(MoveFlag::Zero, mv.Flags);
+    //         found_d3 = true;
+    //     }
 
-//         // do
-//         m_chessboard.UnmakeMove(mv);
-//         EXPECT_EQ(e3, m_chessboard.readEnPassant());
-//     }
+    //     // do
+    //     m_chessboard.UnmakeMove(mv);
+    //     EXPECT_EQ(e3, m_chessboard.readEnPassant());
+    // }
 
-//     // validate
-//     EXPECT_TRUE(found_e3);
-//     EXPECT_TRUE(found_d3);
-// }
+    // // validate
+    // EXPECT_TRUE(found_e3);
+    // EXPECT_TRUE(found_d3);
+}
 // /**
 //  * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 //  * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -904,4 +903,4 @@
 
 // ////////////////////////////////////////////////////////////////
 
-// }  // namespace ElephantTest
+}  // namespace ElephantTest
