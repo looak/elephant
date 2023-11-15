@@ -137,6 +137,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     // setup ep capture move
     PackedMove epCapture(Square::D4, Square::E3);
     epCapture.setCapture(true);
+    epCapture.setEnPassant(true);
 
     // do
     auto epUndo = m_chessboard.MakeMove<false>(epCapture);
@@ -154,18 +155,18 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(0, whitePawns.count());
     EXPECT_EQ(1, blackPawns.count());
 
-    // // do
-    // result = m_chessboard.UnmakeMove(epCapture);
+    // do
+    bool result = m_chessboard.UnmakeMove(epUndo);
 
-    // // validate
-    // EXPECT_TRUE(result);
-    // EXPECT_EQ(e3, m_chessboard.readEnPassant());
-    // EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-    // EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
-    // EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
+    // validate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(Square::E3, m_chessboard.readPosition().readEnPassant().readSquare());
+    EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
+    EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+    EXPECT_EQ(exp, m_chessboard.readTile(e3).readPiece());
 
-    // EXPECT_EQ(1, whitePawns.count());
-    // EXPECT_EQ(1, blackPawns.count());
+    EXPECT_EQ(1, whitePawns.count());
+    EXPECT_EQ(1, blackPawns.count());
 
     // // setup
     // auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);

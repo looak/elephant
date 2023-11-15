@@ -677,7 +677,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     const auto& castlingState = m_defaultStartingPosition.readPosition().refCastling();
 
     m_defaultStartingPosition.setCastlingState(0);
-    EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::NONE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_FALSE(castlingState.hasAny());
     EXPECT_FALSE(castlingState.hasWhite());
     EXPECT_FALSE(castlingState.hasBlack());
@@ -687,7 +687,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(1);
-    EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_FALSE(castlingState.hasBlack());
@@ -697,7 +697,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(2);
-    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_FALSE(castlingState.hasBlack());
@@ -707,7 +707,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(3);
-    EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_ALL, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_FALSE(castlingState.hasBlack());
@@ -717,7 +717,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(4);
-    EXPECT_EQ(CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_FALSE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -728,7 +728,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(5);
     EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_KINGSIDE,
-              m_defaultStartingPosition.readCastlingState().raw());
+              m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -739,7 +739,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(6);
     EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_KINGSIDE,
-              m_defaultStartingPosition.readCastlingState().raw());
+              m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -749,7 +749,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(7);
-    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_KINGSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -759,7 +759,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_FALSE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(8);
-    EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_FALSE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -770,7 +770,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(9);
     EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_QUEENSIDE,
-              m_defaultStartingPosition.readCastlingState().raw());
+              m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -781,7 +781,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(10);
     EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_QUEENSIDE,
-              m_defaultStartingPosition.readCastlingState().raw());
+              m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -791,7 +791,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(11);
-    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_QUEENSIDE, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -801,7 +801,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(12);
-    EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_FALSE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -811,7 +811,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(13);
-    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -821,7 +821,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(14);
-    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -831,7 +831,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
     EXPECT_TRUE(castlingState.hasBlackQueenSide());
 
     m_defaultStartingPosition.setCastlingState(15);
-    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().raw());
+    EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());

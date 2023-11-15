@@ -229,6 +229,7 @@ Chessboard::MakeMove(const PackedMove move, ChessPiece pieceToPromoteTo)
 {
     MoveUndoUnit undoState;
     undoState.move = move;
+    undoState.hash = m_hash;
 
     const auto& piece = m_tiles[move.source()].readPiece();
     Square targetSqr = move.targetSqr();
@@ -281,6 +282,30 @@ Chessboard::MakeMove(const PackedMove move, ChessPiece pieceToPromoteTo)
 
 template MoveUndoUnit Chessboard::MakeMove<true>(PackedMove, ChessPiece);
 template MoveUndoUnit Chessboard::MakeMove<false>(PackedMove, ChessPiece);
+
+bool
+Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
+{
+    i32 srcSqr = undoState.move.source();
+    i32 trgSqr = undoState.move.target();
+
+    // unmake move
+    m_tiles[srcSqr].editPiece() = m_tiles[trgSqr].readPiece();
+    // even if move aint a caputure this will reset the target square to the correct state.
+    m_tiles[trgSqr].editPiece() = undoState.capturedPiece;
+
+    m_position.PlacePiece(m_tiles[srcSqr].readPiece(), Notation(srcSqr));
+    m_position.ClearPiece(m_tiles[trgSqr].readPiece(), Notation(trgSqr));
+    if (undoState.move.isCapture())
+        m_position.PlacePiece(undoState.capturedPiece, Notation(trgSqr));
+
+    m_position.editEnPassant().write(undoState.enPassantState.read());  // restore enpassant state
+    m_position.editCastling().write(undoState.castlingState.read());    // restore castling state
+
+    m_hash = undoState.hash;
+
+    return true;
+}
 
 Move
 Chessboard::DeserializeMoveFromPGN(const std::string& pgn, bool isWhiteMove) const
@@ -458,7 +483,7 @@ Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& tar
     const u8 setIndx = (u8)set;
     bool castling = false;
     byte casltingMask = 3 << (2 * setIndx);
-    byte castlingState = m_position.readCastling().raw();
+    byte castlingState = m_position.readCastling().read();
     Notation targetSquare(move.targetSqr());
     if (castlingState & casltingMask) {
         byte targetRank = 7 * setIndx;
@@ -500,7 +525,7 @@ Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move
 void
 Chessboard::InternalUpdateCastlingState(const PackedMove move, byte mask, MoveUndoUnit& undoState)
 {
-    byte castlingState = m_position.readCastling().raw();
+    byte castlingState = m_position.readCastling().read();
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     // in a situation where rook captures rook from original positions we don't need to store
     // we don't want to overwrite the original prev written while doing our move castling state.
@@ -649,7 +674,7 @@ Chessboard::readPieceAt(Notation notation) const
 
 //     if (move.PrevCastlingState != 0) {
 //         auto& castlingState = m_position.editCastling();
-//         m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState.raw());
+//         m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState.read());
 //         m_hash = ZorbistHash::Instance().HashCastling(m_hash, move.PrevCastlingState);
 //         castlingState.write(move.PrevCastlingState);
 //     }
@@ -854,7 +879,7 @@ int
 Chessboard::IsMoveCastling(const Move& move) const
 {
     byte casltingMask = 3 << (2 * move.Piece.set());
-    if (m_position.readCastling().raw() & casltingMask) {
+    if (m_position.readCastling().read() & casltingMask) {
         if (move.TargetSquare.file == 2)
             return -1;  // castling queen side
         else if (move.TargetSquare.file == 6)
@@ -1194,7 +1219,7 @@ bool
 Chessboard::setCastlingState(u8 castlingState)
 {
     auto& castlingStateRef = m_position.editCastling();
-    m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingStateRef.raw());
+    m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingStateRef.read());
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     castlingStateRef.write(castlingState);
     return true;

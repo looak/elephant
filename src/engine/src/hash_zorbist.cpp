@@ -64,7 +64,7 @@ ZorbistHash::HashBoard(const Chessboard& board) const
         itr++;
     }
 
-    byte castlingState = board.readCastlingState().raw();
+    byte castlingState = board.readCastlingState().read();
 
     if ((castlingState & 1) == 1)
         hash ^= castling[0];

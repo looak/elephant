@@ -256,7 +256,7 @@ public:
     void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
     void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
 
-    byte raw() { return m_innerState; }
+    byte read() const { return m_innerState; }
     void write(byte state) { m_innerState = state; }
 
     std::string toString() const;

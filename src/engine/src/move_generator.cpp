@@ -84,7 +84,12 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
             PackedMove move;
             move.setSource(srcSqr);
             move.setTarget(dstSqr);
-            move.setCapture(true);
+
+            // if we're capturing enpassant set the enpassant flag.
+            if (pos.readEnPassant().readSquare() == static_cast<Square>(dstSqr))
+                move.setEnPassant(true);  // sets both capture & enpassant
+            else
+                move.setCapture(true);
 
             PrioratizedMove prioratizedMove(move, 1);
             m_moves.push(prioratizedMove);

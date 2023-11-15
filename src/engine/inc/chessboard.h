@@ -78,6 +78,8 @@ public:
     template<bool validation>
     MoveUndoUnit MakeMove(const PackedMove move, ChessPiece pieceToPromoteTo = ChessPiece::None());
 
+    bool UnmakeMove(const MoveUndoUnit& undoState);
+
     template<typename... placementpairs>
     bool PlacePieces(placementpairs... placements);
 

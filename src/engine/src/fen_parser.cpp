@@ -240,7 +240,7 @@ FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen
     resultFen += ' ';
 
     auto castlingState = board.readCastlingState();
-    byte rawCastlingState = castlingState.raw();
+    byte rawCastlingState = castlingState.read();
     if (rawCastlingState > 0) {
         if (rawCastlingState & 1)
             resultFen += "K";

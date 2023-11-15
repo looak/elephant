@@ -139,27 +139,29 @@ public:
         setTarget(target);
     }
 
-    inline Square sourceSqr() const { return static_cast<Square>(source()); }
-    inline Square targetSqr() const { return static_cast<Square>(target()); }
-    inline i32 source() const { return m_internals & c_sourceSquareConstant; }
-    inline i32 target() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+    [[nodiscard]] constexpr Square sourceSqr() const { return static_cast<Square>(source()); }
+    [[nodiscard]] constexpr Square targetSqr() const { return static_cast<Square>(target()); }
+    [[nodiscard]] constexpr i32 source() const { return m_internals & c_sourceSquareConstant; }
+    [[nodiscard]] constexpr i32 target() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+    [[nodiscard]] constexpr u16 flags() const { return m_internals >> 12; }
 
-    inline bool isQuiet() const { return (m_internals >> 12) == 0; }
-    inline bool isCapture() const { return ((m_internals >> 12) & CAPTURES) == CAPTURES; }
-    inline bool isPromotion() const { return ((m_internals >> 12) & PROMOTIONS) == PROMOTIONS; }
-    inline bool isCastling() const
+    [[nodiscard]] constexpr bool isQuiet() const { return flags() == 0; }
+    [[nodiscard]] constexpr bool isCapture() const { return !!(flags() & CAPTURES); }
+    [[nodiscard]] constexpr bool isEnPassant() const { return !!(flags() & EN_PASSANT_CAPTURE); }
+    [[nodiscard]] constexpr bool isPromotion() const { return !!(flags() & PROMOTIONS); }
+    [[nodiscard]] constexpr bool isCastling() const
     {
         u16 flag = m_internals >> 12;
         if (flag & PROMOTIONS)
             return false;
         return (flag & CASTLE);
     }
-    inline bool isPawnDoublePush() const { return ((m_internals >> 12) & 0xF) == 1; }
+    [[nodiscard]] constexpr bool isPawnDoublePush() const { return ((m_internals >> 12) & 0xF) == 1; }
 
-    inline i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
+    [[nodiscard]] constexpr i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
     void set(u16 packed) { m_internals = packed; }
-    inline u16 read() const { return m_internals; }
+    [[nodiscard]] constexpr u16 read() const { return m_internals; }
 
     inline void setSource(u16 source)
     {
@@ -188,6 +190,13 @@ public:
             m_internals |= CAPTURES << 12;
         else
             m_internals &= ~(CAPTURES << 12);
+    }
+    inline void setEnPassant(bool value)
+    {
+        if (value == true)
+            m_internals |= EN_PASSANT_CAPTURE << 12;
+        else
+            m_internals &= ~(EN_PASSANT_CAPTURE << 12);
     }
 
     // operators
