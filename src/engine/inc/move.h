@@ -75,7 +75,7 @@ operator^=(MoveFlag& a, MoveFlag b)
  * bit 1 is for captures
  * bit 2 & 3 are special cases
  * during promotions bit 2 & 3 represent the promotion type
- * with typeIndex - 2, i.e. knight 0, bishop 1, rook 2 and queen 3
+ * with typeId - 2, i.e. knight 0, bishop 1, rook 2 and queen 3
  *
  * Move Type Encoding:
  * -------------------
@@ -147,7 +147,7 @@ public:
 
     [[nodiscard]] constexpr bool isQuiet() const { return flags() == 0; }
     [[nodiscard]] constexpr bool isCapture() const { return !!(flags() & CAPTURES); }
-    [[nodiscard]] constexpr bool isEnPassant() const { return !!(flags() & EN_PASSANT_CAPTURE); }
+    [[nodiscard]] constexpr bool isEnPassant() const { return isPromotion() ? false : !!(flags() & EN_PASSANT_CAPTURE); }
     [[nodiscard]] constexpr bool isPromotion() const { return !!(flags() & PROMOTIONS); }
     [[nodiscard]] constexpr bool isCastling() const
     {
@@ -197,6 +197,13 @@ public:
             m_internals |= EN_PASSANT_CAPTURE << 12;
         else
             m_internals &= ~(EN_PASSANT_CAPTURE << 12);
+    }
+
+    inline void setPromoteTo(ChessPiece piece)
+    {
+        m_internals &= ~(11 << 12);                 // clear promotion bits
+        m_internals |= (8 << 12);                   // set promotion flag
+        m_internals |= ((piece.type() - 2) << 12);  // store piece type
     }
 
     // operators

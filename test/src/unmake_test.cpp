@@ -251,90 +251,101 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
 //     EXPECT_TRUE(blackPawns[Square::G4]);
 // }
 
-// // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
-// // 7 [   ][   ][   ][   ][ P ][   ][   ][   ]
-// // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-// //     A    B    C    D    E    F    G    H
-// // Moves:
-// // e8=Q
-// TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
-// {
-//     auto P = WHITEPAWN;
-//     auto n = BLACKKNIGHT;
+// 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][ P ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// Moves:
+// e8=Q
+TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
+{
+    auto P = WHITEPAWN;
+    auto n = BLACKKNIGHT;
 
-//     m_chessboard.PlacePiece(P, e7);
-//     m_chessboard.PlacePiece(n, d8);
-//     Move move(e7, e8);  // promote
-//     move.PromoteToPiece = WHITEQUEEN;
-//     u64 hash = m_chessboard.readHash();
+    m_chessboard.PlacePiece(P, e7);
+    m_chessboard.PlacePiece(n, d8);
 
-//     const auto& bitboard = m_chessboard.readPosition();
+    PackedMove move(Square::E7, Square::E8);
+    move.setPromoteTo(WHITEQUEEN);
 
-//     // do
-//     bool result = m_chessboard.MakeMove(move);
+    u64 hash = m_chessboard.readHash();
+    const auto& position = m_chessboard.readPosition();
 
-//     // validate
-//     EXPECT_TRUE(result);
-//     EXPECT_EQ(P, move.Piece);
-//     EXPECT_EQ(MoveFlag::Promotion, move.Flags);
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     u64 pawnMask = bitboard.GetMaterial(WHITEPAWN).read();
-//     EXPECT_EQ(0, pawnMask);
+    // do
+    auto undounit = m_chessboard.MakeMove<false>(move);
 
-//     auto Q = WHITEQUEEN;
-//     EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
-//     EXPECT_NE(0, bitboard.GetMaterial(WHITEQUEEN).read());
+    // validate
+    EXPECT_TRUE(undounit.hash == hash);
+    EXPECT_TRUE(undounit.move.isPromotion());
+    EXPECT_EQ(undounit.move.readPromoteToPieceType(), static_cast<i32>(PieceType::QUEEN));
 
-//     // undo
-//     result = m_chessboard.UnmakeMove(move);
+    EXPECT_NE(hash, m_chessboard.readHash());
 
-//     // validate
-//     EXPECT_TRUE(result);
-//     EXPECT_EQ(P, m_chessboard.readTile(e7).readPiece());
-//     EXPECT_EQ(ChessPiece::None(), m_chessboard.readTile(e8).readPiece());
-//     EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
-//     EXPECT_EQ(hash, m_chessboard.readHash());
+    u64 pawnMask = position.readMaterial<Set::WHITE>().pawns().read();
+    EXPECT_EQ(0, pawnMask);
 
-//     EXPECT_EQ(0, bitboard.GetMaterial(WHITEQUEEN).read());
-//     EXPECT_NE(0, bitboard.GetMaterial(WHITEPAWN).read());
+    auto Q = WHITEQUEEN;
+    EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+    i32 qCount = position.readMaterial<Set::WHITE>().queens().count();
+    EXPECT_EQ(1, qCount);
 
-//     // setup
-//     auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
-//     std::map<Notation, int> moveMap{{e8, 0}, {d8, 0}};
-//     std::map<ChessPiece, int> promoteMap{{WHITEKNIGHT, 0}, {WHITEBISHOP, 0}, {WHITEROOK, 0}, {WHITEQUEEN, 0}};
+    // undo
+    bool result = m_chessboard.UnmakeMove(undounit);
 
-//     // validate
-//     EXPECT_EQ(8, moves.size());
-//     for (auto mv : moves) {
-//         // do
-//         result = m_chessboard.MakeMove(mv);
-//         EXPECT_TRUE(result);
+    // validate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(P, m_chessboard.readTile(e7).readPiece());
+    EXPECT_EQ(ChessPiece::None(), m_chessboard.readTile(e8).readPiece());
+    EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
+    EXPECT_EQ(hash, m_chessboard.readHash());
 
-//         EXPECT_TRUE(moveMap.find(mv.TargetSquare) != moveMap.end());
-//         moveMap.at(mv.TargetSquare)++;
+    pawnMask = position.readMaterial<Set::WHITE>().pawns().read();
+    EXPECT_EQ(squareMaskTable[static_cast<i32>(Square::E7)], pawnMask);
+    qCount = position.readMaterial<Set::WHITE>().queens().count();
+    EXPECT_EQ(0, qCount);
 
-//         EXPECT_TRUE(promoteMap.find(mv.PromoteToPiece) != promoteMap.end());
-//         promoteMap.at(mv.PromoteToPiece)++;
+    PackedMove capturePromote(Square::E7, Square::D8);
+    capturePromote.setCapture(true);
+    capturePromote.setPromoteTo(WHITEQUEEN);
 
-//         // do
-//         m_chessboard.UnmakeMove(mv);
-//         EXPECT_EQ(BLACKKNIGHT, m_chessboard.readPieceAt(d8));
-//         EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(e7));
-//     }
+    // check that there is a piece to be captured
+    EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
+    const auto& knights = m_chessboard.readPosition().readMaterial<Set::BLACK>().knights();
+    EXPECT_EQ(1, knights.count());
+    EXPECT_EQ(squareMaskTable[static_cast<i32>(Square::D8)], knights.read());
+    hash = m_chessboard.readHash();
 
-//     EXPECT_EQ(4, moveMap[d8]);
-//     EXPECT_EQ(4, moveMap[e8]);
+    // do
+    undounit = m_chessboard.MakeMove<false>(capturePromote);
 
-//     EXPECT_EQ(2, promoteMap[WHITEKNIGHT]);
-//     EXPECT_EQ(2, promoteMap[WHITEBISHOP]);
-//     EXPECT_EQ(2, promoteMap[WHITEROOK]);
-//     EXPECT_EQ(2, promoteMap[WHITEQUEEN]);
-// }
+    // validate
+    EXPECT_EQ(hash, undounit.hash);
+    EXPECT_NE(hash, m_chessboard.readHash());
+
+    EXPECT_EQ(Q, m_chessboard.readTile(d8).readPiece());
+    EXPECT_EQ(ChessPiece::None(), m_chessboard.readTile(e7).readPiece());
+    EXPECT_EQ(0, knights.count());
+
+    // undo
+    result = m_chessboard.UnmakeMove(undounit);
+
+    // validate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(n, m_chessboard.readTile(d8).readPiece());
+    EXPECT_EQ(P, m_chessboard.readTile(e7).readPiece());
+    EXPECT_EQ(1, knights.count());
+    EXPECT_EQ(squareMaskTable[static_cast<i32>(Square::D8)], knights.read());
+    EXPECT_EQ(hash, m_chessboard.readHash());
+
+    const auto& pawns = m_chessboard.readPosition().readMaterial<Set::WHITE>().pawns();
+    EXPECT_EQ(squareMaskTable[static_cast<i32>(Square::E7)], pawns.read());
+    EXPECT_EQ(1, pawns.count());
+}
 
 // // 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
 // // 7 [   ][   ][   ][   ][   ][   ][   ][   ]

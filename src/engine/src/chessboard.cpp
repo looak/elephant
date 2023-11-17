@@ -286,18 +286,34 @@ template MoveUndoUnit Chessboard::MakeMove<false>(PackedMove, ChessPiece);
 bool
 Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 {
-    i32 srcSqr = undoState.move.source();
-    i32 trgSqr = undoState.move.target();
+    const i32 srcSqr = undoState.move.source();
+    const i32 trgSqr = undoState.move.target();
+    const ChessPiece movedPiece = m_tiles[trgSqr].readPiece();
 
-    // unmake move
-    m_tiles[srcSqr].editPiece() = m_tiles[trgSqr].readPiece();
-    // even if move aint a caputure this will reset the target square to the correct state.
-    m_tiles[trgSqr].editPiece() = undoState.capturedPiece;
+    // idea here is to store the piece to place back on the board in this variable,
+    // if we're dealing with a promotion this will be a pawn of the correct set.
+    // otherwise it will be the same piece as movedPiece.
+    const ChessPiece promotedPiece =
+        undoState.move.isPromotion() ? ChessPiece(movedPiece.getSet(), PieceType::PAWN) : movedPiece;
 
-    m_position.PlacePiece(m_tiles[srcSqr].readPiece(), Notation(srcSqr));
-    m_position.ClearPiece(m_tiles[trgSqr].readPiece(), Notation(trgSqr));
-    if (undoState.move.isCapture())
-        m_position.PlacePiece(undoState.capturedPiece, Notation(trgSqr));
+    // unmake move, currently we are tracking the piece and board state in two
+    // different places, here in our tiles and in the position.
+    m_tiles[srcSqr].editPiece() = promotedPiece;
+    m_tiles[trgSqr].editPiece() = ChessPiece::None();
+    m_position.PlacePiece(promotedPiece, Notation(srcSqr));
+    m_position.ClearPiece(movedPiece, Notation(trgSqr));
+
+    if (undoState.move.isCapture()) {
+        if (undoState.move.isEnPassant()) {
+            i32 epPieceSqr = static_cast<i32>(undoState.enPassantState.readTarget());
+            m_position.PlacePiece(undoState.capturedPiece, Notation(epPieceSqr));
+            m_tiles[epPieceSqr].editPiece() = undoState.capturedPiece;
+        }
+        else {
+            m_position.PlacePiece(undoState.capturedPiece, Notation(trgSqr));
+            m_tiles[trgSqr].editPiece() = undoState.capturedPiece;
+        }
+    }
 
     m_position.editEnPassant().write(undoState.enPassantState.read());  // restore enpassant state
     m_position.editCastling().write(undoState.castlingState.read());    // restore castling state
@@ -455,23 +471,25 @@ Chessboard::InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoStat
 
     InternalUpdateEnPassant(move.sourceSqr(), move.targetSqr());
 
-    // if (IsPromoting(move)) {  // edit the source tile piece, since we're using this when we do our
-    //                           // internal move.
+    if (move.isPromotion()) {
+        // ensure promotion piece is same set as piece we're moving. There is a bug in string
+        // parsing of piece which assumses capitalized string is white, but that doesn't work for
+        // promotions
+        auto& srcTile = m_tiles[move.source()];
+        const ChessPiece src = srcTile.readPiece();
+        const ChessPiece promote(src.getSet(), static_cast<PieceType>(move.readPromoteToPieceType()));
 
-    //     // ensure promotion piece is same set as piece we're moving. There is a bug in string
-    //     // parsing of piece which assumses capitalized string is white, but that doesn't work for
-    //     // promotions
-    //     move.PromoteToPiece = ChessPiece(move.Piece.getSet(), move.PromoteToPiece.getType());
+        m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, src, move.sourceSqr());
+        m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, promote, move.sourceSqr());
 
-    //     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.Piece, move.SourceSquare);
-    //     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, move.PromoteToPiece, move.SourceSquare);
+        // updating the piece on the source tile since we're doing this pre-move.
+        // internal move will handle the actual move of the piece, but what piece it is doesn't
+        // really mater at that point.
+        srcTile.editPiece() = promote;
 
-    //     m_tiles[move.SourceSquare.index()].editPiece() = move.PromoteToPiece;
-
-    //     m_position.ClearPiece(move.Piece, move.SourceSquare);
-    //     m_position.PlacePiece(move.PromoteToPiece, move.SourceSquare);
-    //     move.Flags |= MoveFlag::Promotion;
-    // }
+        m_position.ClearPiece(src, move.sourceSqr());
+        m_position.PlacePiece(promote, move.sourceSqr());
+    }
 
     return pieceTarget;
 }
