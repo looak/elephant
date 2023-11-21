@@ -155,6 +155,20 @@ struct KingMask {
         return knightOrPawnCheck;
     }
 
+    [[nodiscard]] constexpr u8 countChecked() const
+    {
+        int count = 0;
+        for (int i = 0; i < 8; ++i) {
+            if (checked[i]) {
+                ++count;
+            }
+        }
+        if (knightOrPawnCheck) {
+            ++count;
+        }
+        return count;
+    }
+
     u64 combined() const
     {
         u64 result = 0;

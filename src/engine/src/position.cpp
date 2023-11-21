@@ -923,6 +923,11 @@ Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const King
             return internalIsolateRook<us>(source, movesbb);
         case knightId:
             return internalIsolateKnightMoves<us>(source, movesbb);
+        case queenId: {
+            auto [moves, captures] = internalIsolateBishop<us>(source, movesbb, kingMask);
+            auto [rookMoves, rookCaptures] = internalIsolateRook<us>(source, movesbb);
+            return {moves | rookMoves, captures | rookCaptures};
+        }
         default:
             FATAL_ASSERT(false) << "Not implemented";
     }

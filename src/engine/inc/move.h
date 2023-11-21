@@ -207,6 +207,22 @@ public:
         m_internals |= ((pieceId - 1) << 12);  // store piece type
     }
 
+    inline void setCastleQueenSide(bool value)
+    {
+        if (value == true)
+            m_internals |= QUEEN_CASTLE << 12;
+        else
+            m_internals &= ~(QUEEN_CASTLE << 12);
+    }
+
+    inline void setCastleKingSide(bool value)
+    {
+        if (value == true)
+            m_internals |= KING_CASTLE << 12;
+        else
+            m_internals &= ~(KING_CASTLE << 12);
+    }
+
     // operators
     bool operator==(const PackedMove& rhs) const { return m_internals == rhs.m_internals; }
     bool operator!=(const PackedMove& rhs) const { return m_internals != rhs.m_internals; }

@@ -62,6 +62,8 @@ static constexpr u64 moveMask[2] = {UINT64_C(0x10100), UINT64_C(0x101)};
 namespace king_constants {
 static constexpr u64 moveMask = UINT64_C(0x70507);
 static constexpr i32 maskOffset = 9;
+static constexpr u64 queenSideCastleMask = board_constants::filecMask;
+static constexpr u64 kingSideCastleMask = board_constants::filegMask;
 }  // namespace king_constants
 
 constexpr std::array<u64, 64>

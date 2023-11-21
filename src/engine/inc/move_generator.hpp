@@ -43,6 +43,9 @@ private:
     void generateMoves(const KingMask& kingmask);
 
     template<Set set>
+    void internalGenerateMoves(u8 pieceId, const KingMask& kingmask);
+
+    template<Set set>
     void internalGeneratePawnMoves(const KingMask& kingmask);
     template<Set set>
     void internalGenerateKnightMoves(const KingMask& kingmask);
