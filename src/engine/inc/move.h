@@ -199,11 +199,12 @@ public:
             m_internals &= ~(EN_PASSANT_CAPTURE << 12);
     }
 
-    inline void setPromoteTo(ChessPiece piece)
+    inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
+    inline void setPromoteTo(u16 pieceId)
     {
-        m_internals &= ~(11 << 12);                 // clear promotion bits
-        m_internals |= (8 << 12);                   // set promotion flag
-        m_internals |= ((piece.type() - 2) << 12);  // store piece type
+        m_internals &= ~(11 << 12);            // clear promotion bits
+        m_internals |= (8 << 12);              // set promotion flag
+        m_internals |= ((pieceId - 1) << 12);  // store piece type
     }
 
     // operators

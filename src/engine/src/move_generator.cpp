@@ -77,6 +77,8 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
         const i32 srcSqr = pawns.popLsb();
         const Notation srcNotation(srcSqr);
 
+        const u64 promotionMask = pawn_constants::promotionRank[(size_t)set];
+
         auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, kingMask);
         while (isolatedPawnAttacks.empty() == false) {
             i32 dstSqr = isolatedPawnAttacks.popLsb();
@@ -91,8 +93,28 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
             else
                 move.setCapture(true);
 
-            PrioratizedMove prioratizedMove(move, 1);
-            m_moves.push(prioratizedMove);
+            // if we're promoting set the promotion flag and create 4 moves.
+            if (promotionMask & squareMaskTable[dstSqr]) {
+                move.setPromoteTo(queenId);
+                PrioratizedMove prioratizedMove(move, 1);
+                m_moves.push(prioratizedMove);
+
+                move.setPromoteTo(rookId);
+                PrioratizedMove prioratizedMove2(move, 1);
+                m_moves.push(prioratizedMove2);
+
+                move.setPromoteTo(bishopId);
+                PrioratizedMove prioratizedMove3(move, 1);
+                m_moves.push(prioratizedMove3);
+
+                move.setPromoteTo(knightId);
+                PrioratizedMove prioratizedMove4(move, 1);
+                m_moves.push(prioratizedMove4);
+            }
+            else {
+                PrioratizedMove prioratizedMove(move, 1);
+                m_moves.push(prioratizedMove);
+            }
         }
         while (isolatedPawnMoves.empty() == false) {
             i32 dstSqr = isolatedPawnMoves.popLsb();
@@ -101,8 +123,28 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
             move.setSource(srcSqr);
             move.setTarget(dstSqr);
 
-            PrioratizedMove prioratizedMove(move, 1);
-            m_moves.push(prioratizedMove);
+            // if we're promoting set the promotion flag and create 4 moves.
+            if (promotionMask & squareMaskTable[dstSqr]) {
+                move.setPromoteTo(queenId);
+                PrioratizedMove prioratizedMove(move, 1);
+                m_moves.push(prioratizedMove);
+
+                move.setPromoteTo(rookId);
+                PrioratizedMove prioratizedMove2(move, 1);
+                m_moves.push(prioratizedMove2);
+
+                move.setPromoteTo(bishopId);
+                PrioratizedMove prioratizedMove3(move, 1);
+                m_moves.push(prioratizedMove3);
+
+                move.setPromoteTo(knightId);
+                PrioratizedMove prioratizedMove4(move, 1);
+                m_moves.push(prioratizedMove4);
+            }
+            else {
+                PrioratizedMove prioratizedMove(move, 1);
+                m_moves.push(prioratizedMove);
+            }
         }
     }
 }

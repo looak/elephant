@@ -31,6 +31,12 @@ enum class PieceType : byte {
     NR_OF_PIECES = KING + 1,
 };
 
+constexpr u8
+toPieceId(PieceType type)
+{
+    return static_cast<u8>(type);
+}
+
 enum class Set : byte { WHITE = 0, BLACK = 1, NR_OF_SETS = 2 };
 
 template<Set s>
