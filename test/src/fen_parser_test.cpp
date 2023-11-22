@@ -190,7 +190,8 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
     EXPECT_EQ(5, context.readPly());
     EXPECT_EQ(19, context.readMoveCount());
     EXPECT_EQ(Set::BLACK, context.readToPlay());
-    EXPECT_EQ(Square::D3, testContext.readChessboard().readPosition().readEnPassant().readSquare());
+    auto sqr = context.readChessboard().readPosition().readEnPassant().readSquare();
+    EXPECT_EQ(Square::D3, sqr);
 
     std::string output;
     bool result = FENParser::serialize(context, output);

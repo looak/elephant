@@ -1218,6 +1218,8 @@ Chessboard::GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedM
 bool
 Chessboard::setEnPassant(Notation notation)
 {
+    if (notation.isValid() == false)
+        return false;
     u64 newHash = m_hash;
     auto& ep = m_position.editEnPassant();
     if (ep)
