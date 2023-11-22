@@ -187,7 +187,8 @@ struct KingMask {
     {
         u64 result = 0;
         for (int i = 0; i < 8; ++i) {
-            result |= threats[i];
+            if (checked[i] == false)
+                result |= threats[i];
         }
         return result;
     }
@@ -474,11 +475,12 @@ private:
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb,
+                                                              const KingMask& kingMask) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
 
     Bitboard MaterialCombined(byte set) const;
     Bitboard MaterialCombined() const;

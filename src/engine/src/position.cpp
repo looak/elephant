@@ -925,12 +925,12 @@ Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const King
         case bishopId:
             return internalIsolateBishop<us>(source, movesbb, kingMask);
         case rookId:
-            return internalIsolateRook<us>(source, movesbb);
+            return internalIsolateRook<us>(source, movesbb, kingMask);
         case knightId:
-            return internalIsolateKnightMoves<us>(source, movesbb);
+            return internalIsolateKnightMoves<us>(source, movesbb, kingMask);
         case queenId: {
             auto [moves, captures] = internalIsolateBishop<us>(source, movesbb, kingMask);
-            auto [rookMoves, rookCaptures] = internalIsolateRook<us>(source, movesbb);
+            auto [rookMoves, rookCaptures] = internalIsolateRook<us>(source, movesbb, kingMask);
             return {moves | rookMoves, captures | rookCaptures};
         }
         default:
@@ -940,10 +940,8 @@ Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const King
     return {0, 0};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::WHITE>(u8 pieceId, Notation source, Bitboard movesbb,
-                                                                           const KingMask& kingMask) const;
-template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::BLACK>(u8 pieceId, Notation source, Bitboard movesbb,
-                                                                           const KingMask& kingMask) const;
+template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::WHITE>(u8, Notation, Bitboard, const KingMask&) const;
+template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::BLACK>(u8, Notation, Bitboard, const KingMask&) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
@@ -981,9 +979,18 @@ template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::BLACK
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb) const
+Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingMask& kingMask) const
 {
     Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+
+    // figure out if piece is pinned
+    u64 srcMask = squareMaskTable[source.index()];
+    bool pinned = srcMask & kingMask.combinedPins();
+    if (pinned == true) {
+        movesbb &= kingMask.combinedPins();
+        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+    }
+
     if (readMaterial<us>()[knightId].count() <= 1)
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
 
@@ -1067,14 +1074,12 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingMas
     return {movesbb & ~opMatCombined, movesbb & opMatCombined};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::WHITE>(Notation source, Bitboard movesbb,
-                                                                                    const KingMask& kingMask) const;
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::BLACK>(Notation source, Bitboard movesbb,
-                                                                                    const KingMask& kingMask) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::WHITE>(Notation, Bitboard, const KingMask&) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::BLACK>(Notation, Bitboard, const KingMask&) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateRook(Notation source, Bitboard movesbb) const
+Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask) const
 {
     Bitboard opThreatenedPieces = readMaterial<opposing_set<us>()>().combine() & movesbb;
     if (readMaterial<us>()[rookId].count() <= 1)
@@ -1123,8 +1128,8 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb) const
     return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation source, Bitboard movesbb) const;
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::BLACK>(Notation source, Bitboard movesbb) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation, Bitboard, const KingMask&) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::BLACK>(Notation, Bitboard, const KingMask&) const;
 
 i32
 Position::diffWestEast(Notation a, Notation b) const

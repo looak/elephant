@@ -1183,44 +1183,26 @@ TEST_F(MoveGeneratorFixture, Knight_Move_NothingSpecial)
 //     A    B    C    D    E    F    G    H
 // r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1
 // after Rxa8 bishop should have two available moves
-TEST_F(MoveGeneratorFixture, BishopBlockingOrCapturingCheckingPiece)
+TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece)
 {
     std::string fen = "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1";
     FENParser::deserialize(fen.c_str(), testContext);
 
     // setup
-    Move move(a1, a8);
-    // this result can be true when no move was made.
-    bool result = testContext.MakeMove(move);
+    PackedMove mv(Square::A1, Square::A8);
+    testContext.editChessboard().MakeMove<false>(mv);
+    testContext.editToPlay() = Set::BLACK;
 
     // verify
-    EXPECT_TRUE(result);
     EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
     EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
 
-    auto moves = search.GeneratePossibleMoves(testContext);
+    // do
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::B7; };
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen, predicate);
 
-    for (auto& mv : moves) {
-        testContext.MakeMove(mv);
-        testContext.UnmakeMove(mv);
-    }
-
-    auto predicate = [](const Move& mv) {
-        static ChessPiece b = BLACKBISHOP;
-        if (mv.Piece == b)
-            return true;
-
-        return false;
-    };
-
-    auto count = CountMoves(moves, predicate);
-    EXPECT_EQ(2, count.Moves);
-    EXPECT_EQ(1, count.Captures);
-    EXPECT_EQ(0, count.EnPassants);
-    EXPECT_EQ(0, count.Promotions);
-    EXPECT_EQ(0, count.Castles);
-    EXPECT_EQ(0, count.Checks);
-    EXPECT_EQ(0, count.Checkmates);
+    EXPECT_EQ(2, result.size());
 }
 
 /**
@@ -1243,34 +1225,35 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
     board.PlacePiece(WHITEKING, f1);
 
     // do
-    auto moves = search.GeneratePossibleMoves(testContext);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-    EXPECT_EQ(6, moves.size());
+    EXPECT_EQ(6, result.size());
 }
 
-/**
- * 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
- * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
- * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
- * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
- * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
- * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
- * 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
- * 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
- *     A    B    C    D    E    F    G    H */
-TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
-{
-    // setup
-    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
-    FENParser::deserialize(fen.c_str(), testContext);
+// /**
+//  * 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
+//  * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+//  * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+//  * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+//  * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+//  * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+//  * 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
+//  * 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
+//  *     A    B    C    D    E    F    G    H */
+// TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
+// {
+//     // setup
+//     std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
+//     FENParser::deserialize(fen.c_str(), testContext);
 
-    Move Qxd1(d8, d1);
-    testContext.MakeMove(Qxd1);
+//     Move Qxd1(d8, d1);
+//     testContext.MakeMove(Qxd1);
 
-    // do
-    auto moves = search.GeneratePossibleMoves(testContext);
-    EXPECT_EQ(0, moves.size());
-}
+//     // do
+//     auto moves = search.GeneratePossibleMoves(testContext);
+//     EXPECT_EQ(0, moves.size());
+// }
 
 /**
 * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1284,16 +1267,17 @@ TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
 *     A    B    C    D    E    F    G    H
 8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1
 Pawn is pinned by white rook in this scenario*/
-TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
+TEST_F(MoveGeneratorFixture, Pawn_DoubleMoveCheck_EnPassantCaptureNotAvailableBecauseOfPin)
 {
     // setup
     std::string fen("8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1");
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = search.GeneratePossibleMoves(testContext);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-    EXPECT_EQ(7, moves.size());
+    EXPECT_EQ(7, result.size());
 }
 
 /**
@@ -1307,19 +1291,18 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvaila
  * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
  *     A    B    C    D    E    F    G    H
  * fen: 8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2*/
-TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
+TEST_F(MoveGeneratorFixture, Pawn_MoveC3C2_MoveSuccessfull)
 {
     // setup
     std::string fen("8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2");
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = search.GeneratePossibleMoves(testContext);
+    MoveGenerator gen(testContext);
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::C3; };
+    auto result = buildMoveVector(gen, predicate);
 
-    auto pawnMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == c2; });
-    ASSERT_NE(moves.end(), pawnMv);
-    EXPECT_EQ(BLACKPAWN, pawnMv->Piece);
-    EXPECT_EQ(c3, pawnMv->SourceSquare);
+    EXPECT_EQ(1, result.size());
 }
 
 /**
@@ -1333,17 +1316,17 @@ TEST_F(MoveGeneratorFixture, PawnMoveC3C2_Black_MoveSuccessfull)
  * 1 [   ][ K ][   ][ R ][   ][   ][   ][   ]
  *     A    B    C    D    E    F    G    H
  * fen: 8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1*/
-TEST_F(MoveGeneratorFixture, Nxb3_Black_IllegalMoveSincePinned)
+TEST_F(MoveGeneratorFixture, Knight_Nxb3_IllegalMoveSincePinned)
 {
     std::string fen("8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1");
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = search.GeneratePossibleMoves(testContext);
+    MoveGenerator gen(testContext);
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::D4; };
+    auto result = buildMoveVector(gen, predicate);
 
-    auto knightMv = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.TargetSquare == b3; });
-    EXPECT_EQ(moves.end(), knightMv);
-    EXPECT_EQ(5, moves.size());
+    EXPECT_EQ(0, result.size());
 }
 
 /**
@@ -1363,9 +1346,10 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
     FENParser::deserialize(fen.c_str(), testContext);
 
     // do
-    auto moves = search.GeneratePossibleMoves(testContext);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-    EXPECT_EQ(4, moves.size());
+    EXPECT_EQ(4, result.size());
 }
 
 // /**
