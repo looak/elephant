@@ -2110,6 +2110,43 @@ TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnSameRank)
     }
 }
 
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ q ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ r ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ . ][ . ][ . ][ K ][ . ][ . ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnBaseRankWithOpPieces)
+{
+    Position board;
+    board.PlacePiece(BLACKROOK, a2);
+    board.PlacePiece(BLACKQUEEN, h7);
+    board.PlacePiece(WHITEROOK, a1);
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(WHITEROOK, h1);
+
+    KingMask empty{};
+    u64 movesbb = board.calcAvailableMovesRookBulk<Set::WHITE>(empty).read();
+    {
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, rookId>(a1, movesbb, empty);
+
+        u64 expected = 0xe;
+        EXPECT_EQ(expected, moves.read());
+        expected = 0x100;
+        EXPECT_EQ(expected, attks.read());
+    }
+    {
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, rookId>(h1, movesbb, empty);
+        u64 expected = 0x808080808060ull;
+        EXPECT_EQ(expected, moves.read());
+        expected = 0x80000000000000ull;
+        EXPECT_EQ(expected, attks.read());
+    }
+}
+
 TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnSameFile)
 {
     Position board;

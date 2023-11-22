@@ -172,8 +172,14 @@ struct KingMask {
     u64 combined() const
     {
         u64 result = 0;
-        result |= combinedPins();
-        result |= knightsAndPawns;
+        for (int i = 0; i < 8; ++i) {
+            if (checked[i])
+                result |= threats[i];
+        }
+
+        if (knightOrPawnCheck)
+            result |= knightsAndPawns;
+
         return result;
     }
 

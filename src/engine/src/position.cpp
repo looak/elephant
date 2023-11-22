@@ -810,7 +810,12 @@ template<Set us>
 Bitboard
 Position::calcAvailableMovesKnightBulk(const KingMask& kingMask) const
 {
-    return calcThreatenedSquaresKnightBulk<us>();
+    auto moves = calcThreatenedSquaresKnightBulk<us>();
+
+    if (kingMask.isChecked())
+        return moves & kingMask.combined();
+
+    return moves;
 }
 
 template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE>(const KingMask& kingMask) const;
@@ -1073,7 +1078,7 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb) const
 {
     Bitboard opThreatenedPieces = readMaterial<opposing_set<us>()>().combine() & movesbb;
     if (readMaterial<us>()[rookId].count() <= 1)
-        return {movesbb ^ opThreatenedPieces, opThreatenedPieces};
+        return {movesbb & ~opThreatenedPieces, opThreatenedPieces};
 
     Bitboard mask(board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank]);
     Bitboard pieceMask = readMaterial<us>()[rookId] & mask;
@@ -1084,36 +1089,38 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb) const
 
     movesbb &= mask;
     pieceMask &= ~squareMaskTable[source.index()];
-    i64 otherSquare = pieceMask.lsbIndex();
+    Bitboard includeMask = squareMaskTable[source.index()];
 
-    i64 diff = otherSquare - source.index();
-    if ((pieceMask & board_constants::fileMasks[source.file]) == 0)  // not on same file
+    Bitboard usMaterial = readMaterial<us>().combine();
+
+    // remove self from us material
+    usMaterial &= ~squareMaskTable[source.index()];
+
+    if (pieceMask & board_constants::fileMasks[source.file])  // on same file
     {
-        if (diff < 0) {
-            i8 file = source.file + diff;
-            Bitboard excludeMask;
-            movesbb &= ~excludeMask.inclusiveFillWest(file);
-        }
-        else {
-            i8 file = source.file + diff;
-            Bitboard excludeMask;
-            movesbb &= ~excludeMask.inclusiveFillEast(file);
-        }
+        while (!(includeMask & board_constants::rank7Mask) && !(includeMask.shiftNorth() & usMaterial))
+            includeMask |= includeMask.shiftNorth();
+
+        while (!(includeMask & board_constants::rank0Mask) && !(includeMask.shiftSouth() & usMaterial))
+            includeMask |= includeMask.shiftSouth();
+
+        Bitboard includedrank = movesbb & board_constants::rankMasks[source.rank];
+        movesbb &= includeMask;
+        movesbb |= includedrank;
     }
     else {
-        i64 shiftValue = abs(diff);  // - 8;
-        if (diff < 0) {
-            movesbb = movesbb >> shiftValue;
-            movesbb = movesbb << shiftValue;
-        }
-        else {
-            shiftValue -= 8;
-            movesbb = movesbb << shiftValue;
-            movesbb = movesbb >> shiftValue;
-        }
+        while (!(includeMask & board_constants::fileaMask) && !(includeMask.shiftWest() & usMaterial))
+            includeMask |= includeMask.shiftWest();
+
+        while (!(includeMask & board_constants::filehMask) && !(includeMask.shiftEast() & usMaterial))
+            includeMask |= includeMask.shiftEast();
+
+        Bitboard includedfile = movesbb & board_constants::fileMasks[source.file];
+        movesbb &= includeMask;
+        movesbb |= includedfile;
     }
 
-    return {movesbb ^ opThreatenedPieces, movesbb & opThreatenedPieces};
+    return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation source, Bitboard movesbb) const;
