@@ -92,116 +92,6 @@ Position::PlacePiece(ChessPiece piece, Notation target)
     return piecebb[sqr];
 }
 
-u64
-Position::calcAvailableMovesForPawn(u64 mat, u64 opMat, Notation source, ChessPiece piece, Notation enPassant,
-                                    u64 threatenedMask, KingMask checkedMaskStruct, KingMask kingMaskStruct) const
-{
-    u64 ret = ~universe;
-    u64 matComb = mat | opMat;
-    u64 checkedMask = checkedMaskStruct.combined();
-    u64 kingMask = kingMaskStruct.combined();
-
-    // by default we assume our piece is black
-    byte curSet = 1;
-    byte row = 6;
-    signed char moveMod = 1;
-
-    if (piece.getSet() == Set::WHITE) {
-        row = 1;
-        moveMod = -1;
-        curSet = 0;
-    }
-
-    // figure out if we're pinned
-    u64 sqrMask = squareMaskTable[source.index()];
-    bool pinned = (sqrMask & kingMask);
-    // this magic code is to solve the issue where we have a pinned pawn and a en passant capture
-    // opportunity, but capturing the en passant would put our king in check.
-    bool wasPinned = false;
-    if (pinned && kingMaskStruct.pawnMask) {
-        // verify we're on the rank of en passant target;
-        if (board_constants::rankMasks[enPassant.rank + moveMod] & sqrMask) {
-            pinned = false;
-            wasPinned = true;
-        }
-    }
-
-    if (checkedMask > 0)  // figure out if en passant target is the one putting our king in check
-    {
-        threatenedMask = checkedMask;
-
-        if (enPassant.isValid()) {
-            // calculate attacked squares
-            ChessPiece opPawn = ChessPiece(ChessPiece::FlipSet((Set)curSet), PieceType::PAWN);
-            Notation enPassantPieceSqr(enPassant.file, enPassant.rank + moveMod);
-            u64 enPassantAttack = calcThreatenedSquares(enPassantPieceSqr, opPawn);
-
-            if (m_material[piece.set()].material[5] & enPassantAttack) {
-                threatenedMask = checkedMask | squareMaskTable[enPassant.index()];
-            }
-        }
-
-        if (pinned)
-            threatenedMask &= kingMask;
-    }
-    else if (pinned) {
-        for (byte i = 0; i < 8; ++i) {
-            if (sqrMask & kingMaskStruct.threats[i]) {
-                threatenedMask = kingMaskStruct.threats[i];
-                break;
-            }
-        }
-    }
-
-    // Figure out if we're moving a pawn out of it's starting position.
-    // Pawn specific modifires and values, starting row to figure out if we can do a double step
-    // moveModifier for allowing white & black pawn moves to be represented by one value.
-    signed char startRow = 0;
-    signed char sq0x88 = source.index() + (source.index() & ~7);
-    startRow = (sq0x88 >> 4) == row ? 0 : -1;
-
-    // remove one move count if piece is a pawn and we are not on start row.
-    byte moveCount = ChessPieceDef::MoveCount(piece.index()) + startRow;
-
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        byte curSqr = source.index();
-        signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
-        dir *= moveMod;
-
-        // build a 0x88 square out of current square.
-        signed char sq0x88 = to0x88(curSqr);
-        // do move
-        sq0x88 += dir;
-        if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            continue;
-
-        // convert our sqr0x88 back to a square index
-        curSqr = fr0x88(sq0x88);
-        // build a square mask from current square
-        u64 sqrMask = squareMaskTable[curSqr];
-
-        // check if we are blocked by a friendly piece or a oponent piece.
-        if (matComb & sqrMask)
-            break;
-
-        ret |= sqrMask;
-    }
-
-    // add attacked squares to potential moves
-    if (enPassant.isValid() && !wasPinned) {
-        u64 enPassantMask = squareMaskTable[enPassant.index()];
-        opMat |= enPassantMask;
-    }
-
-    u64 potentialAttacks = calcThreatenedSquares(source, piece);
-    ret |= (potentialAttacks & opMat);
-
-    if ((checkedMask > 0) || pinned)
-        ret &= threatenedMask;
-
-    return ret;
-}
-
 template<Set us>
 KingMask
 Position::calcKingMask() const
@@ -226,7 +116,7 @@ Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
     const u8 opSet = ChessPiece::FlipSet(king.set());
     const u64 c_diagnoalMat = m_material[opSet].material[bishopId].read() | m_material[opSet].material[queenId].read();
     const u64 c_orthogonalMat = m_material[opSet].material[rookId].read() | m_material[opSet].material[queenId].read();
-    const u64 allMat = MaterialCombined().read();
+    const u64 allMat = readMaterial<Set::WHITE>().combine().read() | readMaterial<Set::BLACK>().combine().read();
 
     const u64 slideMatCache[2]{opponentSlidingMask.orthogonal.read() & c_orthogonalMat,
                                opponentSlidingMask.diagonal.read() & c_diagnoalMat};
@@ -352,199 +242,11 @@ Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
     return ret;
 }
 
-u64
-Position::calcAvailableMovesForKing(u64 mat, u64 threatenedMask, Notation source, ChessPiece piece, byte castling) const
-{
-    u64 ret = ~universe;
-
-    byte moveCount = ChessPieceDef::MoveCount(piece.index());
-
-    u64 combinedMatAndThreat = mat | threatenedMask;
-
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        byte curSqr = source.index();
-        signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
-
-        // build a 0x88 square out of current square.
-        signed char sq0x88 = to0x88(curSqr);
-        // do move
-        sq0x88 += dir;
-        if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            continue;
-
-        // convert our sqr0x88 back to a square index
-        curSqr = fr0x88(sq0x88);
-
-        // build a square mask from current square
-        u64 sqrMask = squareMaskTable[curSqr];
-
-        // check if we are blocked by a friendly piece or a oponent piece.
-        if (sqrMask & combinedMatAndThreat)
-            continue;
-
-        ret |= sqrMask;
-    }
-
-    ret |= Castling(piece.set(), castling, threatenedMask);
-
-    return ret;
-}
-
-u64
-Position::calcAvailableMoves(Notation source, ChessPiece piece, byte castling, Notation enPassant, u64 threatened,
-                             KingMask checkedMask, KingMask kingMask) const
-{
-    return 55;
-    u64 ret = ~universe;
-    u64 matComb = MaterialCombined(piece.set()).read();
-    u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set())).read();
-
-    if (piece.getType() == PieceType::PAWN)
-        return calcAvailableMovesForPawn(matComb, opMatComb, source, piece, enPassant, threatened, checkedMask, kingMask);
-    else if (piece.getType() == PieceType::KING)
-        return calcAvailableMovesForKing(matComb, threatened, source, piece, castling);
-
-    bool checked = !checkedMask.zero();
-    bool pinned = false;
-    byte moveIndx = 0;
-
-    // figure out if we're pinned and if so overwrite the threatened mask.
-    u64 sqrMask = squareMaskTable[source.index()];
-
-    for (byte i = 0; i < 8; ++i) {
-        if (sqrMask & kingMask.threats[i]) {
-            pinned = true;
-            threatened = kingMask.threats[i];
-        }
-    }
-
-    if (checked) {
-        if (pinned)
-            threatened &= checkedMask.combined();
-        else
-            threatened = checkedMask.combined();
-    }
-
-    bool sliding = false;
-    byte moveCount = ChessPieceDef::MoveCount(piece.index());
-    for (; moveIndx < moveCount; ++moveIndx) {
-        sliding = ChessPieceDef::Slides(piece.index());
-        byte curSqr = source.index();
-        signed short dir = ChessPieceDef::Moves0x88(piece.index(), moveIndx);
-
-        u64 mvMask = 0;
-        do {
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            {
-                sliding = false;
-                break;
-            }
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-
-            if (matComb & sqrMask) {
-                sliding = false;
-                break;
-            }
-            else if (opMatComb & sqrMask) {
-                sliding = false;
-            }
-
-            ret |= sqrMask;
-
-        } while (sliding);
-
-        ret |= mvMask;
-    }
-
-    if (checked || pinned)
-        ret &= threatened;
-
-    return 0;
-}
-
-Bitboard
-Position::GetMaterial(ChessPiece piece) const
-{
-    return m_material[piece.set()].material[piece.index()];
-}
-
-u64
-Position::calcThreatenedSquares(Notation source, ChessPiece piece, bool pierceKing) const
-{
-    u64 ret = ~universe;
-    auto opSet = ChessPiece::FlipSet(piece.set());
-    u64 matComb = MaterialCombined(piece.set()).read();
-    u64 opMatComb = MaterialCombined(opSet).read();
-
-    // removing king from opmaterial so it doesn't stop our sliding.
-    if (pierceKing)
-        opMatComb &= ~m_material[opSet].material[kingId].read();
-
-    signed char moveMod = 1;
-    if (piece.getSet() == Set::WHITE)
-        moveMod = -1;
-
-    bool sliding = false;
-    matComb |= opMatComb;
-
-    byte moveCount = ChessPieceDef::MoveCount(piece.index());
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        sliding = ChessPieceDef::Slides(piece.index());
-        byte curSqr = source.index();
-        signed short dir = ChessPieceDef::Attacks0x88(piece.index(), moveIndx);
-        dir *= moveMod;
-
-        do {
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                break;
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-
-            if ((matComb & sqrMask) > 0)
-                sliding = false;
-
-            ret |= sqrMask;
-
-        } while (sliding);
-    }
-
-    return ret;
-}
-
-u64
-Position::calcAttackedSquares(Notation source, ChessPiece piece) const
-{
-    u64 opMatComb = MaterialCombined(ChessPiece::FlipSet(piece.set())).read();
-    u64 ret = calcThreatenedSquares(source, piece);
-    return ret & opMatComb;
-}
-
-bool
-Position::IsValidMove(Notation source, ChessPiece piece, Notation target, byte castling, Notation enPassant,
-                      u64 threatenedMask) const
-{
-    u64 movesMask = calcAvailableMoves(source, piece, castling, enPassant, threatenedMask);
-    movesMask |= calcAttackedSquares(source, piece);
-
-    u64 targetMask = squareMaskTable[target.index()];
-
-    return movesMask & targetMask;
-}
+// Bitboard
+// Position::GetMaterial(ChessPiece piece) const
+// {
+//     return m_material[piece.set()].material[piece.index()];
+// }
 
 u64
 Position::Castling(byte set, byte castling, u64 threatenedMask) const
@@ -564,7 +266,7 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
         return retVal;
 
     u64 attacked = threatenedMask;
-    u64 combMat = MaterialCombined().read();
+    u64 combMat = readMaterial<Set::WHITE>().combine().read() | readMaterial<Set::BLACK>().combine().read();
 
     // check king side
     if (castling & 1) {
@@ -596,31 +298,6 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
             retVal |= squareMaskTable[csqr];
     }
     return retVal;
-}
-
-MaterialMask
-Position::GetMaterial(Set set) const
-{
-    return m_material[(size_t)set];
-}
-
-Bitboard
-Position::GetMaterialCombined(Set set) const
-{
-    return MaterialCombined(static_cast<byte>(set));
-}
-
-Bitboard
-Position::MaterialCombined() const
-{
-    return MaterialCombined(0) | MaterialCombined(1);
-}
-
-Bitboard
-Position::MaterialCombined(byte set) const
-{
-    return (m_material[set].material[pawnId] | m_material[set].material[knightId] | m_material[set].material[bishopId] |
-            m_material[set].material[rookId] | m_material[set].material[queenId] | m_material[set].material[kingId]);
 }
 
 Bitboard

@@ -1110,10 +1110,7 @@ Chessboard::GetAvailableMoves(Set currentSet, bool captureMoves) const
 bool
 Chessboard::InternalIsMoveCheck(Move& move) const
 {
-    u64 attackedMask = m_position.calcAttackedSquares(move.TargetSquare, move.isPromotion() ? move.PromoteToPiece : move.Piece);
-    ChessPiece kingPiece(ChessPiece::FlipSet(move.Piece.getSet()), PieceType::KING);
-    u64 kingPosition = m_position.GetMaterial(kingPiece).read();
-    return (attackedMask & kingPosition) != 0;
+    return false;
 }
 
 std::vector<Move>

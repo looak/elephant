@@ -1368,32 +1368,6 @@ TEST_F(PositionFixture, Knight_AttackedPieces_ThreateningToCaptureOpponentsBisho
     EXPECT_EQ(expected, result);
 }
 
-TEST_F(PositionFixture, Knight_Threat_ClearPieceFromBoard)
-{
-    Position board;
-    auto N = WHITEKNIGHT;
-    auto B = WHITEBISHOP;
-    auto b = BLACKBISHOP;
-
-    board.PlacePiece(N, e3);
-    board.PlacePiece(B, f5);
-    board.PlacePiece(b, d5);
-
-    // setup
-    u64 expected = ~universe;
-    expected |= INT64_C(1) << d5.index();
-
-    u64 result = board.calcAttackedSquares(e3, N);
-    EXPECT_EQ(expected, result);
-
-    // clear piece
-    board.ClearPiece(b, d5);
-
-    expected = ~universe;
-    result = board.calcAttackedSquares(e3, N);
-    EXPECT_EQ(expected, result);
-}
-
 TEST_F(PositionFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlockingEachOther)
 {
     Position board;
