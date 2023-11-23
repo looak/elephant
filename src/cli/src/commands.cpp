@@ -176,20 +176,20 @@ DivideDepthHelpCommand(const std::string& command)
 bool
 MoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    if (tokens.empty() == false) {
-        std::string token = tokens.front();
-        Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
+    // if (tokens.empty() == false) {
+    //     std::string token = tokens.front();
+    //     Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
 
-        if (move.isInvalid()) {
-            std::cout << " Invalid move: " << token << std::endl;
-            return false;
-        }
+    //     if (move.isInvalid()) {
+    //         std::cout << " Invalid move: " << token << std::endl;
+    //         return false;
+    //     }
 
-        if (!context.PlayMove(move)) {
-            std::cout << " Invalid move: " << token << std::endl;
-            return false;
-        }
-    }
+    //     if (!context.PlayMove(move)) {
+    //         std::cout << " Invalid move: " << token << std::endl;
+    //         return false;
+    //     }
+    // }
 
     return true;
 }
@@ -278,11 +278,11 @@ bool
 AvailableMovesCommand(std::list<std::string>&, GameContext& context)
 {
     std::cout << " Available Moves: \n";
-    Search search;
-    auto moves = search.GeneratePossibleMoves(context);
-    for (auto&& move : moves) {
-        std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
-    }
+    // Search search;
+    // auto moves = search.GeneratePossibleMoves(context);
+    // for (auto&& move : moves) {
+    //     std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
+    // }
     std::cout << std::endl;
     return true;
 }

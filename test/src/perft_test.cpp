@@ -238,7 +238,6 @@ TEST_F(PerftFixture, DISABLED_Position_Two)
     PrintBoard(m_context.readChessboard());
 
     auto& board = m_context.editChessboard();
-    auto otherMoves = board.GetAvailableMoves(e1, WHITEKING, 0, KingMask(), KingMask());
 
     // do
     auto moves = m_search.GeneratePossibleMoves(m_context);

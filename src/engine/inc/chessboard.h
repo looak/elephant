@@ -76,35 +76,12 @@ public:
     bool PlacePiece(ChessPiece piece, Notation target, bool overwrite = false);
 
     template<bool validation>
-    MoveUndoUnit MakeMove(const PackedMove move, ChessPiece pieceToPromoteTo = ChessPiece::None());
+    MoveUndoUnit MakeMove(const PackedMove move);
 
     bool UnmakeMove(const MoveUndoUnit& undoState);
 
     template<typename... placementpairs>
     bool PlacePieces(placementpairs... placements);
-
-    // bool MakeMove(Move& move);
-    // bool MakeMoveUnchecked(Move& move);
-    // bool UnmakeMove(const Move& move);
-
-    // bool MakeNullMove(Move& move);
-    // bool UnmakeNullMove(const Move& move);
-
-    /**
-     * @brief Takes a move and serializes it to a unambigous Portable Game
-     * Notation (PGN) string for this board position.
-     * @param move The move to serialize.
-     * @return The serialized move.	*/
-    std::string SerializeMoveToPGN(const Move& move) const;
-    /**
-     * @brief Takes a short algebraic notation (SAN) string and deserializes it
-     * to a move for this board position.
-     * @param sanMove The SAN string to deserialize.
-     * @param isWhiteMove Whether the move is a white move or not.
-     * @return The deserialized move.	*/
-    Move DeserializeMoveFromPGN(const std::string& pgnMove, bool isWhiteMove) const;
-
-    std::tuple<int, KingMask> calcualteCheckedCount(Set set) const;
 
     /**
      * @brief Calculates the end game coeficient.
@@ -112,32 +89,12 @@ public:
      * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */
     float calculateEndGameCoeficient() const;
 
-    std::vector<Move> GetAvailableMoves(Notation source, ChessPiece piece, u64 threatenedMask, KingMask checkedMask,
-                                        KingMask kingMask, bool captureMoves = false) const;
-
-    /**
-     * Calculates the available legal moves for the specified set.
-     * @param currentSet The set to calculate the available moves for.
-     * @param captureMoves if true, will only return capture moves, by default
-     * false.
-     * @return A vector of all the moves for the specified set - might not be legal moves.	 */
-    std::vector<Move> GetAvailableMoves(Set currentSet, bool captureMoves = false) const;
-
     /**
      * @brief Calculates a bitboard which shows opponents available moves, i.e.
      * threatened squares.
      * @param set The set to calculate the threat against.
      * Should be removed!*/
     u64 calculateThreatenedMask(Set set) const;
-
-    /**
-     * @brief Calculates a mask from the kings point of view, figuring out if the king is threatened
-     * or in check.
-     * @param set The set to of the kin we are interested in.
-     * @tparam useCache Whether to use the cache or not, default is true
-     * @return The king mask    */
-    template<bool useCache = true>
-    KingMask calcKingMask(Set set) const;
 
     template<typename T, bool isConst = false>
     class ChessboardIterator {
@@ -223,9 +180,6 @@ public:
     ChessPiece readPieceAt(Notation notation) const;
     Notation readKingPosition(Set set) const;
 
-    bool isChecked(Set set) const;
-    bool isCheckmated(Set set) const;
-    bool isStalemated(Set set) const;
     std::string toString() const;
 
 private:
@@ -269,9 +223,6 @@ private:
     ChessboardTile& get(Notation position) { return editTile(position); }
     const ChessboardTile& get(Notation position) const { return readTile(position); }
 
-    bool InternalIsMoveCheck(Move& move) const;
-    int IsMoveCastling(const Move& move) const;
-    bool IsPromoting(const Move& move) const;
     bool VerifyMove(const Move& move) const;
 
     u64 m_hash;

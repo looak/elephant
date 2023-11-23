@@ -60,11 +60,11 @@ Search::OrganizeMoves(const std::vector<Move>& moves) const
 std::vector<Move>
 Search::GeneratePossibleMoves(const GameContext& context, bool captureMoves) const
 {
-    std::vector<Move> retMoves;
-    auto currentSet = context.readToPlay();
-    const auto& board = context.readChessboard();
+    std::vector<Move> moves;
+    // auto currentSet = context.readToPlay();
+    // const auto& board = context.readChessboard();
 
-    auto moves = board.GetAvailableMoves(currentSet, captureMoves);
+    // auto moves = board.GetAvailableMoves(currentSet, captureMoves);
     return moves;
 }
 
@@ -75,7 +75,8 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
     // something that we aren't considering here is moves that put opponent in check.
     i32 score = -c_maxScore;
 
-    if (depth == 0 && context.readChessboard().isChecked(context.readToPlay()))
+    bool isChecked = false;  // context.readChessboard().isChecked(context.readToPlay());
+    if (depth == 0 && isChecked)
         depth++;
 
     // generate capture moves
@@ -129,7 +130,7 @@ SearchResult
 Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta,
                         i32 perspective, std::vector<Move>& pv, u32 doNullMove)
 {
-    const bool isChecked = context.readChessboard().isChecked(context.readToPlay());
+    const bool isChecked = false;  // context.readChessboard().isChecked(context.readToPlay());
 
     if (depth == 0) {
         if (!isChecked) {

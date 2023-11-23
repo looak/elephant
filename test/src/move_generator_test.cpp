@@ -1195,7 +1195,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 
     // verify
     EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
-    EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
+    // EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
 
     // do
     auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::B7; };

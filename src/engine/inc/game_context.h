@@ -19,10 +19,9 @@
 struct SearchResult;
 struct SearchParameters;
 
-struct MoveHistory
-{
-    //Move move;
-    //Chessboard board;
+struct MoveHistory {
+    // Move move;
+    // Chessboard board;
     u64 HashKey;
     u32 PlyCount;
     u32 MoveCount;
@@ -31,32 +30,30 @@ struct MoveHistory
     std::string SAN;
 };
 
-class GameContext
-{
+class GameContext {
 public:
     GameContext() :
         m_toPlay(Set::WHITE),
         m_plyCount(0),
         m_moveCount(1)
-    {}
+    {
+    }
 
     GameContext(const GameContext& rhs) :
         m_board(rhs.m_board),
         m_toPlay(rhs.m_toPlay),
         m_plyCount(rhs.m_plyCount),
         m_moveCount(rhs.m_moveCount)
-    {}
+    {
+    }
 
     void Reset();
     void NewGame();
 
-    void PlayMoves(const Move& move, bool print = false);
-    bool PlayMove(Move& move);
-    
     bool MakeLegalMove(Move& move);
     bool MakeMove(Move& move);
     bool MakeNullMove(Move& move);
-    
+
     bool UnmakeMove(const Move& move);
     bool UnmakeNullMove(const Move& move);
 
@@ -84,11 +81,11 @@ public:
     const std::vector<MoveHistory>& readMoveHistory() const { return m_moveHistory; }
 
 private:
-    //std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
+    // std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
 
     Chessboard m_board;
     Set m_toPlay;
-    u32 m_plyCount;    
+    u32 m_plyCount;
     u32 m_moveCount;
     u32 m_fiftyMoveRule;
 

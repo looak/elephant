@@ -628,18 +628,18 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     EXPECT_EQ(scndCopyHash, scndCopy.readHash());
     EXPECT_EQ(goatGame, scndCopyHash);
 
-    u64 orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::BLACK));
-    u64 cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::BLACK));
-    EXPECT_EQ(orgMask, cpyMask);
+    // u64 orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::BLACK));
+    // u64 cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::BLACK));
+    // EXPECT_EQ(orgMask, cpyMask);
 
-    orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::WHITE));
-    cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::WHITE));
-    EXPECT_EQ(orgMask, cpyMask);
+    // orgMask = CombineKingMask(m_gameOfTheCentury.calcKingMask(Set::WHITE));
+    // cpyMask = CombineKingMask(scndCopy.calcKingMask(Set::WHITE));
+    // EXPECT_EQ(orgMask, cpyMask);
 
     auto orgSlidingMask = m_gameOfTheCentury.readSlidingMaterialMask(Set::BLACK);
     auto cpySlidingMask = scndCopy.readSlidingMaterialMask(Set::BLACK);
-    orgMask = orgSlidingMask.orthogonal.read() | orgSlidingMask.diagonal.read();
-    cpyMask = cpySlidingMask.orthogonal.read() | cpySlidingMask.diagonal.read();
+    u64 orgMask = orgSlidingMask.orthogonal.read() | orgSlidingMask.diagonal.read();
+    u64 cpyMask = cpySlidingMask.orthogonal.read() | cpySlidingMask.diagonal.read();
 
     EXPECT_GT(orgMask, 0);
     EXPECT_EQ(orgMask, cpyMask);

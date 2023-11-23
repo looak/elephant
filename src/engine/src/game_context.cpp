@@ -88,10 +88,10 @@ GameContext::GameOver() const
 {
     // if (m_fiftyMoveRule >= 50) // not fully implemented yet
     //     return true;
-    if (readChessboard().isCheckmated(m_toPlay))
-        return true;
-    if (readChessboard().isStalemated(m_toPlay))
-        return true;
+    // if (readChessboard().isCheckmated(m_toPlay))
+    //     return true;
+    // if (readChessboard().isStalemated(m_toPlay))
+    //     return true;
 
     // Set opSet = ChessPiece::FlipSet(m_toPlay);
     // if (readChessboard().isCheckmated(opSet))
@@ -100,20 +100,6 @@ GameContext::GameOver() const
     //     return true;
 
     return false;
-}
-
-bool
-GameContext::PlayMove(Move& move)
-{
-    std::string pgn = m_board.SerializeMoveToPGN(move);
-
-    if (!MakeMove(move))
-        return false;
-
-    MoveHistory entry = {m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn};
-    m_moveHistory.emplace_back(entry);
-
-    return true;
 }
 
 bool
@@ -222,6 +208,5 @@ GameContext::CalculateBestMove(SearchParameters params)
 bool
 GameContext::isGameOver() const
 {
-    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) || m_board.isStalemated(Set::WHITE) ||
-           m_board.isStalemated(Set::BLACK);
+    return false;
 }
