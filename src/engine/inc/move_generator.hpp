@@ -46,17 +46,26 @@ constexpr u8 all = silent | capture;
 //     constexpr Set m_them = opposing_set<us>();
 // };
 
+enum class MoveTypes {
+    ALL,
+    CAPTURES_ONLY,
+    QUIET_ONLY,
+};
+
 class MoveGenerator {
 public:
     MoveGenerator(const GameContext& context);
+    MoveGenerator(const Position& pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
     ~MoveGenerator() = default;
 
     PackedMove generateNextMove();
+    void forEachMove(std::function<void(const PackedMove&)> func) const;
 
 private:
-    void initializeMoveGenerator();
+    void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
+
     template<Set set>
-    void initializeMoveMasks(MaterialMask& target);
+    void initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype);
 
     template<Set set>
     PackedMove generateNextMove();
@@ -80,10 +89,13 @@ private:
     template<Set set>
     void internalGenerateKingMoves(const KingMask& kingmask);
 
-    void genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue);
+    void genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture);
 
-    const GameContext& m_context;
+    Set m_toMove;
+    const Position& m_position;
+
     PriorityMoveQueue m_moves;
+    std::vector<PackedMove> m_unsortedMoves;
     std::vector<PackedMove> m_returnedMoves;
 
     // pseudo legal move masks for each piece type

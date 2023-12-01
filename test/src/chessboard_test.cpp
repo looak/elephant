@@ -3,6 +3,8 @@
 #include <algorithm>
 #include "chessboard.h"
 #include "elephant_test_utils.h"
+#include "fen_parser.h"
+#include "game_context.h"
 #include "hash_zorbist.h"
 
 namespace ElephantTest {
@@ -179,6 +181,29 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
     }
 
     EXPECT_EQ(startPostion.readHash(), m_defaultStartingPosition.readHash());
+}
+
+/**
+8  [r][n][b][q][k][ ][ ][r]
+7  [p][p][p][ ][b][p][p][p]
+6  [ ][ ][ ][ ][p][n][ ][ ]
+5  [ ][ ][ ][p][ ][ ][ ][ ]
+4  [ ][ ][P][P][ ][ ][ ][ ]
+3  [ ][ ][N][ ][ ][N][ ][ ]
+2  [P][P][ ][ ][P][P][P][P]
+1  [R][ ][B][Q][K][B][ ][R]
+    A  B  C  D  E  F  G  H  */
+TEST_F(ChessboardFixture, Chessboard_MakeMoves)
+{
+    Chessboard board(m_defaultStartingPosition);
+    board.MakeMoves("c4", "e6", "Nf3", "d5", "d4", "Nf6", "Nc3", "Be7");
+
+    std::string expectedFen("rnbqk2r/ppp1bppp/4pn2/3p4/2PP4/2N2N2/PP2PPPP/R1BQKB1R w KQkq - 0 1");
+    GameContext context;
+    FENParser::deserialize(expectedFen.c_str(), context);
+
+    // LOG_INFO() << board.toString();
+    EXPECT_EQ(context.readChessboard().readHash(), board.readHash());
 }
 
 TEST_F(ChessboardFixture, Notation_Equality)

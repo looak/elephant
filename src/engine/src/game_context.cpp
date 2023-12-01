@@ -69,7 +69,7 @@ void
 GameContext::Reset()
 {
     m_board.Clear();
-    m_moveCount = 0;
+    m_moveCount = 1;
     m_plyCount = 0;
     m_fiftyMoveRule = 0;
     m_moveHistory.clear();

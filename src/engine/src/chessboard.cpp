@@ -1,9 +1,11 @@
 ﻿#include "chessboard.h"
 #include "bitboard_constants.h"
+#include "defines.h"
 #include "hash_zorbist.h"
 #include "intrinsics.hpp"
 #include "log.h"
 #include "move.h"
+#include "move_generator.hpp"
 
 #include <future>
 #include <thread>
@@ -267,6 +269,7 @@ Chessboard::MakeMove(const PackedMove move)
     // do move
     InternalMakeMove(move.sourceSqr(), move.targetSqr());
 
+    m_isWhiteTurn = !m_isWhiteTurn;
     return undoState;
 }
 
@@ -304,11 +307,30 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
             m_tiles[trgSqr].editPiece() = undoState.capturedPiece;
         }
     }
+    else if (undoState.move.isCastling()) {
+        // we're unmaking a castling move, we need to move the rook back to it's original position.
+        // simply done by moving the rook with internal move from notations generated with the king move.
+        // king would have been moved back by regular undo move code.
+        Notation rookSource;
+        Notation rookTarget;
+        Notation target(undoState.move.targetSqr());
+        if (target.file == file_c)  // queen side
+        {
+            rookSource = Notation(file_a, target.rank);
+            rookTarget = Notation(file_d, target.rank);
+        }
+        else  // king side
+        {
+            rookSource = Notation(file_h, target.rank);
+            rookTarget = Notation(file_f, target.rank);
+        }
+        InternalMakeMove(rookTarget, rookSource);
+    }
 
     m_position.editEnPassant().write(undoState.enPassantState.read());  // restore enpassant state
     m_position.editCastling().write(undoState.castlingState.read());    // restore castling state
 
-    m_hash = undoState.hash;
+    m_hash = undoState.hash;  // this should be calculated and not just overwritten?
 
     return true;
 }
@@ -495,6 +517,38 @@ Chessboard::InternalMakeMove(Notation source, Notation target)
     // update hash
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, source);
+}
+
+MoveUndoUnit
+Chessboard::InternalMakeMove(const std::string& moveString)
+{
+    Move parsedMove = Move::fromPGN(moveString, m_isWhiteTurn);
+    Set toMove = m_isWhiteTurn ? Set::WHITE : Set::BLACK;
+
+    if (parsedMove.isAmbiguous() == true) {
+        Bitboard pieceBB = m_position.readMaterial(toMove)[static_cast<u8>(parsedMove.Piece.index())];
+
+        if (pieceBB.count() == 1) {
+            parsedMove.SourceSquare = Notation(pieceBB.lsbIndex());
+        }
+        else  // need to figure out which piece is being moved
+        {
+            MoveGenerator moveGen(m_position, toMove, parsedMove.Piece.getType());
+            moveGen.generateNextMove();  // generates moves
+            moveGen.forEachMove([&](PackedMove move) {
+                // this might be good enough for now, but if we have multiple pieces that can move to the
+                // same square, there is unambiguious information in the parsed move which we need to use.
+                if (move.target() == parsedMove.TargetSquare.index()) {
+                    parsedMove.SourceSquare = Notation(move.source());
+                }
+            });
+        }
+    }
+
+    PackedMove move = parsedMove.readPackedMove();
+    auto undo = MakeMove<false>(move);
+
+    return undo;
 }
 
 bool

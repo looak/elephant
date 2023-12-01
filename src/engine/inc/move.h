@@ -147,7 +147,10 @@ public:
 
     [[nodiscard]] constexpr bool isQuiet() const { return flags() == 0; }
     [[nodiscard]] constexpr bool isCapture() const { return !!(flags() & CAPTURES); }
-    [[nodiscard]] constexpr bool isEnPassant() const { return isPromotion() ? false : !!(flags() & EN_PASSANT_CAPTURE); }
+    [[nodiscard]] constexpr bool isEnPassant() const
+    {
+        return isPromotion() ? false : !!((flags() & EN_PASSANT_CAPTURE) == EN_PASSANT_CAPTURE);
+    }
     [[nodiscard]] constexpr bool isPromotion() const { return !!(flags() & PROMOTIONS); }
     [[nodiscard]] constexpr bool isCastling() const
     {

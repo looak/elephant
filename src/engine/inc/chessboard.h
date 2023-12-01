@@ -83,6 +83,9 @@ public:
     template<typename... placementpairs>
     bool PlacePieces(placementpairs... placements);
 
+    template<typename... moves>
+    std::vector<MoveUndoUnit> MakeMoves(const moves&... _moves);
+
     /**
      * @brief Calculates the end game coeficient.
      * Used for tapered evaluation.
@@ -151,6 +154,9 @@ public:
     ConstIterator begin() const;
     ConstIterator end() const;
 
+    const ChessboardTile& readTile(Notation position) const;
+    ChessPiece readPieceAt(Notation notation) const;
+
     /**
      * @brief Sets the en passant square.
      * Sets the en passant square, updates hash and calculates the en passant target square.
@@ -158,8 +164,10 @@ public:
      * @return true if the en passant square was set */
     bool setEnPassant(Notation notation);
     bool setCastlingState(u8 castlingState);
+    CastlingStateInfo readCastlingState() const { return m_position.readCastling(); }
     ChessboardTile& editTile(Notation position);
     const Position& readPosition() const { return m_position; }
+    Position& editPosition() { return m_position; }
 
     /**
      * @brief the sliding material of given set represented ini a bitboard.
@@ -174,10 +182,9 @@ public:
      * @return A pair of bitboards representing the squares that are threatened by sliding pieces
      * moving orthogonally and diagonally, respectively.     */
     MaterialSlidingMask readSlidingMaterialMask(Set set) const;
-    CastlingStateInfo readCastlingState() const { return m_position.readCastling(); }
+
     u64 readHash() const { return m_hash; }
-    const ChessboardTile& readTile(Notation position) const;
-    ChessPiece readPieceAt(Notation notation) const;
+
     Notation readKingPosition(Set set) const;
 
     std::string toString() const;
@@ -185,8 +192,13 @@ public:
 private:
     template<typename piece, typename square, typename... placements>
     bool InternalProcessEvenPlacementPairs(const piece& p, const square& sqr, const placements&... _placements);
-
     bool InternalProcessEvenPlacementPairs() { return true; }
+
+    template<typename move, typename... moves>
+    std::vector<MoveUndoUnit> InternalUnrollMoves(const move& m, const moves&... _moves);
+    std::vector<MoveUndoUnit> InternalUnrollMoves() { return {}; }
+
+    MoveUndoUnit InternalMakeMove(const std::string& moveString);
 
     /**
      * Internal helper function for handling the movement of a pawn chess piece.
@@ -215,7 +227,6 @@ private:
 
     bool InternalUpdateEnPassant(Notation source, Notation target);
     void InternalMakeMove(Notation source, Notation target);
-    void InternalUnmakeMove(Notation source, Notation target, ChessPiece pieceToRmv, ChessPiece pieceToAdd);
 
     std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
                                                                 KingMask checkedMask, bool captureMoves) const;
@@ -230,6 +241,8 @@ private:
     ChessboardTile m_tiles[64];
 
     Position m_position;
+
+    bool m_isWhiteTurn;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];
@@ -308,4 +321,22 @@ Chessboard::PlacePieces(placements... _placement)
 {
     static_assert(sizeof...(_placement) % 2 == 0, "Number of arguments must be even");
     return InternalProcessEvenPlacementPairs(_placement...);
+}
+
+template<typename... moves>
+std::vector<MoveUndoUnit>
+Chessboard::MakeMoves(const moves&... _moves)
+{
+    return InternalUnrollMoves(_moves...);
+}
+
+template<typename move, typename... moves>
+std::vector<MoveUndoUnit>
+Chessboard::InternalUnrollMoves(const move& m, const moves&... _moves)
+{
+    std::vector<MoveUndoUnit> result;
+    result.push_back(InternalMakeMove(m));
+    auto temp = InternalUnrollMoves(_moves...);
+    result.insert(result.end(), temp.begin(), temp.end());
+    return result;
 }

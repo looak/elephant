@@ -371,6 +371,10 @@ public:
 
     template<Set us>
     const MaterialMask& readMaterial() const;
+    const MaterialMask& readMaterial(Set set) const
+    {
+        return set == Set::WHITE ? readMaterial<Set::WHITE>() : readMaterial<Set::BLACK>();
+    }
 
     EnPassantStateInfo& editEnPassant() { return m_enpassantState; }
     EnPassantStateInfo readEnPassant() const { return m_enpassantState; }
@@ -454,9 +458,11 @@ private:
     std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb,
                                                               const KingMask& kingMask) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask,
+                                                         i8 pieceIndex = bishopId) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask,
+                                                       i8 pieceIndex = rookId) const;
 
     Bitboard SlidingMaterialCombined(byte set) const;
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;

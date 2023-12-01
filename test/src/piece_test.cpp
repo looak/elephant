@@ -1,11 +1,9 @@
 #include <gtest/gtest.h>
 #include "chess_piece.h"
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class ChessPieceFixture : public ::testing::Test
-{
+class ChessPieceFixture : public ::testing::Test {
 public:
     /*   virtual void SetUp()
     {
@@ -18,7 +16,7 @@ public:
 TEST_F(ChessPieceFixture, Empty)
 {
     ChessPiece p;
-    EXPECT_EQ(PieceType::NON, p.getType()) << "By default we have no type set.";
+    EXPECT_EQ(PieceType::NONE, p.getType()) << "By default we have no type set.";
     EXPECT_EQ(Set::WHITE, p.getSet()) << "Default set is white";
 }
 
@@ -77,10 +75,10 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
 {
     ChessPiece blackPawn(Set::BLACK, PieceType::PAWN);
     EXPECT_EQ(PieceType::PAWN, blackPawn.getType());
-    EXPECT_EQ(Set::BLACK, blackPawn.getSet()); 
+    EXPECT_EQ(Set::BLACK, blackPawn.getSet());
 
     blackPawn = ChessPiece();
-    EXPECT_EQ(PieceType::NON, blackPawn.getType());
+    EXPECT_EQ(PieceType::NONE, blackPawn.getType());
     EXPECT_EQ(Set::WHITE, blackPawn.getSet());
 
     blackPawn = ChessPiece(Set::BLACK, PieceType::QUEEN);
@@ -88,7 +86,7 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
     EXPECT_EQ(Set::BLACK, blackPawn.getSet());
 
     blackPawn = ChessPiece();
-    EXPECT_EQ(PieceType::NON, blackPawn.getType());
+    EXPECT_EQ(PieceType::NONE, blackPawn.getType());
     EXPECT_EQ(Set::WHITE, blackPawn.getSet());
 
     blackPawn = ChessPiece(Set::BLACK, PieceType::KING);
@@ -105,16 +103,16 @@ TEST_F(ChessPieceFixture, AssignmentOperations)
 }
 
 TEST_F(ChessPieceFixture, EqualityOperations)
-{   
+{
     ChessPiece blackPawn(Set::BLACK, PieceType::PAWN);
     EXPECT_EQ(blackPawn, blackPawn);
-    
+
     ChessPiece anotherBlackPawn(Set::BLACK, PieceType::PAWN);
-    EXPECT_EQ(blackPawn, anotherBlackPawn);   
+    EXPECT_EQ(blackPawn, anotherBlackPawn);
 
     ChessPiece whitePawn(Set::WHITE, PieceType::PAWN);
     EXPECT_NE(blackPawn, whitePawn);
-    
+
     ChessPiece whiteRook(Set::WHITE, PieceType::ROOK);
     EXPECT_EQ(whiteRook, whiteRook);
 
@@ -223,7 +221,7 @@ TEST_F(ChessPieceFixture, FlipSet)
     Set expected = Set::BLACK;
     Set set = ChessPiece::FlipSet(whiteBishop.getSet());
     EXPECT_EQ(expected, set);
-    
+
     expected = Set::WHITE;
     set = ChessPiece::FlipSet(set);
     EXPECT_EQ(expected, set);
@@ -238,7 +236,6 @@ TEST_F(ChessPieceFixture, FlipSet)
     EXPECT_EQ(exp, res);
 }
 
-
 ////////////////////////////////////////////////////////////////
 
-}
+}  // namespace ElephantTest

@@ -2,12 +2,22 @@
 #include "game_context.h"
 #include "move.h"
 
-MoveGenerator::MoveGenerator(const GameContext& context) :
-    m_context(context),
+MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, MoveTypes mtype) :
+    m_position(pos),
+    m_toMove(toMove),
     m_moves(),
     m_movesGenerated(false)
 {
-    initializeMoveGenerator();
+    initializeMoveGenerator(ptype, mtype);
+}
+
+MoveGenerator::MoveGenerator(const GameContext& context) :
+    m_position(context.readChessboard().readPosition()),
+    m_moves(),
+    m_toMove(context.readToPlay()),
+    m_movesGenerated(false)
+{
+    initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
 }
 
 PackedMove
@@ -24,7 +34,7 @@ MoveGenerator::generateNextMove()
         return PackedMove::NullMove();
 
     m_movesGenerated = true;
-    if (m_context.readToPlay() == Set::WHITE) {
+    if (m_toMove == Set::WHITE) {
         return generateNextMove<Set::WHITE>();
     }
     else {
@@ -64,11 +74,19 @@ MoveGenerator::generateNextMove()
     return move.move;
 }
 
+void
+MoveGenerator::forEachMove(std::function<void(const PackedMove&)> callback) const
+{
+    for (auto move : m_unsortedMoves) {
+        callback(move);
+    }
+}
+
 template<Set set>
 void
 MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
 {
-    const auto& pos = m_context.readChessboard().readPosition();
+    const auto& pos = m_position;
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
     if (movesbb.empty())
@@ -103,22 +121,27 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 move.setPromoteTo(queenId);
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(knightId);
                 PrioratizedMove prioratizedMove4(move, 1);
                 m_moves.push(prioratizedMove4);
+                m_unsortedMoves.push_back(move);
             }
             else {
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(move);
             }
         }
         while (isolatedPawnMoves.empty() == false) {
@@ -133,22 +156,27 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 move.setPromoteTo(queenId);
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
+                m_unsortedMoves.push_back(move);
 
                 move.setPromoteTo(knightId);
                 PrioratizedMove prioratizedMove4(move, 1);
                 m_moves.push(prioratizedMove4);
+                m_unsortedMoves.push_back(move);
             }
             else {
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(move);
             }
         }
     }
@@ -160,7 +188,7 @@ template<Set set>
 void
 MoveGenerator::internalGenerateMoves(u8 pieceId, const KingMask& kingMask)
 {
-    const auto& bb = m_context.readChessboard().readPosition();
+    const auto& bb = m_position;
 
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pieceId];
     if (movesbb.empty())
@@ -174,8 +202,8 @@ MoveGenerator::internalGenerateMoves(u8 pieceId, const KingMask& kingMask)
         const Notation srcNotation(srcSqr);
 
         auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, kingMask);
-        genPackedMovesFromBitboard(isolatedCaptures, srcSqr, /*are captures*/ true, m_moves);
-        genPackedMovesFromBitboard(isolatedMoves, srcSqr, /*are captures*/ false, m_moves);
+        genPackedMovesFromBitboard(isolatedCaptures, srcSqr, /*are captures*/ true);
+        genPackedMovesFromBitboard(isolatedMoves, srcSqr, /*are captures*/ false);
     }
 }
 
@@ -226,7 +254,7 @@ template<Set set>
 void
 MoveGenerator::internalGenerateKingMoves(const KingMask& kingMask)
 {
-    const auto& bb = m_context.readChessboard().readPosition();
+    const auto& bb = m_position;
     const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
 
     Bitboard movesbb = m_moveMasks[(size_t)set].material[kingId];
@@ -265,32 +293,62 @@ template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>(const KingMas
 template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>(const KingMask& kingMask);
 
 void
-MoveGenerator::initializeMoveGenerator()
+MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
 {
-    initializeMoveMasks<Set::WHITE>(m_moveMasks[0]);
-    initializeMoveMasks<Set::BLACK>(m_moveMasks[1]);
+    if (m_toMove == Set::WHITE)
+        initializeMoveMasks<Set::WHITE>(m_moveMasks[0], ptype, mtype);
+    else
+        initializeMoveMasks<Set::BLACK>(m_moveMasks[1], ptype, mtype);
 }
 
 template<Set set>
 void
-MoveGenerator::initializeMoveMasks(MaterialMask& target)
+MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype)
 {
-    const auto& bb = m_context.readChessboard().readPosition();
+    const auto& bb = m_position;
     const size_t setIndx = static_cast<size_t>(set);
     m_kingMask[setIndx] = bb.calcKingMask<set>();
-    target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
-    target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
-    target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
-    target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
-    target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
-    target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read());
+
+    if (ptype == PieceType::NONE) {
+        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
+        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
+        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
+        target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
+        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
+        target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read());
+    }
+    else {
+        switch (ptype) {
+            case PieceType::PAWN:
+                target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
+                break;
+            case PieceType::KNIGHT:
+                target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
+                break;
+            case PieceType::BISHOP:
+                target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
+                break;
+            case PieceType::ROOK:
+                target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
+                break;
+            case PieceType::QUEEN:
+                target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
+                break;
+            case PieceType::KING:
+                target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read());
+                break;
+            default:
+                FATAL_ASSERT(false) << "Invalid piece type";
+                break;
+        }
+    }
 }
 
-template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target);
-template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target);
+template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
+template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
 
 void
-MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture, PriorityMoveQueue& queue)
+MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture)
 {
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -301,6 +359,7 @@ MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool cap
         move.setCapture(capture);
 
         PrioratizedMove prioratizedMove(move, 1);
-        queue.push(prioratizedMove);
+        m_moves.push(prioratizedMove);
+        m_unsortedMoves.push_back(move);
     }
 }

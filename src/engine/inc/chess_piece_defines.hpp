@@ -21,7 +21,7 @@
 #define pieceIndexMax 6
 
 enum class PieceType : byte {
-    NON = 0,
+    NONE = 0,
     PAWN = pawnId + 1,
     KNIGHT = knightId + 1,
     BISHOP = bishopId + 1,
