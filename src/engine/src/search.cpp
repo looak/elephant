@@ -4,6 +4,7 @@
 #include "clock.hpp"
 #include "evaluator.h"
 #include "game_context.h"
+#include "move_generator.hpp"
 
 #include <future>
 #include <limits>
@@ -16,29 +17,37 @@ static constexpr i32 c_maxScore = 32000;
 static constexpr i32 c_checmkateConstant = 24000;
 static constexpr i32 c_pvScore = 10000;
 
-int
+PerftResult
 Search::Perft(GameContext& context, int depth)
 {
     if (depth == 0) {
-        return 1;
+        return PerftResult{};
     }
 
-    int count = 0;
+    PerftResult result;
+    MoveGenerator generator(context);
+    generator.generate();
+    generator.forEachMove([&](const PackedMove mv) {
+        context.MakeMove(mv);
+        result.Nodes++;
+        if (mv.isCapture())
+            result.Captures++;
+        if (mv.isEnPassant())
+            result.EnPassants++;
+        if (mv.isCastling())
+            result.Castles++;
+        if (mv.isPromotion())
+            result.Promotions++;
+        if (mv.isCheck())
+            result.Checks++;
+        // if (mv.isCheckmate())
+        //     result.Checkmates++;
 
-    auto moves = GeneratePossibleMoves(context);
-    count = 0;
-    if (depth == 1) {
-        return (i32)moves.size();
-    }
-    else if (depth > 1) {
-        for (auto mv : moves) {
-            FATAL_ASSERT(context.MakeMove(mv));
-            count += Perft(context, depth - 1);
-            context.UnmakeMove(mv);
-        }
-    }
+        result += Perft(context, depth - 1);
+        context.UnmakeMove();
+    });
 
-    return count;
+    return result;
 }
 
 std::map<PieceKey, std::vector<Move>>
@@ -105,9 +114,9 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
     }
 
     for (auto&& mv : moves) {
-        context.MakeLegalMove(mv);
+        // context.MakeLegalMove(mv);
         score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, -perspective, count));
-        context.UnmakeMove(mv);
+        // context.UnmakeMove(mv);
 
         ++count;
 
@@ -170,11 +179,11 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
         std::vector<Move> localPv(depth + 1);
         auto cpy = context;
         Move nullMove{};
-        cpy.MakeNullMove(nullMove);
+        // cpy.MakeNullMove(nullMove);
         auto nullResult = AlphaBetaNegmax<UseCache>(cpy, searchContext, depth - 2, ply + 1, -beta, -beta + 1, -perspective,
                                                     localPv, doNullMove - 1);
         i32 score = -nullResult.score;
-        cpy.UnmakeNullMove(nullMove);
+        // cpy.UnmakeNullMove(nullMove);
 
         if (score >= beta)
             return {beta, bestMove};
@@ -199,13 +208,13 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
     u32 localCount = 0;
 
     for (auto&& mv : moves) {
-        context.MakeLegalMove(mv);
+        // context.MakeLegalMove(mv);
         // FATAL_ASSERT(context.MakeMove(mv));
         SearchResult result;
         result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta, -alpha, -perspective, localPv,
                                            doNullMove);
         i32 score = -result.score;
-        context.UnmakeMove(mv);
+        // context.UnmakeMove(mv);
 
         ++localCount;
 

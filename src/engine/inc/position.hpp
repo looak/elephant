@@ -113,6 +113,7 @@ struct KingMask {
 
     u64 threats[8];
     bool checked[8];
+    MaterialSlidingMask kingStarMask;
     u64 knightsAndPawns;
     bool knightOrPawnCheck;
     bool pawnMask;
@@ -368,6 +369,8 @@ public:
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
+
+    bool empty() const;
 
     template<Set us>
     const MaterialMask& readMaterial() const;

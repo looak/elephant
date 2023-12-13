@@ -103,7 +103,7 @@ constexpr int c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
     QUIET_MOVES = 0,
-    DOUBLE_PAWN_PUSH = 1,
+    CHECK = 1,
     CASTLE = 2,
     KING_CASTLE = 2,
     QUEEN_CASTLE = 3,
@@ -159,7 +159,7 @@ public:
             return false;
         return (flag & CASTLE);
     }
-    [[nodiscard]] constexpr bool isPawnDoublePush() const { return ((m_internals >> 12) & 0xF) == 1; }
+    [[nodiscard]] constexpr bool isCheck() const { return ((m_internals >> 12) & 0xF) == 1; }
 
     [[nodiscard]] constexpr i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
@@ -200,6 +200,14 @@ public:
             m_internals |= EN_PASSANT_CAPTURE << 12;
         else
             m_internals &= ~(EN_PASSANT_CAPTURE << 12);
+    }
+
+    inline void setCheck(bool value)
+    {
+        if (value == true)
+            m_internals |= CHECK << 12;
+        else
+            m_internals &= ~(CHECK << 12);
     }
 
     inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }

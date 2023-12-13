@@ -82,7 +82,7 @@ UCI::Position(std::list<std::string>& args)
             std::string moveStr = args.front();
             args.pop_front();
             Move move = Move::fromString(moveStr);
-            if (!m_context.MakeMove(move)) {
+            if (!m_context.MakeMove(move.readPackedMove())) {
                 LOG_ERROR() << "Failed to make move: " << move.toString();
                 return false;
             }

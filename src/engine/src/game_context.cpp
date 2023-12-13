@@ -69,9 +69,6 @@ void
 GameContext::Reset()
 {
     m_board.Clear();
-    m_moveCount = 1;
-    m_plyCount = 0;
-    m_fiftyMoveRule = 0;
     m_moveHistory.clear();
 }
 
@@ -103,98 +100,39 @@ GameContext::GameOver() const
 }
 
 bool
-GameContext::MakeLegalMove(Move& move)
+GameContext::MakeMove(const PackedMove move)
 {
-    // m_board.MakeMoveUnchecked(move);
+    auto undoUnit = m_board.MakeMove<false>(move);
+    m_undoUnits.push(undoUnit);
 
-    // if (move.Piece.getSet() == Set::BLACK)
-    //     m_moveCount++;
+    // m_moveHistory.push_back(MoveHistory());
+    // m_moveHistory.back().HashKey = m_board.readHash();
+    // m_moveHistory.back().PlyCount = m_board.readPlyCount();
+    // m_moveHistory.back().MoveCount = m_board.readMoveCount();
+    // m_moveHistory.back().FiftyMoveRule = m_board.readFiftyMoveRule();
+    // m_moveHistory.back().SAN = Notation::toString(m);
 
-    // if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-    //     m_fiftyMoveRule = 0;
-    // else
-    //     m_fiftyMoveRule++;
-
-    // m_plyCount++;
-
-    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
+    m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
 }
 
 bool
-GameContext::MakeMove(Move& move)
+GameContext::UnmakeMove()
 {
-    // Move actualMove = move;
+    if (m_undoUnits.empty())
+        return false;
 
-    // if (!m_board.MakeMove(actualMove))
-    //     return false;
+    auto undoUnit = m_undoUnits.top();
+    m_undoUnits.pop();
+    m_board.UnmakeMove(undoUnit);
 
-    // if (actualMove.isInvalid())
-    //     return false;
+    // m_board.readHash() = m_moveHistory.back().HashKey;
+    // m_board.readPlyCount() = m_moveHistory.back().PlyCount;
+    // m_board.readMoveCount() = m_moveHistory.back().MoveCount;
+    // m_board.readFiftyMoveRule() = m_moveHistory.back().FiftyMoveRule;
+    // m_moveHistory.pop_back();
 
-    // if (actualMove.Piece.getSet() == Set::BLACK)
-    //     m_moveCount++;
-
-    // if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
-    //     m_fiftyMoveRule = 0;
-    // else
-    //     m_fiftyMoveRule++;
-
-    // m_plyCount++;
-
-    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-    // move = actualMove;
-    return true;
-}
-
-bool
-GameContext::UnmakeMove(const Move& move)
-{
-    // if (m_board.UnmakeMove(move)) {
-    //     if (move.Piece.getSet() == Set::BLACK)
-    //         m_moveCount--;
-
-    //     if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-    //         m_fiftyMoveRule = 0;
-    //     else
-    //         m_fiftyMoveRule--;
-
-    //     m_plyCount--;
-
-    //     m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-    //     return true;
-    // }
-
-    return false;
-}
-
-bool
-GameContext::MakeNullMove(Move& move)
-{
-    // m_board.MakeNullMove(move);
-
-    // if (m_toPlay == Set::BLACK)
-    //     m_moveCount++;
-
-    // m_fiftyMoveRule++;
-    // m_plyCount++;
-    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-    return true;
-}
-
-bool
-GameContext::UnmakeNullMove(const Move& move)
-{
-    // m_board.UnmakeNullMove(move);
-    // if (m_toPlay == Set::WHITE)
-    //     m_moveCount--;
-
-    // --m_fiftyMoveRule;
-    // --m_plyCount;
-    // m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
+    m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
 }
 

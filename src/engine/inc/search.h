@@ -84,13 +84,36 @@ struct SearchContext {
     // maybe add history heuristic as well.
 };
 
+struct PerftResult {
+    u64 Nodes = 0;
+    u64 Captures = 0;
+    u64 EnPassants = 0;
+    u64 Castles = 0;
+    u64 Promotions = 0;
+    u64 Checks = 0;
+    u64 Checkmates = 0;
+    u64 Depth = 0;
+
+    void operator+=(const PerftResult& rhs)
+    {
+        this->Nodes += rhs.Nodes;
+        this->Captures += rhs.Captures;
+        this->EnPassants += rhs.EnPassants;
+        this->Castles += rhs.Castles;
+        this->Promotions += rhs.Promotions;
+        this->Checks += rhs.Checks;
+        this->Checkmates += rhs.Checkmates;
+        this->Depth += rhs.Depth;
+    }
+};
+
 // class MoveGenerator {};
 
 class Search {
 public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
 
-    int Perft(GameContext& context, int depth);
+    PerftResult Perft(GameContext& context, int depth);
 
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 

@@ -75,6 +75,12 @@ Position::Clear()
 }
 
 bool
+Position::empty() const
+{
+    return m_material[0].combine().empty() && m_material[1].combine().empty();
+}
+
+bool
 Position::ClearPiece(ChessPiece piece, Notation target)
 {
     Square sqr = target.toSquare();
@@ -121,13 +127,19 @@ Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
     const u64 slideMatCache[2]{opponentSlidingMask.orthogonal.read() & c_orthogonalMat,
                                opponentSlidingMask.diagonal.read() & c_diagnoalMat};
 
+    Bitboard* kingStar[2]{&ret.kingStarMask.orthogonal, &ret.kingStarMask.diagonal};
+
     if (c_diagnoalMat > 0 || c_orthogonalMat > 0) {
         u8 matCount = 0;
         bool sliding = true;
+        // Calling this kingstar, it will represent a mask of all directions from king
+        // where you could place a slicing piece and it would check the king.
+        bool kingStarSliding = true;
 
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
             matCount = 0;
             sliding = true;
+            kingStarSliding = true;
             byte curSqr = source.index();
             signed short dir = ChessPieceDef::Moves0x88(king.index(), moveIndx);
 
@@ -135,6 +147,7 @@ Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
 
             bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
             u64 slideMat = slideMatCache[diagonal];
+            Bitboard* kingStarMask = kingStar[diagonal];
 
             if (slideMat == 0)
                 continue;
@@ -156,12 +169,17 @@ Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMa
                 // build a square mask from current square
                 u64 sqrMask = squareMaskTable[curSqr];
 
-                if (allMat & sqrMask)
+                if (allMat & sqrMask) {
+                    kingStarSliding = false;
                     matCount++;
+                }
 
                 if (slideMat & sqrMask) {
                     sliding = false;
                 }
+
+                if (kingStarSliding)
+                    *kingStarMask |= sqrMask;
 
                 mvMask |= sqrMask;
 

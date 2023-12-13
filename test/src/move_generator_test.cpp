@@ -50,13 +50,13 @@ public:
 ////////////////////////////////////////////////////////////////
 
 // move generator asserts if the board is empty
-// TEST_F(MoveGeneratorFixture, Empty)
-// {
-//     MoveGenerator gen(testContext);
-//     PackedMove move = gen.generateNextMove();
-//     EXPECT_EQ(0, move.read());
-//     EXPECT_EQ(PackedMove::NullMove(), move);
-// }
+TEST_F(MoveGeneratorFixture, Empty)
+{
+    MoveGenerator gen(testContext);
+    PackedMove move = gen.generateNextMove();
+    EXPECT_EQ(0, move.read());
+    EXPECT_EQ(PackedMove::NullMove(), move);
+}
 
 #pragma region KingMoveGenerationTests
 //{ King move generation tests
@@ -686,46 +686,28 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
 // valid moves:
 // a1=Q, a1=R, a1=B, a1=N, b1=Q+ b1=R+, b1=B, b1=N
 // 8 promotions, 4 of which are captures, two of which are checks.
-// TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
-// {
-//     // setup
-//     auto& board = testContext.editChessboard();
-//     board.PlacePiece(BLACKPAWN, a2);
-//     board.PlacePiece(WHITEROOK, b1);
-//     board.PlacePiece(WHITEKING, g1);
-//     testContext.editToPlay() = Set::BLACK;
+TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKPAWN, a2);
+    board.PlacePiece(WHITEROOK, b1);
+    board.PlacePiece(WHITEKING, g1);
+    testContext.editToPlay() = Set::BLACK;
 
-//     // do
-//     auto result = search.GeneratePossibleMoves(testContext);
+    // do
+    auto count = search.Perft(testContext, 1);
 
-//     // verify
-//     EXPECT_EQ(8, result.size());
-//     for (auto&& move : result)
-//     {
-//         if (move.TargetSquare == b1)
-//         {
-//             EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
-//             if (move.PromoteToPiece == BLACKQUEEN)
-//                 EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
-//             else if (move.PromoteToPiece == BLACKROOK)
-//                 EXPECT_EQ(MoveFlag::Check, move.Flags & MoveFlag::Check);
-//             else
-//                 EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
-//         }
-//         else
-//             EXPECT_NE(MoveFlag::Check, move.Flags & MoveFlag::Check);
-//         EXPECT_EQ(MoveFlag::Promotion, move.Flags & MoveFlag::Promotion);
-//     }
-
-//     auto count = CountMoves(result);
-//     EXPECT_EQ(8, count.Moves);
-//     EXPECT_EQ(4, count.Captures);
-//     EXPECT_EQ(0, count.EnPassants);
-//     EXPECT_EQ(8, count.Promotions);
-//     EXPECT_EQ(0, count.Castles);
-//     EXPECT_EQ(2, count.Checks);
-//     EXPECT_EQ(0, count.Checkmates);
-// }
+    // verify
+    EXPECT_EQ(8, count.Nodes);
+    EXPECT_EQ(4, count.Captures);
+    EXPECT_EQ(0, count.EnPassants);
+    EXPECT_EQ(8, count.Promotions);
+    EXPECT_EQ(0, count.Castles);
+    EXPECT_EQ(2, count.Checks);
+    EXPECT_EQ(0, count.Checkmates);
+}
 
 // 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]

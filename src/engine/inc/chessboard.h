@@ -184,6 +184,13 @@ public:
     MaterialSlidingMask readSlidingMaterialMask(Set set) const;
 
     u64 readHash() const { return m_hash; }
+    short readMoveCount() const { return m_moveCount; }
+    short readPlyCount() const { return m_plyCount; }
+    void setPlyAndMoveCount(short ply, short moveCount)
+    {
+        m_plyCount = ply;
+        m_moveCount = moveCount;
+    }
 
     Notation readKingPosition(Set set) const;
 
@@ -243,11 +250,13 @@ private:
     Position m_position;
 
     bool m_isWhiteTurn;
+    short m_moveCount;
+    short m_plyCount;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];
 
-    mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
+    // mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
 };
 
 template<typename T, bool isConst>

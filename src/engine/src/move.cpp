@@ -3,7 +3,6 @@
 #include <list>
 #include <sstream>
 
-
 Move::Move(Notation source, Notation target) :
     TargetSquare(target),
     SourceSquare(source),
@@ -124,8 +123,8 @@ ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
 
         mv.Piece = ChessPiece(isWhite ? Set::WHITE : Set::BLACK, PieceType::KING);
         mv.Flags |= MoveFlag::Castle;
-        byte rank = isWhite ? 0 : 7;
-        byte file = o_counter == 3 ? 1 : 6;  // o_counter == 3 means queen side castling
+        byte rank = isWhite ? rank_1 : rank_8;
+        byte file = o_counter == 3 ? file_c : file_g;  // o_counter == 3 means queen side castling
         mv.TargetSquare = Notation(file, rank);
     }
     else {

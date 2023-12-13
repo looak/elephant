@@ -131,31 +131,31 @@ bool
 DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 {
     if (tokens.empty() == false) {
-        std::string token = tokens.front();
-        int depth = std::stoi(token);
+        // std::string token = tokens.front();
+        // int depth = std::stoi(token);
 
-        // validate depth
-        if (depth < 1 || depth > 10) {
-            std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
-            return false;
-        }
+        // // validate depth
+        // if (depth < 1 || depth > 10) {
+        //     std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
+        //     return false;
+        // }
 
-        Search search;
+        // Search search;
 
-        auto moves = search.GeneratePossibleMoves(context);
-        int total = 0;
-        for (auto&& move : moves) {
-            std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
-            context.MakeMove(move);
-            int result = search.Perft(context, depth - 1);
-            total += result;
-            std::cout << result << std::endl;
-            context.UnmakeMove(move);
-        }
-        // total += moves.size();
+        // auto moves = search.GeneratePossibleMoves(context);
+        // int total = 0;
+        // for (auto&& move : moves) {
+        //     std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
+        //     context.MakeMove(move.readPackedMove());
+        //     int result = search.Perft(context, depth - 1);
+        //     total += result;
+        //     std::cout << result << std::endl;
+        //     context.UnmakeMove();
+        // }
+        // // total += moves.size();
 
-        std::cout << "\n Moves: " << moves.size() << "\n";
-        std::cout << " Total: " << total << "\n";
+        // std::cout << "\n Moves: " << moves.size() << "\n";
+        // std::cout << " Total: " << total << "\n";
     }
     else {
         DivideDepthHelpCommand("divide");

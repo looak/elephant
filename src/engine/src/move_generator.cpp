@@ -3,18 +3,22 @@
 #include "move.h"
 
 MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, MoveTypes mtype) :
-    m_position(pos),
     m_toMove(toMove),
+    m_position(pos),
     m_moves(),
+    m_unsortedMoves(),
+    m_returnedMoves(),
     m_movesGenerated(false)
 {
     initializeMoveGenerator(ptype, mtype);
 }
 
 MoveGenerator::MoveGenerator(const GameContext& context) :
+    m_toMove(context.readToPlay()),
     m_position(context.readChessboard().readPosition()),
     m_moves(),
-    m_toMove(context.readToPlay()),
+    m_unsortedMoves(),
+    m_returnedMoves(),
     m_movesGenerated(false)
 {
     initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
@@ -33,15 +37,22 @@ MoveGenerator::generateNextMove()
     if (m_movesGenerated)
         return PackedMove::NullMove();
 
-    m_movesGenerated = true;
     if (m_toMove == Set::WHITE) {
         return generateNextMove<Set::WHITE>();
     }
     else {
         return generateNextMove<Set::BLACK>();
     }
-
     return PackedMove::NullMove();
+}
+
+void
+MoveGenerator::generate()
+{
+    if (m_toMove == Set::WHITE)
+        generateAllMoves<Set::WHITE>();
+    else
+        generateAllMoves<Set::BLACK>();
 }
 
 template<Set set>
@@ -52,7 +63,7 @@ MoveGenerator::generateNextMove()
     if (m_moveMasks[setIndx].combine().empty())
         return PackedMove::NullMove();
 
-    if (m_returnedMoves.empty()) {
+    if (m_movesGenerated == false) {
         if (m_kingMask->countChecked() > 1) {
             generateMoves<set, kingId>(m_kingMask[setIndx]);
         }
@@ -68,15 +79,42 @@ MoveGenerator::generateNextMove()
 
     FATAL_ASSERT(!m_moves.empty()) << "This should never be able to happen since our bitboards have moves in them.";
 
+    m_movesGenerated = true;
     auto move = m_moves.top();
     m_moves.pop();
     m_returnedMoves.push_back(move.move);
     return move.move;
 }
 
+template<Set set>
 void
-MoveGenerator::forEachMove(std::function<void(const PackedMove&)> callback) const
+MoveGenerator::generateAllMoves()
 {
+    const size_t setIndx = static_cast<size_t>(set);
+    if (m_moveMasks[setIndx].combine().empty())
+        return;
+
+    if (m_kingMask->countChecked() > 1) {
+        generateMoves<set, kingId>(m_kingMask[setIndx]);
+    }
+    else {
+        generateMoves<set, pawnId>(m_kingMask[setIndx]);
+        generateMoves<set, knightId>(m_kingMask[setIndx]);
+        generateMoves<set, bishopId>(m_kingMask[setIndx]);
+        generateMoves<set, rookId>(m_kingMask[setIndx]);
+        generateMoves<set, queenId>(m_kingMask[setIndx]);
+        generateMoves<set, kingId>(m_kingMask[setIndx]);
+    }
+
+    m_movesGenerated = true;
+}
+
+void
+MoveGenerator::forEachMove(std::function<void(const PackedMove)> callback) const
+{
+    if (m_movesGenerated == false)
+        LOG_ERROR() << "Moves have not been generated yet.";
+
     for (auto move : m_unsortedMoves) {
         callback(move);
     }
@@ -110,6 +148,12 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
             move.setSource(srcSqr);
             move.setTarget(dstSqr);
 
+            Position checkedPos;
+            checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
+            auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
+            if (threat & pos.readMaterial<opposing_set<set>()>().kings())
+                move.setCheck(true);
+
             // if we're capturing enpassant set the enpassant flag.
             if (pos.readEnPassant().readSquare() == static_cast<Square>(dstSqr))
                 move.setEnPassant(true);  // sets both capture & enpassant
@@ -122,16 +166,22 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(move);
+                if ((kingMask.kingStarMask.orthogonal | kingMask.kingStarMask.diagonal) & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
                 m_unsortedMoves.push_back(move);
+                if (kingMask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
                 m_unsortedMoves.push_back(move);
+                if (kingMask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(knightId);
                 PrioratizedMove prioratizedMove4(move, 1);
@@ -157,16 +207,22 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(move);
+                if ((kingMask.kingStarMask.orthogonal | kingMask.kingStarMask.diagonal) & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
                 m_unsortedMoves.push_back(move);
+                if (kingMask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
                 m_unsortedMoves.push_back(move);
+                if (kingMask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+                    move.setCheck(true);
 
                 move.setPromoteTo(knightId);
                 PrioratizedMove prioratizedMove4(move, 1);
@@ -202,8 +258,8 @@ MoveGenerator::internalGenerateMoves(u8 pieceId, const KingMask& kingMask)
         const Notation srcNotation(srcSqr);
 
         auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, kingMask);
-        genPackedMovesFromBitboard(isolatedCaptures, srcSqr, /*are captures*/ true);
-        genPackedMovesFromBitboard(isolatedMoves, srcSqr, /*are captures*/ false);
+        genPackedMovesFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, kingMask);
+        genPackedMovesFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false, kingMask);
     }
 }
 
@@ -306,6 +362,8 @@ void
 MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype)
 {
     const auto& bb = m_position;
+    if (bb.empty())
+        return;
     const size_t setIndx = static_cast<size_t>(set);
     m_kingMask[setIndx] = bb.calcKingMask<set>();
 
@@ -348,7 +406,7 @@ template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& targe
 template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
 
 void
-MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture)
+MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingMask& kingmask)
 {
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -361,5 +419,15 @@ MoveGenerator::genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool cap
         PrioratizedMove prioratizedMove(move, 1);
         m_moves.push(prioratizedMove);
         m_unsortedMoves.push_back(move);
+
+        // figure out if we're checking the king.
+        if (pieceId == rookId || pieceId == queenId) {
+            if (kingmask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+                move.setCheck(true);
+        }
+        else if (pieceId == bishopId || pieceId == queenId) {
+            if (kingmask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+                move.setCheck(true);
+        }
     }
 }

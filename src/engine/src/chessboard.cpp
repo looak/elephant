@@ -40,7 +40,10 @@ ChessboardTile::operator=(const ChessboardTile& rhs)
 }
 
 Chessboard::Chessboard() :
-    m_hash(0)
+    m_hash(0),
+    m_isWhiteTurn(true),
+    m_moveCount(1),
+    m_plyCount(0)
 {
     for (byte r = 0; r < 8; r++) {
         for (byte f = 0; f < 8; f++) {
@@ -132,7 +135,10 @@ Chessboard::Chessboard() :
 }
 
 Chessboard::Chessboard(const Chessboard& other) :
-    m_hash(other.readHash())
+    m_hash(other.readHash()),
+    m_isWhiteTurn(other.m_isWhiteTurn),
+    m_moveCount(other.m_moveCount),
+    m_plyCount(other.m_plyCount)
 {
     auto otherItr = other.begin();
     auto thisItr = this->begin();
@@ -197,6 +203,9 @@ Chessboard::Clear()
     m_kings[1].first = ChessPiece();
     m_kings[1].second = Notation();
     m_position.Clear();
+    m_plyCount = 0;
+    m_isWhiteTurn = true;
+    m_moveCount = 1;
 }
 
 bool
@@ -247,6 +256,7 @@ Chessboard::MakeMove(const PackedMove move)
             // updating pieceTarget since if we're capturing enpassant the target will be on a
             // different square.
             captureTarget = InternalHandlePawnMove(move, undoState);
+            m_plyCount = 0;  // reset ply count on pawn move
             break;
 
         case PieceType::KING:
@@ -270,6 +280,8 @@ Chessboard::MakeMove(const PackedMove move)
     InternalMakeMove(move.sourceSqr(), move.targetSqr());
 
     m_isWhiteTurn = !m_isWhiteTurn;
+    // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
+    m_moveCount += (short)m_isWhiteTurn;
     return undoState;
 }
 
@@ -583,6 +595,7 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
     auto capturedPiece = m_tiles[pieceTarget.index()].readPiece();
 
     if (capturedPiece != ChessPiece()) {
+        m_plyCount = 0;
         // remove captured piece from board.
         m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
         undoState.capturedPiece = capturedPiece;

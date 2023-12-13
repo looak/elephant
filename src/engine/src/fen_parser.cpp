@@ -157,8 +157,7 @@ FENParser::deserialize(const char* input, GameContext& outputContext)
     byte moveCount = std::atoi(&tokens.front()[0]);
     tokens.pop_front();
 
-    outputContext.editPly() = plyCount;
-    outputContext.editMoveCount() = moveCount;
+    outputContext.editChessboard().setPlyAndMoveCount(plyCount, moveCount);
 
     if (!tokens.empty())
         return false;

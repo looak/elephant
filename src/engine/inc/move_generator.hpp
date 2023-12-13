@@ -59,7 +59,8 @@ public:
     ~MoveGenerator() = default;
 
     PackedMove generateNextMove();
-    void forEachMove(std::function<void(const PackedMove&)> func) const;
+    void forEachMove(std::function<void(const PackedMove)> func) const;
+    void generate();
 
 private:
     void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
@@ -69,6 +70,9 @@ private:
 
     template<Set set>
     PackedMove generateNextMove();
+
+    template<Set set>
+    void generateAllMoves();
 
     template<Set set, u8 pieceId>
     void generateMoves(const KingMask& kingmask);
@@ -89,7 +93,7 @@ private:
     template<Set set>
     void internalGenerateKingMoves(const KingMask& kingmask);
 
-    void genPackedMovesFromBitboard(Bitboard movesbb, i32 srcSqr, bool capture);
+    void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingMask& kingmask);
 
     Set m_toMove;
     const Position& m_position;
