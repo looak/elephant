@@ -181,7 +181,7 @@ public:
      * @param set The set of pieces (black or white) to consider.
      * @return A pair of bitboards representing the squares that are threatened by sliding pieces
      * moving orthogonally and diagonally, respectively.     */
-    MaterialSlidingMask readSlidingMaterialMask(Set set) const;
+    SlidingMaterialMasks readSlidingMaterialMask(Set set) const;
 
     u64 readHash() const { return m_hash; }
     short readMoveCount() const { return m_moveCount; }
@@ -235,8 +235,8 @@ private:
     bool InternalUpdateEnPassant(Notation source, Notation target);
     void InternalMakeMove(Notation source, Notation target);
 
-    std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
-                                                                KingMask checkedMask, bool captureMoves) const;
+    // std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
+    //                                                             KingMask checkedMask, bool captureMoves) const;
 
     ChessboardTile& get(Notation position) { return editTile(position); }
     const ChessboardTile& get(Notation position) const { return readTile(position); }

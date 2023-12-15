@@ -99,7 +99,7 @@ Position::PlacePiece(ChessPiece piece, Notation target)
 }
 
 template<Set us>
-KingMask
+KingPinThreats
 Position::calcKingMask() const
 {
     constexpr Set op = opposing_set<us>();
@@ -109,162 +109,16 @@ Position::calcKingMask() const
     return calcKingMask(king, Notation(kingSqr), slidingMask);
 }
 
-template KingMask Position::calcKingMask<Set::WHITE>() const;
-template KingMask Position::calcKingMask<Set::BLACK>() const;
+template KingPinThreats Position::calcKingMask<Set::WHITE>() const;
+template KingPinThreats Position::calcKingMask<Set::BLACK>() const;
 
-KingMask
-Position::calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const
+KingPinThreats
+Position::calcKingMask(ChessPiece king, Notation source, const SlidingMaterialMasks& opponentSlidingMask) const
 {
-    byte moveCount = ChessPieceDef::MoveCount(king.index());
-
-    KingMask ret;
-
-    const u8 opSet = ChessPiece::FlipSet(king.set());
-    const u64 c_diagnoalMat = m_material[opSet].material[bishopId].read() | m_material[opSet].material[queenId].read();
-    const u64 c_orthogonalMat = m_material[opSet].material[rookId].read() | m_material[opSet].material[queenId].read();
-    const u64 allMat = readMaterial<Set::WHITE>().combine().read() | readMaterial<Set::BLACK>().combine().read();
-
-    const u64 slideMatCache[2]{opponentSlidingMask.orthogonal.read() & c_orthogonalMat,
-                               opponentSlidingMask.diagonal.read() & c_diagnoalMat};
-
-    Bitboard* kingStar[2]{&ret.kingStarMask.orthogonal, &ret.kingStarMask.diagonal};
-
-    if (c_diagnoalMat > 0 || c_orthogonalMat > 0) {
-        u8 matCount = 0;
-        bool sliding = true;
-        // Calling this kingstar, it will represent a mask of all directions from king
-        // where you could place a slicing piece and it would check the king.
-        bool kingStarSliding = true;
-
-        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-            matCount = 0;
-            sliding = true;
-            kingStarSliding = true;
-            byte curSqr = source.index();
-            signed short dir = ChessPieceDef::Moves0x88(king.index(), moveIndx);
-
-            ret.threats[moveIndx] = ~universe;
-
-            bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
-            u64 slideMat = slideMatCache[diagonal];
-            Bitboard* kingStarMask = kingStar[diagonal];
-
-            if (slideMat == 0)
-                continue;
-
-            u64 mvMask = 0;
-            do {
-                // build a 0x88 square out of current square.
-                signed char sq0x88 = to0x88(curSqr);
-                // do move
-                sq0x88 += dir;
-                if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                {
-                    sliding = false;
-                    break;
-                }
-
-                // convert our sqr0x88 back to a square index
-                curSqr = fr0x88(sq0x88);
-                // build a square mask from current square
-                u64 sqrMask = squareMaskTable[curSqr];
-
-                if (allMat & sqrMask) {
-                    kingStarSliding = false;
-                    matCount++;
-                }
-
-                if (slideMat & sqrMask) {
-                    sliding = false;
-                }
-
-                if (kingStarSliding)
-                    *kingStarMask |= sqrMask;
-
-                mvMask |= sqrMask;
-
-            } while (sliding);
-
-            // comparing against two here since we'll find the sliding piece causing the pin
-            // and at least one piece in between our king and this piece. This found piece isn't
-            // necessarily pinned, if there are no more pieces between king and sliding piece
-            // they are pinned
-            if (mvMask & slideMat && matCount <= 2) {
-                ret.threats[moveIndx] |= mvMask;
-                if (matCount == 1) {
-                    ret.checked[moveIndx] = true;
-                }
-            }
-        }
-    }
-
-    const u64 knightMat = m_material[opSet].material[knightId].read();
-
-    ret.knightsAndPawns = ~universe;
-    if (knightMat > 0) {
-        // figure out if we're checked by a knight
-        static const ChessPiece knight(Set::WHITE, PieceType::KNIGHT);
-        moveCount = ChessPieceDef::MoveCount(knight.index());
-
-        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-            byte curSqr = source.index();
-            signed short dir = ChessPieceDef::Moves0x88(knight.index(), moveIndx);
-
-            u64 mvMask = 0;
-
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            {
-                continue;
-            }
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-            mvMask |= sqrMask;
-
-            if (mvMask & knightMat) {
-                ret.knightsAndPawns |= mvMask;
-                ret.knightOrPawnCheck = true;
-            }
-        }
-    }
-
-    if (m_material[opSet].material[pawnId].empty() == false) {
-        // figure out if we're checked by a pawn
-        i8 pawnMod = king.getSet() == Set::WHITE ? 1 : -1;
-        auto pawnSqr = Notation(source.file + 1, source.rank + pawnMod);
-        if (Position::IsValidSquare(pawnSqr)) {
-            u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= m_material[opSet].material[pawnId].read();
-            if (sqrMak > 0) {
-                ret.knightsAndPawns |= sqrMak;
-                ret.knightOrPawnCheck = true;
-            }
-        }
-        pawnSqr = Notation(source.file - 1, source.rank + pawnMod);
-        if (Position::IsValidSquare(pawnSqr)) {
-            u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= m_material[opSet].material[pawnId].read();
-            if (sqrMak > 0) {
-                ret.knightsAndPawns |= sqrMak;
-                ret.knightOrPawnCheck = true;
-            }
-        }
-    }
-
+    KingPinThreats ret;
+    ret.evaluate(king.getSet(), source, *this, opponentSlidingMask);
     return ret;
 }
-
-// Bitboard
-// Position::GetMaterial(ChessPiece piece) const
-// {
-//     return m_material[piece.set()].material[piece.index()];
-// }
 
 u64
 Position::Castling(byte set, byte castling, u64 threatenedMask) const
@@ -326,7 +180,7 @@ Position::SlidingMaterialCombined(byte set) const
 
 template<Set us>
 Bitboard
-Position::calcAvailableMovesPawnBulk(const KingMask& kingMask) const
+Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask) const
 {
     const size_t usIndx = static_cast<size_t>(us);
     const size_t opIndx = static_cast<size_t>(opposing_set<us>());
@@ -350,8 +204,8 @@ Position::calcAvailableMovesPawnBulk(const KingMask& kingMask) const
     return mvsbb;
 }
 
-template Bitboard Position::calcAvailableMovesPawnBulk<Set::WHITE>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesPawnBulk<Set::BLACK>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::WHITE>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::BLACK>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
@@ -434,7 +288,7 @@ template Bitboard Position::calcThreatenedSquaresKing<Set::BLACK>() const;
 
 template<Set us, u8 pieceId>
 Bitboard
-Position::calcAvailableMovesBishopBulk(const KingMask& kingMask) const
+Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask) const
 {
     const Bitboard materialbb = readMaterial<us>().combine();
     Bitboard moves = calcThreatenedSquaresBishopBulk<us, pieceId>();
@@ -447,14 +301,14 @@ Position::calcAvailableMovesBishopBulk(const KingMask& kingMask) const
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, bishopId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, bishopId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, queenId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, queenId>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, bishopId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, bishopId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, queenId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, queenId>(const KingPinThreats& kingMask) const;
 
 template<Set us, u8 pieceId>
 Bitboard
-Position::calcAvailableMovesRookBulk(const KingMask& kingMask) const
+Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask) const
 {
     const Bitboard materialbb = readMaterial<us>().combine();
 
@@ -468,14 +322,14 @@ Position::calcAvailableMovesRookBulk(const KingMask& kingMask) const
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, rookId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, rookId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, queenId>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, queenId>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, rookId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, rookId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, queenId>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, queenId>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
-Position::calcAvailableMovesQueenBulk(const KingMask& kingMask) const
+Position::calcAvailableMovesQueenBulk(const KingPinThreats& kingMask) const
 {
     Bitboard moves = 0;
     moves |= calcAvailableMovesBishopBulk<us, queenId>(kingMask);
@@ -483,12 +337,12 @@ Position::calcAvailableMovesQueenBulk(const KingMask& kingMask) const
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesQueenBulk<Set::WHITE>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::WHITE>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
-Position::calcAvailableAttacksPawnBulk(const KingMask& kingMask) const
+Position::calcAvailableAttacksPawnBulk(const KingPinThreats& kingMask) const
 {
     constexpr Set op = opposing_set<us>();
 
@@ -498,12 +352,12 @@ Position::calcAvailableAttacksPawnBulk(const KingMask& kingMask) const
     return threats & opMaterial;
 }
 
-template Bitboard Position::calcAvailableAttacksPawnBulk<Set::WHITE>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableAttacksPawnBulk<Set::BLACK>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableAttacksPawnBulk<Set::WHITE>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableAttacksPawnBulk<Set::BLACK>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
-Position::calcAvailableMovesKnightBulk(const KingMask& kingMask) const
+Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask) const
 {
     auto moves = calcThreatenedSquaresKnightBulk<us>();
 
@@ -513,8 +367,8 @@ Position::calcAvailableMovesKnightBulk(const KingMask& kingMask) const
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE>(const KingMask& kingMask) const;
-template Bitboard Position::calcAvailableMovesKnightBulk<Set::BLACK>(const KingMask& kingMask) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::BLACK>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
@@ -612,7 +466,7 @@ template Bitboard Position::calcThreatenedSquaresQueenBulk<Set::BLACK>() const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingMask& kingMask) const
+Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
     switch (pieceId) {
         case pawnId:
@@ -635,18 +489,18 @@ Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const King
     return {0, 0};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::WHITE>(u8, Notation, Bitboard, const KingMask&) const;
-template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::BLACK>(u8, Notation, Bitboard, const KingMask&) const;
+template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::WHITE>(u8, Notation, Bitboard, const KingPinThreats&) const;
+template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::BLACK>(u8, Notation, Bitboard, const KingPinThreats&) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingMask& kingMask) const
+Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
     Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine() | m_enpassantState.readBitboard();
     Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);
 
-    if (srcMask & kingMask.combinedPins()) {
-        movesbb &= kingMask.combinedPins();
+    if (srcMask & kingMask.pins()) {
+        movesbb &= kingMask.pins();
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
@@ -669,20 +523,22 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingMask&
     return {movesbb & isolatedbb, (opMatCombined & threatns)};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::WHITE>(Notation, Bitboard, const KingMask&) const;
-template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::BLACK>(Notation, Bitboard, const KingMask&) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::WHITE>(Notation, Bitboard,
+                                                                                  const KingPinThreats&) const;
+template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::BLACK>(Notation, Bitboard,
+                                                                                  const KingPinThreats&) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingMask& kingMask) const
+Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
     Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
 
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
-    bool pinned = srcMask & kingMask.combinedPins();
+    bool pinned = srcMask & kingMask.pins();
     if (pinned == true) {
-        movesbb &= kingMask.combinedPins();
+        movesbb &= kingMask.pins();
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
@@ -716,14 +572,14 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask, i8 pieceIndex) const
+Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8 pieceIndex) const
 {
     const Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
-    bool pinned = srcMask & kingMask.combinedPins();
+    bool pinned = srcMask & kingMask.pins();
     if (pinned == true) {
-        movesbb &= kingMask.combinedPins();
+        movesbb &= kingMask.pins();
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
@@ -769,14 +625,14 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingMas
     return {movesbb & ~opMatCombined, movesbb & opMatCombined};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::WHITE>(Notation, Bitboard, const KingMask&,
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
                                                                                     i8) const;
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::BLACK>(Notation, Bitboard, const KingMask&,
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
                                                                                     i8) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask, i8 pieceIndx) const
+Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8 pieceIndx) const
 {
     Bitboard opThreatenedPieces = readMaterial<opposing_set<us>()>().combine() & movesbb;
     if (readMaterial<us>()[pieceIndx].count() <= 1)
@@ -825,9 +681,9 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingMask&
     return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
 }
 
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation, Bitboard, const KingMask&,
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
                                                                                   i8) const;
-template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::BLACK>(Notation, Bitboard, const KingMask&,
+template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
                                                                                   i8) const;
 
 i32

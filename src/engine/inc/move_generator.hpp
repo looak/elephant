@@ -17,6 +17,7 @@
 #define MOVE_GENERATOR_HEADER
 
 #include <queue>
+#include "king_pin_threats.hpp"
 #include "move.h"
 #include "position.hpp"
 
@@ -75,25 +76,25 @@ private:
     void generateAllMoves();
 
     template<Set set, u8 pieceId>
-    void generateMoves(const KingMask& kingmask);
+    void generateMoves(const KingPinThreats& pinThreats);
 
     template<Set set>
-    void internalGenerateMoves(u8 pieceId, const KingMask& kingmask);
+    void internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats);
 
     template<Set set>
-    void internalGeneratePawnMoves(const KingMask& kingmask);
+    void internalGeneratePawnMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateKnightMoves(const KingMask& kingmask);
+    void internalGenerateKnightMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateBishopMoves(const KingMask& kingmask);
+    void internalGenerateBishopMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateRookMoves(const KingMask& kingmask);
+    void internalGenerateRookMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateQueenMoves(const KingMask& kingmask);
+    void internalGenerateQueenMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateKingMoves(const KingMask& kingmask);
+    void internalGenerateKingMoves(const KingPinThreats& pinThreats);
 
-    void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingMask& kingmask);
+    void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
 
     Set m_toMove;
     const Position& m_position;
@@ -105,31 +106,31 @@ private:
     // pseudo legal move masks for each piece type
     MaterialMask m_moveMasks[2];
     bool m_movesGenerated;
-    KingMask m_kingMask[2];
+    KingPinThreats m_pinThreats[2];
 };
 
 template<Set set, u8 pieceId>
 void
-MoveGenerator::generateMoves(const KingMask& kingmask)
+MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
 {
     switch (pieceId) {
         case pawnId:
-            internalGeneratePawnMoves<set>(kingmask);
+            internalGeneratePawnMoves<set>(pinThreats);
             break;
         case knightId:
-            internalGenerateKnightMoves<set>(kingmask);
+            internalGenerateKnightMoves<set>(pinThreats);
             break;
         case bishopId:
-            internalGenerateBishopMoves<set>(kingmask);
+            internalGenerateBishopMoves<set>(pinThreats);
             break;
         case rookId:
-            internalGenerateRookMoves<set>(kingmask);
+            internalGenerateRookMoves<set>(pinThreats);
             break;
         case queenId:
-            internalGenerateQueenMoves<set>(kingmask);
+            internalGenerateQueenMoves<set>(pinThreats);
             break;
         case kingId:
-            internalGenerateKingMoves<set>(kingmask);
+            internalGenerateKingMoves<set>(pinThreats);
             break;
 
         default:

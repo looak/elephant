@@ -29,6 +29,7 @@
 #include "chess_piece.h"
 #include "defines.h"
 #include "intrinsics.hpp"
+#include "king_pin_threats.hpp"
 #include "notation.h"
 
 struct Notation;
@@ -92,149 +93,6 @@ struct MaterialMask {
 //         return set[1];
 //     }
 // };
-
-struct MaterialSlidingMask {
-    Bitboard orthogonal;
-    Bitboard diagonal;
-};
-
-/**
- * @brief KingMask, used to figure out pinned pieces and if king is in check. Each bitboard is a
- * direction of where the threat comes from. */
-struct KingMask {
-    KingMask() :
-        threats{0, 0, 0, 0, 0, 0, 0, 0},
-        checked{false, false, false, false, false, false, false, false},
-        knightsAndPawns(0),
-        knightOrPawnCheck(false),
-        pawnMask(false)
-    {
-    }
-
-    u64 threats[8];
-    bool checked[8];
-    MaterialSlidingMask kingStarMask;
-    u64 knightsAndPawns;
-    bool knightOrPawnCheck;
-    bool pawnMask;
-
-    KingMask checkedMask(int& checkedCount) const
-    {
-        KingMask result;
-        for (int i = 0; i < 8; ++i) {
-            if (checked[i]) {
-                result.threats[i] = threats[i];
-                result.checked[i] = true;
-                ++checkedCount;
-            }
-        }
-
-        if (knightOrPawnCheck) {
-            result.knightsAndPawns = knightsAndPawns;
-            result.knightOrPawnCheck = true;
-            ++checkedCount;
-        }
-        return result;
-    }
-    bool zero() const
-    {
-        for (int i = 0; i < 8; ++i) {
-            if (threats[i] != 0) {
-                return false;
-            }
-        }
-        return knightsAndPawns == 0;
-    }
-
-    [[nodiscard]] constexpr bool isChecked() const
-    {
-        for (int i = 0; i < 8; ++i) {
-            if (checked[i]) {
-                return true;
-            }
-        }
-        return knightOrPawnCheck;
-    }
-
-    [[nodiscard]] constexpr u8 countChecked() const
-    {
-        int count = 0;
-        for (int i = 0; i < 8; ++i) {
-            if (checked[i]) {
-                ++count;
-            }
-        }
-        if (knightOrPawnCheck) {
-            ++count;
-        }
-        return count;
-    }
-
-    u64 combined() const
-    {
-        u64 result = 0;
-        for (int i = 0; i < 8; ++i) {
-            if (checked[i])
-                result |= threats[i];
-        }
-
-        if (knightOrPawnCheck)
-            result |= knightsAndPawns;
-
-        return result;
-    }
-
-    constexpr u64 combinedPins() const
-    {
-        u64 result = 0;
-        for (int i = 0; i < 8; ++i) {
-            if (checked[i] == false)
-                result |= threats[i];
-        }
-        return result;
-    }
-
-    void operator^=(const KingMask& rhs)
-    {
-        for (int i = 0; i < 8; ++i) {
-            threats[i] ^= rhs.threats[i];
-        }
-        knightsAndPawns ^= rhs.knightsAndPawns;
-    }
-};
-
-inline KingMask
-operator&(const KingMask& lhs, const u64& rhs)
-{
-    KingMask result;
-    for (int i = 0; i < 8; ++i) {
-        result.threats[i] = lhs.threats[i] & rhs;
-    }
-    result.knightsAndPawns = lhs.knightsAndPawns & rhs;
-    return result;
-}
-
-inline KingMask
-operator&(const KingMask& lhs, const KingMask& rhs)
-{
-    KingMask result;
-    for (int i = 0; i < 8; ++i) {
-        result.threats[i] = lhs.threats[i] & rhs.threats[i];
-    }
-    result.knightsAndPawns = lhs.knightsAndPawns & rhs.knightsAndPawns;
-    return result;
-}
-
-inline KingMask
-operator^(const KingMask& lhs, const KingMask& rhs)
-{
-    KingMask result;
-    for (int i = 0; i < 8; ++i) {
-        result.threats[i] = lhs.threats[i] ^ rhs.threats[i];
-    }
-    result.knightsAndPawns = lhs.knightsAndPawns ^ rhs.knightsAndPawns;
-    return result;
-}
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState {
@@ -387,23 +245,23 @@ public:
     const CastlingStateInfo& refCastling() const { return m_castlingState; }
 
     template<Set us>
-    Bitboard calcAvailableMovesPawnBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us>
-    Bitboard calcAvailableMovesKnightBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us, u8 pieceId = rookId>
-    Bitboard calcAvailableMovesRookBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us, u8 pieceId = bishopId>
-    Bitboard calcAvailableMovesBishopBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us>
-    Bitboard calcAvailableMovesQueenBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us, Set op = opposing_set<us>()>
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
 
     template<Set us>
-    MaterialSlidingMask calcMaterialSlidingMasksBulk() const;
+    SlidingMaterialMasks calcMaterialSlidingMasksBulk() const;
 
     template<Set us>
-    Bitboard calcAvailableAttacksPawnBulk(const KingMask& kingMask) const;
+    Bitboard calcAvailableAttacksPawnBulk(const KingPinThreats& kingPinThreats) const;
 
     template<Set us>
     Bitboard calcThreatenedSquaresPawnBulk() const;
@@ -426,10 +284,11 @@ public:
     Bitboard calcThreatenedSquaresOrthogonal() const;
 
     template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingMask& kingMask) const;
+    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb,
+                                                const KingPinThreats& kingPinThreats) const;
 
     template<Set us, u8 pieceId>
-    std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
+    std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
 
     i32 diffWestEast(Notation a, Notation b) const;
 
@@ -443,9 +302,9 @@ public:
      * @param source Position on board of the king.
      * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
      * @return A mask struct containing a seperate mask for each direction.  */
-    KingMask calcKingMask(ChessPiece king, Notation source, const MaterialSlidingMask& opponentSlidingMask) const;
+    KingPinThreats calcKingMask(ChessPiece king, Notation source, const SlidingMaterialMasks& opponentSlidingMask) const;
     template<Set us>
-    KingMask calcKingMask() const;
+    KingPinThreats calcKingMask() const;
 
 private:
     template<Set us, u8 direction, u8 pieceId>
@@ -456,15 +315,16 @@ private:
      * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
      * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square.     */
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb, const KingMask& kingMask) const;
+    std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb,
+                                                       const KingPinThreats& kingPinThreats) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb,
-                                                              const KingMask& kingMask) const;
+                                                              const KingPinThreats& kingPinThreats) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingMask& kingMask,
-                                                         i8 pieceIndex = bishopId) const;
+    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb,
+                                                         const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingMask& kingMask,
+    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats,
                                                        i8 pieceIndex = rookId) const;
 
     Bitboard SlidingMaterialCombined(byte set) const;
@@ -599,7 +459,7 @@ Position::calcThreatenedSquares() const
 }
 
 template<Set us>
-MaterialSlidingMask
+SlidingMaterialMasks
 Position::calcMaterialSlidingMasksBulk() const
 {
     Bitboard orthogonal;
@@ -620,7 +480,7 @@ Position::calcMaterialSlidingMasksBulk() const
 
 template<Set us, u8 pieceId>
 std::tuple<Bitboard, Bitboard>
-Position::isolatePiece(Notation source, Bitboard movesbb, const KingMask& kingMask) const
+Position::isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
     return isolatePiece<us>(pieceId, source, movesbb, kingMask);
 }

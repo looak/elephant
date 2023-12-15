@@ -25,6 +25,7 @@ ${ENGINE_INC_DIR}/fen_parser.h
 ${ENGINE_INC_DIR}/game_context.h
 ${ENGINE_INC_DIR}/hash_zorbist.h
 ${ENGINE_INC_DIR}/intrinsics.hpp
+${ENGINE_INC_DIR}/king_pin_threats.hpp
 ${ENGINE_INC_DIR}/log.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
@@ -48,6 +49,7 @@ ${ENGINE_SRC_DIR}/evaluator_data.h
 ${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/hash_zorbist.cpp
+${ENGINE_SRC_DIR}/king_pin_threats.cpp
 ${ENGINE_SRC_DIR}/log.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp

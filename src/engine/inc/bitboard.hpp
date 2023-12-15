@@ -412,4 +412,10 @@ Bitboard::shiftNorthWestRelative() const
     }
 }
 
+[[nodiscard]] inline u64
+operator&(const u64& lhs, const Bitboard& rhs)
+{
+    return lhs & rhs.read();
+}
+
 #endif  // BITBOARD_HEADER

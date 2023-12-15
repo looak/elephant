@@ -8,7 +8,6 @@
 #include "move.h"
 #include "position.hpp"
 
-
 namespace ElephantTest {
 //
 // bool PrintBoard(const GameContext& context)
@@ -74,17 +73,6 @@ CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate)
         result.Moves++;
     }
 
-    return result;
-}
-
-u64
-CombineKingMask(KingMask mask)
-{
-    u64 result = 0;
-    for (int i = 0; i < 8; ++i) {
-        result |= mask.threats[i];
-    }
-    result |= mask.knightsAndPawns;
     return result;
 }
 

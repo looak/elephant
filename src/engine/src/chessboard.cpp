@@ -629,7 +629,7 @@ Chessboard::calculateThreatenedMask(Set set) const
     return mask;
 }
 
-MaterialSlidingMask
+SlidingMaterialMasks
 Chessboard::readSlidingMaterialMask(Set set) const
 {
     if (set == Set::BLACK)
@@ -638,21 +638,21 @@ Chessboard::readSlidingMaterialMask(Set set) const
     return m_position.calcMaterialSlidingMasksBulk<Set::WHITE>();
 }
 
-std::vector<Move>
-Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
-                                                      KingMask checkedMask, bool captureMoves) const
-{
-    std::vector<Move> result;
+// std::vector<Move>
+// Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
+//                                                       KingMask checkedMask, bool captureMoves) const
+// {
+//     std::vector<Move> result;
 
-    // u64 pieceBitboard = m_material[piece.set()].readPieceBitboard(piece.index());
-    // while (pieceBitboard > 0) {
-    //     u32 sqr = m_material[piece.set()].readNextPiece(pieceBitboard);
-    //     auto moves = GetAvailableMoves(Notation(sqr), piece, threatenedMask, checkedMask, kingMask, captureMoves);
-    //     result.insert(result.end(), moves.begin(), moves.end());
-    // }
+//     // u64 pieceBitboard = m_material[piece.set()].readPieceBitboard(piece.index());
+//     // while (pieceBitboard > 0) {
+//     //     u32 sqr = m_material[piece.set()].readNextPiece(pieceBitboard);
+//     //     auto moves = GetAvailableMoves(Notation(sqr), piece, threatenedMask, checkedMask, kingMask, captureMoves);
+//     //     result.insert(result.end(), moves.begin(), moves.end());
+//     // }
 
-    return result;
-}
+//     return result;
+// }
 
 bool
 Chessboard::setEnPassant(Notation notation)

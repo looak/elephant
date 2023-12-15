@@ -64,16 +64,16 @@ MoveGenerator::generateNextMove()
         return PackedMove::NullMove();
 
     if (m_movesGenerated == false) {
-        if (m_kingMask->countChecked() > 1) {
-            generateMoves<set, kingId>(m_kingMask[setIndx]);
+        if (m_pinThreats->isCheckedCount() > 1) {
+            generateMoves<set, kingId>(m_pinThreats[setIndx]);
         }
         else {
-            generateMoves<set, pawnId>(m_kingMask[setIndx]);
-            generateMoves<set, knightId>(m_kingMask[setIndx]);
-            generateMoves<set, bishopId>(m_kingMask[setIndx]);
-            generateMoves<set, rookId>(m_kingMask[setIndx]);
-            generateMoves<set, queenId>(m_kingMask[setIndx]);
-            generateMoves<set, kingId>(m_kingMask[setIndx]);
+            generateMoves<set, pawnId>(m_pinThreats[setIndx]);
+            generateMoves<set, knightId>(m_pinThreats[setIndx]);
+            generateMoves<set, bishopId>(m_pinThreats[setIndx]);
+            generateMoves<set, rookId>(m_pinThreats[setIndx]);
+            generateMoves<set, queenId>(m_pinThreats[setIndx]);
+            generateMoves<set, kingId>(m_pinThreats[setIndx]);
         }
     }
 
@@ -94,16 +94,16 @@ MoveGenerator::generateAllMoves()
     if (m_moveMasks[setIndx].combine().empty())
         return;
 
-    if (m_kingMask->countChecked() > 1) {
-        generateMoves<set, kingId>(m_kingMask[setIndx]);
+    if (m_pinThreats->isCheckedCount() > 1) {
+        generateMoves<set, kingId>(m_pinThreats[setIndx]);
     }
     else {
-        generateMoves<set, pawnId>(m_kingMask[setIndx]);
-        generateMoves<set, knightId>(m_kingMask[setIndx]);
-        generateMoves<set, bishopId>(m_kingMask[setIndx]);
-        generateMoves<set, rookId>(m_kingMask[setIndx]);
-        generateMoves<set, queenId>(m_kingMask[setIndx]);
-        generateMoves<set, kingId>(m_kingMask[setIndx]);
+        generateMoves<set, pawnId>(m_pinThreats[setIndx]);
+        generateMoves<set, knightId>(m_pinThreats[setIndx]);
+        generateMoves<set, bishopId>(m_pinThreats[setIndx]);
+        generateMoves<set, rookId>(m_pinThreats[setIndx]);
+        generateMoves<set, queenId>(m_pinThreats[setIndx]);
+        generateMoves<set, kingId>(m_pinThreats[setIndx]);
     }
 
     m_movesGenerated = true;
@@ -122,7 +122,7 @@ MoveGenerator::forEachMove(std::function<void(const PackedMove)> callback) const
 
 template<Set set>
 void
-MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
+MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
 {
     const auto& pos = m_position;
 
@@ -140,7 +140,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
 
         const u64 promotionMask = pawn_constants::promotionRank[(size_t)set];
 
-        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, kingMask);
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, pinThreats);
         while (isolatedPawnAttacks.empty() == false) {
             i32 dstSqr = isolatedPawnAttacks.popLsb();
 
@@ -166,21 +166,21 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(move);
-                if ((kingMask.kingStarMask.orthogonal | kingMask.kingStarMask.diagonal) & squareMaskTable[dstSqr])
+                if ((pinThreats.readOpenAngles()[0] | pinThreats.readOpenAngles()[1]) & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
                 m_unsortedMoves.push_back(move);
-                if (kingMask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+                if (pinThreats.readOpenAngles()[0] & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
                 m_unsortedMoves.push_back(move);
-                if (kingMask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+                if (pinThreats.readOpenAngles()[1] & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(knightId);
@@ -207,21 +207,21 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
                 PrioratizedMove prioratizedMove(move, 1);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(move);
-                if ((kingMask.kingStarMask.orthogonal | kingMask.kingStarMask.diagonal) & squareMaskTable[dstSqr])
+                if ((pinThreats.readOpenAngles()[0] | pinThreats.readOpenAngles()[1]) & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(rookId);
                 PrioratizedMove prioratizedMove2(move, 1);
                 m_moves.push(prioratizedMove2);
                 m_unsortedMoves.push_back(move);
-                if (kingMask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+                if (pinThreats.readOpenAngles()[0] & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(bishopId);
                 PrioratizedMove prioratizedMove3(move, 1);
                 m_moves.push(prioratizedMove3);
                 m_unsortedMoves.push_back(move);
-                if (kingMask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+                if (pinThreats.readOpenAngles()[1] & squareMaskTable[dstSqr])
                     move.setCheck(true);
 
                 move.setPromoteTo(knightId);
@@ -237,12 +237,12 @@ MoveGenerator::internalGeneratePawnMoves(const KingMask& kingMask)
         }
     }
 }
-template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateMoves(u8 pieceId, const KingMask& kingMask)
+MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats)
 {
     const auto& bb = m_position;
 
@@ -257,58 +257,58 @@ MoveGenerator::internalGenerateMoves(u8 pieceId, const KingMask& kingMask)
         const i32 srcSqr = pieces.popLsb();
         const Notation srcNotation(srcSqr);
 
-        auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, kingMask);
-        genPackedMovesFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, kingMask);
-        genPackedMovesFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false, kingMask);
+        auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, pinThreats);
+        genPackedMovesFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, pinThreats);
+        genPackedMovesFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false, pinThreats);
     }
 }
 
-template void MoveGenerator::internalGenerateMoves<Set::WHITE>(u8, const KingMask&);
-template void MoveGenerator::internalGenerateMoves<Set::BLACK>(u8, const KingMask&);
+template void MoveGenerator::internalGenerateMoves<Set::WHITE>(u8, const KingPinThreats&);
+template void MoveGenerator::internalGenerateMoves<Set::BLACK>(u8, const KingPinThreats&);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateKnightMoves(const KingMask& kingMask)
+MoveGenerator::internalGenerateKnightMoves(const KingPinThreats& pinThreats)
 {
-    internalGenerateMoves<set>(knightId, kingMask);
+    internalGenerateMoves<set>(knightId, pinThreats);
 }
 
-template void MoveGenerator::internalGenerateKnightMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGenerateKnightMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateKnightMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateKnightMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateBishopMoves(const KingMask& kingMask)
+MoveGenerator::internalGenerateBishopMoves(const KingPinThreats& pinThreats)
 {
-    internalGenerateMoves<set>(bishopId, kingMask);
+    internalGenerateMoves<set>(bishopId, pinThreats);
 }
 
-template void MoveGenerator::internalGenerateBishopMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGenerateBishopMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateBishopMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateBishopMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateRookMoves(const KingMask& kingMask)
+MoveGenerator::internalGenerateRookMoves(const KingPinThreats& pinThreats)
 {
-    internalGenerateMoves<set>(rookId, kingMask);
+    internalGenerateMoves<set>(rookId, pinThreats);
 }
 
-template void MoveGenerator::internalGenerateRookMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGenerateRookMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateRookMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateRookMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateQueenMoves(const KingMask& kingMask)
+MoveGenerator::internalGenerateQueenMoves(const KingPinThreats& pinThreats)
 {
-    internalGenerateMoves<set>(queenId, kingMask);
+    internalGenerateMoves<set>(queenId, pinThreats);
 }
 
-template void MoveGenerator::internalGenerateQueenMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateQueenMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 template<Set set>
 void
-MoveGenerator::internalGenerateKingMoves(const KingMask& kingMask)
+MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
 {
     const auto& bb = m_position;
     const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
@@ -345,8 +345,8 @@ MoveGenerator::internalGenerateKingMoves(const KingMask& kingMask)
     }
 }
 
-template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>(const KingMask& kingMask);
-template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>(const KingMask& kingMask);
+template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
 void
 MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
@@ -365,32 +365,32 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTy
     if (bb.empty())
         return;
     const size_t setIndx = static_cast<size_t>(set);
-    m_kingMask[setIndx] = bb.calcKingMask<set>();
+    m_pinThreats[setIndx] = bb.calcKingMask<set>();
 
     if (ptype == PieceType::NONE) {
-        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
-        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
-        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
-        target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
-        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
+        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx]);
+        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx]);
+        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx]);
+        target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx]);
+        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx]);
         target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read());
     }
     else {
         switch (ptype) {
             case PieceType::PAWN:
-                target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_kingMask[setIndx]);
+                target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx]);
                 break;
             case PieceType::KNIGHT:
-                target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_kingMask[setIndx]);
+                target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx]);
                 break;
             case PieceType::BISHOP:
-                target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_kingMask[setIndx]);
+                target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx]);
                 break;
             case PieceType::ROOK:
-                target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_kingMask[setIndx]);
+                target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx]);
                 break;
             case PieceType::QUEEN:
-                target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_kingMask[setIndx]);
+                target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx]);
                 break;
             case PieceType::KING:
                 target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read());
@@ -406,7 +406,8 @@ template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& targe
 template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
 
 void
-MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingMask& kingmask)
+MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture,
+                                          const KingPinThreats& pinThreats)
 {
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -422,11 +423,11 @@ MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcS
 
         // figure out if we're checking the king.
         if (pieceId == rookId || pieceId == queenId) {
-            if (kingmask.kingStarMask.orthogonal & squareMaskTable[dstSqr])
+            if (pinThreats.readOpenAngles()[0] & squareMaskTable[dstSqr])
                 move.setCheck(true);
         }
         else if (pieceId == bishopId || pieceId == queenId) {
-            if (kingmask.kingStarMask.diagonal & squareMaskTable[dstSqr])
+            if (pinThreats.readOpenAngles()[1] & squareMaskTable[dstSqr])
                 move.setCheck(true);
         }
     }
