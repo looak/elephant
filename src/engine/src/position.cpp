@@ -199,7 +199,7 @@ Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask) const
     mvsbb |= (opMat | m_enpassantState.readBitboard()) & calcThreatenedSquaresPawnBulk<us>();
 
     if (kingMask.isChecked())
-        mvsbb &= kingMask.combined();
+        mvsbb &= kingMask.checks();
 
     return mvsbb;
 }
@@ -294,7 +294,7 @@ Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask) const
     Bitboard moves = calcThreatenedSquaresBishopBulk<us, pieceId>();
 
     if (kingMask.isChecked())
-        moves &= kingMask.combined();
+        moves &= kingMask.checks();
     else
         moves ^= (materialbb & moves);
 
@@ -315,7 +315,7 @@ Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask) const
     Bitboard moves = calcThreatenedSquaresRookBulk<us, pieceId>();
 
     if (kingMask.isChecked())
-        moves &= kingMask.combined();
+        moves &= kingMask.checks();
     else
         moves ^= (materialbb & moves);
 
@@ -362,7 +362,7 @@ Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask) const
     auto moves = calcThreatenedSquaresKnightBulk<us>();
 
     if (kingMask.isChecked())
-        return moves & kingMask.combined();
+        return moves & kingMask.checks();
 
     return moves;
 }
@@ -494,13 +494,18 @@ template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::BLACK>(u8, N
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
-Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
+Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinThreats& pinThreats) const
 {
     Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine() | m_enpassantState.readBitboard();
     Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);
 
-    if (srcMask & kingMask.pins()) {
-        movesbb &= kingMask.pins();
+    // const Bitboard checks = pinThreats.checks();
+    const Bitboard pins = pinThreats.pins();
+
+    // there is probably a smarter way to do this with all my bitboards,
+    // I just don't know how. Idea is to remove all the if statemetns.
+    if (srcMask & pins) {
+        movesbb &= pins;
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 

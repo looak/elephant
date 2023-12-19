@@ -60,6 +60,21 @@ KingPinThreats::pins() const
     return combined;
 }
 
+Bitboard
+KingPinThreats::checks() const
+{
+    Bitboard combined = 0;
+    for (u8 i = 0; i < 8; ++i) {
+        if (m_checkedAngles[i] == false)
+            continue;
+        combined |= m_threatenedAngles[i];
+    }
+    if (m_knightOrPawnCheck) {
+        combined |= m_knightsAndPawns;
+    }
+    return combined;
+}
+
 void
 KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
                          const SlidingMaterialMasks& opponentSlidingMask)

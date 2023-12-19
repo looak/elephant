@@ -18,6 +18,7 @@ struct KingPinThreats {
     [[nodiscard]] bool isChecked() const;
     [[nodiscard]] Bitboard combined() const;
     [[nodiscard]] Bitboard pins() const;
+    [[nodiscard]] Bitboard checks() const;
 
     [[nodiscard]] const Bitboard* readOpenAngles() const { return &m_openAngles[0]; }
     // [[nodiscard]] const Bitboard& readKnightsAndPawns() const { return m_knightsAndPawns; }
