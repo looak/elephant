@@ -191,6 +191,8 @@ public:
         m_plyCount = ply;
         m_moveCount = moveCount;
     }
+    Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
+    void setToPlay(Set set) { m_isWhiteTurn = set == Set::WHITE; }
 
     Notation readKingPosition(Set set) const;
 

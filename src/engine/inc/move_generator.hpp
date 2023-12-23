@@ -60,7 +60,7 @@ public:
     ~MoveGenerator() = default;
 
     PackedMove generateNextMove();
-    void forEachMove(std::function<void(const PackedMove)> func) const;
+    void forEachMove(std::function<void(const PrioratizedMove&)> func) const;
     void generate();
 
 private:
@@ -100,7 +100,7 @@ private:
     const Position& m_position;
 
     PriorityMoveQueue m_moves;
-    std::vector<PackedMove> m_unsortedMoves;
+    std::vector<PrioratizedMove> m_unsortedMoves;
     std::vector<PackedMove> m_returnedMoves;
 
     // pseudo legal move masks for each piece type

@@ -170,8 +170,8 @@ public:
     Square readTarget() const
     {
         byte sq = m_innerState >> 2;
-        Set set = static_cast<Set>(m_innerState & 2);
-        if (set == Set::WHITE) {
+        // Set set = static_cast<Set>(m_innerState & 2);
+        if (sq < 31) {
             return static_cast<Square>(sq + 8);
         }
         return static_cast<Square>(sq - 8);
@@ -245,17 +245,17 @@ public:
     const CastlingStateInfo& refCastling() const { return m_castlingState; }
 
     template<Set us>
-    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
+    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
     template<Set us>
-    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats) const;
+    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
     template<Set us, u8 pieceId = rookId>
-    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats) const;
+    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
     template<Set us, u8 pieceId = bishopId>
-    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats) const;
+    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
     template<Set us>
-    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats) const;
+    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
     template<Set us, Set op = opposing_set<us>()>
-    Bitboard calcAvailableMovesKing(byte castlingRights) const;
+    Bitboard calcAvailableMovesKing(byte castlingRights, bool captures = false) const;
 
     template<Set us>
     SlidingMaterialMasks calcMaterialSlidingMasksBulk() const;

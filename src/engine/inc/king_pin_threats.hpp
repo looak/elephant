@@ -21,14 +21,17 @@ struct KingPinThreats {
     [[nodiscard]] Bitboard checks() const;
 
     [[nodiscard]] const Bitboard* readOpenAngles() const { return &m_openAngles[0]; }
+    [[nodiscard]] const Bitboard* readOpponentOpenAngles() const { return &m_opponentOpenAngles[0]; }
     // [[nodiscard]] const Bitboard& readKnightsAndPawns() const { return m_knightsAndPawns; }
     // [[nodiscard]] const Bitboard* readThreatenedAngles() const { return &m_threatenedAngles[0]; }
 
     void evaluate(Set set, Notation kingSquare, const Position& position, const SlidingMaterialMasks& opponentSlidingMask);
+    void calculateOpponentOpenAngles(Set set, const Notation kingSquare, const Position& position);
 
 private:
     Bitboard m_threatenedAngles[8];
     Bitboard m_openAngles[2];
+    Bitboard m_opponentOpenAngles[2];
     Bitboard m_knightsAndPawns;
     bool m_checkedAngles[8];
     bool m_knightOrPawnCheck;

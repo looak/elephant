@@ -27,16 +27,16 @@ Search::Perft(GameContext& context, int depth)
     PerftResult result;
     MoveGenerator generator(context);
     generator.generate();
-    generator.forEachMove([&](const PackedMove mv) {
-        context.MakeMove(mv);
+    generator.forEachMove([&](const PrioratizedMove& mv) {
+        context.MakeMove(mv.move);
         result.Nodes++;
-        if (mv.isCapture())
+        if (mv.move.isCapture())
             result.Captures++;
-        if (mv.isEnPassant())
+        if (mv.move.isEnPassant())
             result.EnPassants++;
-        if (mv.isCastling())
+        if (mv.move.isCastling())
             result.Castles++;
-        if (mv.isPromotion())
+        if (mv.move.isPromotion())
             result.Promotions++;
         if (mv.isCheck())
             result.Checks++;

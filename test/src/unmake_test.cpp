@@ -214,7 +214,7 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
         auto whiteUndo = board.MakeMove<false>(wMove);
         // LOG_INFO() << board.toString();
 
-        context.editToPlay() = Set::BLACK;
+        context.editChessboard().setToPlay(Set::BLACK);
         MoveGenerator blackMoves(context);
         PackedMove bMove = blackMoves.generateNextMove();
         while (bMove != PackedMove::NullMove()) {

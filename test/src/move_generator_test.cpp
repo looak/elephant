@@ -92,7 +92,7 @@ TEST_F(MoveGeneratorFixture, KingFromE8_Black_FiveMovesAvailable)
     auto& board = testContext.editChessboard();
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(WHITEKING, e1);
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     MoveGenerator gen(testContext);
 
@@ -124,7 +124,7 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
     board.PlacePiece(WHITEKNIGHT, d7);
     board.PlacePiece(WHITEKING, e1);
 
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     MoveGenerator gen(testContext);
     auto result = buildMoveVector(gen);
@@ -180,7 +180,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_QueenSideCastlingAvailable)
     board.PlacePiece(WHITEKING, e1);
     board.setCastlingState(8);
 
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     MoveGenerator gen(testContext);
@@ -218,7 +218,7 @@ TEST_F(MoveGeneratorFixture, King_InCheck_CanNotCastle)
     board.PlacePiece(WHITEKING, e1);
     board.setCastlingState(8);
 
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     MoveGenerator gen(testContext);
@@ -352,8 +352,8 @@ TEST_F(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheckKnightVariation)
 TEST_F(MoveGeneratorFixture, King_Check_CaptureCheckingPawn)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(WHITEPAWN, f7);
     board.PlacePiece(WHITEKING, e1);
@@ -390,7 +390,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_CanNotQueenSideCastleBecauseItsBlocke
     board.PlacePiece(WHITEKING, e1);
     board.setCastlingState(8);
 
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     MoveGenerator gen(testContext);
@@ -411,28 +411,6 @@ TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
     auto result = buildMoveVector(gen);
 
     EXPECT_EQ(23, result.size());
-
-    // auto predicate = [](const Move& mv) {
-    //     static ChessPiece b = WHITEKING;
-    //     if (mv.Piece == b)
-    //         return true;
-
-    //     return false;
-    // };
-
-    // count = CountMoves(moves, predicate);
-    // EXPECT_EQ(4, count.Moves);
-
-    // auto predicateRook = [](const Move& mv) {
-    //     static ChessPiece b = WHITEROOK;
-    //     if (mv.Piece == b)
-    //         return true;
-
-    //     return false;
-    // };
-
-    // count = CountMoves(moves, predicateRook);
-    // EXPECT_EQ(4 + 8, count.Moves);
 }
 
 #pragma endregion  // KingMoveGenerationTests
@@ -489,7 +467,7 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_NothingBlockedSomeCapt
 
     EXPECT_EQ(6, result.size());
 
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
     MoveGenerator gen2(testContext);
     auto result2 = buildMoveVector(gen2, predicate);
 
@@ -558,7 +536,7 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
     auto captures = buildMoveVector(gen2, predicate);
     EXPECT_EQ(3, captures.size());
 
-    testContext.editToPlay() = Set::BLACK;
+    testContext.editChessboard().setToPlay(Set::BLACK);
     MoveGenerator gen_black(testContext);
     auto result_black = buildMoveVector(gen_black, predicate);
     EXPECT_EQ(3, result_black.size());
@@ -571,7 +549,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
     board.PlacePiece(WHITEKING, e1);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKPAWN, a2);
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     MoveGenerator gen(testContext);
@@ -599,7 +577,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     board.PlacePiece(BLACKPAWN, a2);
     board.PlacePiece(WHITEROOK, b1);
     board.PlacePiece(WHITEKING, e1);
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     MoveGenerator gen(testContext);
@@ -694,7 +672,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
     board.PlacePiece(BLACKPAWN, a2);
     board.PlacePiece(WHITEROOK, b1);
     board.PlacePiece(WHITEKING, g1);
-    testContext.editToPlay() = Set::BLACK;
+    board.setToPlay(Set::BLACK);
 
     // do
     auto count = search.Perft(testContext, 1);
@@ -718,19 +696,20 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-// TEST_F(MoveGeneratorFixture, Check)
-// {
-//     // setup
-//     auto& board = testContext.editChessboard();
-//     board.PlacePiece(BLACKKING, e8);
-//     board.PlacePiece(WHITEKING, e1);
-//     board.PlacePiece(BLACKROOK, d8);
+TEST_F(MoveGeneratorFixture, King_Threat_CantMoveIntoThreatenedSquares)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(BLACKROOK, d8);
 
-//     // do
-//     auto result = search.GeneratePossibleMoves(testContext);
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-//     EXPECT_EQ(3, result.size());
-// }
+    EXPECT_EQ(3, result.size());
+}
 
 // 8 [   ][   ][   ][   ][ k ][   ][ b ][   ]
 // 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
@@ -745,8 +724,8 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
 TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BishopOnlyHasOneMove)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKBISHOP, g8);
     board.PlacePiece(WHITEPAWN, f7);
@@ -774,8 +753,8 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BishopOnlyHasOneMove)
 TEST_F(MoveGeneratorFixture, Bishop_Pinned_NoValidMoves)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKBISHOP, e5);
     board.PlacePiece(WHITEROOK, e1);
@@ -803,8 +782,8 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NoValidMoves)
 TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKBISHOP, e5);
     board.PlacePiece(WHITEROOK, e1);
@@ -833,8 +812,8 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
 TEST_F(MoveGeneratorFixture, Queen_StartingPos_BlockedByPawns)
 {
     // setup
-    testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
     board.PlacePiece(WHITEQUEEN, d1);
     board.PlacePiece(WHITEPAWN, c2);
     board.PlacePiece(WHITEPAWN, d2);
@@ -862,8 +841,8 @@ TEST_F(MoveGeneratorFixture, Queen_StartingPos_BlockedByPawns)
 TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing)
 {
     // setup
-    testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKBISHOP, b6);
     board.PlacePiece(BLACKBISHOP, g6);
@@ -892,8 +871,8 @@ TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing)
 TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing_RookVarient)
 {
     // setup
-    testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
     board.PlacePiece(BLACKKING, e8);
     board.PlacePiece(BLACKBISHOP, b6);
     board.PlacePiece(BLACKROOK, g6);
@@ -922,8 +901,8 @@ TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing_RookVarient)
 TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
 {
     // setup
-    testContext.editToPlay() = Set::WHITE;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
     board.PlacePiece(BLACKKING, e8);
     // board.PlacePiece(BLACKBISHOP, b6);
     board.PlacePiece(BLACKROOK, g6);
@@ -949,156 +928,37 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
 //     A    B    C    D    E    F    G    H
 // sequence of moves: e4 fxe3 is illegal because it puts
 // king in check.
-// TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
-// {
-//     setup
-//     testContext.editToPlay() = Set::BLACK;
-//     auto& board = testContext.editChessboard();
-//     board.PlacePiece(BLACKKING, a4);
-//     board.PlacePiece(BLACKPAWN, f4);
-//     board.PlacePiece(BLACKPAWN, b5);
-//     board.PlacePiece(WHITEPAWN, e2);
-//     board.PlacePiece(WHITEROOK, h4);
-//     board.PlacePiece(WHITEKING, f1);
-//     board.PlacePiece(WHITEBISHOP, d7);
+TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, a4);
+    board.PlacePiece(BLACKPAWN, f4);
+    board.PlacePiece(BLACKPAWN, b5);
 
-//     move pawn to e4
-//     Move move(e2, e4);
-//     board.MakeMove(move);
+    board.PlacePiece(WHITEPAWN, e2);
+    board.PlacePiece(WHITEROOK, h4);
+    board.PlacePiece(WHITEKING, f1);
+    board.PlacePiece(WHITEBISHOP, d7);
 
-//     do
-//     auto moves = search.GeneratePossibleMoves(testContext);
+    // move pawn to e4
+    PackedMove move(Square::E2, Square::E4);
+    board.MakeMove<false>(move);
 
-//     b5 thinks in can move to b4 because both of those are in the pinned mask i.e. legal moves.
-//     need to seperate my pinned masks so a piece can't move from one pin to another.
+    // do
+    MoveGenerator gen(testContext);
+    // auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::F4; };
+    auto result = buildMoveVector(gen);
 
-//     verify
-//     MoveCount::Predicate predicate = [](const Move& mv) {
-//         static ChessPiece P = BLACKPAWN;
-//         if (mv.Piece == P)
-//             return true;
-
-//         return false;
-//     };
-
-//     auto count = CountMoves(moves, predicate);
-//     EXPECT_EQ(1, count.Moves);
-//     EXPECT_EQ(0, count.Captures);
-//     EXPECT_EQ(0, count.EnPassants);
-//     EXPECT_EQ(0, count.Promotions);
-//     EXPECT_EQ(0, count.Castles);
-//     EXPECT_EQ(0, count.Checks);
-//     EXPECT_EQ(0, count.Checkmates);
-// }
-
-// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 4 [ k ][   ][   ][   ][   ][ p ][   ][ R ]
-// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 2 [   ][   ][   ][   ][   ][   ][ P ][   ]
-// 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
-//     A    B    C    D    E    F    G    H
-// sequence of moves: g4 fxe3 is illegal because it puts
-// king in check.
-// TEST_F(MoveGeneratorFixture, PinnedPawnEnPassant_g2)
-// {
-//     // setup
-//     testContext.editToPlay() = Set::BLACK;
-//     auto& board = testContext.editChessboard();
-//     board.PlacePiece(BLACKKING, a4);
-//     board.PlacePiece(BLACKPAWN, f4);
-//     board.PlacePiece(WHITEPAWN, g2);
-//     board.PlacePiece(WHITEROOK, h4);
-//     board.PlacePiece(WHITEKING, f1);
-
-//     // move pawn to e4
-//     Move move(g2, g4);
-//     board.MakeMove(move);
-
-//     // do
-//     auto moves = search.GeneratePossibleMoves(testContext);
-
-//     // verify
-//     MoveCount::Predicate predicate = [](const Move& mv) {
-//         static ChessPiece P = BLACKPAWN;
-//         if (mv.Piece == P)
-//             return true;
-
-//         return false;
-//     };
-
-//     auto count = CountMoves(moves, predicate);
-//     EXPECT_EQ(1, count.Moves);
-//     EXPECT_EQ(0, count.Captures);
-//     EXPECT_EQ(0, count.EnPassants);
-//     EXPECT_EQ(0, count.Promotions);
-//     EXPECT_EQ(0, count.Castles);
-//     EXPECT_EQ(0, count.Checks);
-//     EXPECT_EQ(0, count.Checkmates);
-// }
-
-// fen r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1
-// 8 [ r ][   ][   ][ k ][   ][   ][ r ][   ]
-// 7 [ p ][   ][ p ][ N ][ q ][ p ][ b ][   ]
-// 6 [ b ][ n ][   ][   ][ p ][ n ][ p ][   ]
-// 5 [   ][   ][   ][ P ][   ][   ][   ][   ]
-// 4 [   ][ p ][   ][   ][ P ][   ][   ][   ]
-// 3 [   ][ N ][   ][   ][   ][ Q ][   ][ p ]
-// 2 [ P ][ P ][ P ][ B ][ B ][ P ][ P ][ P ]
-// 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
-//     A    B    C    D    E    F    G    H
-// sequence of moves: exd5 and then unmake it
-
-// TEST_F(MoveGeneratorFixture, UnmakePawnCapture)
-// {
-//     // setup
-//     std::string fen("r3k2r/p1pNqpb1/bn2pnp1/3P4/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1");
-//     FENParser::deserialize(fen.c_str(), testContext);
-//     const auto& blkMat = testContext.readChessboard().readMaterial(Set::BLACK);
-//     const auto& whtMat = testContext.readChessboard().readMaterial(Set::WHITE);
-//     u64 orgHash = testContext.readChessboard().readHash();
-
-//     // verify
-//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
-//     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
-
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
-// whtMat.buildPlacementsOfPiece(WHITEPAWN)));
-
-//     // do
-//     Move move(e6, d5);  // pawn capture
-//     bool result = testContext.MakeMove(move);
-
-//     // verify
-//     EXPECT_TRUE(result);
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, d5, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, e4, f2, g2, h2}, whtMat.buildPlacementsOfPiece(WHITEPAWN)));
-//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(d5));
-//     EXPECT_NE(orgHash, testContext.readChessboard().readHash());
-//     EXPECT_TRUE(move.isCapture());
-//     EXPECT_FALSE(move.isEnPassant());
-
-//     // unmake
-//     testContext.UnmakeMove(move);
-
-//     // verify
-//     EXPECT_EQ(BLACKPAWN, testContext.readChessboard().readPieceAt(e6));
-//     EXPECT_EQ(WHITEPAWN, testContext.readChessboard().readPieceAt(d5));
-
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a7, b4, c7, e6, f7, g6, h3}, blkMat.buildPlacementsOfPiece(BLACKPAWN)));
-//     EXPECT_TRUE(VerifyListsContainSameNotations({a2, b2, c2, d5, e4, f2, g2, h2},
-// whtMat.buildPlacementsOfPiece(WHITEPAWN)));
-//     EXPECT_EQ(orgHash, testContext.readChessboard().readHash());
-// }
+    // verify
+    EXPECT_EQ(5, result.size());
+}
 
 TEST_F(MoveGeneratorFixture, Knight_Move_NothingSpecial)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, a4);
     board.PlacePiece(BLACKKNIGHT, e6);
     board.PlacePiece(WHITEKING, f1);
@@ -1173,7 +1033,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
     // setup
     PackedMove mv(Square::A1, Square::A8);
     testContext.editChessboard().MakeMove<false>(mv);
-    testContext.editToPlay() = Set::BLACK;
+    testContext.editChessboard().setToPlay(Set::BLACK);
 
     // verify
     EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
@@ -1200,8 +1060,8 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 TEST_F(MoveGeneratorFixture, KingCheckedByRook)
 {
     // setup
-    testContext.editToPlay() = Set::BLACK;
     auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
     board.PlacePiece(BLACKKING, b4);
     board.PlacePiece(WHITEROOK, h4);
     board.PlacePiece(WHITEKING, f1);
@@ -1334,62 +1194,71 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
     EXPECT_EQ(4, result.size());
 }
 
-// /**
-//  * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 7 [   ][ k ][   ][   ][   ][   ][   ][   ]
-//  * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 5 [   ][   ][ P ][ p ][   ][   ][   ][   ]
-//  * 4 [   ][   ][ K ][   ][   ][   ][   ][   ]
-//  * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  *     A    B    C    D    E    F    G    H
-//  * fen: 8/1k6/8/2Pp4/2K5/8/8/8 w - d6 5 4*/
-// TEST_F(MoveFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, b7);
-//     m_chessboard.PlacePiece(BLACKPAWN, d5);
-//     m_chessboard.PlacePiece(WHITEPAWN, c5);
-//     m_chessboard.PlacePiece(WHITEKING, c4);
+/**
+ * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 7 [   ][ k ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][ep ][   ][   ][   ][   ]
+ * 5 [   ][   ][ P ][ p ][   ][   ][   ][   ]
+ * 4 [   ][   ][ K ][   ][   ][   ][   ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H
+ * fen: 8/1k6/8/2Pp4/2K5/8/8/8 w - d6 5 4*/
+TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable)
+{
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, b7);
+    board.PlacePiece(BLACKPAWN, d5);
+    board.PlacePiece(WHITEPAWN, c5);
+    board.PlacePiece(WHITEKING, c4);
 
-//     m_chessboard.setEnPassant(d6);
+    board.setEnPassant(d6);
 
-//     EXPECT_TRUE(m_chessboard.isChecked(Set::WHITE));
+    LOG_INFO() << board.toString();
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
+    auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
+    EXPECT_TRUE(kingMask.isChecked());
 
-//     EXPECT_EQ(8, moves.size());
-// }
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(8, result.size());
+}
 // /**
 // * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
 // * 5 [   ][   ][   ][ k ][   ][   ][   ][   ]
 // * 4 [   ][   ][   ][ p ][ P ][   ][   ][   ]
-// * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// * 3 [   ][   ][   ][   ][ep ][   ][   ][   ]
 // * 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // * 1 [   ][ K ][   ][   ][ R ][   ][ B ][   ]
 // *     A    B    C    D    E    F    G    H
 // 8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
 // Pawn is guarded by white rook in this scenario*/
-// TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, d5);
-//     m_chessboard.PlacePiece(BLACKPAWN, d4);
-//     m_chessboard.PlacePiece(WHITEKING, b1);
-//     m_chessboard.PlacePiece(WHITEPAWN, e4);
-//     m_chessboard.PlacePiece(WHITEROOK, e1);
-//     m_chessboard.PlacePiece(WHITEBISHOP, g1);
+TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
+{
+    auto& board = testContext.editChessboard();
 
-//     m_chessboard.setEnPassant(e3);
+    board.PlacePiece(BLACKKING, d5);
+    board.PlacePiece(BLACKPAWN, d4);
+    board.PlacePiece(WHITEKING, b1);
+    board.PlacePiece(WHITEPAWN, e4);
+    board.PlacePiece(WHITEROOK, e1);
+    board.PlacePiece(WHITEBISHOP, g1);
 
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
-//     EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
+    board.setEnPassant(e3);
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+    auto kingMask = board.readPosition().calcKingMask<Set::BLACK>();
+    EXPECT_TRUE(kingMask.isChecked());
 
-//     EXPECT_EQ(7, moves.size());
-// }
+    testContext.editChessboard().setToPlay(Set::BLACK);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(7, result.size());
+}
 
 // /**
 // * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1403,85 +1272,208 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
 // *     A    B    C    D    E    F    G    H
 // 8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
 // Pawn is pinned by white rook in this scenario.  */
-// TEST_F(MoveFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, d5);
-//     m_chessboard.PlacePiece(BLACKPAWN, d4);
-//     m_chessboard.PlacePiece(WHITEKING, b1);
-//     m_chessboard.PlacePiece(WHITEPAWN, e4);
-//     m_chessboard.PlacePiece(WHITEROOK, d1);
-//     m_chessboard.PlacePiece(WHITEBISHOP, g1);
+TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureNotAvailableBecauseOfPin)
+{
+    auto& board = testContext.editChessboard();
 
-//     m_chessboard.setEnPassant(e3);
+    board.PlacePiece(BLACKKING, d5);
+    board.PlacePiece(BLACKPAWN, d4);
+    board.PlacePiece(WHITEKING, b1);
+    board.PlacePiece(WHITEPAWN, e4);
+    board.PlacePiece(WHITEROOK, d1);
+    board.PlacePiece(WHITEBISHOP, g1);
 
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
-//     EXPECT_TRUE(m_chessboard.isChecked(Set::BLACK));
+    board.setEnPassant(e3);
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+    auto kingMask = board.readPosition().calcKingMask<Set::BLACK>();
+    EXPECT_TRUE(kingMask.isChecked());
 
-//     EXPECT_EQ(7, moves.size());
-//     auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.Piece == BLACKPAWN; });
+    testContext.editChessboard().setToPlay(Set::BLACK);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-//     EXPECT_EQ(moves.end(), itr) << "There shouldn't be any pawn moves amongst the available moves";
-// }
-// /**
-// * 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
-// * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// * 6 [   ][   ][   ][ Q ][   ][   ][   ][   ]
-// * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// * 4 [   ][   ][   ][   ][   ][ q ][   ][   ]
-// * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// * 2 [   ][   ][   ][ K ][   ][   ][   ][   ]
-// * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-// *     A    B    C    D    E    F    G    H
-// 3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
-// TEST_F(MoveFixture, PinnedQueen_White_CanNotMoveQueen)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, e8);
-//     m_chessboard.PlacePiece(BLACKROOK, d8);
-//     m_chessboard.PlacePiece(BLACKQUEEN, f4);
-//     m_chessboard.PlacePiece(WHITEQUEEN, d6);
-//     m_chessboard.PlacePiece(WHITEKING, d2);
+    EXPECT_EQ(7, result.size());
 
-//     EXPECT_TRUE(m_chessboard.isChecked(Set::WHITE));
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::BLACK));
+    auto itr = std::find_if(result.begin(), result.end(), [](const PackedMove& mv) { return mv.sourceSqr() == Square::D4; });
+    EXPECT_EQ(itr, result.end()) << "There shouldn't be any pawn moves amongst the available moves";
+}
+/**
+* 8 [   ][   ][   ][ r ][ k ][   ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][ Q ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 4 [   ][   ][   ][   ][   ][ q ][   ][   ]
+* 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][ K ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H
+3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
+TEST_F(MoveGeneratorFixture, PinnedQueen_White_CanNotMoveQueen)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(BLACKQUEEN, f4);
+    board.PlacePiece(WHITEQUEEN, d6);
+    board.PlacePiece(WHITEKING, d2);
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::WHITE);
+    // verify
+    auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
+    auto bkingMask = board.readPosition().calcKingMask<Set::BLACK>();
 
-//     EXPECT_EQ(6, moves.size());
-//     auto itr = std::find_if(moves.begin(), moves.end(), [](const Move& mv) { return mv.Piece == WHITEQUEEN; });
-//     EXPECT_EQ(moves.end(), itr);
-// }
+    EXPECT_TRUE(kingMask.isChecked());
+    EXPECT_FALSE(bkingMask.isChecked());
 
-// /**
-//  * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
-//  * 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
-//  * 4 [   ][   ][ p ][ P ][   ][   ][   ][   ]
-//  * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 2 [   ][   ][   ][   ][   ][ K ][   ][   ]
-//  * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  *     A    B    C    D    E    F    G    H
-//  * fen: 8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1
-//  */
-// TEST_F(MoveFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
-// {
-//     m_chessboard.PlacePiece(BLACKKING, b6);
-//     m_chessboard.PlacePiece(BLACKPAWN, c4);
-//     m_chessboard.PlacePiece(BLACKBISHOP, c5);
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
 
-//     m_chessboard.PlacePiece(WHITEKING, f2);
-//     m_chessboard.PlacePiece(WHITEPAWN, d4);
+    // verify
+    EXPECT_EQ(6, result.size());
+}
 
-//     m_chessboard.setEnPassant(d3);
+/**
+ * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][ b ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][ p ][ P ][   ][   ][   ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][ K ][   ][   ]
+ * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H
+ * fen: 8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1
+ */
+TEST_F(MoveGeneratorFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
+{
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, b6);
+    board.PlacePiece(BLACKPAWN, c4);
+    board.PlacePiece(BLACKBISHOP, c5);
 
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::WHITE));
-//     EXPECT_FALSE(m_chessboard.isChecked(Set::BLACK));
+    board.PlacePiece(WHITEKING, f2);
+    board.PlacePiece(WHITEPAWN, d4);
 
-//     auto moves = m_chessboard.GetAvailableMoves(Set::BLACK);
+    board.setEnPassant(d3);
 
-//     EXPECT_EQ(15, moves.size());
-// }
+    auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
+    auto bkingMask = board.readPosition().calcKingMask<Set::BLACK>();
+
+    EXPECT_FALSE(kingMask.isChecked());
+    EXPECT_FALSE(bkingMask.isChecked());
+
+    // do
+    testContext.editChessboard().setToPlay(Set::BLACK);
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    // verify
+    EXPECT_EQ(15, result.size());
+}
+
+/**
+* 8 [   ][   ][   ][ r ][   ][ k ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][ N ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][ q ][   ][   ]
+* 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 3 [   ][   ][   ][ K ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H
+3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
+TEST_F(MoveGeneratorFixture, Knight_Pinned_CanNotCaptureCheckingPiece)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, f8);
+    board.PlacePiece(BLACKROOK, d8);
+    board.PlacePiece(BLACKQUEEN, f5);
+    board.PlacePiece(WHITEKNIGHT, d6);
+    board.PlacePiece(WHITEKING, d3);
+
+    // verify
+    auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
+    auto bkingMask = board.readPosition().calcKingMask<Set::BLACK>();
+
+    EXPECT_TRUE(kingMask.isChecked());
+    EXPECT_FALSE(bkingMask.isChecked());
+
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    // verify
+    EXPECT_EQ(6, result.size());
+    auto itr = std::find_if(result.begin(), result.end(), [](const PackedMove& mv) { return mv.sourceSqr() == Square::D6; });
+    EXPECT_EQ(itr, result.end()) << "There shouldn't be any knight moves amongst the available moves";
+}
+
+/**
+* 8 [   ][   ][   ][   ][   ][ k ][   ][   ]
+* 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 6 [   ][   ][   ][ N ][   ][   ][   ][   ]
+* 5 [   ][   ][   ][   ][   ][ q ][   ][   ]
+* 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 3 [   ][   ][   ][ K ][   ][   ][   ][   ]
+* 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+* 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+*     A    B    C    D    E    F    G    H
+3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
+TEST_F(MoveGeneratorFixture, Knight_CaptureCheckingQueen_ShouldOnlyHaveOneMoveAvailable)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, f8);
+    board.PlacePiece(BLACKQUEEN, f5);
+    board.PlacePiece(WHITEKNIGHT, d6);
+    board.PlacePiece(WHITEKING, d3);
+
+    // verify
+    auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
+    auto bkingMask = board.readPosition().calcKingMask<Set::BLACK>();
+
+    EXPECT_TRUE(kingMask.isChecked());
+    EXPECT_FALSE(bkingMask.isChecked());
+
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    // verify
+    EXPECT_EQ(8, result.size());
+
+    int counter = 0;
+    for (auto& mv : result) {
+        if (mv.sourceSqr() == Square::D6)
+            counter++;
+    }
+    EXPECT_EQ(2, counter) << "There should only exist two knight moves amongst the available moves";
+}
+/*
+    8  [r][ ][ ][ ][k][ ][ ][r]
+    7  [p][ ][p][p][q][p][b][ ]
+    6  [b][n][ ][ ][p][n][p][ ]
+    5  [ ][ ][ ][P][N][ ][ ][ ]
+    4  [ ][p][ ][ ][P][ ][ ][ ]
+    3  [ ][ ][N][ ][ ][Q][ ][p]
+    2  [P][P][P][B][B][P][P][P]
+    1  [R][ ][ ][ ][K][ ][ ][R]
+        A  B  C  D  E  F  G  H
+r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 **/
+TEST_F(MoveGeneratorFixture, PerftTestPositionTwo_CaptureMoves_ShouldHaveEightCaptureMoves)
+{
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    FENParser::deserialize(inputFen, testContext);
+
+    // do
+    MoveGenerator gen(testContext.readChessboard().readPosition(), Set::WHITE, PieceType::NONE, MoveTypes::CAPTURES_ONLY);
+
+    // verify
+    auto result = buildMoveVector(gen);
+    EXPECT_EQ(8, result.size());
+}
 
 }  // namespace ElephantTest

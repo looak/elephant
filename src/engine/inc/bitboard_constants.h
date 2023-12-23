@@ -51,6 +51,8 @@ static constexpr u64 fileMasks[8] = {fileaMask, filebMask, filecMask, filedMask,
 static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Mask, fileaMask},
                                                   {rank0Mask, fileaMask, rank7Mask, filehMask}};
 
+static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
+
 }  // namespace board_constants
 
 namespace pawn_constants {

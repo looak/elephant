@@ -67,8 +67,7 @@ public:
     short readPly() const { return m_board.readPlyCount(); }
     short readMoveCount() const { return m_board.readMoveCount(); }
 
-    Set readToPlay() const { return m_toPlay; }
-    Set& editToPlay() { return m_toPlay; }
+    Set readToPlay() const { return m_board.readToPlay(); }
 
 private:
     Chessboard m_board;

@@ -81,7 +81,7 @@ TEST_F(PositionFixture, King_OnlyWhiteKingOnBoard_e1_ShouldHaveMoves)
     // f2 should be available for moving
     expected |= INT64_C(1) << f2.index();
 
-    auto result = board.calcAvailableMovesKing<Set::WHITE>(0).read();
+    auto result = board.calcAvailableMovesKing<Set::WHITE>(0, false).read();
     EXPECT_EQ(expected, result);
 }
 
@@ -915,11 +915,13 @@ TEST_F(PositionFixture, Pawn_PinnedPieceBlack_NoAvailableMovesSinceItsPinned)
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(p, f7);
     pos.PlacePiece(k, e7);
     pos.PlacePiece(R, h7);
+    pos.PlacePiece(K, e1);
 
     // do
     auto kingMask = pos.calcKingMask<Set::BLACK>();
@@ -948,12 +950,14 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_NoAvailableMovesSinceItsPinned)
     auto P = WHITEPAWN;
     auto K = WHITEKING;
     auto r = BLACKROOK;
+    auto k = BLACKKING;
 
     // setup
     pos.PlacePiece(P, f5);
     pos.PlacePiece(P, c5);
     pos.PlacePiece(K, e5);
     pos.PlacePiece(r, h5);
+    pos.PlacePiece(k, e7);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::WHITE>();
@@ -991,12 +995,14 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
     auto P = WHITEPAWN;
     auto K = WHITEKING;
     auto b = BLACKBISHOP;
+    auto k = BLACKKING;
 
     // setup
     pos.PlacePiece(P, f6);
     pos.PlacePiece(P, c5);
     pos.PlacePiece(K, e5);
     pos.PlacePiece(b, g7);
+    pos.PlacePiece(k, e7);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::WHITE>();
@@ -1035,11 +1041,13 @@ TEST_F(PositionFixture, Pawn_KingMask_PawnCanMoveIntoBlockingCheckButNoFurther)
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(p, f7);
     pos.PlacePiece(k, e6);
     pos.PlacePiece(R, h6);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1070,11 +1078,13 @@ TEST_F(PositionFixture, Pawn_KingMask_CanCaptureCheckingPiece)
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(p, f7);
     pos.PlacePiece(k, e6);
     pos.PlacePiece(R, g6);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1105,11 +1115,13 @@ TEST_F(PositionFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
     auto p = BLACKPAWN;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(p, f7);
     pos.PlacePiece(k, e5);
     pos.PlacePiece(R, g5);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1606,6 +1618,7 @@ TEST_F(PositionFixture, Bishop_KingMask_AvailableMovesAreCaptureCheckingPieceOrB
     Position pos;
 
     // setup
+    pos.PlacePiece(WHITEKING, e1);
     pos.PlacePiece(WHITEROOK, a8);
     pos.PlacePiece(BLACKBISHOP, b7);
     pos.PlacePiece(BLACKKING, e8);
@@ -1641,12 +1654,14 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_AbleToMoveAlongThreatenedSquar
     auto b = BLACKBISHOP;
     auto k = BLACKKING;
     auto B = WHITEBISHOP;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(b, c4);
     pos.PlacePiece(k, f7);
-    pos.PlacePiece(B, a2);
     pos.PlacePiece(b, f3);
+    pos.PlacePiece(B, a2);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1969,11 +1984,13 @@ TEST_F(PositionFixture, Rook_KingMask_OnlyAvailableMoveIsToBlockCheck)
     auto r = BLACKROOK;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(r, c3);
     pos.PlacePiece(k, e7);
     pos.PlacePiece(R, e2);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats km = pos.calcKingMask<Set::BLACK>();
@@ -2000,11 +2017,13 @@ TEST_F(PositionFixture, Rook_KingMask_CanCaptureCheckingPiece)
     auto r = BLACKROOK;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(r, c2);
     pos.PlacePiece(k, e7);
     pos.PlacePiece(R, e2);
+    pos.PlacePiece(K, e1);
 
     // do
     KingPinThreats km = pos.calcKingMask<Set::BLACK>();
@@ -2031,12 +2050,14 @@ TEST_F(PositionFixture, Rook_CheckedMask_HasNoMovesSinceKingIsInCheck)
     auto r = BLACKROOK;
     auto k = BLACKKING;
     auto R = WHITEROOK;
+    auto K = WHITEKING;
 
     // setup
     pos.PlacePiece(r, c1);
     pos.PlacePiece(r, g4);
     pos.PlacePiece(k, e7);
     pos.PlacePiece(R, e2);
+    pos.PlacePiece(K, d2);
     constexpr Set black = Set::BLACK;
     // do
     KingPinThreats kingMask = pos.calcKingMask<black>();

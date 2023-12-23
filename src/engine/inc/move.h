@@ -103,7 +103,7 @@ constexpr int c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
     QUIET_MOVES = 0,
-    CHECK = 1,
+    DBL_PAWN_PUSH = 1,
     CASTLE = 2,
     KING_CASTLE = 2,
     QUEEN_CASTLE = 3,
@@ -159,7 +159,6 @@ public:
             return false;
         return (flag & CASTLE);
     }
-    [[nodiscard]] constexpr bool isCheck() const { return ((m_internals >> 12) & 0xF) == 1; }
 
     [[nodiscard]] constexpr i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
@@ -200,14 +199,6 @@ public:
             m_internals |= EN_PASSANT_CAPTURE << 12;
         else
             m_internals &= ~(EN_PASSANT_CAPTURE << 12);
-    }
-
-    inline void setCheck(bool value)
-    {
-        if (value == true)
-            m_internals |= CHECK << 12;
-        else
-            m_internals &= ~(CHECK << 12);
     }
 
     inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
@@ -264,27 +255,24 @@ private:
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 
 struct PrioratizedMove {
-    PrioratizedMove() = default;
+    PrioratizedMove() :
+        move(0),
+        priority(0),
+        check(0){};
+
     PrioratizedMove(PackedMove move, int _priority) :
         move(move),
-        priority(_priority)
-    {
-    }
+        priority(_priority),
+        check(0){};
+
+    void setCheck(bool value) { check = value ? 1 : 0; }
+    bool isCheck() const { return check == 1; }
 
     PackedMove move;
-    i32 priority;
+    u16 priority : 15;
+    u16 check : 1;
 };
-struct ScoredMove {
-    ScoredMove() = default;
-    ScoredMove(PackedMove move, int _score) :
-        move(move),
-        score(_score)
-    {
-    }
-
-    PackedMove move;
-    i32 score;
-};
+static_assert(sizeof(PrioratizedMove) == 4, "PrioratizedMove is not 4 bytes");
 
 struct PrioratizedMoveComparator {
     constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const

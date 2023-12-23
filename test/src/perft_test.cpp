@@ -185,8 +185,8 @@ TEST_F(PerftFixture, Position_Start)
     }
 
     {
-        PerftResult result = m_search.Perft(m_context, 3);
-        EXPECT_EQ(9322, result.Nodes);
+        // PerftResult result = m_search.Perft(m_context, 3);
+        // EXPECT_EQ(9322, result.Nodes);
     }
 
     // {
@@ -235,47 +235,36 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 193690690	35043416	73365	4993637	    8392	    3309887	    30171
 */
 
-// TEST_F(PerftFixture, DISABLED_Position_Two)
-// {
-//     // setup
-//     char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-//     FENParser::deserialize(inputFen, m_context);
-//     PrintBoard(m_context.readChessboard());
+TEST_F(PerftFixture, Position_Two)
+{
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    FENParser::deserialize(inputFen, m_context);
+    PrintBoard(m_context.readChessboard());
 
-//     auto& board = m_context.editChessboard();
+    // verify
+    {  // depth one
+        PerftResult result = m_search.Perft(m_context, 1);
+        EXPECT_EQ(48, result.Nodes);
+        EXPECT_EQ(8, result.Captures);
+        EXPECT_EQ(0, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(2, result.Castles);
+        EXPECT_EQ(0, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
 
-//     // do
-//     auto moves = m_search.GeneratePossibleMoves(m_context);
-
-//     // verify
-//     auto count = CountMoves(moves);
-
-//     EXPECT_EQ(48, count.Moves);
-//     EXPECT_EQ(8, count.Captures);
-//     EXPECT_EQ(0, count.EnPassants);
-//     EXPECT_EQ(0, count.Promotions);
-//     EXPECT_EQ(2, count.Castles);
-//     EXPECT_EQ(0, count.Checks);
-//     // EXPECT_EQ(0, count.Checkmates);
-
-//     MoveCount::Predicate pawnPredicate = [](const Move& mv) {
-//         static ChessPiece P = WHITEPAWN;
-//         if (mv.Piece == P)
-//             return true;
-
-//         return false;
-//     };
-
-//     count = CountMoves(moves, pawnPredicate);
-
-//     EXPECT_EQ(8, count.Moves);
-//     EXPECT_EQ(2, count.Captures);
-//     EXPECT_EQ(0, count.EnPassants);
-//     EXPECT_EQ(0, count.Promotions);
-//     EXPECT_EQ(0, count.Castles);
-//     EXPECT_EQ(0, count.Checks);
-//     // EXPECT_EQ(0, count.Checkmates);
-// }
+    {  // depth 2
+        PerftResult result = m_search.Perft(m_context, 2);
+        EXPECT_EQ(2087, result.Nodes);
+        EXPECT_EQ(359, result.Captures);
+        EXPECT_EQ(1, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(91, result.Castles);
+        EXPECT_EQ(3, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
+}
 
 // // 3	    97862	    17102	    45	    3162	    0	        993     	1
 

@@ -95,9 +95,9 @@ deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
 {
     char value = std::tolower(toPlayStr[0]);
     if (value == 'w')
-        outputContext.editToPlay() = Set::WHITE;
+        outputContext.editChessboard().setToPlay(Set::WHITE);
     else if (value == 'b')
-        outputContext.editToPlay() = Set::BLACK;
+        outputContext.editChessboard().setToPlay(Set::BLACK);
     else
         return false;
 
