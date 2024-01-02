@@ -86,7 +86,7 @@ struct Notation {
     Notation& operator=(Notation&& other);
     Notation& operator=(const Notation& other);
     bool isValid() const { return Validate(*this); }
-    std::string toString() const { return toString(*this); }
+    std::string toString() const;
 };
 
 constexpr Notation InvalidNotation(127);

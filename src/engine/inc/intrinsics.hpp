@@ -36,6 +36,8 @@ constexpr u32 index64[64] = {0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28,
 bitScanForward(u64 bb)
 {
     const u64 debruijn64 = 0x03f79d71b4cb0a89ull;
+    if (bb == 0)
+        return 0;
     assert(bb != 0);
     return index64[((bb ^ (bb - 1)) * debruijn64) >> 58];
 }

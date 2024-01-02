@@ -1,79 +1,95 @@
 #include "notation.h"
 #include <locale>
 
-Notation Notation::BuildPosition(byte file, byte rank)
-{	
-	byte corrFile = (byte)(tolower(file) - 'a');
-	byte corrRank = rank - 1;
-
-	// validate placement is inside the board.
-	if (corrFile > 7 || corrRank > 7)
-		return Invalid();
-
-	return Notation(corrFile, corrRank);
-}
-
-Notation Notation::Invalid()
+Notation
+Notation::BuildPosition(byte file, byte rank)
 {
-	return Notation(0xF, 0xF);
+    byte corrFile = (byte)(tolower(file) - 'a');
+    byte corrRank = rank - 1;
+
+    // validate placement is inside the board.
+    if (corrFile > 7 || corrRank > 7)
+        return Invalid();
+
+    return Notation(corrFile, corrRank);
 }
 
-bool Notation::Validate(const Notation& notation)
+Notation
+Notation::Invalid()
 {
-	// since byte is unsigned we can't have negative values.
-	// and if we do it will automatically wrap to a postive value.
-	bool validFile = notation.file < 8;
-	bool validRank = notation.rank < 8;
-
-	return validFile && validRank;
+    return Notation(0xF, 0xF);
 }
 
-std::string Notation::toString(const Notation& notation)
+bool
+Notation::Validate(const Notation& notation)
 {
-	char output[2];
-	output[0] = notation.file + 'a';
-	output[1] = notation.rank + '1';
-	return std::string(output, 2);
+    // since byte is unsigned we can't have negative values.
+    // and if we do it will automatically wrap to a postive value.
+    bool validFile = notation.file < 8;
+    bool validRank = notation.rank < 8;
+
+    return validFile && validRank;
 }
 
-char Notation::fileToChar(const Notation& notation)
+std::string
+Notation::toString(const Notation& notation)
 {
-	return notation.file + 'a';
+    return notation.toString();
 }
 
-char Notation::rankToChar(const Notation& notation)
+std::string
+Notation::toString() const
 {
-	return notation.rank + '1';
+    char output[2];
+    output[0] = file + 'a';
+    output[1] = rank + '1';
+    return std::string(output, 2);
 }
 
-Notation& Notation::operator=(Notation&& other)
+char
+Notation::fileToChar(const Notation& notation)
 {
-	file = other.file;
-	rank = other.rank;
-	return *this;
+    return notation.file + 'a';
 }
 
-Notation& Notation::operator=(const Notation& other)
+char
+Notation::rankToChar(const Notation& notation)
 {
-	file = other.file;
-	rank = other.rank;
-	return *this;
+    return notation.rank + '1';
 }
 
-bool Notation::operator==(const Notation& rhs) const
+Notation&
+Notation::operator=(Notation&& other)
 {
-	bool result = rank == rhs.rank;
-	result &= file == rhs.file;
-	return result;
+    file = other.file;
+    rank = other.rank;
+    return *this;
 }
 
-bool Notation::operator!=(const Notation& rhs) const
+Notation&
+Notation::operator=(const Notation& other)
 {
-	return !(*this == rhs);
+    file = other.file;
+    rank = other.rank;
+    return *this;
 }
 
-bool Notation::operator<(const Notation& rhs) const
+bool
+Notation::operator==(const Notation& rhs) const
 {
-	return index() < rhs.index();
+    bool result = rank == rhs.rank;
+    result &= file == rhs.file;
+    return result;
 }
 
+bool
+Notation::operator!=(const Notation& rhs) const
+{
+    return !(*this == rhs);
+}
+
+bool
+Notation::operator<(const Notation& rhs) const
+{
+    return index() < rhs.index();
+}

@@ -141,6 +141,8 @@ public:
 
     std::string toString() const;
 
+    bool operator==(const CastlingStateInfo& rhs) const { return m_innerState == rhs.m_innerState; }
+
 private:
     byte m_innerState;
 };

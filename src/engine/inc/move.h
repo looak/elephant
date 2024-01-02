@@ -230,6 +230,14 @@ public:
     bool operator!=(const PackedMove& rhs) const { return m_internals != rhs.m_internals; }
     operator bool() const { return m_internals != 0; }
 
+    [[nodiscard]] std::string toString() const
+    {
+        std::string ret;
+        ret += Notation(sourceSqr()).toString();
+        ret += Notation(targetSqr()).toString();
+        return ret;
+    }
+
 private:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-anonymous-struct"

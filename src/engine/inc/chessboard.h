@@ -30,6 +30,14 @@ struct PrioratizedMove;
 struct PrioratizedMoveComparator;
 
 struct MoveUndoUnit {
+    MoveUndoUnit() :
+        move(),
+        capturedPiece(),
+        castlingState(),
+        enPassantState(),
+        hash(0)
+    {
+    }
     PackedMove move;
     ChessPiece capturedPiece;
     CastlingStateInfo castlingState;
@@ -194,7 +202,7 @@ public:
     Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
     void setToPlay(Set set) { m_isWhiteTurn = set == Set::WHITE; }
 
-    Notation readKingPosition(Set set) const;
+    // Notation readKingPosition(Set set) const;
 
     std::string toString() const;
 

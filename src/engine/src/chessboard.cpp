@@ -432,13 +432,18 @@ Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& tar
             castling = true;
         }
     }
+
+    // clear castling state from hash
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
+
+    // update castling state
     undoUnit.castlingState.write(castlingState);
     casltingMask &= castlingState;
     castlingState ^= casltingMask;
-    m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     m_position.editCastling().write(castlingState);
 
+    // apply new castling state to hash
+    m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     return castling;
 }
 
@@ -610,11 +615,11 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
     }
 }
 
-Notation
-Chessboard::readKingPosition(Set set) const
-{
-    return m_kings[static_cast<u8>(set)].second;
-}
+// Notation
+// Chessboard::readKingPosition(Set set) const
+// {
+//     return m_kings[static_cast<u8>(set)].second;
+// }
 
 u64
 Chessboard::calculateThreatenedMask(Set set) const

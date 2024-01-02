@@ -13,6 +13,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
+#include "move_generator.hpp"
 #include "search.h"
 
 namespace CliCommands {
@@ -130,36 +131,39 @@ ExitHelpCommand(const std::string& command)
 bool
 DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    // if (tokens.empty() == false) {
-    //     std::string token = tokens.front();
-    //     // int depth = std::stoi(token);
+    if (tokens.empty() == false) {
+        std::string token = tokens.front();
+        int depth = std::stoi(token);
 
-    //     // // validate depth
-    //     // if (depth < 1 || depth > 10) {
-    //     //     std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
-    //     //     return false;
-    //     // }
+        // validate depth
+        if (depth < 1 || depth > 10) {
+            std::cout << " Invalid depth: " << depth << ", must be between 1 and 10!" << std::endl;
+            return false;
+        }
 
-    //     // Search search;
+        MoveGenerator movGen(context);
+        movGen.generate();
 
-    //     // auto moves = search.GeneratePossibleMoves(context);
-    //     // int total = 0;
-    //     // for (auto&& move : moves) {
-    //     //     std::cout << " " << move.SourceSquare.toString() << move.TargetSquare.toString() << ": ";
-    //     //     context.MakeMove(move.readPackedMove());
-    //     //     int result = search.Perft(context, depth - 1);
-    //     //     total += result;
-    //     //     std::cout << result << std::endl;
-    //     //     context.UnmakeMove();
-    //     // }
-    //     // total += moves.size();
+        u64 total = 0;
+        u16 moves = 0;
 
-    //     // std::cout << "\n Moves: " << moves.size() << "\n";
-    //     // std::cout << " Total: " << total << "\n";
-    // }
-    // else {
-    //     DivideDepthHelpCommand("divide");
-    // }
+        movGen.forEachMove([&](const PrioratizedMove& pm) {
+            std::cout << " " << pm.move.toString() << ": ";
+            context.MakeMove(pm.move);
+            Search search;
+            auto result = search.Perft(context, depth - 1);
+            std::cout << result.Nodes << std::endl;
+            total += result.Nodes + 1;
+            moves++;
+            context.UnmakeMove();
+        });
+
+        std::cout << "\n Moves: " << moves << "\n";
+        std::cout << " Total: " << total << "\n";
+    }
+    else {
+        DivideDepthHelpCommand("divide");
+    }
 
     return true;
 }

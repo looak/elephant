@@ -675,92 +675,107 @@ TEST_F(UnmakeFixture, Castling_Captures)
 //     EXPECT_EQ(hash, m_chessboard.readHash());
 // }
 
-// TEST_F(UnmakeFixture, Unmake_KingMoves)
-// {
-//     auto k = BLACKKING;
-//     auto K = WHITEKING;
+TEST_F(UnmakeFixture, Unmake_KingMoves)
+{
+    auto k = BLACKKING;
+    auto K = WHITEKING;
+    auto R = WHITEROOK;
 
-//     m_chessboard.PlacePiece(k, e8);
-//     m_chessboard.PlacePiece(K, e1);
+    m_chessboard.PlacePiece(k, e8);
+    m_chessboard.PlacePiece(K, e1);
+    m_chessboard.PlacePiece(R, a1);
+    // m_chessboard.editPosition().editCastling().setWhiteKingSide();
+    m_chessboard.setCastlingState(CastlingState::WHITE_KINGSIDE);
 
-//     u64 orgHash = m_chessboard.readHash();
-//     u64 hash = m_chessboard.readHash();
+    CastlingStateInfo expectedCastlingRights;
+    expectedCastlingRights.write(0x01);
 
-//     // Ke7
-//     Move move(e8, e7);
-//     EXPECT_TRUE(m_chessboard.MakeMove(move));
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     EXPECT_EQ(e7, m_chessboard.readKingPosition(Set::BLACK));
-//     hash = m_chessboard.readHash();
+    EXPECT_EQ(expectedCastlingRights, m_chessboard.readPosition().readCastling());
 
-//     // Ke2
-//     Move scndMove(e1, e2);
-//     EXPECT_TRUE(m_chessboard.MakeMove(scndMove));
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     EXPECT_EQ(e2, m_chessboard.readKingPosition(Set::WHITE));
-//     hash = m_chessboard.readHash();
+    u64 orgHash = m_chessboard.readHash();
+    u64 hash = m_chessboard.readHash();
 
-//     EXPECT_TRUE(m_chessboard.UnmakeMove(scndMove));
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     EXPECT_EQ(e1, m_chessboard.readKingPosition(Set::WHITE));
-//     hash = m_chessboard.readHash();
+    std::stack<MoveUndoUnit> undos;
+    // Ke7
+    PackedMove move(Square::E8, Square::E7);
+    undos.push(m_chessboard.MakeMove<false>(move));
+    EXPECT_NE(hash, m_chessboard.readHash());
+    EXPECT_EQ(k, m_chessboard.readPieceAt(e7));
+    hash = m_chessboard.readHash();
 
-//     EXPECT_TRUE(m_chessboard.UnmakeMove(move));
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     EXPECT_EQ(e8, m_chessboard.readKingPosition(Set::BLACK));
-//     hash = m_chessboard.readHash();
+    // Ke2
+    PackedMove Ke2(Square::E1, Square::E2);
+    undos.push(m_chessboard.MakeMove<false>(Ke2));
+    EXPECT_NE(hash, m_chessboard.readHash());
+    EXPECT_EQ(K, m_chessboard.readPieceAt(e2));
+    EXPECT_FALSE(m_chessboard.readPosition().readCastling().hasAny());
+    hash = m_chessboard.readHash();
 
-//     EXPECT_EQ(k, m_chessboard.readTile(e8).readPiece());
-//     EXPECT_EQ(K, m_chessboard.readTile(e1).readPiece());
-//     EXPECT_EQ(k, m_chessboard.readPieceAt(e8));
-//     EXPECT_EQ(K, m_chessboard.readPieceAt(e1));
-//     EXPECT_EQ(orgHash, m_chessboard.readHash());
-// }
+    EXPECT_TRUE(m_chessboard.UnmakeMove(undos.top()));
+    undos.pop();
+    EXPECT_NE(hash, m_chessboard.readHash());
+    EXPECT_EQ(K, m_chessboard.readPieceAt(e1));
+    EXPECT_EQ(expectedCastlingRights, m_chessboard.readPosition().readCastling());
+    hash = m_chessboard.readHash();
 
-// // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
-// // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 5 [   ][   ][   ][ B ][   ][   ][   ][   ]
-// // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
-// // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
-// //     A    B    C    D    E    F    G    H
-// TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
-// {
-//     m_chessboard.PlacePiece(WHITEBISHOP, d5);
-//     m_chessboard.PlacePiece(BLACKKING, e8);
-//     m_chessboard.PlacePiece(BLACKROOK, a8);
-//     m_chessboard.setCastlingState(CastlingState::BLACK_QUEENSIDE);
-//     const auto& blackKings = m_chessboard.readPosition().readMaterial<Set::BLACK>()[kingId];
-//     const auto& blackRooks = m_chessboard.readPosition().readMaterial<Set::BLACK>()[rookId];
-//     const auto& whiteBishops = m_chessboard.readPosition().readMaterial<Set::WHITE>()[bishopId];
+    EXPECT_TRUE(m_chessboard.UnmakeMove(undos.top()));
+    undos.pop();
+    EXPECT_NE(hash, m_chessboard.readHash());
+    EXPECT_EQ(k, m_chessboard.readPieceAt(e8));
+    hash = m_chessboard.readHash();
 
-//     u64 hash = m_chessboard.readHash();
-//     EXPECT_EQ(1, blackKings.count());
-//     EXPECT_EQ(1, blackRooks.count());
-//     EXPECT_EQ(1, whiteBishops.count());
+    EXPECT_EQ(k, m_chessboard.readTile(e8).readPiece());
+    EXPECT_EQ(K, m_chessboard.readTile(e1).readPiece());
+    EXPECT_EQ(k, m_chessboard.readPieceAt(e8));
+    EXPECT_EQ(K, m_chessboard.readPieceAt(e1));
+    EXPECT_EQ(orgHash, m_chessboard.readHash());
+    EXPECT_EQ(expectedCastlingRights, m_chessboard.readPosition().readCastling());
+}
 
-//     Move move(d5, a8);
-//     bool result = m_chessboard.MakeMove(move);
-//     EXPECT_TRUE(result);
-//     EXPECT_TRUE(m_chessboard.readCastlingState().hasNone());
-//     EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(a8));
-//     EXPECT_NE(hash, m_chessboard.readHash());
-//     EXPECT_EQ(1, blackKings.count());
-//     EXPECT_EQ(0, blackRooks.count());
-//     EXPECT_EQ(1, whiteBishops.count());
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][ B ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
+{
+    m_chessboard.PlacePiece(WHITEBISHOP, d5);
+    m_chessboard.PlacePiece(BLACKKING, e8);
+    m_chessboard.PlacePiece(BLACKROOK, a8);
+    m_chessboard.setCastlingState(CastlingState::BLACK_QUEENSIDE);
+    const auto& blackKings = m_chessboard.readPosition().readMaterial<Set::BLACK>().kings();
+    const auto& blackRooks = m_chessboard.readPosition().readMaterial<Set::BLACK>().rooks();
+    const auto& whiteBishops = m_chessboard.readPosition().readMaterial<Set::WHITE>().bishops();
 
-//     EXPECT_TRUE(m_chessboard.UnmakeMove(move));
-//     EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_chessboard.readCastlingState().raw());
-//     EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(d5));
-//     EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(e8));
-//     EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
-//     EXPECT_EQ(hash, m_chessboard.readHash());
-//     EXPECT_EQ(1, blackKings.count());
-//     EXPECT_EQ(1, blackRooks.count());
-//     EXPECT_EQ(1, whiteBishops.count());
-// }
+    u64 hash = m_chessboard.readHash();
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(1, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
+
+    PackedMove Bxa8(Square::D5, Square::A8);
+    Bxa8.setCapture(true);
+    auto undo = m_chessboard.MakeMove<false>(Bxa8);
+    EXPECT_TRUE(m_chessboard.readCastlingState().hasNone());
+    EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(a8));
+    EXPECT_NE(hash, m_chessboard.readHash());
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(0, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
+
+    EXPECT_TRUE(m_chessboard.UnmakeMove(undo));
+    EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, m_chessboard.readCastlingState().read());
+    EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(d5));
+    EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(e8));
+    EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(a8));
+    EXPECT_EQ(hash, m_chessboard.readHash());
+    EXPECT_EQ(1, blackKings.count());
+    EXPECT_EQ(1, blackRooks.count());
+    EXPECT_EQ(1, whiteBishops.count());
+}
 
 // ////////////////////////////////////////////////////////////////
 

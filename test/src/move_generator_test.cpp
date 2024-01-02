@@ -428,8 +428,8 @@ TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
  * [/] Pawn can block check // tested in position fixture
  * [/] Pawn can't move or double move if it puts king in check // tested in position fixture
  * [/] Pawn can capture checking piece // tested in position fixture
- * [ ] Pawn can not block check if it puts king in check
- * [ ] Pawn can not capture enpassant if it puts king in check !!! */
+ * [x] Pawn can not block check if it puts king in check
+ * [x] Pawn can not capture enpassant if it puts king in check !!! */
 
 /*
  *   +------------------------+
@@ -652,7 +652,7 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
 }
 #pragma endregion  // KnightMoveGenerationTests
 
-// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -678,7 +678,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
     auto count = search.Perft(testContext, 1);
 
     // verify
-    EXPECT_EQ(8, count.Nodes);
+    EXPECT_EQ(13, count.Nodes);
     EXPECT_EQ(4, count.Captures);
     EXPECT_EQ(0, count.EnPassants);
     EXPECT_EQ(8, count.Promotions);
@@ -1073,29 +1073,31 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
     EXPECT_EQ(6, result.size());
 }
 
-// /**
-//  * 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
-//  * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-//  * 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
-//  * 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
-//  *     A    B    C    D    E    F    G    H */
-// TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
-// {
-//     // setup
-//     std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
-//     FENParser::deserialize(fen.c_str(), testContext);
+/**
+ * 8 [   ][   ][   ][ q ][ k ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][ P ][ P ][ P ]
+ * 1 [   ][   ][   ][ R ][   ][   ][ K ][   ]
+ *     A    B    C    D    E    F    G    H */
+TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
+{
+    // setup
+    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
+    FENParser::deserialize(fen.c_str(), testContext);
 
-//     Move Qxd1(d8, d1);
-//     testContext.MakeMove(Qxd1);
+    PackedMove Qxd1(Square::D8, Square::D1);
+    testContext.MakeMove(Qxd1);
 
-//     // do
-//     auto moves = search.GeneratePossibleMoves(testContext);
-//     EXPECT_EQ(0, moves.size());
-// }
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(0, result.size());
+}
 
 /**
 * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
