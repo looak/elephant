@@ -784,8 +784,10 @@ TEST_F(PositionFixture, Pawn_BulkAttacksWhite_ThereShouldBeAFewAttackedPieces)
 
     // do
     KingPinThreats empty{};
-    u64 result = board.calcAvailableAttacksPawnBulk<Set::WHITE>(empty).read();
+    u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>().read();
+    Bitboard opMaterial = board.readMaterial<Set::BLACK>().combine();
 
+    result = (opMaterial & result).read();
     // verify
     EXPECT_EQ(expected, result);
 }
@@ -826,15 +828,6 @@ TEST_F(PositionFixture, Pawn_ThreatenVsAttack_ThreatAndAttacksAreNotTheSameThing
     expected |= INT64_C(1) << c5.index();
     // do
     result = board.calcThreatenedSquaresPawnBulk<Set::BLACK>().read();
-    // validate
-    EXPECT_EQ(expected, result);
-
-    // setup
-    expected = ~universe;
-    expected |= INT64_C(1) << a5.index();
-    // do
-    KingPinThreats empty{};
-    result = board.calcAvailableAttacksPawnBulk<Set::BLACK>(empty).read();
     // validate
     EXPECT_EQ(expected, result);
 }

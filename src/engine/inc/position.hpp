@@ -264,9 +264,6 @@ public:
     SlidingMaterialMasks calcMaterialSlidingMasksBulk() const;
 
     template<Set us>
-    Bitboard calcAvailableAttacksPawnBulk(const KingPinThreats& kingPinThreats) const;
-
-    template<Set us>
     Bitboard calcThreatenedSquaresPawnBulk() const;
     template<Set us>
     Bitboard calcThreatenedSquaresKnightBulk() const;

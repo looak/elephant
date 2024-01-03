@@ -376,21 +376,6 @@ template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK>(const KingPi
 
 template<Set us>
 Bitboard
-Position::calcAvailableAttacksPawnBulk(const KingPinThreats&) const
-{
-    constexpr Set op = opposing_set<us>();
-
-    Bitboard threats = calcThreatenedSquaresPawnBulk<us>();
-    Bitboard opMaterial = readMaterial<op>().combine();
-
-    return threats & opMaterial;
-}
-
-template Bitboard Position::calcAvailableAttacksPawnBulk<Set::WHITE>(const KingPinThreats& kingMask) const;
-template Bitboard Position::calcAvailableAttacksPawnBulk<Set::BLACK>(const KingPinThreats& kingMask) const;
-
-template<Set us>
-Bitboard
 Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask, bool captures) const
 {
     auto moves = calcThreatenedSquaresKnightBulk<us>();
