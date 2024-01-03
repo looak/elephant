@@ -48,6 +48,11 @@ public:
     void NewGame();
 
     /**
+     * @brief Tries to make a move on board, returns true if legal succesfull move.
+     * @param move The move which is being asked to make, can be ambigious. */
+    bool TryMakeMove(Move move);
+
+    /**
      * @brief Makes a move on the board, assumes move is legal. */
     bool MakeMove(const PackedMove move);
     bool UnmakeMove();

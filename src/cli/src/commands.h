@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 
-
 class GameContext;
 
 namespace CliCommands {
@@ -32,6 +31,9 @@ void DivideDepthHelpCommand(const std::string& command);
 bool MoveCommand(std::list<std::string>& tokens, GameContext& context);
 void MoveHelpCommand(const std::string& command);
 
+bool UndoCommand(std::list<std::string>& tokens, GameContext& context);
+void UndoHelpCommand(const std::string& command);
+
 bool EvaluateCommand(std::list<std::string>& tokens, GameContext& context);
 void EvaluateHelpCommand(const std::string& command);
 
@@ -56,19 +58,19 @@ void AboutHelpCommand(const std::string& command);
 //     {"x", { ExitCommand, ExitHelpCommand } },
 // };
 
-static CommandsMap options = {
-    {"fen", {FenCommand, FenHelpCommand}},
-    {"evaluate", {EvaluateCommand, EvaluateHelpCommand}},
-    {"bestmove", {EvaluateBestMoveCommand, EvaluateBestMoveHelpCommand}},  // "bestmove
-    {"uci", {UCIEnableCommand, UCIEnableHelpCommand}},
-    {"help", {HelpCommand, HelpHelpCommand}},
-    {"print", {PrintCommand, PrintHelpCommand}},
-    {"move", {MoveCommand, MoveHelpCommand}},
-    {"divide", {DivideDepthCommand, DivideDepthHelpCommand}},
-    {"newgame", {NewGameCommand, NewGameHelpCommand}},
-    {"exit", {ExitCommand, ExitHelpCommand}},
-    {"show", {AvailableMovesCommand, AvailableMovesHelpCommand}},
-    // {"clear", { ClearCommand, ClearHelpCommand } },
-    {"about", {AboutCommand, AboutHelpCommand}}};
+static CommandsMap options = {{"fen", {FenCommand, FenHelpCommand}},
+                              {"evaluate", {EvaluateCommand, EvaluateHelpCommand}},
+                              {"bestmove", {EvaluateBestMoveCommand, EvaluateBestMoveHelpCommand}},  // "bestmove
+                              {"uci", {UCIEnableCommand, UCIEnableHelpCommand}},
+                              {"help", {HelpCommand, HelpHelpCommand}},
+                              {"print", {PrintCommand, PrintHelpCommand}},
+                              {"move", {MoveCommand, MoveHelpCommand}},
+                              {"divide", {DivideDepthCommand, DivideDepthHelpCommand}},
+                              {"newgame", {NewGameCommand, NewGameHelpCommand}},
+                              {"show", {AvailableMovesCommand, AvailableMovesHelpCommand}},
+                              // {"clear", { ClearCommand, ClearHelpCommand } },
+                              {"exit", {ExitCommand, ExitHelpCommand}},
+                              {"about", {AboutCommand, AboutHelpCommand}},
+                              {"undo", {UndoCommand, UndoHelpCommand}}};
 
 }  // namespace CliCommands

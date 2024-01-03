@@ -3,6 +3,7 @@
 #include "fen_parser.h"
 #include "hash_zorbist.h"
 #include "move.h"
+#include "move_generator.hpp"
 #include "search.h"
 
 #include <algorithm>
@@ -114,6 +115,31 @@ GameContext::MakeMove(const PackedMove move)
 
     m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
+}
+
+bool
+GameContext::TryMakeMove(Move move)
+{
+    PackedMove found = PackedMove::NullMove();
+    if (move.isAmbiguous()) {
+        MoveGenerator generator(m_board.readPosition(), m_toPlay, move.Piece.getType());
+        generator.generate();
+
+        generator.forEachMove([&](const PrioratizedMove& pm) {
+            if (pm.move.targetSqr() == move.TargetSquare.toSquare()) {
+                found = pm.move;
+                return;
+            }
+        });
+
+        if (found == PackedMove::NullMove())
+            return false;
+    }
+    else {
+        found = move.readPackedMove();
+    }
+
+    return MakeMove(found);
 }
 
 bool

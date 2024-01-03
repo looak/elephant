@@ -341,6 +341,7 @@ Move::fromPGN(std::string pgn, bool isWhiteMove)
     size_t cursor = 0;
     ParsePiece(pgn, cursor, mv, isWhiteMove);
     ParseFileAndRank(pgn, cursor, mv, isWhiteMove);
+    mv.setInvalid(false);
     return mv;
 }
 

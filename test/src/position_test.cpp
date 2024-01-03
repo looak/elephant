@@ -1625,9 +1625,9 @@ TEST_F(PositionFixture, Bishop_KingMask_AvailableMovesAreCaptureCheckingPieceOrB
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
-    Bitboard pawnMoves = pos.calcAvailableMovesBishopBulk<Set::BLACK>(kingMask);
+    Bitboard bishopMoves = pos.calcAvailableMovesBishopBulk<Set::BLACK>(kingMask);
     {
-        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(b7, pawnMoves, kingMask);
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(b7, bishopMoves, kingMask);
 
         // validate
         u64 expected = 0x400000000000000ull;

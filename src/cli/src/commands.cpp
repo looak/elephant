@@ -180,20 +180,20 @@ DivideDepthHelpCommand(const std::string& command)
 bool
 MoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
-    // if (tokens.empty() == false) {
-    //     std::string token = tokens.front();
-    //     Move move = context.readChessboard().DeserializeMoveFromPGN(token, context.readToPlay() == Set::WHITE);
+    if (tokens.empty() == false) {
+        std::string token = tokens.front();
+        auto move = Move::fromPGN(token, context.readToPlay() == Set::WHITE);
 
-    //     if (move.isInvalid()) {
-    //         std::cout << " Invalid move: " << token << std::endl;
-    //         return false;
-    //     }
+        if (move.isInvalid()) {
+            std::cout << " Invalid move: " << token << std::endl;
+            return false;
+        }
 
-    //     if (!context.PlayMove(move)) {
-    //         std::cout << " Invalid move: " << token << std::endl;
-    //         return false;
-    //     }
-    // }
+        if (!context.TryMakeMove(move)) {
+            std::cout << " Invalid move: " << token << std::endl;
+            return false;
+        }
+    }
 
     return true;
 }
@@ -208,6 +208,27 @@ MoveHelpCommand(const std::string& command)
 }
 
 bool
+UndoCommand(std::list<std::string>& tokens, GameContext& context)
+{
+    if (context.UnmakeMove()) {
+        std::cout << " Undo successful!" << std::endl;
+    }
+    else {
+        std::cout << " Undo failed!" << std::endl;
+    }
+    return true;
+}
+
+void
+UndoHelpCommand(const std::string& command)
+{
+    std::ostringstream ssCommand;
+    ssCommand << command;
+    std::string helpText("Undos last move.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
+}
+
+bool
 EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
@@ -217,8 +238,12 @@ EvaluateCommand(std::list<std::string>&, GameContext& context)
 }
 
 void
-EvaluateHelpCommand(const std::string&)
+EvaluateHelpCommand(const std::string& command)
 {
+    std::ostringstream ssCommand;
+    ssCommand << command;
+    std::string helpText("Returns engines evaluation of position.");
+    std::cout << AddLineDivider(ssCommand.str(), helpText);
 }
 
 bool

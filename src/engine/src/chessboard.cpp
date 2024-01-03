@@ -250,6 +250,7 @@ Chessboard::MakeMove(const PackedMove move)
 
     // storing enpassant target square so we can unmake this.
     undoState.enPassantState.write(m_position.readEnPassant().read());
+    undoState.castlingState.write(m_position.readCastling().read());
 
     switch (piece.getType()) {
         case PieceType::PAWN:
@@ -343,7 +344,8 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
     m_position.editCastling().write(undoState.castlingState.read());    // restore castling state
 
     m_hash = undoState.hash;  // this should be calculated and not just overwritten?
-
+    m_moveCount -= (short)m_isWhiteTurn;
+    m_isWhiteTurn = !m_isWhiteTurn;
     return true;
 }
 
@@ -523,8 +525,8 @@ Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove 
 void
 Chessboard::InternalMakeMove(Notation source, Notation target)
 {
-    ChessPiece piece = m_tiles[source.index()].editPiece();
-
+    ChessPiece piece = m_tiles[source.index()].readPiece();
+    FATAL_ASSERT(piece.isValid() == true);
     m_tiles[source.index()].editPiece() = ChessPiece();  // clear old square.
     m_tiles[target.index()].editPiece() = piece;
 
@@ -600,6 +602,7 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
     auto capturedPiece = m_tiles[pieceTarget.index()].readPiece();
 
     if (capturedPiece != ChessPiece()) {
+        FATAL_ASSERT(move.isCapture() == true);
         m_plyCount = 0;
         // remove captured piece from board.
         m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
@@ -612,6 +615,9 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
 
         // remove piece from hash
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, capturedPiece, pieceTarget);
+    }
+    else {
+        FATAL_ASSERT(move.isCapture() == false);
     }
 }
 

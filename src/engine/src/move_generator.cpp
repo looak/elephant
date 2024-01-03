@@ -316,8 +316,9 @@ MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
 {
     const auto& bb = m_position;
     const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
+    const u8 setId = static_cast<u8>(set);
 
-    Bitboard movesbb = m_moveMasks[(size_t)set].material[kingId];
+    Bitboard movesbb = m_moveMasks[setId].material[kingId];
 #if defined EG_DEBUGGING || defined EG_TESTING
     // during testing and debugging king can be missing
     if (movesbb.empty())
@@ -337,11 +338,18 @@ MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
         if (opMaterial & dstSqrMsk)
             move.setCapture(true);
 
-        if (dstSqrMsk & king_constants::queenSideCastleMask) {
-            move.setCastleQueenSide(true);
+        u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
+        if (castlingRaw & 2) {
+            u64 queenSideCastleSqrMask = king_constants::queenSideCastleMask & board_constants::baseRankRelative[setId];
+            if (dstSqrMsk & queenSideCastleSqrMask) {
+                move.setCastleQueenSide(true);
+            }
         }
-        else if (dstSqrMsk & king_constants::kingSideCastleMask) {
-            move.setCastleKingSide(true);
+        if (castlingRaw & 1) {
+            u64 kingSideCastleSqrMask = king_constants::kingSideCastleMask & board_constants::baseRankRelative[setId];
+            if (dstSqrMsk & kingSideCastleSqrMask) {
+                move.setCastleKingSide(true);
+            }
         }
 
         PrioratizedMove prioratizedMove(move, 1);

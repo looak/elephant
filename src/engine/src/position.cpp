@@ -692,12 +692,12 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
 
     Bitboard mask(board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank]);
     Bitboard pieceMask = readMaterial<us>()[pieceIndx] & mask;
+    movesbb &= mask;
     if (pieceMask.count() == 1) {
         // rooks don't intersect so no need to isolate further.
-        return {movesbb & mask, opThreatenedPieces & mask};
+        return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
     }
 
-    movesbb &= mask;
     pieceMask &= ~squareMaskTable[source.index()];
     Bitboard includeMask = squareMaskTable[source.index()];
 

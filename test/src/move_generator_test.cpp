@@ -196,6 +196,42 @@ TEST_F(MoveGeneratorFixture, King_Castling_QueenSideCastlingAvailable)
     }
 }
 
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MoveGeneratorFixture, King_Castling_KingAndQueenSideCastlingAvailable)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, a8);
+    board.PlacePiece(BLACKROOK, h8);
+    board.PlacePiece(WHITEKING, e1);
+    board.setCastlingState(12);
+
+    board.setToPlay(Set::BLACK);
+
+    // do
+    MoveGenerator gen(testContext);
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::E8; };
+    auto result = buildMoveVector(gen, predicate);
+
+    EXPECT_EQ(7, result.size());
+    int castlingCounter = 0;
+    for (auto& mv : result) {
+        if (mv.isCastling()) {
+            castlingCounter++;
+        }
+    }
+    EXPECT_EQ(2, castlingCounter);
+}
+
 // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][ N ][   ][   ][   ][   ]
@@ -798,6 +834,36 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
     EXPECT_EQ(0, result.size());
 }
 
+// 8 [ R ][   ][   ][   ][   ][   ][   ][ r ]
+// 7 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][ R ]
+//     A    B    C    D    E    F    G    H
+// found an edge case where a pinned piece would be allowed to capture
+// a different piece than the one pinning it.
+TEST_F(MoveGeneratorFixture, Rook_Captures_TwoRooksCanCaptureSamePiece)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
+    board.PlacePiece(BLACKKING, e7);
+    board.PlacePiece(BLACKROOK, h8);
+
+    board.PlacePiece(WHITEKING, e1);
+    board.PlacePiece(WHITEROOK, a8);
+    board.PlacePiece(WHITEROOK, h1);
+
+    // do
+    MoveGenerator gen(testContext.readChessboard().readPosition(), Set::WHITE, PieceType::ROOK, MoveTypes::CAPTURES_ONLY);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(2, result.size());
+}
+
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1032,6 +1098,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 
     // setup
     PackedMove mv(Square::A1, Square::A8);
+    mv.setCapture(true);
     testContext.editChessboard().MakeMove<false>(mv);
     testContext.editChessboard().setToPlay(Set::BLACK);
 
@@ -1090,6 +1157,7 @@ TEST_F(MoveGeneratorFixture, Checkmate_NoMoreMoves)
     FENParser::deserialize(fen.c_str(), testContext);
 
     PackedMove Qxd1(Square::D8, Square::D1);
+    Qxd1.setCapture(true);
     testContext.MakeMove(Qxd1);
 
     // do
