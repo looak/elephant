@@ -114,6 +114,7 @@ public:
     std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
 
     PerftResult Perft(GameContext& context, int depth);
+    PerftResult PerftDivide(GameContext& context, int depth);
 
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 

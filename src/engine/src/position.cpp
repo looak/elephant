@@ -693,20 +693,20 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
     Bitboard mask(board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank]);
     Bitboard pieceMask = readMaterial<us>()[pieceIndx] & mask;
     movesbb &= mask;
-    if (pieceMask.count() == 1) {
-        // rooks don't intersect so no need to isolate further.
-        return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
-    }
+    // if (pieceMask.count() == 1) {
+    //     // rooks don't intersect so no need to isolate further.
+    //     return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
+    // }
 
-    pieceMask &= ~squareMaskTable[source.index()];
+    Bitboard otherRooks = pieceMask & ~squareMaskTable[source.index()];
     Bitboard includeMask = squareMaskTable[source.index()];
-
     Bitboard usMaterial = readMaterial<us>().combine();
-
     // remove self from us material
     usMaterial &= ~squareMaskTable[source.index()];
 
-    if (pieceMask & board_constants::fileMasks[source.file])  // on same file
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
+
+    if (otherRooks & board_constants::fileMasks[source.file])  // on same file
     {
         while (!(includeMask & board_constants::rank7Mask) && !(includeMask.shiftNorth() & usMaterial))
             includeMask |= includeMask.shiftNorth();
@@ -718,7 +718,7 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
         movesbb &= includeMask;
         movesbb |= includedrank;
     }
-    else {
+    else if (otherRooks & board_constants::rankMasks[source.rank]) {  // on same rank
         while (!(includeMask & board_constants::fileaMask) && !(includeMask.shiftWest() & usMaterial))
             includeMask |= includeMask.shiftWest();
 
@@ -728,6 +728,14 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
         Bitboard includedfile = movesbb & board_constants::fileMasks[source.file];
         movesbb &= includeMask;
         movesbb |= includedfile;
+    }
+    else {
+        Bitboard moves = 0;
+        moves |= internalCalculateThreat<us, north, rookId>(bounds[north], pieceMask, usMaterial, opMatCombined);
+        moves |= internalCalculateThreat<us, east, rookId>(bounds[east], pieceMask, usMaterial, opMatCombined);
+        moves |= internalCalculateThreat<us, south, rookId>(bounds[south], pieceMask, usMaterial, opMatCombined);
+        moves |= internalCalculateThreat<us, west, rookId>(bounds[west], pieceMask, usMaterial, opMatCombined);
+        movesbb &= moves;
     }
 
     return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};

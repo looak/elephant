@@ -236,7 +236,7 @@ TEST_F(PerftFixture, BishopsAndRooks_Castling)
 
     {
         PerftResult result = m_search.Perft(m_context, 2);
-        EXPECT_EQ(1474, result.Nodes);
+        EXPECT_EQ(1474 + 34, result.Nodes);
     }
 }
 

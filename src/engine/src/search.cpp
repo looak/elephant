@@ -50,6 +50,41 @@ Search::Perft(GameContext& context, int depth)
     return result;
 }
 
+PerftResult
+Search::PerftDivide(GameContext& context, int depth)
+{
+    if (depth == 0) {
+        return PerftResult{};
+    }
+
+    PerftResult result;
+    MoveGenerator generator(context);
+    generator.generate();
+    generator.forEachMove([&](const PrioratizedMove& mv) {
+        context.MakeMove(mv.move);
+        if (depth == 1) {
+            result.Nodes++;
+            if (mv.move.isCapture())
+                result.Captures++;
+            if (mv.move.isEnPassant())
+                result.EnPassants++;
+            if (mv.move.isCastling())
+                result.Castles++;
+            if (mv.move.isPromotion())
+                result.Promotions++;
+            if (mv.isCheck())
+                result.Checks++;
+            // if (mv.isCheckmate())
+            //     result.Checkmates++;
+        }
+
+        result += PerftDivide(context, depth - 1);
+        context.UnmakeMove();
+    });
+
+    return result;
+}
+
 std::map<PieceKey, std::vector<Move>>
 Search::OrganizeMoves(const std::vector<Move>& moves) const
 {

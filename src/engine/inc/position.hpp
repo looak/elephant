@@ -311,11 +311,13 @@ public:
 private:
     template<Set us, u8 direction, u8 pieceId>
     Bitboard internalCalculateThreat(Bitboard bounds) const;
+    template<Set us, u8 direction, u8 pieceId>
+    Bitboard internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard materialbb, Bitboard opMaterial) const;
 
     /**
      * @brief Isolate a given pawn from the moves bitboard.
      * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
-     * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square.     */
+     * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square. */
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb,
                                                        const KingPinThreats& kingPinThreats) const;
@@ -357,6 +359,27 @@ Position::internalCalculateThreat(Bitboard bounds) const
     const Bitboard materialbb = readMaterial<us>().combine();
     const Bitboard opMaterial = readMaterial<opposing_set<us>()>().combine();
 
+    bounds |= opMaterial;
+
+    Bitboard bbCopy = piecebb;
+    Bitboard moves = 0;
+    do {
+        Bitboard purge = bbCopy & bounds;
+        bbCopy &= ~purge;
+
+        bbCopy = bbCopy.shiftRelative<us, direction>();
+        moves |= bbCopy;
+        bbCopy ^= (materialbb & bbCopy);
+
+    } while (bbCopy.empty() == false);
+
+    return moves;
+}
+
+template<Set us, u8 direction, u8 pieceId>
+Bitboard
+Position::internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard materialbb, Bitboard opMaterial) const
+{
     bounds |= opMaterial;
 
     Bitboard bbCopy = piecebb;
