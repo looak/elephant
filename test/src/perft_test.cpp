@@ -462,10 +462,24 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions Checks Checkmates
 //     // EXPECT_EQ(22, count.Checkmates);
 // }
 
-// TEST_F(PerftFixture, Catching_IllegalEnPassant) { Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6); }
+void
+Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
+{
+    // setup
+    GameContext context;
+    FENParser::deserialize(fen.c_str(), context);
 
-// TEST_F(PerftFixture, Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6);
-// }
+    // do
+    Search search;
+    PerftResult result = search.Perft(context, atDepth);
+
+    // verify
+    EXPECT_EQ(expectedValue, result.Nodes);
+}
+
+TEST_F(PerftFixture, Catching_IllegalEnPassant) { Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6); }
+
+TEST_F(PerftFixture, Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6); }
 
 // TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
 // {

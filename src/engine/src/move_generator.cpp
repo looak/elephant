@@ -60,8 +60,10 @@ PackedMove
 MoveGenerator::generateNextMove()
 {
     const size_t setIndx = static_cast<size_t>(set);
-    if (m_moveMasks[setIndx].combine().empty())
+    if (m_moveMasks[setIndx].combine().empty()) {
+        m_movesGenerated = true;
         return PackedMove::NullMove();
+    }
 
     if (m_movesGenerated == false) {
         if (m_pinThreats->isCheckedCount() > 1) {
@@ -91,8 +93,10 @@ void
 MoveGenerator::generateAllMoves()
 {
     const size_t setIndx = static_cast<size_t>(set);
-    if (m_moveMasks[setIndx].combine().empty())
+    if (m_moveMasks[setIndx].combine().empty()) {
+        m_movesGenerated = true;
         return;
+    }
 
     if (m_pinThreats->isCheckedCount() > 1) {
         generateMoves<set, kingId>(m_pinThreats[setIndx]);

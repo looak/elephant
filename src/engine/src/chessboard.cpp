@@ -553,7 +553,7 @@ Chessboard::InternalMakeMove(const std::string& moveString)
         else  // need to figure out which piece is being moved
         {
             MoveGenerator moveGen(m_position, toMove, parsedMove.Piece.getType());
-            moveGen.generateNextMove();  // generates moves
+            moveGen.generate();
             moveGen.forEachMove([&](const PrioratizedMove& move) {
                 // this might be good enough for now, but if we have multiple pieces that can move to the
                 // same square, there is unambiguious information in the parsed move which we need to use.
