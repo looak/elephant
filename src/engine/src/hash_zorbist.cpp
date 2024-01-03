@@ -55,8 +55,8 @@ ZorbistHash::HashBoard(const Chessboard& board) const
     auto itr = board.begin();
 
     while (itr != board.end()) {
-        if ((*itr).readPiece().isValid()) {
-            auto piece = (*itr).readPiece();
+        ChessPiece piece = board.readPieceAt(itr.square());
+        if (piece.isValid()) {
             u8 pieceIndx = piece.index() + (piece.set() * 6);
             hash ^= table[itr.index()][pieceIndx];
         }

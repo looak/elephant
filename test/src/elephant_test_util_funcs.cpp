@@ -9,42 +9,6 @@
 #include "position.hpp"
 
 namespace ElephantTest {
-//
-// bool PrintBoard(const GameContext& context)
-//{
-//    const Chessboard& board = context.readChessboard();
-//    auto boardItr = board.begin();
-//    std::array<std::stringstream, 8> ranks;
-//
-//    byte prevRank = -1;
-//    do
-//    {
-//        if (prevRank != boardItr.rank())
-//        {
-//            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
-//        }
-//
-//        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
-//        prevRank = boardItr.rank();
-//        ++boardItr;
-//
-//    } while (boardItr != board.end());
-//
-//    auto rankItr = ranks.rbegin();
-//    while (rankItr != ranks.rend())
-//    {
-//        LOG_INFO() << (*rankItr).str();
-//        rankItr++;
-//    }
-//
-//    LOG_INFO() << "\n >\n >     A  B  C  D  E  F  G  H\n";
-//    LOG_INFO() << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
-//    LOG_INFO() << " > hash: 0x" << std::hex << board.readHash() << "\n";
-//    LOG_INFO() << " > castling state: " << PrintCastlingState(board) << "\n";
-//    LOG_INFO() << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
-//
-//    return true;
-//}
 
 MoveCount
 CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate)
@@ -76,7 +40,7 @@ CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate)
     return result;
 }
 
-bool
+void
 PrintBoard(const Chessboard& board)
 {
     auto boardItr = board.begin();
@@ -88,7 +52,7 @@ PrintBoard(const Chessboard& board)
             ranks[boardItr.rank()] << (int)(boardItr.rank() + 1) << "  ";
         }
 
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+        ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 
@@ -101,8 +65,6 @@ PrintBoard(const Chessboard& board)
     }
 
     LOG_INFO() << "    A  B  C  D  E  F  G  H";
-
-    return true;
 }
 
 void

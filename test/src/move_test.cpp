@@ -63,8 +63,8 @@ public:
 
 //     // verify
 //     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(e5).readPiece());
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(e5));
 
 //     move.SourceSquare = d2;
 //     move.TargetSquare = d4;
@@ -74,8 +74,8 @@ public:
 //     EXPECT_EQ(P, move.Piece);
 
 //     // verify
-//     EXPECT_EQ(exp, m_chessboard.readTile(d2).readPiece());
-//     EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(d4).readPiece());
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D2));
+//     EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(Square::D4));
 // }
 
 TEST_F(MoveFixture, PackedMoves_FromMove)
@@ -186,8 +186,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 
     // verify
     ChessPiece exp;  // default, "empty" piece
-    EXPECT_EQ(exp, m_chessboard.readTile(d2).readPiece());
-    EXPECT_EQ(WHITEPAWN, m_chessboard.readTile(d4).readPiece());
+    EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D2));
+    EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(Square::D4));
 
     EXPECT_EQ(Square::D3, m_chessboard.readPosition().readEnPassant().readSquare());
 }
@@ -206,8 +206,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 
 //     // verify
 //     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(exp, m_chessboard.readTile(d7).readPiece());
-//     EXPECT_EQ(BLACKPAWN, m_chessboard.readTile(d5).readPiece());
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(d7));
+//     EXPECT_EQ(BLACKPAWN, m_chessboard.readPieceAt(d5));
 
 //     auto enPassantSqr = d6;  // expected
 //     EXPECT_EQ(enPassantSqr, m_chessboard.readEnPassant());
@@ -239,8 +239,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(ChessPiece(), move.Piece);
 
 //     // verify
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(b, m_chessboard.readTile(e5).readPiece());
+//     EXPECT_EQ(P, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(b, m_chessboard.readPieceAt(e5));
 // }
 
 // // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -264,8 +264,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 
 //     const auto& blkQueens = m_chessboard.readPosition().readMaterial<Set::BLACK>()[queenId];
 
-//     EXPECT_EQ(K, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(q, m_chessboard.readTile(d5).readPiece());
+//     EXPECT_EQ(K, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(q, m_chessboard.readPieceAt(d5));
 //     EXPECT_EQ(1, blkQueens.count());
 
 //     // do
@@ -275,8 +275,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
 
 //     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(K, m_chessboard.readTile(d5).readPiece());
-//     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
+//     EXPECT_EQ(K, m_chessboard.readPieceAt(d5));
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(e4));
 //     EXPECT_EQ(0, blkQueens.count());
 
 //     u64 hash = ZorbistHash::Instance().HashBoard(m_chessboard);
@@ -314,8 +314,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
 
 //     EXPECT_EQ(e3, m_chessboard.readEnPassant());
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+//     EXPECT_EQ(P, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(p, m_chessboard.readPieceAt(Square::D4));
 
 //     Move epCapture(d4, e3);
 
@@ -328,9 +328,9 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(0, whtPawns.count());
 
 //     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(exp, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(e3).readPiece());
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D4));
+//     EXPECT_EQ(p, m_chessboard.readPieceAt(e3));
 // }
 
 // // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -359,8 +359,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_NE(MoveFlag::EnPassant, move.Flags & MoveFlag::EnPassant);
 
 //     EXPECT_EQ(e3, m_chessboard.readEnPassant());
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(d4).readPiece());
+//     EXPECT_EQ(P, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(p, m_chessboard.readPieceAt(Square::D4));
 
 //     Move pMove(d4, d3);
 
@@ -371,9 +371,9 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(Notation(), m_chessboard.readEnPassant());
 
 //     ChessPiece exp;  // default, "empty" piece
-//     EXPECT_EQ(P, m_chessboard.readTile(e4).readPiece());
-//     EXPECT_EQ(exp, m_chessboard.readTile(d4).readPiece());
-//     EXPECT_EQ(p, m_chessboard.readTile(d3).readPiece());
+//     EXPECT_EQ(P, m_chessboard.readPieceAt(e4));
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D4));
+//     EXPECT_EQ(p, m_chessboard.readPieceAt(d3));
 // }
 
 // // 8 [   ][   ][   ][ n ][   ][   ][   ][   ]
@@ -404,7 +404,7 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 // //     EXPECT_EQ(MoveFlag::Promotion, move.Flags);
 
 // //     auto Q = WHITEQUEEN;
-// //     EXPECT_EQ(Q, m_chessboard.readTile(e8).readPiece());
+// //     EXPECT_EQ(Q, m_chessboard.readPieceAt(e8));
 
 // //     auto placements = m_chessboard.readMaterial(Set::WHITE).buildPlacementsOfPiece(WHITEQUEEN);
 // //     EXPECT_EQ(1, placements.size());
@@ -443,7 +443,7 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
 
 //     auto R = WHITEROOK;
-//     EXPECT_EQ(R, m_chessboard.readTile(d8).readPiece());
+//     EXPECT_EQ(R, m_chessboard.readPieceAt(d8));
 // }
 
 // // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -475,7 +475,7 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(MoveFlag::Capture, move.Flags & MoveFlag::Capture);
 
 //     auto q = BLACKQUEEN;
-//     EXPECT_EQ(q, m_chessboard.readTile(d1).readPiece());
+//     EXPECT_EQ(q, m_chessboard.readPieceAt(d1));
 // }
 
 // // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
@@ -504,8 +504,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(k, move.Piece);
 //     EXPECT_EQ(MoveFlag::Castle, move.Flags);
 
-//     EXPECT_EQ(k, m_chessboard.readTile(c8).readPiece());
-//     EXPECT_EQ(r, m_chessboard.readTile(d8).readPiece());
+//     EXPECT_EQ(k, m_chessboard.readPieceAt(c8));
+//     EXPECT_EQ(r, m_chessboard.readPieceAt(d8));
 // }
 
 // // 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
@@ -557,9 +557,9 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(MoveFlag::Castle, move.Flags);
 
 //     expectedCastling = 12;
-//     EXPECT_EQ(K, m_chessboard.readTile(c1).readPiece());
-//     EXPECT_EQ(R, m_chessboard.readTile(d1).readPiece());
-//     EXPECT_EQ(R, m_chessboard.readTile(h1).readPiece());
+//     EXPECT_EQ(K, m_chessboard.readPieceAt(c1));
+//     EXPECT_EQ(R, m_chessboard.readPieceAt(d1));
+//     EXPECT_EQ(R, m_chessboard.readPieceAt(h1));
 //     EXPECT_EQ(expectedCastling, m_chessboard.readCastlingState().raw());
 
 //     Move rMove(a8, a6);
@@ -581,8 +581,8 @@ TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
 //     EXPECT_EQ(MoveFlag::Castle, scndCastle.Flags);
 //     expectedCastling = 0;
 //     EXPECT_EQ(expectedCastling, m_chessboard.readCastlingState().raw());
-//     EXPECT_EQ(k, m_chessboard.readTile(g8).readPiece());
-//     EXPECT_EQ(r, m_chessboard.readTile(f8).readPiece());
+//     EXPECT_EQ(k, m_chessboard.readPieceAt(g8));
+//     EXPECT_EQ(r, m_chessboard.readPieceAt(f8));
 // }
 
 // // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]

@@ -11,127 +11,16 @@
 #include <thread>
 #include <vector>
 
-ChessboardTile::ChessboardTile() :
-    m_position(InvalidNotation),
-    m_piece(ChessPiece())
-{
-}
-
-ChessboardTile::ChessboardTile(Notation&& notation) :
-    m_position(std::move(notation))
-{
-}
-
-bool
-ChessboardTile::operator==(const ChessboardTile& rhs) const
-{
-    bool result = m_position == rhs.m_position;
-    result |= m_piece == rhs.m_piece;
-    return result;
-}
-
-ChessboardTile&
-ChessboardTile::operator=(const ChessboardTile& rhs)
-{
-    m_position = Notation(rhs.m_position);
-    m_piece = rhs.m_piece;
-
-    return *this;
-}
-
 Chessboard::Chessboard() :
     m_hash(0),
     m_isWhiteTurn(true),
     m_moveCount(1),
     m_plyCount(0)
 {
-    for (byte r = 0; r < 8; r++) {
-        for (byte f = 0; f < 8; f++) {
-            Notation pos(r, f);
-            m_tiles[pos.index()].editPosition() = std::move(pos);
-            m_tiles[pos.index()].editPiece() = ChessPiece();
-        }
-    }
-
     m_kings[0].first = ChessPiece();
     m_kings[0].second = Notation();
     m_kings[1].first = ChessPiece();
     m_kings[1].second = Notation();
-
-#ifdef EG_DEBUGGING
-    // verify tiles & tiles named have the same position
-    LOG_ERROR_EXPR(m_tilesNamed.A1.m_position == Notation(0, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.A2.m_position == Notation(0, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.A3.m_position == Notation(0, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.A4.m_position == Notation(0, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.A5.m_position == Notation(0, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.A6.m_position == Notation(0, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.A7.m_position == Notation(0, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.A8.m_position == Notation(0, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.B1.m_position == Notation(1, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.B2.m_position == Notation(1, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.B3.m_position == Notation(1, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.B4.m_position == Notation(1, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.B5.m_position == Notation(1, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.B6.m_position == Notation(1, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.B7.m_position == Notation(1, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.B8.m_position == Notation(1, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.C1.m_position == Notation(2, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.C2.m_position == Notation(2, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.C3.m_position == Notation(2, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.C4.m_position == Notation(2, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.C5.m_position == Notation(2, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.C6.m_position == Notation(2, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.C7.m_position == Notation(2, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.C8.m_position == Notation(2, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.D1.m_position == Notation(3, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.D2.m_position == Notation(3, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.D3.m_position == Notation(3, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.D4.m_position == Notation(3, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.D5.m_position == Notation(3, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.D6.m_position == Notation(3, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.D7.m_position == Notation(3, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.D8.m_position == Notation(3, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.E1.m_position == Notation(4, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.E2.m_position == Notation(4, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.E3.m_position == Notation(4, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.E4.m_position == Notation(4, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.E5.m_position == Notation(4, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.E6.m_position == Notation(4, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.E7.m_position == Notation(4, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.E8.m_position == Notation(4, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.F1.m_position == Notation(5, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.F2.m_position == Notation(5, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.F3.m_position == Notation(5, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.F4.m_position == Notation(5, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.F5.m_position == Notation(5, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.F6.m_position == Notation(5, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.F7.m_position == Notation(5, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.F8.m_position == Notation(5, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.G1.m_position == Notation(6, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.G2.m_position == Notation(6, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.G3.m_position == Notation(6, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.G4.m_position == Notation(6, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.G5.m_position == Notation(6, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.G6.m_position == Notation(6, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.G7.m_position == Notation(6, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.G8.m_position == Notation(6, 7));
-
-    LOG_ERROR_EXPR(m_tilesNamed.H1.m_position == Notation(7, 0));
-    LOG_ERROR_EXPR(m_tilesNamed.H2.m_position == Notation(7, 1));
-    LOG_ERROR_EXPR(m_tilesNamed.H3.m_position == Notation(7, 2));
-    LOG_ERROR_EXPR(m_tilesNamed.H4.m_position == Notation(7, 3));
-    LOG_ERROR_EXPR(m_tilesNamed.H5.m_position == Notation(7, 4));
-    LOG_ERROR_EXPR(m_tilesNamed.H6.m_position == Notation(7, 5));
-    LOG_ERROR_EXPR(m_tilesNamed.H7.m_position == Notation(7, 6));
-    LOG_ERROR_EXPR(m_tilesNamed.H8.m_position == Notation(7, 7));
-#endif
 }
 
 Chessboard::Chessboard(const Chessboard& other) :
@@ -140,14 +29,6 @@ Chessboard::Chessboard(const Chessboard& other) :
     m_moveCount(other.m_moveCount),
     m_plyCount(other.m_plyCount)
 {
-    auto otherItr = other.begin();
-    auto thisItr = this->begin();
-    while (otherItr != other.end()) {
-        *thisItr = *otherItr;
-        otherItr++;
-        thisItr++;
-    }
-
     m_kings[0].first = other.m_kings[0].first;
     m_kings[0].second = Notation(other.m_kings[0].second);
     m_kings[1].first = other.m_kings[1].first;
@@ -168,7 +49,7 @@ Chessboard::toString() const
             ranks[boardItr.rank()] << "\n" << (int)(boardItr.rank() + 1) << "  ";
         }
 
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+        ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 
@@ -193,10 +74,6 @@ Chessboard::toString() const
 void
 Chessboard::Clear()
 {
-    for (auto& tile : m_tiles) {
-        tile.editPiece() = ChessPiece();
-    }
-
     m_hash = 0;
     m_kings[0].first = ChessPiece();
     m_kings[0].second = Notation();
@@ -211,13 +88,12 @@ Chessboard::Clear()
 bool
 Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 {
-    // if (!Bitboard::IsValidSquare(target))
-    //     return false;
-
-    const auto& tsqrPiece = m_tiles[target.index()].readPiece();
+    auto tsqrPiece = m_position.readPieceAt(target.toSquare());
     if (tsqrPiece != ChessPiece()) {
-        if (overwrite == true)
+        if (overwrite == true) {
+            m_position.ClearPiece(tsqrPiece, target);
             m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, tsqrPiece, target);
+        }
         else
             return false;  // already a piece on this square
     }
@@ -227,7 +103,6 @@ Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
         m_kings[piece.set()].second = Notation(target);
     }
 
-    m_tiles[target.index()].editPiece() = piece;
     m_position.PlacePiece(piece, target);
 
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
@@ -242,7 +117,7 @@ Chessboard::MakeMove(const PackedMove move)
     undoState.move = move;
     undoState.hash = m_hash;
 
-    const auto& piece = m_tiles[move.source()].readPiece();
+    const auto& piece = m_position.readPieceAt(move.sourceSqr());  // m_tiles[move.source()].readPiece();
     Square targetSqr = move.targetSqr();
 
     // cache captureTarget in seperate variable since we might be capturing enpassant
@@ -294,7 +169,7 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 {
     const i32 srcSqr = undoState.move.source();
     const i32 trgSqr = undoState.move.target();
-    const ChessPiece movedPiece = m_tiles[trgSqr].readPiece();
+    const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
 
     // idea here is to store the piece to place back on the board in this variable,
     // if we're dealing with a promotion this will be a pawn of the correct set.
@@ -304,8 +179,6 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 
     // unmake move, currently we are tracking the piece and board state in two
     // different places, here in our tiles and in the position.
-    m_tiles[srcSqr].editPiece() = promotedPiece;
-    m_tiles[trgSqr].editPiece() = ChessPiece::None();
     m_position.PlacePiece(promotedPiece, Notation(srcSqr));
     m_position.ClearPiece(movedPiece, Notation(trgSqr));
 
@@ -313,11 +186,9 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
         if (undoState.move.isEnPassant()) {
             i32 epPieceSqr = static_cast<i32>(undoState.enPassantState.readTarget());
             m_position.PlacePiece(undoState.capturedPiece, Notation(epPieceSqr));
-            m_tiles[epPieceSqr].editPiece() = undoState.capturedPiece;
         }
         else {
             m_position.PlacePiece(undoState.capturedPiece, Notation(trgSqr));
-            m_tiles[trgSqr].editPiece() = undoState.capturedPiece;
         }
     }
     else if (undoState.move.isCastling()) {
@@ -391,8 +262,7 @@ Chessboard::InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoStat
         // ensure promotion piece is same set as piece we're moving. There is a bug in string
         // parsing of piece which assumses capitalized string is white, but that doesn't work for
         // promotions
-        auto& srcTile = m_tiles[move.source()];
-        const ChessPiece src = srcTile.readPiece();
+        const ChessPiece src = m_position.readPieceAt(move.sourceSqr());
         const ChessPiece promote(src.getSet(), static_cast<PieceType>(move.readPromoteToPieceType()));
 
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, src, move.sourceSqr());
@@ -401,8 +271,6 @@ Chessboard::InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoStat
         // updating the piece on the source tile since we're doing this pre-move.
         // internal move will handle the actual move of the piece, but what piece it is doesn't
         // really mater at that point.
-        srcTile.editPiece() = promote;
-
         m_position.ClearPiece(src, move.sourceSqr());
         m_position.PlacePiece(promote, move.sourceSqr());
     }
@@ -525,10 +393,8 @@ Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove 
 void
 Chessboard::InternalMakeMove(Notation source, Notation target)
 {
-    ChessPiece piece = m_tiles[source.index()].readPiece();
+    ChessPiece piece = m_position.readPieceAt(source.toSquare());
     FATAL_ASSERT(piece.isValid() == true);
-    m_tiles[source.index()].editPiece() = ChessPiece();  // clear old square.
-    m_tiles[target.index()].editPiece() = piece;
 
     m_position.ClearPiece(piece, source);
     m_position.PlacePiece(piece, target);
@@ -589,28 +455,24 @@ Chessboard::VerifyMove(const Move& move) const
     return true;
 }
 
-ChessPiece
-Chessboard::readPieceAt(Notation notation) const
-{
-    return m_tiles[notation.index()].readPiece();
-}
-
 void
 Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState)
 {
     // handle capture
-    auto capturedPiece = m_tiles[pieceTarget.index()].readPiece();
+    auto capturedPiece = m_position.readPieceAt(pieceTarget.toSquare());
 
     if (capturedPiece != ChessPiece()) {
         FATAL_ASSERT(move.isCapture() == true);
         m_plyCount = 0;
-        // remove captured piece from board.
-        m_tiles[pieceTarget.index()].editPiece() = ChessPiece();
+
+        // store captured piece in undo state
         undoState.capturedPiece = capturedPiece;
 
+        // handle castling rights in case piece is a rook.
         if (capturedPiece.getType() == PieceType::ROOK)
             InternalHandleRookMovedOrCaptured(move, move.targetSqr(), undoState);
 
+        // remove captured piece from board.
         m_position.ClearPiece(capturedPiece, pieceTarget);
 
         // remove piece from hash
@@ -649,22 +511,6 @@ Chessboard::readSlidingMaterialMask(Set set) const
     return m_position.calcMaterialSlidingMasksBulk<Set::WHITE>();
 }
 
-// std::vector<Move>
-// Chessboard::concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
-//                                                       KingMask checkedMask, bool captureMoves) const
-// {
-//     std::vector<Move> result;
-
-//     // u64 pieceBitboard = m_material[piece.set()].readPieceBitboard(piece.index());
-//     // while (pieceBitboard > 0) {
-//     //     u32 sqr = m_material[piece.set()].readNextPiece(pieceBitboard);
-//     //     auto moves = GetAvailableMoves(Notation(sqr), piece, threatenedMask, checkedMask, kingMask, captureMoves);
-//     //     result.insert(result.end(), moves.begin(), moves.end());
-//     // }
-
-//     return result;
-// }
-
 bool
 Chessboard::setEnPassant(Notation notation)
 {
@@ -690,18 +536,6 @@ Chessboard::setCastlingState(u8 castlingState)
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     castlingStateRef.write(castlingState);
     return true;
-}
-
-const ChessboardTile&
-Chessboard::readTile(Notation position) const
-{
-    return m_tiles[position.index()];
-}
-
-ChessboardTile&
-Chessboard::editTile(Notation position)
-{
-    return m_tiles[position.index()];
 }
 
 const Notation s_beginPos = Notation::BuildPosition('a', 1);

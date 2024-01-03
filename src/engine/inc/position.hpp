@@ -229,6 +229,7 @@ public:
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
+    ChessPiece readPieceAt(Square sqr) const;
 
     bool empty() const;
 

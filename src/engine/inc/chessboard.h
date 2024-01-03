@@ -45,28 +45,6 @@ struct MoveUndoUnit {
     u64 hash;
 };
 
-struct ChessboardTile {
-    friend class Chessboard;
-
-public:
-    ChessboardTile();
-    ChessboardTile(Notation&& notation);
-    ~ChessboardTile() = default;
-
-    ChessPiece readPiece() const { return m_piece; };
-    ChessPiece& editPiece() { return m_piece; };
-
-    Notation readPosition() const { return m_position; };
-
-    bool operator==(const ChessboardTile& rhs) const;
-    ChessboardTile& operator=(const ChessboardTile& rhs);
-
-private:
-    Notation& editPosition() { return m_position; };
-
-    Notation m_position;
-    ChessPiece m_piece;
-};
 /**
  * The Chessboard class represents a chess board and its current state.
  * It provides functions for moving and placing chess pieces, and updates
@@ -110,7 +88,6 @@ public:
     template<typename T, bool isConst = false>
     class ChessboardIterator {
         friend class Chessboard;
-        using reference = typename std::conditional_t<isConst, const ChessboardTile&, ChessboardTile&>;
 
     public:
         ChessboardIterator(const ChessboardIterator& other) :
@@ -135,18 +112,18 @@ public:
 
         bool operator==(const ChessboardIterator& rhs) const;
         bool operator!=(const ChessboardIterator& rhs) const;
+        const ChessboardIterator& operator*() const { return *this; }
 
         ChessboardIterator& operator++();
         ChessboardIterator operator++(int);
         ChessboardIterator& operator+=(int incre);
 
-        reference operator*() const { return get(); }
-        reference get() const { return m_chessboard.get(m_position); }
-
         bool end() const;
         byte file() const { return m_position.file; }
         byte rank() const { return m_position.rank; }
         byte index() const { return m_index; }
+        Square square() const { return m_position.toSquare(); }
+        ChessPiece get() const { return m_chessboard.readPieceAt(m_position.toSquare()); }
 
     private:
         T& m_chessboard;
@@ -162,9 +139,6 @@ public:
     ConstIterator begin() const;
     ConstIterator end() const;
 
-    const ChessboardTile& readTile(Notation position) const;
-    ChessPiece readPieceAt(Notation notation) const;
-
     /**
      * @brief Sets the en passant square.
      * Sets the en passant square, updates hash and calculates the en passant target square.
@@ -173,9 +147,9 @@ public:
     bool setEnPassant(Notation notation);
     bool setCastlingState(u8 castlingState);
     CastlingStateInfo readCastlingState() const { return m_position.readCastling(); }
-    ChessboardTile& editTile(Notation position);
     const Position& readPosition() const { return m_position; }
     Position& editPosition() { return m_position; }
+    ChessPiece readPieceAt(Square sqr) const { return m_position.readPieceAt(sqr); }
 
     /**
      * @brief the sliding material of given set represented ini a bitboard.
@@ -248,15 +222,9 @@ private:
     // std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
     //                                                             KingMask checkedMask, bool captureMoves) const;
 
-    ChessboardTile& get(Notation position) { return editTile(position); }
-    const ChessboardTile& get(Notation position) const { return readTile(position); }
-
     bool VerifyMove(const Move& move) const;
 
     u64 m_hash;
-
-    ChessboardTile m_tiles[64];
-
     Position m_position;
 
     bool m_isWhiteTurn;

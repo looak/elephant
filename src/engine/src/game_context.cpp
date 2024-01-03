@@ -28,43 +28,43 @@ PrintCastlingState(const Chessboard& board)
     return ret;
 }
 
-bool
-PrintBoard(const GameContext& context, const Move& move)
-{
-    const Chessboard& board = context.readChessboard();
-    auto boardItr = board.begin();
-    std::array<std::stringstream, 8> ranks;
+// bool
+// PrintBoard(const GameContext& context, const Move& move)
+// {
+//     const Chessboard& board = context.readChessboard();
+//     auto boardItr = board.begin();
+//     std::array<std::stringstream, 8> ranks;
 
-    byte prevRank = -1;
-    do {
-        if (prevRank != boardItr.rank()) {
-            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
-        }
+//     byte prevRank = -1;
+//     do {
+//         if (prevRank != boardItr.rank()) {
+//             ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
+//         }
 
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
-        prevRank = boardItr.rank();
-        ++boardItr;
+//         ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
+//         prevRank = boardItr.rank();
+//         ++boardItr;
 
-    } while (boardItr != board.end());
+//     } while (boardItr != board.end());
 
-    auto rankItr = ranks.rbegin();
-    while (rankItr != ranks.rend()) {
-        std::cout << (*rankItr).str();
-        rankItr++;
-    }
+//     auto rankItr = ranks.rbegin();
+//     while (rankItr != ranks.rend()) {
+//         std::cout << (*rankItr).str();
+//         rankItr++;
+//     }
 
-    std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
-    std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
-    std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
-    std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
-    std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
-    std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
-    std::string output;
-    FENParser::serialize(context, output);
-    std::cout << " > fen: " << output << "\n";
+//     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
+//     std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
+//     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
+//     std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
+//     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
+//     std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
+//     std::string output;
+//     FENParser::serialize(context, output);
+//     std::cout << " > fen: " << output << "\n";
 
-    return true;
-}
+//     return true;
+// }
 
 void
 GameContext::Reset()

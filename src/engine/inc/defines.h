@@ -1,4 +1,4 @@
-﻿// Elephant Gambit Chess Engine - a Chess AI
+// Elephant Gambit Chess Engine - a Chess AI
 // Copyright(C) 2021  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
@@ -103,6 +103,14 @@ enum class Square : uint8_t {
     NullSQ
 };
 
+template<typename T>
+T&
+increment(T& value)
+{
+    static_assert(std::is_integral<std::underlying_type_t<T>>::value, "Can't increment value");
+    ((std::underlying_type_t<T>&)value)++;
+    return value;
+}
 
 #define EG_TESTING
 // #define EG_DEBUGGING

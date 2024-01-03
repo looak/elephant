@@ -77,7 +77,7 @@ deserializeBoard(const std::string& boardStr, GameContext& outputContext)
                 if (!piece.fromString(value))
                     return false;
 
-                board.PlacePiece(piece, (*boardItr).readPosition());
+                board.PlacePiece(piece, boardItr.square());
                 ++boardItr;
             }
 
@@ -190,13 +190,14 @@ FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen
     std::string strngBuilder;
     int emptyFiles = 0;
     while (itr != board.end()) {
-        if ((*itr).readPiece().isValid()) {
+        ChessPiece cp = itr.get();
+        if (cp.isValid()) {
             if (emptyFiles > 0) {
                 strngBuilder += std::to_string(emptyFiles);
                 emptyFiles = 0;
             }
 
-            strngBuilder += itr.get().readPiece().toString();
+            strngBuilder += cp.toString();
         }
         else {
             emptyFiles++;

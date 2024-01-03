@@ -26,6 +26,7 @@ public:
 public:
     ChessPiece();
     ChessPiece(Set _set, PieceType _type);
+    ChessPiece(byte setId, byte typeId);
 
     char toString() const;
     bool fromString(char piece);

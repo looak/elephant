@@ -110,10 +110,10 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
     const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readTile(e1).readPiece());
-    EXPECT_EQ(BLACKKING, board.readTile(e8).readPiece());
-    EXPECT_EQ(WHITEQUEEN, board.readTile(d1).readPiece());
-    EXPECT_EQ(BLACKQUEEN, board.readTile(d8).readPiece());
+    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::E1));
+    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::E8));
+    EXPECT_EQ(WHITEQUEEN, board.readPieceAt(Square::D1));
+    EXPECT_EQ(BLACKQUEEN, board.readPieceAt(Square::D8));
 
     EXPECT_TRUE(board.readCastlingState().hasAll());
 
@@ -143,8 +143,8 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
     const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readTile(g1).readPiece());
-    EXPECT_EQ(BLACKKING, board.readTile(g8).readPiece());
+    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::G1));
+    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::G8));
 
     EXPECT_FALSE(board.readCastlingState().hasAny());
 

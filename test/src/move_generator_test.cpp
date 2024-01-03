@@ -1159,7 +1159,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
     testContext.editChessboard().setToPlay(Set::BLACK);
 
     // verify
-    EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(a8));
+    EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(Square::A8));
     // EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
 
     // do

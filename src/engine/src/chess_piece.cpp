@@ -2,7 +2,6 @@
 #include <iostream>
 #include "log.h"
 
-
 Set
 ChessPiece::FlipSet(Set source)
 {
@@ -27,6 +26,13 @@ ChessPiece::ChessPiece(Set _set, PieceType _type) :
 {
     m_internalState |= (byte)_set << 7;
     m_internalState |= (byte)_type;
+}
+
+ChessPiece::ChessPiece(byte setId, byte typeId) :
+    m_internalState(0x00)
+{
+    m_internalState |= setId << 7;
+    m_internalState |= (typeId + 1);
 }
 
 char

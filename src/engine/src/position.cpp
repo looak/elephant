@@ -98,6 +98,18 @@ Position::PlacePiece(ChessPiece piece, Notation target)
     return piecebb[sqr];
 }
 
+ChessPiece
+Position::readPieceAt(Square sqr) const
+{
+    for (byte set = 0; set < 2; ++set) {
+        for (byte pieceId = 0; pieceId < 6; ++pieceId) {
+            if (m_material[set].material[pieceId][sqr])
+                return ChessPiece(set, pieceId);
+        }
+    }
+    return ChessPiece::None();
+}
+
 template<Set us>
 KingPinThreats
 Position::calcKingMask() const
@@ -364,7 +376,7 @@ template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK>(const KingPi
 
 template<Set us>
 Bitboard
-Position::calcAvailableAttacksPawnBulk(const KingPinThreats& kingMask) const
+Position::calcAvailableAttacksPawnBulk(const KingPinThreats&) const
 {
     constexpr Set op = opposing_set<us>();
 

@@ -20,7 +20,8 @@ Board(const GameContext& context, const std::string&)
             ranks[boardItr.rank()] << "\n " << (int)(boardItr.rank() + 1) << "  ";
         }
 
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+        ChessPiece cp = boardItr.get();
+        ranks[boardItr.rank()] << '[' << cp.toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 
