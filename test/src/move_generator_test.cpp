@@ -983,6 +983,62 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
     EXPECT_EQ(2, result.size());
 }
 
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][ b ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][ P ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMoves)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKBISHOP, d4);
+    board.PlacePiece(WHITEPAWN, f2);
+    board.PlacePiece(WHITEKING, g1);
+
+    // do
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::F2; };
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen, predicate);
+
+    EXPECT_EQ(0, result.size());
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][ p ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][ B ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
+//     A    B    C    D    E    F    G    H
+// valid moves:
+TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesBlackVariation)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(WHITEBISHOP, b5);
+    board.PlacePiece(BLACKPAWN, d7);
+    board.PlacePiece(WHITEKING, g1);
+
+    // do
+    auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::D7; };
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen, predicate);
+
+    EXPECT_EQ(0, result.size());
+}
+
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 7 [   ][   ][   ][ B ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1193,6 +1249,30 @@ TEST_F(MoveGeneratorFixture, Pawn_DoubleMoveCheck_EnPassantCaptureNotAvailableBe
 }
 
 /**
+* 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
+* 7 [ p ][   ][ p ][ p ][ q ][ p ][ b ][   ]
+* 6 [ b ][ n ][   ][   ][ p ][ n ][ p ][   ]
+* 5 [   ][ B ][   ][ P ][ N ][   ][   ][   ]
+* 4 [   ][ p ][   ][   ][ P ][   ][   ][   ]
+* 3 [   ][   ][ N ][   ][   ][ Q ][   ][ p ]
+* 2 [ P ][ P ][ P ][ B ][   ][ P ][ P ][ P ]
+* 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
+*     A    B    C    D    E    F    G    H
+Some Edge Case issue where pawn was allowed to "capture" empty square. */
+TEST_F(MoveGeneratorFixture, Pawn_Capture_CanNotCaptureNonOpSquareWhilePinned)
+{
+    // setup
+    std::string fen("r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 1 1");
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    MoveGenerator gen(testContext.readChessboard().readPosition(), Set::BLACK, PieceType::PAWN);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(7, result.size());
+}
+
+/**
  * 8 [   ][   ][   ][   ][   ][   ][   ][   ]
  * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
  * 6 [   ][ k ][   ][   ][   ][   ][   ][   ]
@@ -1284,8 +1364,6 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable
     board.PlacePiece(WHITEKING, c4);
 
     board.setEnPassant(d6);
-
-    LOG_INFO() << board.toString();
 
     auto kingMask = board.readPosition().calcKingMask<Set::WHITE>();
     EXPECT_TRUE(kingMask.isChecked());

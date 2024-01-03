@@ -540,11 +540,17 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
         }
     }
 
+    Bitboard threatns;
+    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+        threatns |= srcMask.shiftNorthWestRelative<us>();
+    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+        threatns |= srcMask.shiftNorthEastRelative<us>();
+
     // there is probably a smarter way to do this with all my bitboards,
     // I just don't know how. Idea is to remove all the if statemetns.
     if (srcMask & pins) {
         movesbb &= pins;
-        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+        return {movesbb & ~opMatCombined & ~threatns, movesbb & opMatCombined & threatns};
     }
 
     if (readMaterial<us>()[pawnId].count() <= 1) {
@@ -556,12 +562,6 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
     Bitboard doublePush = isolatedbb & pawn_constants::baseRank[usIndx] & unoccupied;
     isolatedbb |= doublePush.shiftNorthRelative<us>();
     isolatedbb &= unoccupied;
-
-    Bitboard threatns;
-    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
-        threatns |= srcMask.shiftNorthWestRelative<us>();
-    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
-        threatns |= srcMask.shiftNorthEastRelative<us>();
 
     return {movesbb & isolatedbb, (opMatCombined & threatns)};
 }
@@ -630,41 +630,27 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
-    // figure out forward diagnoal
-    u16 index = 7 + source.file - source.rank;
-    u64 forwardDiag = board_constants::forwardDiagonalMasks[index];
-    u16 bindex = source.file + source.rank;
-    u64 backwardDiag = board_constants::backwardDiagonalMasks[bindex];
+    // isolate using dark & light squares
+    Bitboard material = readMaterial<us>()[pieceIndex];
+    Bitboard darkSquaredMaterial = material & board_constants::darkSquares;
+    Bitboard lightSquaredMaterial = material & board_constants::lightSquares;
+    if (srcMask & darkSquaredMaterial && darkSquaredMaterial.count() == 1)
+        return {movesbb & board_constants::darkSquares & ~opMatCombined,
+                movesbb & board_constants::darkSquares & opMatCombined};
+    else if (srcMask & lightSquaredMaterial && lightSquaredMaterial.count() == 1)
+        return {movesbb & board_constants::lightSquares & ~opMatCombined,
+                movesbb & board_constants::lightSquares & opMatCombined};
 
-    u64 mask = forwardDiag | backwardDiag;
-    u64 pieceMask = mask & readMaterial<us>()[pieceIndex].read();
-    i32 count = intrinsics::popcnt(pieceMask);
-    if (count == 1)
-        return {movesbb & mask & ~opMatCombined, movesbb & mask & opMatCombined};
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
+    const Bitboard usMaterial = readMaterial<us>().combine();
 
-    movesbb &= mask;
-    pieceMask &= ~squareMaskTable[source.index()];
-    i32 otherSquare = intrinsics::lsbIndex(pieceMask);
-    Notation other(otherSquare);
+    Bitboard moves = 0;
+    moves |= internalCalculateThreat<us, northeast, bishopId>(bounds[north] | bounds[east], srcMask, usMaterial, opMatCombined);
+    moves |= internalCalculateThreat<us, southeast, bishopId>(bounds[south] | bounds[east], srcMask, usMaterial, opMatCombined);
+    moves |= internalCalculateThreat<us, southwest, bishopId>(bounds[south] | bounds[west], srcMask, usMaterial, opMatCombined);
+    moves |= internalCalculateThreat<us, northwest, bishopId>(bounds[north] | bounds[west], srcMask, usMaterial, opMatCombined);
+    movesbb &= moves;
 
-    Bitboard excludeMask{};
-    i32 nsDiff = otherSquare - source.index();
-    i32 weDiff = diffWestEast(source, other);
-    if (nsDiff < 0) {
-        if (weDiff < 0)
-            excludeMask = excludeMask.inclusiveFillSouthWest(other.file, other.rank);
-        else
-            excludeMask = excludeMask.inclusiveFillSouthEast(other.file, other.rank);
-    }
-    else {
-        if (weDiff < 0)
-            excludeMask = excludeMask.inclusiveFillNorthWest(other.file, other.rank);
-        else
-            excludeMask = excludeMask.inclusiveFillNorthEast(other.file, other.rank);
-    }
-
-    movesbb &= (~excludeMask).read();
-    movesbb &= (forwardDiag | backwardDiag);
     return {movesbb & ~opMatCombined, movesbb & opMatCombined};
 }
 

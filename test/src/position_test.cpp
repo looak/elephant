@@ -1402,6 +1402,50 @@ TEST_F(PositionFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBloc
     EXPECT_EQ(expected, moves.read());
 }
 
+TEST_F(PositionFixture, Knight_IsolatingPiece_SharingTargetSquares)
+{
+    Position board;
+    board.PlacePiece(WHITEKNIGHT, d4);
+    board.PlacePiece(WHITEKNIGHT, f4);
+
+    u64 expected = 0x54aa00aa5400ull;
+    KingPinThreats empty{};
+    u64 movesbb = board.calcAvailableMovesKnightBulk<Set::WHITE>(empty).read();
+    EXPECT_EQ(expected, movesbb);
+
+    {
+        expected = 0x142200221400ull;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(d4, movesbb, empty);
+        EXPECT_EQ(expected, moves.read());
+    }
+
+    expected = 0x508800885000ull;
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(f4, movesbb, empty);
+    EXPECT_EQ(expected, moves.read());
+}
+
+TEST_F(PositionFixture, Knight_IsolatingPiece_SharingTargetSquaresOnEdge)
+{
+    Position board;
+    board.PlacePiece(WHITEKNIGHT, g2);
+    board.PlacePiece(WHITEKNIGHT, g4);
+
+    u64 expected = 0xa010a010a010ull;
+    KingPinThreats empty{};
+    u64 movesbb = board.calcAvailableMovesKnightBulk<Set::WHITE>(empty).read();
+    EXPECT_EQ(expected, movesbb);
+
+    {
+        expected = 0xa0100010ull;
+        auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(g2, movesbb, empty);
+        EXPECT_EQ(expected, moves.read());
+    }
+
+    expected = 0xa0100010a000ull;
+    auto [moves, attks] = board.isolatePiece<Set::WHITE, knightId>(g4, movesbb, empty);
+    EXPECT_EQ(expected, moves.read());
+}
+
 // 8 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ x ]
 // 7 [ . ][ . ][ . ][ . ][ x ][ . ][ x ][ . ]
 // 6 [ . ][ . ][ . ][ . ][ . ][ b ][ . ][ . ]
@@ -1580,6 +1624,15 @@ TEST_F(PositionFixture, Bishop_IsolatingPiece_OnlyOneBishopLeftInTheMask)
     }
 }
 
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 6 [ x ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 5 [ . ][ x ][ . ][ x ][ . ][ . ][ . ][ x ]
+// 4 [ . ][ . ][ b ][ . ][ . ][ . ][ x ][ . ]
+// 3 [ . ][ x ][ . ][ x ][ . ][ x ][ . ][ . ]
+// 2 [ x ][ . ][ . ][ . ][ b ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
 TEST_F(PositionFixture, Bishop_IsolatingPiece_BishopsOnSameDiagonal)
 {
     Position board;
@@ -1680,6 +1733,56 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_AbleToMoveAlongThreatenedSquar
 
     // validate
     u64 expected = 0x102048850005088ull;
+    EXPECT_EQ(expected, nonattacks.read());
+    expected = 0x0ull;
+    EXPECT_EQ(expected, attacks.read());
+}
+
+/**
+ * 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+ * 7 [ . ][ . ][ . ][ . ][ . ][ k ][ . ][ . ]
+ * 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+ * 5 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ x ]
+ * 4 [ . ][ . ][ b ][ . ][ n ][ . ][ x ][ . ]
+ * 3 [ . ][ x ][ . ][ . ][ . ][ b ][ . ][ . ]
+ * 2 [ B ][ . ][ . ][ . ][ x ][ . ][ x ][ . ]
+ * 1 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ x ]
+ *     A    B    C    D    E    F    G    H
+ * @brief Even though the bishop is pinned, it is able to move along the threatened squares. */
+TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_BlockedDiagonalSquareNotShared)
+{
+    Position pos;
+    auto b = BLACKBISHOP;
+    auto k = BLACKKING;
+    auto n = BLACKKNIGHT;
+    auto B = WHITEBISHOP;
+    auto K = WHITEKING;
+
+    // setup
+    pos.PlacePiece(b, c4);
+    pos.PlacePiece(k, f7);
+    pos.PlacePiece(b, f3);
+    pos.PlacePiece(n, e4);
+    pos.PlacePiece(B, a2);
+    pos.PlacePiece(K, e1);
+
+    // do
+    KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard bishopMoves = pos.calcAvailableMovesBishopBulk<Set::BLACK>(kingMask);
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(c4, bishopMoves, kingMask);
+
+        // validate
+        u64 expected = 0x100800020000ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0x100ull;
+        EXPECT_EQ(expected, attacks.read());
+    }
+
+    auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(f3, bishopMoves, kingMask);
+
+    // validate
+    u64 expected = 0x8040005088ull;
     EXPECT_EQ(expected, nonattacks.read());
     expected = 0x0ull;
     EXPECT_EQ(expected, attacks.read());

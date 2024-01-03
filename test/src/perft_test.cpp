@@ -300,6 +300,17 @@ TEST_F(PerftFixture, Position_Two)
         EXPECT_EQ(3, result.Checks);
         // EXPECT_EQ(0, result.Checkmates);
     }
+
+    {  // depth 3
+        PerftResult result = m_search.Perft(m_context, 3);
+        EXPECT_EQ(2087 + 97862, result.Nodes);
+        EXPECT_EQ(359 + 17102, result.Captures);
+        EXPECT_EQ(1 + 45, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(91 + 3162, result.Castles);
+        EXPECT_EQ(3 + 993, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
 }
 
 ////////////////////////////////////////////////////////////////
