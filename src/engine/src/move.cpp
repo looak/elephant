@@ -70,7 +70,7 @@ Move::readPackedMove() const
     if (isPromotion()) {
         packedMove |= 1 << 15;
 
-        u8 packedPiece = PromoteToPiece.type() - 2;
+        u8 packedPiece = PromoteToPiece.typeId() - 2;
         packedMove |= packedPiece << 12;
     }
 

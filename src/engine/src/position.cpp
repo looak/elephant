@@ -525,13 +525,12 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
     Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);
 
     // const Bitboard checks = pinThreats.checks();
-    const Bitboard pins = pinThreats.pins();
+    const Bitboard pinned = pinThreats.pinned(srcMask);
 
     // special case for when there is a enpassant available.
     if (m_enpassantState) {
-        Bitboard enPassantTarget(squareMaskTable[(int)m_enpassantState.readTarget()]);
-        Bitboard potentialPin(pinThreats.readOpenAngles()[0] & enPassantTarget &
-                              board_constants::enPassantRankRelative[opIndx]);
+        // Bitboard enPassantTarget(squareMaskTable[(int)m_enpassantState.readTarget()]);
+        Bitboard potentialPin(pinThreats.readOpenAngles()[0] & srcMask & board_constants::enPassantRankRelative[opIndx]);
         if (potentialPin) {
             opMatCombined ^= m_enpassantState.readBitboard();
         }
@@ -543,24 +542,16 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
     if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
         threatns |= srcMask.shiftNorthEastRelative<us>();
 
-    // there is probably a smarter way to do this with all my bitboards,
-    // I just don't know how. Idea is to remove all the if statemetns.
-    if (srcMask & pins) {
-        movesbb &= pins;
-        return {movesbb & ~opMatCombined & ~threatns, movesbb & opMatCombined & threatns};
-    }
-
-    if (readMaterial<us>()[pawnId].count() <= 1) {
-        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
-    }
-
     Bitboard isolatedbb = srcMask.shiftNorthRelative<us>();
     Bitboard unoccupied = ~(readMaterial<us>().combine() | opMatCombined);
     Bitboard doublePush = isolatedbb & pawn_constants::baseRank[usIndx] & unoccupied;
     isolatedbb |= doublePush.shiftNorthRelative<us>();
     isolatedbb &= unoccupied;
-
-    return {movesbb & isolatedbb, (opMatCombined & threatns)};
+    if (srcMask & pinned) {
+        isolatedbb &= pinned;
+        threatns &= pinned;
+    }
+    return {movesbb & isolatedbb, movesbb & opMatCombined & threatns};
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::WHITE>(Notation, Bitboard,
@@ -576,9 +567,9 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
 
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
-    bool pinned = srcMask & kingMask.pins();
-    if (pinned == true) {
-        movesbb &= kingMask.pins();
+    const Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
@@ -617,9 +608,9 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
     const Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
-    bool pinned = srcMask & kingMask.pins();
-    if (pinned == true) {
-        movesbb &= kingMask.pins();
+    const Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
         return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
@@ -664,10 +655,10 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
     const Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
 
     u64 srcMask = squareMaskTable[source.index()];
-    bool pinned = srcMask & kingMask.pins();
-    if (pinned == true) {
-        movesbb &= kingMask.pins();
-        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+    Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
+        return {movesbb & ~opMatCombined, movesbb & opThreatenedPieces};
     }
 
     if (readMaterial<us>()[pieceIndx].count() <= 1)

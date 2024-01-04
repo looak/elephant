@@ -118,7 +118,7 @@ TEST_F(MoveFixture, PackedMoves_FromMove)
     EXPECT_TRUE(pmv.isPromotion());
     EXPECT_EQ(promotion.SourceSquare.index(), pmv.source());
     EXPECT_EQ(promotion.TargetSquare.index(), pmv.target());
-    EXPECT_EQ(promotion.PromoteToPiece.type(), pmv.readPromoteToPieceType());
+    EXPECT_EQ(promotion.PromoteToPiece.typeId(), pmv.readPromoteToPieceType());
     EXPECT_FALSE(pmv.isCapture());
     EXPECT_FALSE(pmv.isQuiet());
     // EXPECT_FALSE(pmv.isPawnDoublePush());

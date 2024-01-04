@@ -61,6 +61,16 @@ KingPinThreats::pins() const
 }
 
 Bitboard
+KingPinThreats::pinned(Bitboard mask) const
+{
+    for (u8 i = 0; i < 8; ++i) {
+        if ((mask & m_threatenedAngles[i]).empty() == false)
+            return m_threatenedAngles[i];
+    }
+    return Bitboard(0);
+}
+
+Bitboard
 KingPinThreats::checks() const
 {
     Bitboard combined = 0;
@@ -92,6 +102,7 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
                                     opponentSlidingMask.diagonal & diagonalMaterial};
 
     u8 matCount = 0;
+    u8 pinsCount = 0;
     bool threatened = (!diagonalMaterial.empty() || !orthogonalMaterial.empty());
     const bool threatenedReset = threatened;
     bool openAngle = true;
@@ -109,6 +120,9 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
         Bitboard slideMat = slideMatCache[diagonal];
         Bitboard* openAnglePtr = &m_openAngles[diagonal];
 
+        // this open angle is used to determine pinned pawns trying to capture enpassant.
+        openAngle = !diagonal;  // we don't care about diagonal angles for now.
+
         Bitboard mvMask = 0;
         do {
             // build a 0x88 square out of current square.
@@ -123,24 +137,13 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
             // build a square mask from current square
             u64 sqrMask = squareMaskTable[curSqr];
 
-            if (allMaterial & sqrMask) {
-                matCount++;
-            }
-            if (usMaterial & sqrMask)
-                openAngle = false;
-
-            if (slideMat & sqrMask) {
-                threatened = false;
-            }
-
-            if (openAngle)
-                *openAnglePtr |= sqrMask;
-
-            if (opMaterial & sqrMask)
-                openAngle = false;
-
             mvMask |= sqrMask;
-        } while (threatened || openAngle);
+            matCount += (allMaterial & sqrMask).count();
+
+            if (matCount <= 2)
+                (*openAnglePtr) |= sqrMask;
+
+        } while ((mvMask & slideMat).count() == 0 && matCount < 2);
 
         // comparing against two here since we'll find the sliding piece causing the pin
         // and at least one piece in between our king and this piece. This found piece isn't
@@ -152,6 +155,10 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
                 m_checkedAngles[moveIndx] = true;
             }
         }
+
+        // since this is only used to figure out if pawn is pinned in horizontal directions,
+        // mask it like so.
+        (*openAnglePtr) &= board_constants::rankMasks[kingSquare.rank];
     }
 
     const u64 knightMat = position.readMaterial(opSet).knights().read();

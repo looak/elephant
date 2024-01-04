@@ -203,11 +203,11 @@ public:
     }
 
     inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
-    inline void setPromoteTo(u16 pieceId)
+    inline void setPromoteTo(u16 pieceIndx)
     {
-        m_internals &= ~(11 << 12);            // clear promotion bits
-        m_internals |= (8 << 12);              // set promotion flag
-        m_internals |= ((pieceId - 1) << 12);  // store piece type
+        m_internals &= ~(11 << 12);              // clear promotion bits
+        m_internals |= (8 << 12);                // set promotion flag
+        m_internals |= ((pieceIndx - 1) << 12);  // store piece type
     }
 
     inline void setCastleQueenSide(bool value)

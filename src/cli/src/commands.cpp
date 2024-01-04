@@ -148,7 +148,13 @@ DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
         u16 moves = 0;
 
         movGen.forEachMove([&](const PrioratizedMove& pm) {
-            std::cout << " " << pm.move.toString() << ": ";
+            std::cout << " " << pm.move.toString();
+            if (pm.move.isPromotion()) {
+                // using black here since we want to print the type in lowercase.
+                ChessPiece promoted(Set::BLACK, (PieceType)pm.move.readPromoteToPieceType());
+                std::cout << promoted.toString();
+            }
+            std::cout << ": ";
             context.MakeMove(pm.move);
             Search search;
             auto result = search.PerftDivide(context, depth - 1);

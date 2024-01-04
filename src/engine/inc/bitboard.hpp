@@ -55,10 +55,10 @@ public:
     {
     }
 
-    constexpr Bitboard(const Bitboard& rhs) :
-        m_board(rhs.m_board)
-    {
-    }
+    // constexpr Bitboard(const Bitboard& rhs) :
+    //     m_board(rhs.m_board)
+    // {
+    // }
 
     constexpr Bitboard() :
         m_board(0)

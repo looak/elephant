@@ -19,6 +19,7 @@ struct KingPinThreats {
     [[nodiscard]] Bitboard combined() const;
     [[nodiscard]] Bitboard pins() const;
     [[nodiscard]] Bitboard checks() const;
+    [[nodiscard]] Bitboard pinned(Bitboard mask) const;
 
     [[nodiscard]] const Bitboard* readOpenAngles() const { return &m_openAngles[0]; }
     [[nodiscard]] const Bitboard* readOpponentOpenAngles() const { return &m_opponentOpenAngles[0]; }

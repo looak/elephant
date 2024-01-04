@@ -31,12 +31,14 @@ public:
     char toString() const;
     bool fromString(char piece);
 
-    bool isPawn() const { return type() == 1; }
-    bool isKnight() const { return type() == 2; }
-    bool isBishop() const { return type() == 3; }
-    bool isRook() const { return type() == 4; }
-    bool isQueen() const { return type() == 5; }
-    bool isKing() const { return type() == 6; }
+    // todo cleanup typeid, typeindx and typeenum
+
+    bool isPawn() const { return typeId() == 1; }
+    bool isKnight() const { return typeId() == 2; }
+    bool isBishop() const { return typeId() == 3; }
+    bool isRook() const { return typeId() == 4; }
+    bool isQueen() const { return typeId() == 5; }
+    bool isKing() const { return typeId() == 6; }
     bool isWhite() const { return set() == 0; }
     bool isBlack() const { return set() == 1; }
 
@@ -46,12 +48,12 @@ public:
 
     PieceType getType() const { return static_cast<PieceType>(m_internalState & 0x07); }
     Set getSet() const { return static_cast<Set>(m_internalState >> 7); }
-    inline byte type() const { return m_internalState & 0x07; }
+    inline byte typeId() const { return m_internalState & 0x07; }
     inline byte set() const { return m_internalState >> 7; }
-    byte index() const { return type() - 1; }
+    byte index() const { return typeId() - 1; }
     byte raw() const { return m_internalState; }
 
-    bool isValid() const { return type() > 0; }
+    bool isValid() const { return typeId() > 0; }
     bool isSliding() const { return ChessPieceDef::Slides(index()); }
 
 private:
