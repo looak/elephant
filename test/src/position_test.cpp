@@ -151,7 +151,7 @@ TEST_F(PositionFixture, King_OnlyBlackKingOnBoard_e8_ShouldHaveMoves)
 // 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 //     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, King_KinCanCapture_CaptureQueenShouldBeAvailableButCantMoveIntoQueensThreat)
+TEST_F(PositionFixture, King_KingCanCapture_CaptureQueenShouldBeAvailableButCantMoveIntoQueensThreat)
 {
     Position pos;
     auto K = WHITEKING;
@@ -418,6 +418,37 @@ TEST_F(PositionFixture, King_Castling_BlockedByOwnPieceInBetween)
     expected |= INT64_C(1) << d7.index();
     expected |= INT64_C(1) << e7.index();
     expected |= INT64_C(1) << f7.index();
+
+    // do
+    Bitboard result = pos.calcAvailableMovesKing<Set::BLACK>(castling);
+
+    // validate
+    EXPECT_EQ(expected, result.read());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ B ][ . ][ R ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ N ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(PositionFixture, King_Capture_CantCaptureGuardedPieceByKnight)
+{
+    Position pos;
+
+    // setup
+    pos.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(WHITEROOK, f7);
+    pos.PlacePiece(WHITEKNIGHT, h6);
+    pos.PlacePiece(WHITEBISHOP, d7);
+
+    byte castling = 0;
+
+    u64 expected = ~universe;
+    expected |= INT64_C(1) << d8.index();
 
     // do
     Bitboard result = pos.calcAvailableMovesKing<Set::BLACK>(castling);
@@ -1732,6 +1763,56 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_AbleToMoveAlongThreatenedSquar
 }
 
 /**
+ * 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+ * 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+ * 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ b ]
+ * 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+ * 4 [ . ][ . ][ . ][ . ][ b ][ . ][ . ][ . ]
+ * 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+ * 2 [ . ][ . ][ . ][ . ][ Q ][ . ][ . ][ . ]
+ * 1 [ . ][ . ][ . ][ . ][ . ][ . ][ K ][ . ]
+ *     A    B    C    D    E    F    G    H
+ * @brief Ran into a scenario where the engine thought it could move bisop on E4 to E3 */
+TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_E4BishopHasNoMoves)
+{
+    Position pos;
+    auto b = BLACKBISHOP;
+    auto k = BLACKKING;
+    auto Q = WHITEQUEEN;
+    auto K = WHITEKING;
+
+    // setup
+    pos.PlacePiece(k, e8);
+    pos.PlacePiece(b, h6);
+    pos.PlacePiece(b, e4);
+    pos.PlacePiece(K, g1);
+    pos.PlacePiece(Q, e2);
+
+    // do
+    KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
+    Bitboard bishopMoves = pos.calcAvailableMovesBishopBulk<Set::BLACK>(kingMask);
+    u64 expected = 0x21c2446820384c86ull;  // we don't calculate pins at this point
+    EXPECT_EQ(expected, bishopMoves.read());
+    {
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(h6, bishopMoves, kingMask);
+
+        // validate
+        expected = 0x2040004020100804ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0;
+        EXPECT_EQ(expected, attacks.read());
+    }
+
+    auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, bishopId>(e4, bishopMoves, kingMask);
+
+    // validate
+    expected = 0;
+    EXPECT_EQ(expected, nonattacks.read());
+    expected = 0;
+    EXPECT_EQ(expected, attacks.read());
+}
+
+/**
  * 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
  * 7 [ . ][ . ][ . ][ . ][ . ][ k ][ . ][ . ]
  * 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
@@ -2552,6 +2633,126 @@ TEST_F(PositionFixture, Queen_CalcThreaten_BlockedByPawns)
 
     // validate
     EXPECT_EQ(expected, threat);
+}
+
+/**
+ * 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 3 [   ][ q ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][ Q ][   ][   ][ R ][   ][ K ]
+ * 1 [ q ][   ][   ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H */
+TEST_F(PositionFixture, Queen_IsolateQueen_TwoQueensDiagonal)
+{
+    Position pos;
+    auto K = WHITEKING;
+    auto Q = WHITEQUEEN;
+    auto R = WHITEROOK;
+
+    auto k = BLACKKING;
+    auto q = BLACKQUEEN;
+
+    // setup
+    pos.PlacePiece(K, h2);
+    pos.PlacePiece(Q, c2);
+    pos.PlacePiece(R, f2);
+
+    pos.PlacePiece(k, e8);
+    pos.PlacePiece(q, a1);
+    pos.PlacePiece(q, b3);
+
+    auto kingMask = pos.calcKingMask<Set::BLACK>();
+    // do
+    Bitboard queenMoves = pos.calcAvailableMovesQueenBulk<Set::BLACK>(kingMask);
+
+    // validate
+    u64 expected = 0xc363331b0ffd07feull;
+    EXPECT_EQ(expected, queenMoves.read());
+
+    {
+        // do
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, queenId>(a1, queenMoves, kingMask);
+
+        // validate
+        expected = 0x81412111090503feull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0;
+        EXPECT_EQ(expected, attacks.read());
+    }
+
+    {
+        // do
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, queenId>(b3, queenMoves, kingMask);
+
+        // validate
+        expected = 0x4222120a07fd0302ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 1024;
+        EXPECT_EQ(expected, attacks.read());
+    }
+}
+
+/**
+ * 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+ * 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 4 [ q ][   ][   ][   ][   ][   ][   ][   ]
+ * 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ * 2 [   ][   ][   ][   ][   ][ R ][   ][ K ]
+ * 1 [ q ][ Q ][   ][   ][   ][   ][   ][   ]
+ *     A    B    C    D    E    F    G    H */
+TEST_F(PositionFixture, Queen_IsolateQueen_TwoQueensOrthogonal)
+{
+    Position pos;
+    auto K = WHITEKING;
+    auto Q = WHITEQUEEN;
+    auto R = WHITEROOK;
+
+    auto k = BLACKKING;
+    auto q = BLACKQUEEN;
+
+    // setup
+    pos.PlacePiece(K, h2);
+    pos.PlacePiece(Q, b1);
+    pos.PlacePiece(R, f2);
+
+    pos.PlacePiece(k, e8);
+    pos.PlacePiece(q, a1);
+    pos.PlacePiece(q, a4);
+
+    auto kingMask = pos.calcKingMask<Set::BLACK>();
+    // do
+    Bitboard queenMoves = pos.calcAvailableMovesQueenBulk<Set::BLACK>(kingMask);
+
+    // validate
+    u64 expected = 0x8040201008050300ull | 0x1090503fe030508ull | 2;
+    EXPECT_EQ(expected, queenMoves.read());
+
+    {
+        // do
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, queenId>(a4, queenMoves, kingMask);
+
+        // validate
+        expected = 0x1090503fe030508ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 0;
+        EXPECT_EQ(expected, attacks.read());
+    }
+
+    {
+        // do
+        auto [nonattacks, attacks] = pos.isolatePiece<Set::BLACK, queenId>(a1, queenMoves, kingMask);
+
+        // validate
+        expected = 0x8040201008050300ull;
+        EXPECT_EQ(expected, nonattacks.read());
+        expected = 2;
+        EXPECT_EQ(expected, attacks.read());
+    }
 }
 
 // 8 [ k ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]

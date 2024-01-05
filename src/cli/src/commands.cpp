@@ -158,7 +158,7 @@ DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
             context.MakeMove(pm.move);
             Search search;
             auto result = search.PerftDivide(context, depth - 1);
-            std::cout << result.Nodes << std::endl;
+            std::cout << (result.Nodes == 0 ? 1 : result.Nodes) << std::endl;
             total += result.Nodes;
             moves++;
             context.UnmakeMove();

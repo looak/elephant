@@ -330,6 +330,7 @@ MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
 #endif
 
     u32 srcSqr = bb.readMaterial<set>().material[kingId].lsbIndex();
+    u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
 
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -342,7 +343,6 @@ MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
         if (opMaterial & dstSqrMsk)
             move.setCapture(true);
 
-        u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
         if (castlingRaw & 2) {
             u64 queenSideCastleSqrMask = king_constants::queenSideCastleMask & board_constants::baseRankRelative[setId];
             if (dstSqrMsk & queenSideCastleSqrMask) {

@@ -436,6 +436,35 @@ TEST_F(MoveGeneratorFixture, King_Castling_CanNotQueenSideCastleBecauseItsBlocke
     EXPECT_EQ(3, result.size());
 }
 
+// 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][ B ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MoveGeneratorFixture, King_Castling_CanNotCastleInCheck)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(BLACKROOK, a8);
+    board.PlacePiece(BLACKROOK, h8);
+    board.PlacePiece(WHITEBISHOP, b5);
+    board.PlacePiece(WHITEKING, e1);
+    board.setCastlingState(12);
+
+    board.setToPlay(Set::BLACK);
+
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(4, result.size());
+}
+
 TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
 {
     // setup
@@ -1270,6 +1299,20 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWould
     MoveGenerator gen(board.readPosition(), Set::WHITE, PieceType::PAWN);
     auto result = buildMoveVector(gen);
     EXPECT_EQ(4, result.size());
+}
+
+TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRank)
+{
+    std::string fen = "8/8/8/K7/4Pp1k/8/6P1/8 b - e3 0 2";
+    FENParser::deserialize(fen.c_str(), testContext);
+    const auto& board = testContext.readChessboard();
+
+    EXPECT_EQ(Square::E3, board.readPosition().readEnPassant().readSquare());
+
+    // do
+    MoveGenerator gen(board.readPosition(), Set::BLACK, PieceType::PAWN);
+    auto result = buildMoveVector(gen);
+    EXPECT_EQ(2, result.size());
 }
 
 TEST_F(MoveGeneratorFixture, Knight_Move_NothingSpecial)

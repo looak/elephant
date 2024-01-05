@@ -136,6 +136,10 @@ GameContext::TryMakeMove(Move move)
             return false;
     }
     else {
+        // set capture if the target square is occupied.
+        if (m_board.readPieceAt(move.TargetSquare.toSquare()).isValid()) {
+            move.setCapture(true);
+        }
         found = move.readPackedMove();
     }
 
