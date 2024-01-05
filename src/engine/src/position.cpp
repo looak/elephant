@@ -268,6 +268,8 @@ Position::calcAvailableMovesKing(byte castlingRights, bool captures) const
     bool constexpr pierceKing = true;
     Bitboard threatened = calcThreatenedSquares<op, includeMaterial, pierceKing>();
     Bitboard moves = calcThreatenedSquaresKing<us>();
+    // remove any squares blocked by our own pieces.
+    moves &= ~readMaterial<us>().combine();
     moves &= ~threatened;
     if ((threatened & readMaterial<us>().kings()).empty())
         moves |= Castling((byte)us, castlingRights, threatened.read());
@@ -305,9 +307,6 @@ Position::calcThreatenedSquaresKing() const
         moves ^= (moves & board_constants::filehMask);
     else if ((kingbb & board_constants::filehMask).empty() == false)
         moves ^= (moves & board_constants::fileaMask);
-
-    // lastly remove any squares blocked by our own pieces.
-    moves &= ~m_material[setIndx].combine();
 
     return moves;
 }
@@ -523,7 +522,6 @@ std::tuple<Bitboard, Bitboard>
 Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinThreats& pinThreats) const
 {
     const size_t usIndx = static_cast<size_t>(us);
-    const size_t opIndx = static_cast<size_t>(opposing_set<us>());
 
     Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine() | m_enpassantState.readBitboard();
     Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);

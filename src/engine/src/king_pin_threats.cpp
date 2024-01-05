@@ -126,10 +126,9 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const 
                 kingSquareMask = kingSquareMask.shiftEast();
                 resultMask |= kingSquareMask;
 
-                if (kingSquareMask & orthogonalMaterial) {
-                    m_specialEnPassantMask |= resultMask;
-                    return;
-                }
+                if (kingSquareMask & orthogonalMaterial)
+                    break;
+
             } while ((kingSquareMask & board_constants::filehMask).empty());
         }
         else {
@@ -137,13 +136,17 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const 
                 kingSquareMask = kingSquareMask.shiftWest();
                 resultMask |= kingSquareMask;
 
-                if (kingSquareMask & orthogonalMaterial) {
-                    m_specialEnPassantMask |= resultMask;
-                    return;
-                }
+                if (kingSquareMask & orthogonalMaterial)
+                    break;
 
             } while ((kingSquareMask & board_constants::fileaMask).empty());
         }
+        auto mat = allMaterial ^ orthogonalMaterial;
+
+        if ((resultMask & mat).count() > 2)
+            return;  // we're not pinned, there are more than two pieces between us and the sliding piece.
+
+        m_specialEnPassantMask = resultMask;
     }
 }
 

@@ -776,6 +776,30 @@ TEST_F(MoveGeneratorFixture, King_Threat_CantMoveIntoThreatenedSquares)
     EXPECT_EQ(3, result.size());
 }
 
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][ r ][   ][   ][   ][   ]
+// 6 [   ][   ][ K ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MoveGeneratorFixture, King_Threat_CantCaptureGuardedByKing)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.PlacePiece(BLACKKING, e8);
+    board.PlacePiece(WHITEKING, c6);
+    board.PlacePiece(BLACKROOK, d7);
+
+    // do
+    MoveGenerator gen(testContext);
+    auto result = buildMoveVector(gen);
+
+    EXPECT_EQ(3, result.size());
+}
+
 // 8 [   ][   ][   ][   ][ k ][   ][ b ][   ]
 // 7 [   ][   ][   ][   ][   ][ P ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -1308,6 +1332,20 @@ TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRa
     const auto& board = testContext.readChessboard();
 
     EXPECT_EQ(Square::E3, board.readPosition().readEnPassant().readSquare());
+
+    // do
+    MoveGenerator gen(board.readPosition(), Set::BLACK, PieceType::PAWN);
+    auto result = buildMoveVector(gen);
+    EXPECT_EQ(2, result.size());
+}
+
+TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRankMorePawnsVariation)
+{
+    std::string fen = "8/8/8/K7/1R2PpPk/8/8/8 b - g3 0 2";
+    FENParser::deserialize(fen.c_str(), testContext);
+    const auto& board = testContext.readChessboard();
+
+    EXPECT_EQ(Square::G3, board.readPosition().readEnPassant().readSquare());
 
     // do
     MoveGenerator gen(board.readPosition(), Set::BLACK, PieceType::PAWN);

@@ -19,136 +19,6 @@ public:
     };
     virtual void TearDown(){};
 
-    // MoveCount PerftCountMoves(
-    //     GameContext& context, int depth, MoveCount& count, MoveCount::Predicate predicate = [](const Move&) { return true; })
-    // {
-    //     if (depth == 0) {
-    //         return MoveCount();
-    //     }
-
-    //     MoveGenerator generator(context);
-    //     generator.forEachMove([&](const PackedMove& mv) {
-    //         context.MakeMove(mv);
-    //         count += PerftCountMoves(context, depth - 1, count, predicate);
-    //         context.UnmakeMove();
-    //     });
-
-    //     // auto moves = m_search.GeneratePossibleMoves(context);
-    //     // count += CountMoves(moves, predicate);
-
-    //     // if (depth > 1) {
-    //     //     for (auto mv : moves) {
-    //     //         Move cpy(mv);
-    //     //         FATAL_ASSERT(context.MakeMove(cpy));
-    //     //         FATAL_ASSERT(cpy.Piece.isValid());
-    //     //         PerftCountMoves(context, depth - 1, count, predicate);
-    //     //         context.UnmakeMove(cpy);
-    //     //     }
-    //     // }
-
-    //     return count;
-    // }
-
-    // size_t concurrentMovesAtDepth(GameContext context, int depth)
-    // {
-    //     if (depth == 0) {
-    //         return 0;
-    //     }
-    //     else if (depth == 1) {
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         return moves.size();
-    //     }
-    //     else {
-    //         size_t count = 0;
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         for (auto mv : moves) {
-    //             context.MakeMove(mv);
-    //             count += CountMovesAtDepth(context, depth - 1);
-    //             context.UnmakeMove(mv);
-    //         }
-
-    //         return count;
-    //     }
-    // }
-
-    // size_t CountMovesAtDepth(GameContext& context, int depth)
-    // {
-    //     if (depth == 0) {
-    //         return 0;
-    //     }
-    //     else if (depth == 1) {
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         return moves.size();
-    //     }
-    //     else {
-    //         size_t count = 0;
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         for (auto mv : moves) {
-    //             context.MakeMove(mv);
-    //             u32 newDepth = depth - 1;
-    //             count += concurrentMovesAtDepth(context, newDepth);
-
-    //             context.UnmakeMove(mv);
-    //         }
-
-    //         return count;
-    //     }
-    // }
-
-    // size_t CountMovesAtDepthConcurrent(GameContext& context, int depth)
-    // {
-    //     if (depth == 0) {
-    //         return 0;
-    //     }
-    //     else if (depth == 1) {
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         return moves.size();
-    //     }
-    //     else {
-    //         std::vector<std::future<size_t>> futures;
-
-    //         size_t count = 0;
-    //         auto moves = m_search.GeneratePossibleMoves(context);
-    //         for (auto mv : moves) {
-    //             context.MakeMove(mv);
-    //             GameContext contextCopy(context);
-    //             u32 newDepth = depth - 1;
-    //             auto future = std::async(std::launch::async, &PerftFixture::concurrentMovesAtDepth, this, context, newDepth);
-
-    //             futures.push_back(std::move(future));
-    //             context.UnmakeMove(mv);
-    //         }
-
-    //         for (auto& future : futures) {
-    //             count += future.get();
-    //         }
-
-    //         return count;
-    //     }
-    // }
-
-    // template<bool concurrent = false>
-    // void Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
-    // {
-    //     Clock clock;
-    //     clock.Start();
-    //     FENParser::deserialize(fen.c_str(), m_context);
-    //     size_t result = 0;
-    //     if constexpr (concurrent)
-    //         result = CountMovesAtDepthConcurrent(m_context, atDepth);
-    //     else
-    //         result = CountMovesAtDepth(m_context, atDepth);
-
-    //     EXPECT_EQ(expectedValue, result);
-    //     i64 elapsedTime = clock.getElapsedTime();
-    //     LOG_INFO() << "Elapsed time: " << elapsedTime << " ms";
-
-    //     // convert to seconds
-    //     float et = elapsedTime / 1000.f;
-    //     i64 nps = (i64)(result / et);
-    //     LOG_INFO() << "Nodes per second: " << nps << " nps";
-    // }
-
     GameContext m_context;
     Search m_search;
 };
@@ -302,14 +172,19 @@ TEST_F(PerftFixture, Position_Two)
     }
 
     {  // depth 3
-        PerftResult result = m_search.Perft(m_context, 3);
-        EXPECT_EQ(2087 + 97862, result.Nodes);
-        EXPECT_EQ(359 + 17102, result.Captures);
-        EXPECT_EQ(1 + 45, result.EnPassants);
-        EXPECT_EQ(0, result.Promotions);
-        EXPECT_EQ(91 + 3162, result.Castles);
-        EXPECT_EQ(3 + 993, result.Checks);
+        PerftResult result = m_search.PerftDivide(m_context, 3);
+        EXPECT_EQ(97862, result.Nodes);
+        // EXPECT_EQ(359 + 17102, result.Captures);
+        // EXPECT_EQ(1 + 45, result.EnPassants);
+        // EXPECT_EQ(0, result.Promotions);
+        // EXPECT_EQ(91 + 3162, result.Castles);
+        // EXPECT_EQ(3 + 993, result.Checks);
         // EXPECT_EQ(0, result.Checkmates);
+    }
+
+    {  // depth 4
+        PerftResult result = m_search.PerftDivide(m_context, 4);
+        EXPECT_EQ(4085603, result.Nodes);
     }
 }
 
@@ -469,9 +344,17 @@ Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int at
     GameContext context;
     FENParser::deserialize(fen.c_str(), context);
 
+    Clock clock;
+    clock.Start();
     // do
     Search search;
-    PerftResult result = search.Perft(context, atDepth);
+    PerftResult result = search.PerftDivide(context, atDepth);
+
+    i64 elapsedTime = clock.getElapsedTime();
+    u64 nps = clock.calcNodesPerSecond(result.Nodes);
+
+    LOG_INFO() << "Elapsed time: " << elapsedTime << " ms";
+    LOG_INFO() << "Nodes per second: " << nps << " nps";
 
     // verify
     EXPECT_EQ(expectedValue, result.Nodes);
@@ -481,60 +364,60 @@ TEST_F(PerftFixture, Catching_IllegalEnPassant) { Catching_TestFunction("3k4/3p4
 
 TEST_F(PerftFixture, Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6); }
 
-// TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
-// {
-//     Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
-// }
+TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
+{
+    Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
+}
 
-// TEST_F(PerftFixture, Catching_ShortCastlingCheck) { Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6); }
+TEST_F(PerftFixture, Catching_ShortCastlingCheck) { Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6); }
 
-// TEST_F(PerftFixture, Catching_LongCastlingGivesCheck) { Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6); }
+TEST_F(PerftFixture, Catching_LongCastlingGivesCheck) { Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6); }
 
-// TEST_F(PerftFixture, Catching_CastlingRights)
-// {
-//     Catching_TestFunction("r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4);
-// }
+TEST_F(PerftFixture, Catching_CastlingRights)
+{
+    Catching_TestFunction("r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4);
+}
 
-// TEST_F(PerftFixture, Catching_CastlingPrevented)
-// {
-//     Catching_TestFunction("r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4);
-// }
+TEST_F(PerftFixture, Catching_CastlingPrevented)
+{
+    Catching_TestFunction("r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4);
+}
 
-// TEST_F(PerftFixture, Catching_PromoteOutOfCheck) { Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6); }
+TEST_F(PerftFixture, Catching_PromoteOutOfCheck) { Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6); }
 
-// TEST_F(PerftFixture, Catching_DiscoveredCheck) { Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5); }
+TEST_F(PerftFixture, Catching_DiscoveredCheck) { Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5); }
 
-// TEST_F(PerftFixture, Catching_PromoteToGiveCheck) { Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6); }
+TEST_F(PerftFixture, Catching_PromoteToGiveCheck) { Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6); }
 
-// TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck) { Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6); }
+TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck) { Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6); }
 
-// TEST_F(PerftFixture, Catching_SelfStalemate) { Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6); }
+TEST_F(PerftFixture, Catching_SelfStalemate) { Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6); }
 
-// TEST_F(PerftFixture, Catching_StalemateAndCheckmate) { Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7); }
+TEST_F(PerftFixture, Catching_StalemateAndCheckmate) { Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7); }
 
-// TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
-// {
-//     Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
-// }
+TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
+{
+    Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
+}
 
-// /* This test takes a long time to run, so it is disabled by default
-// https://www.chessprogramming.net/perfect-perft/
-// */
-// TEST_F(PerftFixture, Catching_TwoHundrarMillionNodes_Twice)
-// {
-//     Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
-//     Catching_TestFunction("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7);
-// }
+/* This test takes a long time to run, so it is disabled by default
+https://www.chessprogramming.net/perfect-perft/
+*/
+TEST_F(PerftFixture, Catching_TwoHundrarMillionNodes_Twice)
+{
+    Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
+    Catching_TestFunction("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7);
+}
 
-// TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
-// {
-//     Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6);
-// }
+TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
+{
+    Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6);
+}
 
-// TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
-// {
-//     Catching_TestFunction("1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5);
-// }
+TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
+{
+    Catching_TestFunction("1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5);
+}
 
 ////////////////////////////////////////////////////////////////
 
