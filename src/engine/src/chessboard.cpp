@@ -131,7 +131,7 @@ Chessboard::MakeMove(const PackedMove move)
         case PieceType::PAWN:
             // updating pieceTarget since if we're capturing enpassant the target will be on a
             // different square.
-            captureTarget = InternalHandlePawnMove(move, undoState);
+            captureTarget = InternalHandlePawnMove(move);
             m_plyCount = 0;  // reset ply count on pawn move
             break;
 
@@ -237,7 +237,7 @@ Chessboard::InternalUpdateEnPassant(Notation source, Notation target)
 }
 
 Square
-Chessboard::InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoState)
+Chessboard::InternalHandlePawnMove(const PackedMove move)
 {
     Square pieceTarget = move.targetSqr();
 

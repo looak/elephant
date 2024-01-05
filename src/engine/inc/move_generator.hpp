@@ -92,7 +92,7 @@ private:
     template<Set set>
     void internalGenerateQueenMoves(const KingPinThreats& pinThreats);
     template<Set set>
-    void internalGenerateKingMoves(const KingPinThreats& pinThreats);
+    void internalGenerateKingMoves();
 
     void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
 
@@ -130,7 +130,7 @@ MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
             internalGenerateQueenMoves<set>(pinThreats);
             break;
         case kingId:
-            internalGenerateKingMoves<set>(pinThreats);
+            internalGenerateKingMoves<set>();
             break;
 
         default:

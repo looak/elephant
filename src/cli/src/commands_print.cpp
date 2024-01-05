@@ -69,7 +69,7 @@ HelpCommandHelp(int, const std::string& command)
 }
 
 bool
-PGNCommand(const GameContext& context, const std::string&)
+PGNCommand(const GameContext&, const std::string&)
 {
     // const auto& movehistory = context.readMoveHistory();
     // std::ostringstream outputPgn;

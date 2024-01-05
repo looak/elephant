@@ -197,7 +197,7 @@ private:
      * @param move The move being made.
      * @return The updated target location for the pawn, in case we double moved the piece and
      * target differ.*/
-    Square InternalHandlePawnMove(const PackedMove move, MoveUndoUnit& undoState);
+    Square InternalHandlePawnMove(const PackedMove move);
     void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
                                 MoveUndoUnit& undoState);
     void InternalHandleRookMovedOrCaptured(const PackedMove move, Notation rookSquare, MoveUndoUnit& undoState);

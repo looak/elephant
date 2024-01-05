@@ -36,7 +36,7 @@ Evaluator::Evaluate(const Chessboard& board, i32)
 }
 
 i32
-Evaluator::EvaluateMaterial(const Chessboard& board) const
+Evaluator::EvaluateMaterial(const Chessboard&) const
 {
     // const auto& whiteMaterial = board.readMaterial((Set)0);
     // const auto& blackMaterial = board.readMaterial((Set)1);
@@ -68,7 +68,7 @@ Evaluator::EvaluateMove(Move move) const
 }
 
 i32
-Evaluator::EvalutePiecePositions(const Chessboard& board) const
+Evaluator::EvalutePiecePositions(const Chessboard&) const
 {
     i32 score = 0;
 
@@ -120,7 +120,7 @@ Evaluator::EvaluatePassedPawn(const Chessboard&, u32 pawnSqr, u64 opponentsPawns
 }
 
 i32
-Evaluator::EvaluatePawnStructure(const Chessboard& board)
+Evaluator::EvaluatePawnStructure(const Chessboard&)
 {
     i32 result = 0;
     // float egCoeficient = board.calculateEndGameCoeficient();

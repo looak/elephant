@@ -316,7 +316,7 @@ template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingPi
 
 template<Set set>
 void
-MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
+MoveGenerator::internalGenerateKingMoves()
 {
     const auto& bb = m_position;
     const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
@@ -362,8 +362,8 @@ MoveGenerator::internalGenerateKingMoves(const KingPinThreats& pinThreats)
     }
 }
 
-template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>(const KingPinThreats& pinThreats);
-template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>();
+template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>();
 
 void
 MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
