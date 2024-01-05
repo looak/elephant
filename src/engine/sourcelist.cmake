@@ -31,7 +31,7 @@ ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/move_generator.hpp
 ${ENGINE_INC_DIR}/position.hpp
-${ENGINE_INC_DIR}/search.h
+${ENGINE_INC_DIR}/search.hpp
 ${ENGINE_INC_DIR}/transposition_table.hpp
 ${ENGINE_INC_DIR}/uci.hpp
 )

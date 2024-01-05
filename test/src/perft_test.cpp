@@ -5,7 +5,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move_generator.hpp"
-#include "search.h"
+#include "search.hpp"
 
 #include <future>
 #include <thread>

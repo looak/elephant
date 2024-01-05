@@ -464,12 +464,6 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
     }
 }
 
-// Notation
-// Chessboard::readKingPosition(Set set) const
-// {
-//     return m_kings[static_cast<u8>(set)].second;
-// }
-
 u64
 Chessboard::calculateThreatenedMask(Set set) const
 {

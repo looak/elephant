@@ -4,7 +4,7 @@
 #include "hash_zorbist.h"
 #include "move.h"
 #include "move_generator.hpp"
-#include "search.h"
+#include "search.hpp"
 
 #include <algorithm>
 #include <array>
@@ -27,44 +27,6 @@ PrintCastlingState(const Chessboard& board)
 
     return ret;
 }
-
-// bool
-// PrintBoard(const GameContext& context, const Move& move)
-// {
-//     const Chessboard& board = context.readChessboard();
-//     auto boardItr = board.begin();
-//     std::array<std::stringstream, 8> ranks;
-
-//     byte prevRank = -1;
-//     do {
-//         if (prevRank != boardItr.rank()) {
-//             ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
-//         }
-
-//         ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
-//         prevRank = boardItr.rank();
-//         ++boardItr;
-
-//     } while (boardItr != board.end());
-
-//     auto rankItr = ranks.rbegin();
-//     while (rankItr != ranks.rend()) {
-//         std::cout << (*rankItr).str();
-//         rankItr++;
-//     }
-
-//     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
-//     std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
-//     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
-//     std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
-//     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
-//     std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
-//     std::string output;
-//     FENParser::serialize(context, output);
-//     std::cout << " > fen: " << output << "\n";
-
-//     return true;
-// }
 
 void
 GameContext::Reset()
@@ -105,13 +67,6 @@ GameContext::MakeMove(const PackedMove move)
 {
     auto undoUnit = m_board.MakeMove<false>(move);
     m_undoUnits.push(undoUnit);
-
-    // m_moveHistory.push_back(MoveHistory());
-    // m_moveHistory.back().HashKey = m_board.readHash();
-    // m_moveHistory.back().PlyCount = m_board.readPlyCount();
-    // m_moveHistory.back().MoveCount = m_board.readMoveCount();
-    // m_moveHistory.back().FiftyMoveRule = m_board.readFiftyMoveRule();
-    // m_moveHistory.back().SAN = Notation::toString(m);
 
     m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
@@ -155,12 +110,6 @@ GameContext::UnmakeMove()
     auto undoUnit = m_undoUnits.top();
     m_undoUnits.pop();
     m_board.UnmakeMove(undoUnit);
-
-    // m_board.readHash() = m_moveHistory.back().HashKey;
-    // m_board.readPlyCount() = m_moveHistory.back().PlyCount;
-    // m_board.readMoveCount() = m_moveHistory.back().MoveCount;
-    // m_board.readFiftyMoveRule() = m_moveHistory.back().FiftyMoveRule;
-    // m_moveHistory.pop_back();
 
     m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;

@@ -12,6 +12,7 @@ namespace CliCommands {
 typedef std::function<bool(std::list<std::string>&, GameContext&)> CommandFunction;
 typedef std::function<void(const std::string&)> HelpCommandFunction;
 typedef std::map<std::string, std::pair<CommandFunction, HelpCommandFunction>> CommandsMap;
+typedef std::vector<std::string> OrderedCommands;
 
 bool FenCommand(std::list<std::string>& tokens, GameContext& context);
 void FenHelpCommand(const std::string& command);
@@ -72,5 +73,20 @@ static CommandsMap options = {{"fen", {FenCommand, FenHelpCommand}},
                               {"exit", {ExitCommand, ExitHelpCommand}},
                               {"about", {AboutCommand, AboutHelpCommand}},
                               {"undo", {UndoCommand, UndoHelpCommand}}};
+
+static OrderedCommands ordered = {
+                                          "newgame",
+                                          "move",
+                                          "undo",
+                                          "uci",
+                                          "evaluate",
+                                          "bestmove",
+                                          "print",
+                                          "show",                                          
+                                          "fen",
+                                          "divide",
+                                          "help",
+                                          "about",
+                                          "exit"};
 
 }  // namespace CliCommands

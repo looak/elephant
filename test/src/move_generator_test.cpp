@@ -4,7 +4,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move_generator.hpp"
-#include "search.h"
+#include "search.hpp"
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
@@ -476,7 +476,6 @@ TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
 
     EXPECT_EQ(23, result.size());
 }
-
 
 /** Pawn tests todo
  * [x] Pawn can move forward

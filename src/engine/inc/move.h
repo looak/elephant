@@ -241,10 +241,11 @@ public:
 
 private:
 
-#ifdef __clang__
+#ifdef __clang__    
     #define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
     #define POP_DIAGNOSTIC  _Pragma("clang diagnostic pop")
-    #define IGNORE_WARNING(warning) _Pragma("clang diagnostic ignored " #warning)
+    #define DO_PRAGMA(x) _Pragma(#x)
+    #define IGNORE_WARNING(warning) DO_PRAGMA(clang diagnostic ignored warning)
 #elif defined(__GNUC__) || defined(__GNUG__)
     #define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
     #define POP_DIAGNOSTIC  _Pragma("GCC diagnostic pop")
@@ -256,6 +257,8 @@ private:
 #endif
 
 PUSH_DIAGNOSTIC
+IGNORE_WARNING("-Wgnu-anonymous-struct")
+IGNORE_WARNING("-Wnested-anon-types")
     union {
         u16 m_internals;
         struct {

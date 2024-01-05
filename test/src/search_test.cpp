@@ -4,7 +4,7 @@
 #include "clock.hpp"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "search.h"
+#include "search.hpp"
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

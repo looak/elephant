@@ -14,7 +14,7 @@
 #include "game_context.h"
 #include "move.h"
 #include "move_generator.hpp"
-#include "search.h"
+#include "search.hpp"
 
 namespace CliCommands {
 
@@ -79,8 +79,9 @@ HelpCommand(std::list<std::string>& tokens, GameContext&)
     }
     else {
         std::cout << " Elephant Gambit CLI Commands:" << std::endl;
-        for (CommandsMap::iterator iter = options.begin(); iter != options.end(); ++iter) {
-            iter->second.second(iter->first);
+        for (OrderedCommands::iterator iter = ordered.begin(); iter != ordered.end(); ++iter) {
+            auto command = options.at(*iter);
+            command.second(*iter);
             std::cout << std::endl;
         }
     }
@@ -334,7 +335,7 @@ AvailableMovesHelpCommand(const std::string&)
 bool
 AboutCommand(std::list<std::string>&, GameContext&)
 {
-    MESSAGE() << " Elephant Gambit Open Source Chess Engine 2021-2023";  // EGOSCE
+    MESSAGE() << " Elephant Gambit Open Source Chess Engine 2021-2024";  // EGOSCE
     MESSAGE() << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << "-" << ELEPHANT_CLI_VERSION_PRERELEASE
               << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_STR << "-"
               << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;

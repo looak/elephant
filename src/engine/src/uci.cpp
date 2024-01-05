@@ -3,7 +3,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
-#include "search.h"
+#include "search.hpp"
 
 #include <functional>
 #include <map>
