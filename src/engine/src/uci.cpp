@@ -122,7 +122,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_ERROR() << "Not yet implemented";
         return std::nullopt;
     };
-    options["wtime"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["wtime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "wtime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
@@ -133,7 +133,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_DEBUG() << "wtime " << searchParams.WhiteTimelimit << "\n";
         return 1;
     };
-    options["btime"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["btime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "btime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
@@ -144,7 +144,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_DEBUG() << "btime " << searchParams.BlackTimelimit << "\n";
         return 1;
     };
-    options["winc"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["winc"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "winc");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
@@ -155,7 +155,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_DEBUG() << "winc " << searchParams.WhiteTimeIncrement << "\n";
         return 1;
     };
-    options["binc"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["binc"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "binc");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
@@ -166,7 +166,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_DEBUG() << "binc " << searchParams.BlackTimeIncrement << "\n";
         return 1;
     };
-    options["movestogo"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["movestogo"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "movestogo");
         itr++;  // increment itr should hold the value of "movestogo"
         if (itr == args.end()) {
@@ -185,7 +185,7 @@ UCI::Go(std::list<std::string>& args)
         LOG_ERROR() << "Not yet implemented";
         return std::nullopt;
     };
-    options["movetime"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["movetime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "movetime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
@@ -203,7 +203,7 @@ UCI::Go(std::list<std::string>& args)
         return 0;
     };
 
-    options["depth"] = [&searchParams, this, args]() -> std::optional<int> {
+    options["depth"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "depth");
         itr++;  // increment itr should hold the value of "depth"
         if (itr == args.end()) {

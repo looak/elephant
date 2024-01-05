@@ -1146,7 +1146,6 @@ TEST_F(MoveGeneratorFixture, Pawn_NotPinned_ShouldNotHaveAnyMoves)
 TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesCheckedVariation)
 {
     // setup
-    auto& board = testContext.editChessboard();
     std::string fen = "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/4qN2/Pp1P2PP/R2Q1RK1 w kq - 1 2";
     FENParser::deserialize(fen.c_str(), testContext);
 

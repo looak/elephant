@@ -200,8 +200,8 @@ private:
     Square InternalHandlePawnMove(const PackedMove move);
     void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
                                 MoveUndoUnit& undoState);
-    void InternalHandleRookMovedOrCaptured(const PackedMove move, Notation rookSquare, MoveUndoUnit& undoState);
-    void InternalUpdateCastlingState(const PackedMove move, byte mask, MoveUndoUnit& undoState);
+    void InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState);
+    void InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState);
 
     /**
      * Internal helper function for handling the movement of a king chess piece.
@@ -221,8 +221,6 @@ private:
 
     // std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
     //                                                             KingMask checkedMask, bool captureMoves) const;
-
-    bool VerifyMove(const Move& move) const;
 
     u64 m_hash;
     Position m_position;

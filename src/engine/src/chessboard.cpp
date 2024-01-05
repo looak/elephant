@@ -325,12 +325,12 @@ Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move
         InternalMakeMove(targetRook, rookMove);
     }
     else {
-        InternalHandleRookMovedOrCaptured(move, move.sourceSqr(), undoState);
+        InternalHandleRookMovedOrCaptured(move.sourceSqr(), undoState);
     }
 }
 
 void
-Chessboard::InternalUpdateCastlingState(const PackedMove move, byte mask, MoveUndoUnit& undoState)
+Chessboard::InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState)
 {
     byte castlingState = m_position.readCastling().read();
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
@@ -346,26 +346,26 @@ Chessboard::InternalUpdateCastlingState(const PackedMove move, byte mask, MoveUn
 }
 
 void
-Chessboard::InternalHandleRookMovedOrCaptured(const PackedMove move, Notation rookSquare, MoveUndoUnit& undoState)
+Chessboard::InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState)
 {
     byte mask = 0;
     // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
     switch (rookSquare.index()) {
         case 63:  // H8 Black King Side Rook
             mask |= 0x04;
-            InternalUpdateCastlingState(move, mask, undoState);
+            InternalUpdateCastlingState(mask, undoState);
             break;
         case 56:  // A8 Black Queen Side Rook
             mask |= 0x08;
-            InternalUpdateCastlingState(move, mask, undoState);
+            InternalUpdateCastlingState(mask, undoState);
             break;
         case 7:  // H1 White King Side Rook
             mask |= 0x01;
-            InternalUpdateCastlingState(move, mask, undoState);
+            InternalUpdateCastlingState(mask, undoState);
             break;
         case 0:  // A1 White Queen Side Rook
             mask |= 0x02;
-            InternalUpdateCastlingState(move, mask, undoState);
+            InternalUpdateCastlingState(mask, undoState);
             break;
     }
 }
@@ -436,25 +436,6 @@ Chessboard::InternalMakeMove(const std::string& moveString)
     return undo;
 }
 
-bool
-Chessboard::VerifyMove(const Move& move) const
-{
-    // if (!Bitboard::IsValidSquare(move.SourceSquare) || !Bitboard::IsValidSquare(move.TargetSquare))
-    //     return false;
-
-    // const auto& piece = m_tiles[move.SourceSquare.index()].readPiece();
-    // if (piece == ChessPiece())
-    //     return false;
-
-    // u64 threatenedMask = calculateThreatenedMask(ChessPiece::FlipSet(piece.getSet()));
-
-    // if (m_position.IsValidMove(move.SourceSquare, piece, move.TargetSquare, m_castlingState, m_enPassant, threatenedMask) ==
-    //     false)
-    //     return false;
-
-    return true;
-}
-
 void
 Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState)
 {
@@ -470,7 +451,7 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
 
         // handle castling rights in case piece is a rook.
         if (capturedPiece.getType() == PieceType::ROOK)
-            InternalHandleRookMovedOrCaptured(move, move.targetSqr(), undoState);
+            InternalHandleRookMovedOrCaptured(move.targetSqr(), undoState);
 
         // remove captured piece from board.
         m_position.ClearPiece(capturedPiece, pieceTarget);

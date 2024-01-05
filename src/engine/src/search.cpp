@@ -102,7 +102,7 @@ Search::OrganizeMoves(const std::vector<Move>& moves) const
 }
 
 std::vector<Move>
-Search::GeneratePossibleMoves(const GameContext& context, bool captureMoves) const
+Search::GeneratePossibleMoves(const GameContext&, bool) const
 {
     std::vector<Move> moves;
     // auto currentSet = context.readToPlay();
@@ -148,18 +148,19 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
         }
     }
 
-    for (auto&& mv : moves) {
-        // context.MakeLegalMove(mv);
-        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, -perspective, count));
-        // context.UnmakeMove(mv);
+    // for (auto&& mv : moves) {
+    //     // context.MakeLegalMove(mv);
+    //     score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, -perspective,
+    //     count));
+    //     // context.UnmakeMove(mv);
 
-        ++count;
+    //     ++count;
 
-        alpha = std::max(alpha, score);
+    //     alpha = std::max(alpha, score);
 
-        if (alpha >= beta)
-            break;
-    }
+    //     if (alpha >= beta)
+    //         break;
+    // }
 
     return score;
 }

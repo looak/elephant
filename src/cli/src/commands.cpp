@@ -214,7 +214,7 @@ MoveHelpCommand(const std::string& command)
 }
 
 bool
-UndoCommand(std::list<std::string>& tokens, GameContext& context)
+UndoCommand(std::list<std::string>&, GameContext& context)
 {
     if (context.UnmakeMove()) {
         std::cout << " Undo successful!" << std::endl;
@@ -310,7 +310,7 @@ NewGameHelpCommand(const std::string&)
 }
 
 bool
-AvailableMovesCommand(std::list<std::string>&, GameContext& context)
+AvailableMovesCommand(std::list<std::string>&, GameContext&)
 {
     std::cout << " Available Moves: \n";
     // Search search;
