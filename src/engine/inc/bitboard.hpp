@@ -157,8 +157,8 @@ public:
     [[nodiscard]] constexpr Bitboard operator&(u64 rhs) const { return Bitboard(m_board & rhs); }
     [[nodiscard]] constexpr Bitboard operator^(u64 rhs) const { return Bitboard(m_board ^ rhs); }
 
-    [[nodiscard]] constexpr Bitboard operator<<(u64 rhs) const { return shiftLeft(rhs); }
-    [[nodiscard]] constexpr Bitboard operator>>(u64 rhs) const { return shiftRight(rhs); }
+    [[nodiscard]] constexpr Bitboard operator<<(u8 rhs) const { return shiftLeft(rhs); }
+    [[nodiscard]] constexpr Bitboard operator>>(u8 rhs) const { return shiftRight(rhs); }
 
     [[nodiscard]] constexpr Bitboard operator~() const { return Bitboard(~m_board); };
     [[nodiscard]] explicit constexpr operator bool() const { return !empty(); }
