@@ -55,11 +55,6 @@ public:
     {
     }
 
-    // constexpr Bitboard(const Bitboard& rhs) :
-    //     m_board(rhs.m_board)
-    // {
-    // }
-
     constexpr Bitboard() :
         m_board(0)
     {
@@ -116,7 +111,8 @@ public:
     [[nodiscard]] constexpr Bitboard shiftRight(u8 shift) const { return Bitboard(m_board >> shift); }
     [[nodiscard]] constexpr Bitboard shiftLeft(u8 shift) const { return Bitboard(m_board << shift); }
 
-#pragma region operators
+    /**
+     * Section: operators */
     constexpr Bitboard& operator|=(const Bitboard& rhs)
     {
         m_board |= rhs.m_board;
@@ -178,9 +174,9 @@ public:
     /**
      * @brief returns a BitboardSquare object that can be used to set the square    */
     constexpr BitboardSquare operator[](Square sqr) { return BitboardSquare(m_board, sqr); }
-#pragma endregion  // operators
 
-#pragma region shifts
+    /**
+     * Section: shifts */
     [[nodiscard]] constexpr Bitboard shiftNorth() const { return Bitboard(m_board << shifts::vertical); }
     [[nodiscard]] constexpr Bitboard shiftEast() const { return Bitboard(m_board << shifts::horizontal); }
     [[nodiscard]] constexpr Bitboard shiftSouth() const { return Bitboard(m_board >> shifts::vertical); }
@@ -209,10 +205,9 @@ public:
     [[nodiscard]] constexpr Bitboard shiftSouthWestRelative() const;
     template<Set us>
     [[nodiscard]] constexpr Bitboard shiftNorthWestRelative() const;
-#pragma endregion  // shifts
 
-#pragma region fill
-
+    /**
+     * Section: fill */
     [[nodiscard]] constexpr Bitboard inclusiveFill(const u64* begin, const u64* end) const
     {
         Bitboard result(0);
@@ -270,7 +265,6 @@ public:
         i8 index = 7 + file - rank;
         return inclusiveFill(&board_constants::forwardDiagonalMasks[0], &board_constants::forwardDiagonalMasks[index]);
     }
-#pragma endregion  // fill
 
 private:
     // internal combine for end of variadic template recursion

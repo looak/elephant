@@ -400,7 +400,6 @@ Bitboard
 Position::calcThreatenedSquaresKnightBulk() const
 {
     Bitboard result = 0;
-    const Bitboard ourMaterial = readMaterial<us>().combine();
     const Bitboard knights = readMaterial<us>()[knightId];
     if (knights == 0)
         return result;  // early out

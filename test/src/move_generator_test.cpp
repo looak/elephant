@@ -58,7 +58,6 @@ TEST_F(MoveGeneratorFixture, Empty)
     EXPECT_EQ(PackedMove::NullMove(), move);
 }
 
-#pragma region KingMoveGenerationTests
 //{ King move generation tests
 /** Most basic move generation test, a king in the middle of the board with no other pieces,
  * should have eight moves available. */
@@ -478,9 +477,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
     EXPECT_EQ(23, result.size());
 }
 
-#pragma endregion  // KingMoveGenerationTests
 
-#pragma region PawnMoveGenerationTests
 /** Pawn tests todo
  * [x] Pawn can move forward
  * [x] Pawn can capture diagonally
@@ -656,8 +653,9 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     for (auto&& move : result) {
         i16 indx = move.readPromoteToPieceType() - 2 + (4 * (int)move.isCapture());
         EXPECT_TRUE(move.isPromotion());
-        if (move.targetSqr() == Square::B1)
+        if (move.targetSqr() == Square::B1) {
             EXPECT_TRUE(move.isCapture());
+        }
 
         found[indx] = true;
     }
@@ -672,9 +670,6 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     EXPECT_TRUE(found[7]);  // queen capture
 }
 
-#pragma endregion  // PawnMoveGenerationTests
-
-#pragma region KnightMoveGenerationTests
 TEST_F(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
 {
     // setup
@@ -715,7 +710,6 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
         EXPECT_EQ(13, result.size());
     }
 }
-#pragma endregion  // KnightMoveGenerationTests
 
 // 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]

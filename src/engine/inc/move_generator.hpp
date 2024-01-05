@@ -33,13 +33,13 @@ constexpr u8 rooks = 1 << 4;
 constexpr u8 queens = 1 << 5;
 constexpr u8 kings = 1 << 6;
 constexpr u8 all = pawns | knights | bishops | rooks | queens | kings;
-};  // namespace pieceFlags
+}  // namespace pieceFlags
 
 namespace MoveGeneratorFlags {
 constexpr u8 silent = 1 << 1;
 constexpr u8 capture = 1 << 2;
 constexpr u8 all = silent | capture;
-};  // namespace MoveGeneratorFlags
+}  // namespace MoveGeneratorFlags
 
 // template<Set us, u8 pieceFlag = pieceFlags::all, u8 moveGenFlags = MoveGeneratorFlags::all>
 // class MoveGeneratorOther {

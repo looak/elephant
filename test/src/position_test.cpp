@@ -2786,40 +2786,6 @@ TEST_F(PositionFixture, KingMask_Pawns)
 }
 
 // 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ b ][ . ]
-// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
-// 3 [ . ][ . ][ . ][ . ][ . ][ q ][ . ][ . ]
-// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ P ][ . ]
-// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ K ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, KingMask_BishopAndQueenNotThreatening)
-{
-    Position board;
-
-    // setup
-    board.PlacePiece(BLACKBISHOP, g7);
-    board.PlacePiece(BLACKQUEEN, f3);
-    board.PlacePiece(WHITEPAWN, g2);
-    board.PlacePiece(WHITEKING, g1);
-
-    // expected to be empty
-    u64 expected = ~universe;
-
-    // build sliding mask
-    constexpr bool includeMaterial = true;
-    u64 diagonal = board.calcThreatenedSquaresDiagonal<Set::BLACK, includeMaterial>().read();
-    u64 orthogonal = board.calcThreatenedSquaresOrthogonal<Set::BLACK, includeMaterial>().read();
-
-    // do
-    auto result = board.calcKingMask(WHITEKING, g1, {orthogonal, diagonal}).combined();
-
-    // validate
-    EXPECT_EQ(expected, result.read());
-}
-
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 7 [ . ][ . ][ . ][ . ][ . ][ . ][ r ][ . ]
 // 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]

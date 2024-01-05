@@ -240,9 +240,22 @@ public:
     }
 
 private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
-#pragma clang diagnostic ignored "-Wnested-anon-types"
+
+#ifdef __clang__
+    #define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
+    #define POP_DIAGNOSTIC  _Pragma("clang diagnostic pop")
+    #define IGNORE_WARNING(warning) _Pragma("clang diagnostic ignored " #warning)
+#elif defined(__GNUC__) || defined(__GNUG__)
+    #define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
+    #define POP_DIAGNOSTIC  _Pragma("GCC diagnostic pop")
+    #define IGNORE_WARNING(warning) _Pragma("GCC diagnostic ignored " #warning)
+#else
+    #define PUSH_DIAGNOSTIC
+    #define POP_DIAGNOSTIC
+    #define IGNORE_WARNING(warning)
+#endif
+
+PUSH_DIAGNOSTIC
     union {
         u16 m_internals;
         struct {
@@ -257,9 +270,10 @@ private:
             u16 promote : 1;
         } m_internals_struct;
     };
+POP_DIAGNOSTIC
 };
 
-#pragma clang diagnostic pop
+
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 

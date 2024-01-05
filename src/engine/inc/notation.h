@@ -44,7 +44,9 @@ struct Notation {
         rank = index / 8;
     }
 
-    constexpr Notation(Square sqr)
+    constexpr Notation(Square sqr) :
+        file(0xF),
+        rank(0xF)
     {
         i32 indx = static_cast<i32>(sqr);
         file = mod_by_eight(indx);

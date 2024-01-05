@@ -278,10 +278,6 @@ public:
 
     template<Set us, bool includeMaterial, bool pierceKing = false>
     Bitboard calcThreatenedSquares() const;
-    template<Set us, bool includeMaterial, bool pierceKing = false>
-    Bitboard calcThreatenedSquaresDiagonal() const;
-    template<Set us, bool includeMaterial, bool pierceKing = false>
-    Bitboard calcThreatenedSquaresOrthogonal() const;
 
     template<Set us>
     std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb,
@@ -397,63 +393,10 @@ Position::internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard ma
 
 template<Set us, bool includeMaterial, bool pierceKing>
 Bitboard
-Position::calcThreatenedSquaresDiagonal() const
-{
-    Bitboard result = ~universe;
-    [[maybe_unused]] u64 kingMask = 0;
-    constexpr Set opSet = opposing_set<us>();
-
-    // removing king from opmaterial so it doesn't stop our sliding.
-    if constexpr (pierceKing) {
-        kingMask = readMaterial<opSet>()[kingId];
-        editMaterial<opSet>()[kingId] = 0;
-    }
-
-    result |= calcThreatenedSquaresBishopBulk<us>();
-    result |= calcThreatenedSquaresBishopBulk<us, queenId>();
-
-    if constexpr (includeMaterial)
-        result |= readMaterial<us>()[queenId] | readMaterial<us>()[bishopId];
-
-    if constexpr (pierceKing)
-        editMaterial<opSet>()[kingId] = kingMask;
-
-    return result;
-}
-template<Set us, bool includeMaterial, bool pierceKing>
-Bitboard
-Position::calcThreatenedSquaresOrthogonal() const
-{
-    Bitboard result = ~universe;
-    [[maybe_unused]] u64 kingMask = 0;
-
-    // removing king from opmaterial so it doesn't stop our sliding.
-    if constexpr (pierceKing) {
-        constexpr Set op = opposing_set<us>();
-        kingMask = readMaterial<op>()[kingId];
-        editMaterial<op>()[kingId] = 0;
-    }
-
-    result |= calcThreatenedSquaresRookBulk<us>();
-    result |= calcThreatenedSquaresRookBulk<us, queenId>();
-
-    if constexpr (includeMaterial)
-        result |= readMaterial<us>()[queenId] | readMaterial<us>()[rookId];
-
-    if constexpr (pierceKing) {
-        constexpr Set op = opposing_set<us>();
-        editMaterial<op>()[kingId] = kingMask;
-    }
-
-    return result;
-}
-
-template<Set us, bool includeMaterial, bool pierceKing>
-Bitboard
 Position::calcThreatenedSquares() const
 {
     Bitboard result = ~universe;
-    constexpr Set op = opposing_set<us>();
+    [[maybe_unused]] constexpr Set op = opposing_set<us>();
     [[maybe_unused]] Bitboard kingMask = 0;
 
     // removing king from opmaterial so it doesn't stop our sliding.
