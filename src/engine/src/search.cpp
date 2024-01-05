@@ -114,39 +114,39 @@ Search::GeneratePossibleMoves(const GameContext&, bool) const
 
 template<bool UseCache>
 i32
-Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count)
+Search::QuiescenceSearch(GameContext&, u32, u32, i32, i32, i32, u32&)
 {
     // something that we aren't considering here is moves that put opponent in check.
     i32 score = -c_maxScore;
 
-    bool isChecked = false;  // context.readChessboard().isChecked(context.readToPlay());
-    if (depth == 0 && isChecked)
-        depth++;
+    // bool isChecked = false;  // context.readChessboard().isChecked(context.readToPlay());
+    // if (depth == 0 && isChecked)
+    //     depth++;
 
-    // generate capture moves
-    auto moves = GeneratePossibleMoves(context, true);
-    if (depth == 0 || moves.empty()) {
-        if constexpr (UseCache) {
-            auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
-            if (tpItr != m_evaluationTable.end()) {
-                EvaluationEntry& entry = tpItr->second;
-                return entry.score;
-            }
-            else {
-                Evaluator evaluator;
+    // // generate capture moves
+    // auto moves = GeneratePossibleMoves(context, true);
+    // if (depth == 0 || moves.empty()) {
+    //     if constexpr (UseCache) {
+    //         auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
+    //         if (tpItr != m_evaluationTable.end()) {
+    //             EvaluationEntry& entry = tpItr->second;
+    //             return entry.score;
+    //         }
+    //         else {
+    //             Evaluator evaluator;
 
-                i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
-                m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{staticEval});
-                return staticEval;
-            }
-        }
-        else {
-            Evaluator evaluator;
+    //             i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+    //             m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{staticEval});
+    //             return staticEval;
+    //         }
+    //     }
+    //     else {
+    //         Evaluator evaluator;
 
-            i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
-            return staticEval;
-        }
-    }
+    //         i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+    //         return staticEval;
+    //     }
+    // }
 
     // for (auto&& mv : moves) {
     //     // context.MakeLegalMove(mv);
