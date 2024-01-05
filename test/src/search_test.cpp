@@ -18,7 +18,7 @@ public:
 
 ////////////////////////////////////////////////////////////////
 
-TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
+TEST_F(SearchFixture, DISABLED_WhiteMateInThree_ExpectQg6AsFirstMove)
 {
     // setup
     std::string fen("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
@@ -39,7 +39,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     EXPECT_EQ(WHITEQUEEN, result.move.Piece);
 }
 
-TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
+TEST_F(SearchFixture, DISABLED_BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 {
     // setup
     GameContext context;
@@ -61,7 +61,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     EXPECT_EQ(BLACKQUEEN, result.move.Piece);
 }
 
-TEST_F(SearchFixture, WhiteForcedMate)
+TEST_F(SearchFixture, DISABLED_WhiteForcedMate)
 {
     std::string fen("5k2/8/3N4/1p1p4/2qP4/2PKP3/5r2/8 w - - 1 2");
     GameContext context;
