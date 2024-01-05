@@ -1,7 +1,7 @@
 ﻿# Add source to this project's executable.
 add_library(${CLI_LIB} "")
 
-project(ElephantCli VERSION 0.4.0)
+project(ElephantCli VERSION 0.5.0)
 set(ElephantCli_VERSION_PRERELEASE "")
 
 include(sourcelist.cmake)

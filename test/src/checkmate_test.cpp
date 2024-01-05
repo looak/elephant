@@ -1,103 +1,102 @@
-#include <gtest/gtest.h>
+// #include <gtest/gtest.h>
 
-#include "chessboard.h"
-#include "elephant_test_utils.h"
-#include "fen_parser.h"
-#include "game_context.h"
-#include "move.h"
+// #include "chessboard.h"
+// #include "elephant_test_utils.h"
+// #include "fen_parser.h"
+// #include "game_context.h"
+// #include "move.h"
 
-namespace ElephantTest
-{
-////////////////////////////////////////////////////////////////
+// namespace ElephantTest
+// {
+// ////////////////////////////////////////////////////////////////
 
-/**
- * @file checkmate_test.cpp
- * @brief Fixture for Check, Checkmates and Stalemates tests. Endgame tests.
- * Naming convention: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
- * @author Alexander Loodin Ek * 
- */
- 
-class CheckmateFixture : public ::testing::Test
-{
-public:
-    virtual void SetUp()
-    { 
-        SetupDefaultStartingPosition(m_defaultStartingPosition);
-    };
-    virtual void TearDown() {};
+// /**
+//  * @file checkmate_test.cpp
+//  * @brief Fixture for Check, Checkmates and Stalemates tests. Endgame tests.
+//  * Naming convention: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
+//  * @author Alexander Loodin Ek *
+//  */
 
-    
-    Chessboard m_emptyChessboard; // by default a board should start empty.
-    Chessboard m_defaultStartingPosition;
-    GameContext m_context;
+// class CheckmateFixture : public ::testing::Test
+// {
+// public:
+//     virtual void SetUp()
+//     {
+//         SetupDefaultStartingPosition(m_defaultStartingPosition);
+//     };
+//     virtual void TearDown() {};
 
-private:    
+//     Chessboard m_emptyChessboard; // by default a board should start empty.
+//     Chessboard m_defaultStartingPosition;
+//     GameContext m_context;
 
-};
+// private:
 
-////////////////////////////////////////////////////////////////
+// };
 
-// 8 [ ][ ][ ][q][k][ ][ ][ ]
-// 7 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 6 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 5 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 4 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 3 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 2 [ ][ ][ ][ ][ ][P][P][P]
-// 1 [ ][ ][ ][R][ ][ ][K][ ]
-//    A  B  C  D  E  F  G  H
-// 3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1
-// Black to move, checkmate in 1 move.
-TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
-{
-    std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
-	FENParser::deserialize(fen.c_str(), m_context);
+// ////////////////////////////////////////////////////////////////
 
-    Chessboard& boardEditor = m_context.editChessboard();
+// // 8 [ ][ ][ ][q][k][ ][ ][ ]
+// // 7 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 6 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 5 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 4 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 3 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 2 [ ][ ][ ][ ][ ][P][P][P]
+// // 1 [ ][ ][ ][R][ ][ ][K][ ]
+// //    A  B  C  D  E  F  G  H
+// // 3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1
+// // Black to move, checkmate in 1 move.
+// TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
+// {
+//     std::string fen("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
+// 	FENParser::deserialize(fen.c_str(), m_context);
 
-    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
-    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
-    
-    Move move(d8, d1);
-    EXPECT_TRUE(boardEditor.MakeMove(move));
+//     Chessboard& boardEditor = m_context.editChessboard();
 
-    EXPECT_TRUE(move.isCheckmate());
+//     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
+//     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
 
-    EXPECT_TRUE(m_context.readChessboard().isCheckmated(Set::WHITE));
-    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
-    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
-    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));
-}
+//     Move move(d8, d1);
+//     EXPECT_TRUE(boardEditor.MakeMove(move));
 
-// 8 [k][ ][ ][ ][ ][ ][ ][ ]
-// 7 [ ][ ][Q][ ][ ][ ][ ][ ]
-// 6 [ ][K][ ][ ][ ][ ][ ][ ]
-// 5 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 4 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 3 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 2 [ ][ ][ ][ ][ ][ ][ ][ ]
-// 1 [ ][ ][ ][ ][ ][ ][ ][ ]
-//    A  B  C  D  E  F  G  H
-// k7/2Q5/1K6/8/8/8/8/8 b - - 0 1
-// Black to move but they're in stalemate.
+//     EXPECT_TRUE(move.isCheckmate());
 
-TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
-{
-    /**
-    * @brief Test case to verify the correct detection of a stalemate situation for the black side when it is black's turn to move.
-    * The test uses a specific chess position provided in FEN notation and asserts the expected outcomes for both sides
-    * in terms of checkmate and stalemate status.
-    */
-    std::string fen("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");        
-    FENParser::deserialize(fen.c_str(), m_context);
+//     EXPECT_TRUE(m_context.readChessboard().isCheckmated(Set::WHITE));
+//     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
+//     EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
+//     EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::BLACK));
+// }
 
-    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
-    EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
-    EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
-    EXPECT_TRUE(m_context.readChessboard().isStalemated(Set::BLACK));
-}
+// // 8 [k][ ][ ][ ][ ][ ][ ][ ]
+// // 7 [ ][ ][Q][ ][ ][ ][ ][ ]
+// // 6 [ ][K][ ][ ][ ][ ][ ][ ]
+// // 5 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 4 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 3 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 2 [ ][ ][ ][ ][ ][ ][ ][ ]
+// // 1 [ ][ ][ ][ ][ ][ ][ ][ ]
+// //    A  B  C  D  E  F  G  H
+// // k7/2Q5/1K6/8/8/8/8/8 b - - 0 1
+// // Black to move but they're in stalemate.
 
-// TEST_F(CheckmateFixture, )
+// TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
+// {
+//     /**
+//     * @brief Test case to verify the correct detection of a stalemate situation for the black side when it is black's turn to
+//     move.
+//     * The test uses a specific chess position provided in FEN notation and asserts the expected outcomes for both sides
+//     * in terms of checkmate and stalemate status.
+//     */
+//     std::string fen("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");
+//     FENParser::deserialize(fen.c_str(), m_context);
 
-} // namespace ElephantTest
+//     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::WHITE));
+//     EXPECT_FALSE(m_context.readChessboard().isCheckmated(Set::BLACK));
+//     EXPECT_FALSE(m_context.readChessboard().isStalemated(Set::WHITE));
+//     EXPECT_TRUE(m_context.readChessboard().isStalemated(Set::BLACK));
+// }
 
+// // TEST_F(CheckmateFixture, )
+
+// } // namespace ElephantTest

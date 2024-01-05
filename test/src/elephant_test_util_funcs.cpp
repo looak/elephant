@@ -1,95 +1,74 @@
-#include "elephant_test_utils.h"
-#include "chessboard.h"
-#include "game_context.h"
+#include <algorithm>
 #include <array>
 #include <sstream>
-#include <algorithm>
+#include "chessboard.h"
+#include "elephant_test_utils.h"
+#include "game_context.h"
 #include "log.h"
-#include "bitboard.h"
+#include "move.h"
+#include "position.hpp"
 
-namespace ElephantTest
+namespace ElephantTest {
+
+MoveCount
+CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate)
 {
-//
-//bool PrintBoard(const GameContext& context)
-//{
-//    const Chessboard& board = context.readChessboard();
-//    auto boardItr = board.begin();
-//    std::array<std::stringstream, 8> ranks;
-//
-//    byte prevRank = -1;
-//    do
-//    {
-//        if (prevRank != boardItr.rank())
-//        {
-//            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
-//        }
-//
-//        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
-//        prevRank = boardItr.rank();
-//        ++boardItr;
-//
-//    } while (boardItr != board.end());
-//
-//    auto rankItr = ranks.rbegin();
-//    while (rankItr != ranks.rend())
-//    {
-//        LOG_INFO() << (*rankItr).str();
-//        rankItr++;
-//    }
-//
-//    LOG_INFO() << "\n >\n >     A  B  C  D  E  F  G  H\n";
-//    LOG_INFO() << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
-//    LOG_INFO() << " > hash: 0x" << std::hex << board.readHash() << "\n";
-//    LOG_INFO() << " > castling state: " << PrintCastlingState(board) << "\n";
-//    LOG_INFO() << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
-//
-//    return true;
-//}
+    MoveCount result;
 
+    for (auto&& mv : moves) {
+        if (!predicate(mv))
+            continue;
 
-u64 CombineKingMask(KingMask mask)
-{
-    u64 result = 0;
-    for (int i = 0; i < 8; ++i)
-    {
-        result |= mask.threats[i];
+        if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
+            result.Captures++;
+        if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
+            result.Promotions++;
+        if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
+            result.EnPassants++;
+        if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
+            result.Castles++;
+        if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
+            result.Checks++;
+        if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate) {
+            result.Checks++;
+            result.Checkmates++;
+        }
+
+        result.Moves++;
     }
-    result |= mask.knightsAndPawns;
+
     return result;
 }
 
-bool PrintBoard(const Chessboard& board)
+void
+PrintBoard(const Chessboard& board)
 {
     auto boardItr = board.begin();
     std::array<std::stringstream, 8> ranks;
-        
+
     byte prevRank = -1;
-    do 
-    {
-        if (prevRank != boardItr.rank())
-        {
+    do {
+        if (prevRank != boardItr.rank()) {
             ranks[boardItr.rank()] << (int)(boardItr.rank() + 1) << "  ";
         }
-        
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
+
+        ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
         prevRank = boardItr.rank();
         ++boardItr;
 
     } while (boardItr != board.end());
 
     auto rankItr = ranks.rbegin();
-    while (rankItr != ranks.rend())
-    {        
+    while (rankItr != ranks.rend()) {
         LOG_INFO() << (*rankItr).str().c_str();
         rankItr++;
     }
 
     LOG_INFO() << "    A  B  C  D  E  F  G  H";
-
-    return true;
 }
 
-void SetupDefaultStartingPosition(Chessboard& board)
+void
+SetupDefaultStartingPosition(Chessboard& board)
 {
     auto K = WHITEKING;
     auto Q = WHITEQUEEN;
@@ -144,25 +123,24 @@ void SetupDefaultStartingPosition(Chessboard& board)
     board.setCastlingState(15);
 }
 
-bool NotationCompare(Notation lhs, Notation rhs)
+bool
+NotationCompare(Notation lhs, Notation rhs)
 {
     return lhs.index() < rhs.index();
 }
 
-bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo)
+bool
+VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo)
 {
     std::sort(listOne.begin(), listOne.end(), NotationCompare);
     std::sort(listTwo.begin(), listTwo.end(), NotationCompare);
 
-    if (listOne.size() != listTwo.size())
-    {
+    if (listOne.size() != listTwo.size()) {
         return false;
     }
 
-    for (size_t i = 0; i < listOne.size(); ++i)
-    {
-        if (listOne[i] != listTwo[i])
-        {
+    for (size_t i = 0; i < listOne.size(); ++i) {
+        if (listOne[i] != listTwo[i]) {
             return false;
         }
     }
@@ -170,4 +148,4 @@ bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<
     return true;
 }
 
-} // namespace ElephantTest
+}  // namespace ElephantTest

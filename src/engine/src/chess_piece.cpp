@@ -1,117 +1,128 @@
 ﻿#include "chess_piece.h"
-#include "log.h"
 #include <iostream>
+#include "log.h"
 
-Set ChessPiece::FlipSet(Set source)
+Set
+ChessPiece::FlipSet(Set source)
 {
-	int retValue = !(int)source;
-	return (Set)retValue;
+    int retValue = !(int)source;
+    return (Set)retValue;
 }
 
-byte ChessPiece::FlipSet(byte source)
+byte
+ChessPiece::FlipSet(byte source)
 {
-	byte retValue = !source;
-	return retValue;
+    byte retValue = !source;
+    return retValue;
 }
-
 
 ChessPiece::ChessPiece() :
-	m_internalState(0x00)
-{}
+    m_internalState(0x00)
+{
+}
 
 ChessPiece::ChessPiece(Set _set, PieceType _type) :
-	m_internalState(0x00)
+    m_internalState(0x00)
 {
-	m_internalState |= (byte)_set << 7;
-	m_internalState |= (byte)_type;
+    m_internalState |= (byte)_set << 7;
+    m_internalState |= (byte)_type;
 }
 
-char ChessPiece::toString() const
+ChessPiece::ChessPiece(byte setId, byte typeId) :
+    m_internalState(0x00)
 {
-	char retValue = ' ';
-	switch (getType())
-	{
-	case PieceType::PAWN:
-		retValue = 'p';
-		break;
-	case PieceType::BISHOP:
-		retValue = 'b';
-		break;
-	case PieceType::KNIGHT:
-		retValue = 'n';
-		break;
-	case PieceType::ROOK:
-		retValue = 'r';
-		break;
-	case PieceType::QUEEN:
-		retValue = 'q';
-		break;
-	case PieceType::KING:
-		retValue = 'k';
-		break;
-		case PieceType::NON:
-		retValue = ' ';
-		break;
-	default:
-		LOG_ERROR() << "Invalid Chess Piece;\n";
-	}
-
-	if (getSet() == Set::WHITE)
-		retValue = std::toupper(retValue);
-
-	return retValue;
+    m_internalState |= setId << 7;
+    m_internalState |= (typeId + 1);
 }
 
-bool ChessPiece::fromString(char piece)
+char
+ChessPiece::toString() const
 {
-	Set set = Set::BLACK;
-	if (std::isupper(piece))
-	{
-		set = Set::WHITE;
-	}
+    char retValue = ' ';
+    switch (getType()) {
+        case PieceType::PAWN:
+            retValue = 'p';
+            break;
+        case PieceType::BISHOP:
+            retValue = 'b';
+            break;
+        case PieceType::KNIGHT:
+            retValue = 'n';
+            break;
+        case PieceType::ROOK:
+            retValue = 'r';
+            break;
+        case PieceType::QUEEN:
+            retValue = 'q';
+            break;
+        case PieceType::KING:
+            retValue = 'k';
+            break;
+        case PieceType::NONE:
+            retValue = ' ';
+            break;
+        default:
+            LOG_ERROR() << "Invalid Chess Piece;\n";
+    }
 
-	char lower = std::tolower(piece);
-	PieceType type;
-	switch(lower)
-	{
-		case 'p':
-			type = PieceType::PAWN;
-			break;
-		case 'n':
-			type = PieceType::KNIGHT;
-			break;
-		case 'b':
-			type = PieceType::BISHOP;
-			break;
-		case 'r':
-			type = PieceType::ROOK;
-			break;
-		case 'q':
-			type = PieceType::QUEEN;
-			break;
-		case 'k':
-			type = PieceType::KING;
-			break;
-		default:
-			m_internalState = 0;
-			return false;
-	}
+    if (getSet() == Set::WHITE)
+        retValue = std::toupper(retValue);
 
-	*this = ChessPiece(set, type);
-	return true;
+    return retValue;
 }
 
-bool ChessPiece::operator==(const ChessPiece& rhs) const
+bool
+ChessPiece::fromString(char piece)
 {
-	return m_internalState == rhs.m_internalState;
+    Set set = Set::BLACK;
+    if (std::isupper(piece)) {
+        set = Set::WHITE;
+    }
+
+    char lower = std::tolower(piece);
+    PieceType type;
+    switch (lower) {
+        case 'p':
+            type = PieceType::PAWN;
+            break;
+        case 'n':
+            type = PieceType::KNIGHT;
+            break;
+        case 'b':
+            type = PieceType::BISHOP;
+            break;
+        case 'r':
+            type = PieceType::ROOK;
+            break;
+        case 'q':
+            type = PieceType::QUEEN;
+            break;
+        case 'k':
+            type = PieceType::KING;
+            break;
+        default:
+            m_internalState = 0;
+            return false;
+    }
+
+    *this = ChessPiece(set, type);
+    return true;
 }
 
-bool ChessPiece::operator!=(const ChessPiece& rhs) const
+bool
+ChessPiece::operator==(const ChessPiece& rhs) const
 {
-	return !(*this == rhs);
+    return m_internalState == rhs.m_internalState;
 }
 
-bool ChessPiece::operator<(const ChessPiece& rhs) const
+bool
+ChessPiece::operator!=(const ChessPiece& rhs) const
 {
-	return m_internalState < rhs.m_internalState;
+    return !(*this == rhs);
+}
+
+bool
+ChessPiece::operator<(const ChessPiece& rhs) const
+{
+    return m_internalState < rhs.m_internalState;
 }

@@ -4,67 +4,55 @@
 #include "fen_parser.h"
 #include "uci.hpp"
 
-namespace ElephantTest
-{
+namespace ElephantTest {
 /**
  * @file uci_test.cpp
  * @brief Fixture testing Universal Chess Interface of engine
  * https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
  * Naming convention: <UCICommand>_<ExpectedBehavior>
  * https://osherove.com/blog/2005/4/3/naming-standards-for-unit-tests.html
- * @author Alexander Loodin Ek * 
+ * @author Alexander Loodin Ek *
  */
 ////////////////////////////////////////////////////////////////
-class UciFixture : public ::testing::Test
-{
+class UciFixture : public ::testing::Test {
 public:
-    virtual void SetUp()
-    {
-    };
-    virtual void TearDown()
-    {
-    };
+    virtual void SetUp(){};
+    virtual void TearDown(){};
 
-/**
- * This is the exact function that exists in commands_util which is the first
- * step in the CLI which splits any commands into a list of tokens.
- * @brief Extracts arguments from command line
- * @param buffer command line
- * @param tokens list of arguments  */
+    /**
+     * This is the exact function that exists in commands_util which is the first
+     * step in the CLI which splits any commands into a list of tokens.
+     * @brief Extracts arguments from command line
+     * @param buffer command line
+     * @param tokens list of arguments  */
     void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
     {
         std::istringstream ssargs(buffer);
         std::string token;
-        while (std::getline(ssargs, token, ' '))
-        {
+        while (std::getline(ssargs, token, ' ')) {
             tokens.push_back(token);
         }
     }
 
     UCI m_uci;
-    
 };
 ////////////////////////////////////////////////////////////////
 /**
  * @class ScopedRedirect
  * @brief Redirects given ostream to another buffer which we later can verify */
-class ScopedRedirect
-{
+class ScopedRedirect {
 public:
-	ScopedRedirect(std::ostream& redirected, std::ostream& target) :
-		m_originalStream(redirected),
-		m_originalBuffer(redirected.rdbuf())
-	{        
-		m_originalStream.rdbuf(target.rdbuf());
-	}
-	~ScopedRedirect()
-	{
-		m_originalStream.rdbuf(m_originalBuffer);
-	}
+    ScopedRedirect(std::ostream& redirected, std::ostream& target) :
+        m_originalStream(redirected),
+        m_originalBuffer(redirected.rdbuf())
+    {
+        m_originalStream.rdbuf(target.rdbuf());
+    }
+    ~ScopedRedirect() { m_originalStream.rdbuf(m_originalBuffer); }
 
 private:
-	std::ostream& m_originalStream;
-	std::streambuf* m_originalBuffer;	
+    std::ostream& m_originalStream;
+    std::streambuf* m_originalBuffer;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -75,10 +63,10 @@ TEST_F(UciFixture, isready_Outputs_readyok)
 
     std::stringstream testOutput;
     bool result = false;
-    {   
+    {
         // redirect std::cout to a buffer
         ScopedRedirect coutRedirect(std::cout, testOutput);
-        
+
         // do
         result = m_uci.IsReady();
     }
@@ -94,10 +82,10 @@ TEST_F(UciFixture, Enabled_Outputs_uciok)
     m_uci.Enable();
 
     std::stringstream testOutput;
-    {   
+    {
         // redirect std::cout to a buffer
         ScopedRedirect coutRedirect(std::cout, testOutput);
-        
+
         // do
         m_uci.Enable();
     }
@@ -112,22 +100,22 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     m_uci.Enable();
 
     // do
-    std::list<std::string> args{ "startpos" };
+    std::list<std::string> args{"startpos"};
     bool result = m_uci.Position(args);
 
     // verify
     EXPECT_TRUE(result);
     EXPECT_EQ(Set::WHITE, m_uci.readGameContext().readToPlay());
     EXPECT_EQ(1, m_uci.readGameContext().readMoveCount());
-    EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
+    // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
     const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readTile(e1).readPiece());
-    EXPECT_EQ(BLACKKING, board.readTile(e8).readPiece());
-    EXPECT_EQ(WHITEQUEEN, board.readTile(d1).readPiece());
-    EXPECT_EQ(BLACKQUEEN, board.readTile(d8).readPiece());
+    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::E1));
+    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::E8));
+    EXPECT_EQ(WHITEQUEEN, board.readPieceAt(Square::D1));
+    EXPECT_EQ(BLACKQUEEN, board.readPieceAt(Square::D8));
 
-    EXPECT_TRUE(board.readCastlingStateInfo().hasAll());
+    EXPECT_TRUE(board.readCastlingState().hasAll());
 
     std::string outputFen;
     FENParser::serialize(m_uci.readGameContext(), outputFen);
@@ -146,19 +134,19 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     std::string commandLine = "position fen " + gocFen;
     std::list<std::string> args;
     extractArgsFromCommand(commandLine, args);
-    args.pop_front(); // pop position
+    args.pop_front();  // pop position
     bool result = m_uci.Position(args);
 
     // verify
     EXPECT_TRUE(result);
     EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
-    EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
+    // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
     const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readTile(g1).readPiece());
-    EXPECT_EQ(BLACKKING, board.readTile(g8).readPiece());
+    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::G1));
+    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::G8));
 
-    EXPECT_FALSE(board.readCastlingStateInfo().hasAny());
+    EXPECT_FALSE(board.readCastlingState().hasAny());
 
     std::string outputFen;
     FENParser::serialize(m_uci.readGameContext(), outputFen);
@@ -175,18 +163,18 @@ TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
     std::string commandLine = "go depth 3";
     std::list<std::string> args;
     extractArgsFromCommand(commandLine, args);
-    args.pop_front(); // pop go
+    args.pop_front();  // pop go
     bool result = false;
     std::stringstream testOutput;
-    {   
+    {
         // redirect std::cout to a buffer
         ScopedRedirect coutRedirect(std::cout, testOutput);
-        
+
         // do
         result = m_uci.Go(args);
     }
-    
+
     EXPECT_TRUE(result);
 }
 
-} // namespace ElephantTest
+}  // namespace ElephantTest

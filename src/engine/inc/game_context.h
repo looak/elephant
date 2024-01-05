@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
+#include <stack>
 #include "chessboard.h"
 
 struct SearchResult;
 struct SearchParameters;
 
-struct MoveHistory
-{
-    //Move move;
-    //Chessboard board;
+struct MoveHistory {
+    // Move move;
+    // Chessboard board;
     u64 HashKey;
     u32 PlyCount;
     u32 MoveCount;
@@ -31,34 +31,31 @@ struct MoveHistory
     std::string SAN;
 };
 
-class GameContext
-{
+class GameContext {
 public:
     GameContext() :
-        m_toPlay(Set::WHITE),
-        m_plyCount(0),
-        m_moveCount(1)
-    {}
+        m_toPlay(Set::WHITE)
+    {
+    }
 
     GameContext(const GameContext& rhs) :
         m_board(rhs.m_board),
-        m_toPlay(rhs.m_toPlay),
-        m_plyCount(rhs.m_plyCount),
-        m_moveCount(rhs.m_moveCount)
-    {}
+        m_toPlay(rhs.m_toPlay)
+    {
+    }
 
     void Reset();
     void NewGame();
 
-    void PlayMoves(const Move& move, bool print = false);
-    bool PlayMove(Move& move);
-    
-    bool MakeLegalMove(Move& move);
-    bool MakeMove(Move& move);
-    bool MakeNullMove(Move& move);
-    
-    bool UnmakeMove(const Move& move);
-    bool UnmakeNullMove(const Move& move);
+    /**
+     * @brief Tries to make a move on board, returns true if legal succesfull move.
+     * @param move The move which is being asked to make, can be ambigious. */
+    bool TryMakeMove(Move move);
+
+    /**
+     * @brief Makes a move on the board, assumes move is legal. */
+    bool MakeMove(const PackedMove move);
+    bool UnmakeMove();
 
     SearchResult CalculateBestMove(SearchParameters params);
 
@@ -72,25 +69,15 @@ public:
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }
 
-    u32 readPly() const { return m_plyCount; }
-    u32& editPly() { return m_plyCount; }
+    short readPly() const { return m_board.readPlyCount(); }
+    short readMoveCount() const { return m_board.readMoveCount(); }
 
-    u32 readMoveCount() const { return m_moveCount; }
-    u32& editMoveCount() { return m_moveCount; }
-
-    Set readToPlay() const { return m_toPlay; }
-    Set& editToPlay() { return m_toPlay; }
-
-    const std::vector<MoveHistory>& readMoveHistory() const { return m_moveHistory; }
+    Set readToPlay() const { return m_board.readToPlay(); }
 
 private:
-    //std::pair<u64, Move> concurrentBestMove(int depth, Chessboard& board, Set toPlay);
-
     Chessboard m_board;
     Set m_toPlay;
-    u32 m_plyCount;    
-    u32 m_moveCount;
-    u32 m_fiftyMoveRule;
 
+    std::stack<MoveUndoUnit> m_undoUnits;
     std::vector<MoveHistory> m_moveHistory;
 };
