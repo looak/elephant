@@ -2,9 +2,9 @@
 #include "position.hpp"
 
 KingPinThreats::KingPinThreats() :
+    m_specialEnPassantMask(0),
     m_knightsAndPawns(0),
-    m_knightOrPawnCheck(false),
-    m_specialEnPassantMask(0)
+    m_knightOrPawnCheck(false)
 {
     for (u8 i = 0; i < 8; ++i) {
         m_threatenedAngles[i] = 0;
@@ -90,8 +90,7 @@ KingPinThreats::checks() const
 }
 
 void
-KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const Position& position,
-                                            const SlidingMaterialMasks& opponentSlidingMask)
+KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const Position& position)
 {
     if (position.readEnPassant() == false) {
         return;
@@ -167,15 +166,13 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
                                     opponentSlidingMask.diagonal & diagonalMaterial};
 
     u8 matCount = 0;
-    u8 pinsCount = 0;
     bool threatened = (!diagonalMaterial.empty() || !orthogonalMaterial.empty());
     const bool threatenedReset = threatened;
-    bool openAngle = true;
 
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
         matCount = 0;
         threatened = threatenedReset;
-        openAngle = true;
+
         byte curSqr = kingSquare.index();
         signed short dir = ChessPieceDef::Moves0x88(kingId, moveIndx);
 
@@ -183,9 +180,6 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
 
         bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
         Bitboard slideMat = slideMatCache[diagonal];
-
-        // this open angle is used to determine pinned pawns trying to capture enpassant.
-        openAngle = !diagonal;  // we don't care about diagonal angles for now.
 
         Bitboard mvMask = 0;
         do {
@@ -276,7 +270,7 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
         }
     }
 
-    calculateEnPassantPinThreat(set, kingSquare, position, opponentSlidingMask);
+    calculateEnPassantPinThreat(set, kingSquare, position);
 }
 
 void

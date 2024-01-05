@@ -30,8 +30,7 @@ struct KingPinThreats {
     void calculateOpponentOpenAngles(Set set, const Notation kingSquare, const Position& position);
 
 private:
-    void calculateEnPassantPinThreat(Set set, Notation kingSquare, const Position& position,
-                                     const SlidingMaterialMasks& opponentSlidingMask);
+    void calculateEnPassantPinThreat(Set set, Notation kingSquare, const Position& position);
     Bitboard m_threatenedAngles[8];
     Bitboard m_specialEnPassantMask;
     Bitboard m_opponentOpenAngles[2];

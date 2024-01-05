@@ -117,12 +117,6 @@ public:
     [[nodiscard]] constexpr Bitboard shiftLeft(u8 shift) const { return Bitboard(m_board << shift); }
 
 #pragma region operators
-    constexpr Bitboard& operator=(const Bitboard& rhs)
-    {
-        m_board = rhs.m_board;
-        return *this;
-    }
-
     constexpr Bitboard& operator|=(const Bitboard& rhs)
     {
         m_board |= rhs.m_board;
