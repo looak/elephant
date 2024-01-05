@@ -1,481 +1,454 @@
-#include "move_generator.h"
-
-#include "chessboard.h"
-#include "clock.hpp"
-#include "evaluator.h"
+#include "move_generator.hpp"
 #include "game_context.h"
+#include "move.h"
 
-#include <future>
-#include <limits>
-#include <sstream>
-#include <thread>
-#include <utility>
-
-static constexpr u32 c_maxSearchDepth = 8;
-static constexpr i32 c_maxScore = 32000;
-static constexpr i32 c_checmkateConstant = 24000;
-static constexpr i32 c_pvScore = 10000;
-
-int MoveGenerator::Perft(GameContext& context, int depth)
+MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, MoveTypes mtype) :
+    m_toMove(toMove),
+    m_position(pos),
+    m_moves(),
+    m_unsortedMoves(),
+    m_returnedMoves(),
+    m_movesGenerated(false)
 {
-    if (depth == 0) {
-        return 1;
-    }
-
-    int count = 0;
-
-    auto moves = GeneratePossibleMoves(context);
-    count = 0;
-    if (depth == 1) {
-        return (i32)moves.size();
-    }
-    else if (depth > 1) {
-        for (auto mv : moves) {
-            FATAL_ASSERT(context.MakeMove(mv));
-            count += Perft(context, depth - 1);
-            context.UnmakeMove(mv);
-        }
-    }
-
-    return count;
+    initializeMoveGenerator(ptype, mtype);
 }
 
-MoveCount MoveGenerator::CountMoves(const std::vector<Move>& moves,
-                                    MoveCount::Predicate predicate) const
+MoveGenerator::MoveGenerator(const GameContext& context) :
+    m_toMove(context.readToPlay()),
+    m_position(context.readChessboard().readPosition()),
+    m_moves(),
+    m_unsortedMoves(),
+    m_returnedMoves(),
+    m_movesGenerated(false)
 {
-    MoveCount result;
-
-    for (auto&& mv : moves) {
-        if (!predicate(mv))
-            continue;
-
-        if ((mv.Flags & MoveFlag::Capture) == MoveFlag::Capture)
-            result.Captures++;
-        if ((mv.Flags & MoveFlag::Promotion) == MoveFlag::Promotion)
-            result.Promotions++;
-        if ((mv.Flags & MoveFlag::EnPassant) == MoveFlag::EnPassant)
-            result.EnPassants++;
-        if ((mv.Flags & MoveFlag::Castle) == MoveFlag::Castle)
-            result.Castles++;
-        if ((mv.Flags & MoveFlag::Check) == MoveFlag::Check)
-            result.Checks++;
-        if ((mv.Flags & MoveFlag::Checkmate) == MoveFlag::Checkmate) {
-            result.Checks++;
-            result.Checkmates++;
-        }
-
-        result.Moves++;
-    }
-
-    return result;
+    initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
 }
 
-std::map<PieceKey, std::vector<Move>> MoveGenerator::OrganizeMoves(
-    const std::vector<Move>& moves) const
+PackedMove
+MoveGenerator::generateNextMove()
 {
-    std::map<PieceKey, std::vector<Move>> ret;
-
-    for (auto&& mv : moves) {
-        PieceKey key = {mv.Piece, Notation(mv.SourceSquare)};
-        if (!ret.contains(key))
-            ret.insert(std::make_pair(key, std::vector<Move>()));
-
-        ret.at(key).push_back(mv);
+    if (m_moves.empty() == false) {
+        auto move = m_moves.top();
+        m_moves.pop();
+        m_returnedMoves.push_back(move.move);
+        return move.move;
     }
 
-    return ret;
-}
+    if (m_movesGenerated)
+        return PackedMove::NullMove();
 
-std::vector<Move> MoveGenerator::GeneratePossibleMoves(const GameContext& context,
-                                                       bool captureMoves) const
-{
-    std::vector<Move> retMoves;
-    auto currentSet = context.readToPlay();
-    const auto& board = context.readChessboard();
-
-    auto moves = board.GetAvailableMoves(currentSet, captureMoves);
-    return moves;
-}
-
-template<bool UseCache>
-i32 MoveGenerator::QuiescenceSearch(GameContext& context,
-                                    u32 depth,
-                                    u32 ply,
-                                    i32 alpha,
-                                    i32 beta,
-                                    i32 perspective,
-                                    u32& count)
-{
-    // something that we aren't considering here is moves that put opponent in check.
-    i32 score = -c_maxScore;
-
-    if (depth == 0 && context.readChessboard().isChecked(context.readToPlay()))
-        depth++;
-
-    // generate capture moves
-    auto moves = GeneratePossibleMoves(context, true);
-    if (depth == 0 || moves.empty()) {
-        if constexpr (UseCache) {
-            auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
-            if (tpItr != m_evaluationTable.end()) {
-                EvaluationEntry& entry = tpItr->second;
-                return entry.score;
-            }
-            else {
-                Evaluator evaluator;
-
-                i32 staticEval =
-                    perspective * evaluator.Evaluate(context.readChessboard(), perspective);
-                m_evaluationTable.emplace(context.readChessboard().readHash(),
-                                          EvaluationEntry{staticEval});
-                return staticEval;
-            }
-        }
-        else {
-            Evaluator evaluator;
-
-            i32 staticEval =
-                perspective * evaluator.Evaluate(context.readChessboard(), perspective);
-            return staticEval;
-        }
-    }
-
-    for (auto&& mv : moves) {
-        context.MakeLegalMove(mv);
-        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta,
-                                                            -alpha, -perspective, count));
-        context.UnmakeMove(mv);
-
-        ++count;
-
-        alpha = std::max(alpha, score);
-
-        if (alpha >= beta)
-            break;
-    }
-
-    return score;
-}
-#ifdef DEBUG_SEARCHING
-static int evaluation_hits = 0;
-static float failHigh = 0.f;
-static float failHighFirst = 0.f;
-#endif
-
-template<bool UseCache>
-SearchResult MoveGenerator::AlphaBetaNegmax(GameContext& context,
-                                            SearchContext& searchContext,
-                                            u32 depth,
-                                            u32 ply,
-                                            i32 alpha,
-                                            i32 beta,
-                                            i32 perspective,
-                                            std::vector<Move>& pv,
-                                            u32 doNullMove)
-{
-    const bool isChecked = context.readChessboard().isChecked(context.readToPlay());
-
-    if (depth == 0) {
-        if (!isChecked) {
-            if constexpr (UseCache) {
-                Evaluator evaluator;
-
-                auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
-                if (tpItr != m_evaluationTable.end()) {
-                    EvaluationEntry& entry = tpItr->second;
-#ifdef DEBUG_SEARCHING
-                    evaluation_hits++;
-#endif
-                    return {entry.score, Move()};
-                }
-                else {
-                    i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta,
-                                                           perspective, searchContext.count);
-                    m_evaluationTable.emplace(context.readChessboard().readHash(),
-                                              EvaluationEntry{score});
-                    return {score, Move()};
-                }
-            }
-            else {
-                i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective,
-                                                       searchContext.count);
-                return {score, Move()};
-            }
-        }
-
-        depth++;
-    }
-
-    i32 bestScore = -c_maxScore;
-    // i32 oldAlpha = alpha;
-    Move bestMove;
-
-    //// avoid null moves in endgame positions
-    float egCoefficient = context.readChessboard().calculateEndGameCoeficient();
-    if (doNullMove > 0 && !isChecked && egCoefficient < .75f && depth > 2) {
-        std::vector<Move> localPv(depth + 1);
-        auto cpy = context;
-        Move nullMove{};
-        cpy.MakeNullMove(nullMove);
-        auto nullResult =
-            AlphaBetaNegmax<UseCache>(cpy, searchContext, depth - 2, ply + 1, -beta, -beta + 1,
-                                      -perspective, localPv, doNullMove - 1);
-        i32 score = -nullResult.score;
-        cpy.UnmakeNullMove(nullMove);
-
-        if (score >= beta)
-            return {beta, bestMove};
-    }
-
-    // if (m_transpositionTable.probe(context.readChessboard().readHash(), depth, alpha, beta,
-    // bestScore))
-    //     return { bestScore, bestMove };
-
-    auto moves = GeneratePossibleMoves(context);
-
-    if (moves.size() == 0) {
-        if (isChecked)
-            return {-c_checmkateConstant + (i32)ply,
-                    Move()};  // negative "infinity" since we're in checkmate
-
-        return {0, Move()};  // we're in stalemate
-    }
-
-    OrderMoves(searchContext, moves, depth, ply);
-
-    std::vector<Move> localPv(depth + 1);
-    u32 localCount = 0;
-
-    for (auto&& mv : moves) {
-        context.MakeLegalMove(mv);
-        // FATAL_ASSERT(context.MakeMove(mv));
-        SearchResult result;
-        result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta,
-                                           -alpha, -perspective, localPv, doNullMove);
-        i32 score = -result.score;
-        context.UnmakeMove(mv);
-
-        ++localCount;
-
-        if (score > alpha) {
-            alpha = score;
-            bestScore = score;
-            bestMove = mv;
-
-            // copy all lower moves to pv.
-            pv[0] = std::move(mv);
-            for (u32 i = 1; i < depth; ++i)
-                pv[i] = std::move(localPv[i - 1]);
-        }
-
-        if (alpha >= beta) {
-#ifdef DEBUG_SEARCHING
-            if (localCount == 1)
-                failHighFirst += 1.f;
-
-            failHigh += 1.f;
-#endif
-            //            m_transpositionTable.store(context.readChessboard().readHash(), mv, depth,
-            //            score, TTF_CUT_BETA);
-            break;
-        }
-    }
-
-    searchContext.count += localCount;
-
-    // if (alpha != oldAlpha)
-    //     m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth,
-    //     bestScore, TTF_CUT_EXACT);
-    // else
-    //     m_transpositionTable.store(context.readChessboard().readHash(), Move::Invalid(), depth,
-    //     bestScore, TTF_CUT_ALPHA);
-
-    return {bestScore, bestMove};
-}
-
-SearchResult MoveGenerator::CalculateBestMove(GameContext& context, SearchParameters params)
-{
-    // auto& stream = std::cout;  // should pass this forward from the outer uci calls or something?
-
-    bool isWhite = context.readToPlay() == Set::WHITE;
-    LOG_DEBUG() << "to play: " << (isWhite ? "White" : "Black");
-
-    u32 depth = c_maxSearchDepth;
-    bool useMoveTime = false;
-    u32 moveTime = 0;
-    u32 timeIncrement = 0;
-
-    if (params.SearchDepth != 0) {
-        if (params.SearchDepth > c_maxSearchDepth)
-            params.SearchDepth = c_maxSearchDepth;
-
-        depth = params.SearchDepth;
-    }
-
-    if (params.MoveTime != 0) {
-        depth = c_maxSearchDepth;
-        moveTime = params.MoveTime;
-        useMoveTime = true;
-    }
-
-    if (params.WhiteTimelimit != 0) {
-        // strategies around using these move times.
-        depth = c_maxSearchDepth;
-        useMoveTime = true;
-
-        if (isWhite) {
-            moveTime = params.WhiteTimelimit;
-            if (params.WhiteTimeIncrement != 0) {
-                timeIncrement = params.WhiteTimeIncrement;
-            }
-        }
-        else {
-            moveTime = params.BlackTimelimit;
-            if (params.BlackTimeIncrement != 0) {
-                timeIncrement = params.BlackTimeIncrement;
-            }
-        }
-    }
-
-    if (params.Infinite) {
-        depth = 100;
-    }
-
-    LOG_DEBUG() << "search depth: " << depth;
-
-    Clock clock;
-    clock.Start();
-
-    i32 alpha = -c_maxScore;
-    i32 beta = c_maxScore;
-    i32 perspective = isWhite ? 1 : -1;
-#ifdef DEBUG_SEARCHING
-    evaluation_hits = 0;
-    failHigh = 0.f;
-    failHighFirst = 0.f;
-#endif
-
-    SearchResult bestResult;
-    bestResult.score = -c_maxScore;
-
-    SearchContext searchContext;
-    searchContext.count = 0;
-    searchContext.pv.reserve(depth);
-    searchContext.killerMoves.reserve(depth);
-
-    searchContext.pv.push_back(Move::Invalid());
-
-    for (u32 itrDepth = 1; itrDepth <= depth; ++itrDepth) {
-        std::vector<Move> localPv(itrDepth + 1);
-        SearchResult result = AlphaBetaNegmax<false>(context, searchContext, itrDepth, 1, alpha,
-                                                     beta, perspective, localPv, 1);
-
-        searchContext.pv = std::move(localPv);
-        bestResult = result;
-
-        u64 nps = clock.calcNodesPerSecond(searchContext.count);
-        std::cout << "info nps " << nps << "\n";
-
-        std::stringstream pvSS;
-        for (u32 i = 0; i < itrDepth; ++i) {
-            pvSS << " " << searchContext.pv[i].toString();
-            searchContext.pv[i].Score = c_pvScore;
-        }
-
-        i64 et = clock.getElapsedTime();
-        // figure out if we found a mate move order.
-        i32 checkmateDistance = c_checmkateConstant - abs((int)bestResult.score);
-        if ((u32)checkmateDistance <= depth) {
-            // found checkmate within depth.
-            if (bestResult.score < 0) {
-                // we can pretty safely assume that if we find a mate against us it is forced.
-                checkmateDistance = -checkmateDistance;
-                bestResult.ForcedMate = true;
-            }
-            checkmateDistance /= 2;
-            std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes "
-                      << searchContext.count << " time " << et << " pv" << pvSS.str() << "\n";
-            break;  // don't need to search further if we found a forced mate.
-        }
-        else {
-            float centipawn = bestResult.score / 100.f;
-            std::cout << "info score cp " << std::fixed << std::setprecision(2) << centipawn
-                      << " depth " << itrDepth << " nodes " << searchContext.count << " time " << et
-                      << " pv" << pvSS.str() << "\n";
-        }
-
-        if (useMoveTime != false &&
-            TimeManagement(et, moveTime, timeIncrement, itrDepth, context.readMoveCount(),
-                           bestResult.score) == false)
-            break;
-
-        m_evaluationTable.clear();
-    }
-
-#ifdef DEBUG_SEARCHING
-    i64 finalTime = clock.getElapsedTime();
-    LOG_DEBUG() << "Elapsed time: " << finalTime << " ms";
-    LOG_DEBUG() << "Nodes evaluated: " << searchContext.count;
-    u64 nps = clock.calcNodesPerSecond(searchContext.count);
-    LOG_DEBUG() << "Nodes per second: " << nps << " nps";
-    LOG_DEBUG() << "Fail high ratio: " << failHighFirst / failHigh;
-    LOG_DEBUG() << "Evaluation Cache Hits: " << evaluation_hits;
-
-    m_transpositionTable.debugStatistics();
-#endif
-
-    return bestResult;
-}
-
-bool MoveGenerator::TimeManagement(i64 elapsedTime, i64 timeleft, i32, u32, u32 depth, i32)
-{
-    // should return false if we want to abort our search.
-    // how do we manage time?
-    // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = (timeleft / 24);  // at 5min this is 12 seconds.
-    if (elapsedTime > c_maxTimeAllowed) {
-        // if score is negative we continue looking one more depth.
-        // if (score < 0 && timeleft > (c_maxTimeAllowed * 6))
-        //     return true;
-        // else
-        return false;
+    if (m_toMove == Set::WHITE) {
+        return generateNextMove<Set::WHITE>();
     }
     else {
-        i64 avrgTime = elapsedTime / depth;
-        avrgTime *= avrgTime;  // assume exponential time increase per depth.
-        avrgTime /= 2;         // give some credit to the alpha beta search.
-        if (avrgTime > c_maxTimeAllowed)
-            return false;
-        else
-            return true;
+        return generateNextMove<Set::BLACK>();
     }
-
-    return false;
+    return PackedMove::NullMove();
 }
-struct MoveCompare {
-    bool operator()(const Move& lhs, const Move& rhs) const
-    {
-        if (lhs.isCapture() == true && rhs.isCapture() == true) {
-            return lhs.Score > rhs.Score;
-        }
-        else if (lhs.isCapture() == true) {
-            return true;
-        }
 
-        return false;
-    }
-} s_moveComparer;
-
-void MoveGenerator::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
+void
+MoveGenerator::generate()
 {
-    // ply = ply - 1; // 0-indexed
-    //    const Move& pvMv = searchContext.pv[ply];
-    for (auto& mv : moves) {
-        // if (mv == pvMv)
-        //     mv.Score = c_pvScore;
-        // else
-        if (mv.isCapture())
-            mv.Score = mv.calcCaptureValue();
+    if (m_toMove == Set::WHITE)
+        generateAllMoves<Set::WHITE>();
+    else
+        generateAllMoves<Set::BLACK>();
+}
+
+template<Set set>
+PackedMove
+MoveGenerator::generateNextMove()
+{
+    const size_t setIndx = static_cast<size_t>(set);
+    if (m_moveMasks[setIndx].combine().empty()) {
+        m_movesGenerated = true;
+        return PackedMove::NullMove();
     }
-    std::sort(moves.begin(), moves.end(), s_moveComparer);  // sort all captures to be upfront
+
+    if (m_movesGenerated == false) {
+        if (m_pinThreats->isCheckedCount() > 1) {
+            generateMoves<set, kingId>(m_pinThreats[setIndx]);
+        }
+        else {
+            generateMoves<set, pawnId>(m_pinThreats[setIndx]);
+            generateMoves<set, knightId>(m_pinThreats[setIndx]);
+            generateMoves<set, bishopId>(m_pinThreats[setIndx]);
+            generateMoves<set, rookId>(m_pinThreats[setIndx]);
+            generateMoves<set, queenId>(m_pinThreats[setIndx]);
+            generateMoves<set, kingId>(m_pinThreats[setIndx]);
+        }
+    }
+
+    FATAL_ASSERT(!m_moves.empty()) << "This should never be able to happen since our bitboards have moves in them.";
+
+    m_movesGenerated = true;
+    auto move = m_moves.top();
+    m_moves.pop();
+    m_returnedMoves.push_back(move.move);
+    return move.move;
+}
+
+template<Set set>
+void
+MoveGenerator::generateAllMoves()
+{
+    const size_t setIndx = static_cast<size_t>(set);
+    if (m_moveMasks[setIndx].combine().empty()) {
+        m_movesGenerated = true;
+        return;
+    }
+
+    if (m_pinThreats->isCheckedCount() > 1) {
+        generateMoves<set, kingId>(m_pinThreats[setIndx]);
+    }
+    else {
+        generateMoves<set, pawnId>(m_pinThreats[setIndx]);
+        generateMoves<set, knightId>(m_pinThreats[setIndx]);
+        generateMoves<set, bishopId>(m_pinThreats[setIndx]);
+        generateMoves<set, rookId>(m_pinThreats[setIndx]);
+        generateMoves<set, queenId>(m_pinThreats[setIndx]);
+        generateMoves<set, kingId>(m_pinThreats[setIndx]);
+    }
+
+    m_movesGenerated = true;
+}
+
+void
+MoveGenerator::forEachMove(std::function<void(const PrioratizedMove&)> callback) const
+{
+    if (m_movesGenerated == false)
+        LOG_ERROR() << "Moves have not been generated yet.";
+
+    for (auto move : m_unsortedMoves) {
+        callback(move);
+    }
+}
+
+template<Set set>
+void
+MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
+{
+    const auto& pos = m_position;
+
+    const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
+    if (movesbb.empty())
+        return;
+
+    // cache pawns in local variable which we'll use to iterate over all pawns.
+    Bitboard pawns = pos.readMaterial<set>().material[pawnId];
+
+    while (pawns.empty() == false) {
+        // build source square and remove pawn from pawns bitboard.
+        const i32 srcSqr = pawns.popLsb();
+        const Notation srcNotation(srcSqr);
+
+        const u64 promotionMask = pawn_constants::promotionRank[(size_t)set];
+
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, pinThreats);
+        while (isolatedPawnAttacks.empty() == false) {
+            i32 dstSqr = isolatedPawnAttacks.popLsb();
+
+            PackedMove move;
+            move.setSource(srcSqr);
+            move.setTarget(dstSqr);
+
+            // if we're capturing enpassant set the enpassant flag.
+            if (pos.readEnPassant().readSquare() == static_cast<Square>(dstSqr))
+                move.setEnPassant(true);  // sets both capture & enpassant
+            else
+                move.setCapture(true);
+
+            // if we're promoting set the promotion flag and create 4 moves.
+            if (promotionMask & squareMaskTable[dstSqr]) {
+                move.setPromoteTo(queenId);
+                PrioratizedMove prioratizedMove(move, 1);
+                if ((pinThreats.readOpponentOpenAngles()[0] | pinThreats.readOpponentOpenAngles()[1]) & squareMaskTable[dstSqr])
+                    prioratizedMove.setCheck(true);
+                m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(prioratizedMove);
+
+                move.setPromoteTo(rookId);
+                PrioratizedMove prioratizedMove2(move, 1);
+                if (pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr])
+                    prioratizedMove2.setCheck(true);
+                m_moves.push(prioratizedMove2);
+                m_unsortedMoves.push_back(prioratizedMove2);
+
+                move.setPromoteTo(bishopId);
+                PrioratizedMove prioratizedMove3(move, 1);
+                if (pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr])
+                    prioratizedMove3.setCheck(true);
+                m_moves.push(prioratizedMove3);
+                m_unsortedMoves.push_back(prioratizedMove3);
+
+                move.setPromoteTo(knightId);
+                PrioratizedMove prioratizedMove4(move, 1);
+                m_moves.push(prioratizedMove4);
+                m_unsortedMoves.push_back(prioratizedMove4);
+            }
+            else {
+                PrioratizedMove prioratizedMove(move, 1);
+                Position checkedPos;
+                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
+                auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
+                if (threat & pos.readMaterial<opposing_set<set>()>().kings())
+                    prioratizedMove.setCheck(true);
+                m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(prioratizedMove);
+            }
+        }
+        while (isolatedPawnMoves.empty() == false) {
+            i32 dstSqr = isolatedPawnMoves.popLsb();
+
+            PackedMove move;
+            move.setSource(srcSqr);
+            move.setTarget(dstSqr);
+
+            // if we're promoting set the promotion flag and create 4 moves.
+            if (promotionMask & squareMaskTable[dstSqr]) {
+                move.setPromoteTo(queenId);
+                PrioratizedMove prioratizedMove(move, 1);
+                if ((pinThreats.readOpponentOpenAngles()[0] | pinThreats.readOpponentOpenAngles()[1]) & squareMaskTable[dstSqr])
+                    prioratizedMove.setCheck(true);
+                m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(prioratizedMove);
+
+                move.setPromoteTo(rookId);
+                PrioratizedMove prioratizedMove2(move, 1);
+                if (pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr])
+                    prioratizedMove2.setCheck(true);
+                m_moves.push(prioratizedMove2);
+                m_unsortedMoves.push_back(prioratizedMove2);
+
+                move.setPromoteTo(bishopId);
+                PrioratizedMove prioratizedMove3(move, 1);
+                if (pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr])
+                    prioratizedMove3.setCheck(true);
+                m_moves.push(prioratizedMove3);
+                m_unsortedMoves.push_back(prioratizedMove3);
+
+                move.setPromoteTo(knightId);
+                PrioratizedMove prioratizedMove4(move, 1);
+                m_moves.push(prioratizedMove4);
+                m_unsortedMoves.push_back(prioratizedMove4);
+            }
+            else {
+                PrioratizedMove prioratizedMove(move, 1);
+                Position checkedPos;
+                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
+                auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
+                if (threat & pos.readMaterial<opposing_set<set>()>().kings())
+                    prioratizedMove.setCheck(true);
+                m_moves.push(prioratizedMove);
+                m_unsortedMoves.push_back(prioratizedMove);
+            }
+        }
+    }
+}
+template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats)
+{
+    const auto& bb = m_position;
+
+    const Bitboard movesbb = m_moveMasks[(size_t)set].material[pieceId];
+    if (movesbb.empty())
+        return;
+
+    Bitboard pieces = bb.readMaterial<set>().material[pieceId];
+
+    while (pieces.empty() == false) {
+        // build source square and remove knight from cached material bitboard.
+        const i32 srcSqr = pieces.popLsb();
+        const Notation srcNotation(srcSqr);
+
+        auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, pinThreats);
+        genPackedMovesFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, pinThreats);
+        genPackedMovesFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false, pinThreats);
+    }
+}
+
+template void MoveGenerator::internalGenerateMoves<Set::WHITE>(u8, const KingPinThreats&);
+template void MoveGenerator::internalGenerateMoves<Set::BLACK>(u8, const KingPinThreats&);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateKnightMoves(const KingPinThreats& pinThreats)
+{
+    internalGenerateMoves<set>(knightId, pinThreats);
+}
+
+template void MoveGenerator::internalGenerateKnightMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateKnightMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateBishopMoves(const KingPinThreats& pinThreats)
+{
+    internalGenerateMoves<set>(bishopId, pinThreats);
+}
+
+template void MoveGenerator::internalGenerateBishopMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateBishopMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateRookMoves(const KingPinThreats& pinThreats)
+{
+    internalGenerateMoves<set>(rookId, pinThreats);
+}
+
+template void MoveGenerator::internalGenerateRookMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateRookMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateQueenMoves(const KingPinThreats& pinThreats)
+{
+    internalGenerateMoves<set>(queenId, pinThreats);
+}
+
+template void MoveGenerator::internalGenerateQueenMoves<Set::WHITE>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+
+template<Set set>
+void
+MoveGenerator::internalGenerateKingMoves()
+{
+    const auto& bb = m_position;
+    const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
+    const u8 setId = static_cast<u8>(set);
+
+    Bitboard movesbb = m_moveMasks[setId].material[kingId];
+#if defined EG_DEBUGGING || defined EG_TESTING
+    // during testing and debugging king can be missing
+    if (movesbb.empty())
+        return;
+#endif
+
+    u32 srcSqr = bb.readMaterial<set>().material[kingId].lsbIndex();
+    u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
+
+    while (movesbb.empty() == false) {
+        i32 dstSqr = movesbb.popLsb();
+
+        PackedMove move;
+        move.setSource(srcSqr);
+        move.setTarget(dstSqr);
+        u64 dstSqrMsk = squareMaskTable[dstSqr];
+
+        if (opMaterial & dstSqrMsk)
+            move.setCapture(true);
+
+        if (castlingRaw & 2) {
+            u64 queenSideCastleSqrMask = king_constants::queenSideCastleMask & board_constants::baseRankRelative[setId];
+            if (dstSqrMsk & queenSideCastleSqrMask) {
+                move.setCastleQueenSide(true);
+            }
+        }
+        if (castlingRaw & 1) {
+            u64 kingSideCastleSqrMask = king_constants::kingSideCastleMask & board_constants::baseRankRelative[setId];
+            if (dstSqrMsk & kingSideCastleSqrMask) {
+                move.setCastleKingSide(true);
+            }
+        }
+
+        PrioratizedMove prioratizedMove(move, 1);
+        m_moves.push(prioratizedMove);
+        m_unsortedMoves.push_back(prioratizedMove);
+    }
+}
+
+template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>();
+template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>();
+
+void
+MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
+{
+    if (m_toMove == Set::WHITE)
+        initializeMoveMasks<Set::WHITE>(m_moveMasks[0], ptype, mtype);
+    else
+        initializeMoveMasks<Set::BLACK>(m_moveMasks[1], ptype, mtype);
+}
+
+template<Set set>
+void
+MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype)
+{
+    const auto& bb = m_position;
+    if (bb.empty())
+        return;
+    const size_t setIndx = static_cast<size_t>(set);
+    m_pinThreats[setIndx] = bb.calcKingMask<set>();
+
+    bool captures = mtype == MoveTypes::CAPTURES_ONLY;
+
+    if (ptype == PieceType::NONE) {
+        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
+        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
+        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
+        target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
+        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
+        target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
+    }
+    else {
+        switch (ptype) {
+            case PieceType::PAWN:
+                target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
+                break;
+            case PieceType::KNIGHT:
+                target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
+                break;
+            case PieceType::BISHOP:
+                target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
+                break;
+            case PieceType::ROOK:
+                target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
+                break;
+            case PieceType::QUEEN:
+                target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
+                break;
+            case PieceType::KING:
+                target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
+                break;
+            default:
+                FATAL_ASSERT(false) << "Invalid piece type";
+                break;
+        }
+    }
+}
+
+template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
+template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
+
+void
+MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture,
+                                          const KingPinThreats& pinThreats)
+{
+    while (movesbb.empty() == false) {
+        i32 dstSqr = movesbb.popLsb();
+
+        PackedMove move;
+        move.setSource(static_cast<Square>(srcSqr));
+        move.setTarget(static_cast<Square>(dstSqr));
+        move.setCapture(capture);
+
+        PrioratizedMove prioratizedMove(move, 1);
+
+        // figure out if we're checking the king.
+        if (pieceId == rookId || pieceId == queenId) {
+            if (pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr])
+                prioratizedMove.setCheck(true);
+        }
+        else if (pieceId == bishopId || pieceId == queenId) {
+            if (pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr])
+                prioratizedMove.setCheck(true);
+        }
+
+        m_moves.push(prioratizedMove);
+        m_unsortedMoves.push_back(prioratizedMove);
+    }
 }

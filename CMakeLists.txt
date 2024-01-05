@@ -17,20 +17,20 @@
 # CMakeList.txt : Top-level CMake project file
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-project(ElephantGambit VERSION 0.4.0 LANGUAGES CXX)
-set(ElephantGambit_VERSION_PRERELEASE "")
+project(ElephantGambit VERSION 0.5.0 LANGUAGES CXX)
+set(ElephantGambit_VERSION_PRERELEASE "-dev")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Compiler warning levels
 if(MSVC)
     # For Microsoft Visual Studio
-    set(WARNING_LEVEL "/W4 /permissive-")
+    set(WARNING_LEVEL "/W4")
 else()
     # For GCC and Clang
-    #set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic'")    
+    set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic'")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 

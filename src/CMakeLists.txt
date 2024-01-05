@@ -1,5 +1,14 @@
 ﻿set(MAIN_EXE ElephantGambit)
 
+if(MSVC)
+    # For Microsoft Visual Studio
+    set(WARNING_LEVEL "/W4")
+else()
+    # For GCC and Clang
+    message(STATUS "## Added -Werror")    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+endif()
+
 add_executable (${MAIN_EXE} main.cpp)
 
 set(ENGINE_LIB engine)

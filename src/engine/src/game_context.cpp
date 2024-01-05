@@ -3,93 +3,93 @@
 #include "fen_parser.h"
 #include "hash_zorbist.h"
 #include "move.h"
-#include "move_generator.h"
-
+#include "move_generator.hpp"
+#include "search.h"
 
 #include <algorithm>
 #include <array>
 #include <iostream>
 #include <sstream>
 
-std::string PrintCastlingState(const Chessboard& board)
+std::string
+PrintCastlingState(const Chessboard& board)
 {
     std::string ret = "";
 
-    if (board.readCastlingState() & 1)
+    if (board.readCastlingState().hasWhiteKingSide())
         ret += "K";
-    if (board.readCastlingState() & 2)
+    if (board.readCastlingState().hasWhiteQueenSide())
         ret += "Q";
-    if (board.readCastlingState() & 4)
+    if (board.readCastlingState().hasBlackKingSide())
         ret += "k";
-    if (board.readCastlingState() & 8)
+    if (board.readCastlingState().hasBlackQueenSide())
         ret += "q";
 
     return ret;
 }
 
-bool PrintBoard(const GameContext& context, const Move& move)
-{
-    const Chessboard&                board = context.readChessboard();
-    auto                             boardItr = board.begin();
-    std::array<std::stringstream, 8> ranks;
+// bool
+// PrintBoard(const GameContext& context, const Move& move)
+// {
+//     const Chessboard& board = context.readChessboard();
+//     auto boardItr = board.begin();
+//     std::array<std::stringstream, 8> ranks;
 
-    byte prevRank = -1;
-    do {
-        if (prevRank != boardItr.rank()) {
-            ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
-        }
+//     byte prevRank = -1;
+//     do {
+//         if (prevRank != boardItr.rank()) {
+//             ranks[boardItr.rank()] << "\n > " << (int)(boardItr.rank() + 1) << "  ";
+//         }
 
-        ranks[boardItr.rank()] << '[' << (*boardItr).readPiece().toString() << ']';
-        prevRank = boardItr.rank();
-        ++boardItr;
+//         ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
+//         prevRank = boardItr.rank();
+//         ++boardItr;
 
-    } while (boardItr != board.end());
+//     } while (boardItr != board.end());
 
-    auto rankItr = ranks.rbegin();
-    while (rankItr != ranks.rend()) {
-        std::cout << (*rankItr).str();
-        rankItr++;
-    }
+//     auto rankItr = ranks.rbegin();
+//     while (rankItr != ranks.rend()) {
+//         std::cout << (*rankItr).str();
+//         rankItr++;
+//     }
 
-    std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
-    std::cout << " > move: " << std::dec << (int)context.readMoveCount()
-              << "\tply: " << (int)context.readPly() << "\n";
-    std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
-    std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
-    std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
-    std::cout << " > prev move: " << Notation::toString(move.SourceSquare)
-              << Notation::toString(move.TargetSquare) << "\n";
-    std::string output;
-    FENParser::serialize(context, output);
-    std::cout << " > fen: " << output << "\n";
+//     std::cout << "\n >\n >     A  B  C  D  E  F  G  H\n";
+//     std::cout << " > move: " << std::dec << (int)context.readMoveCount() << "\tply: " << (int)context.readPly() << "\n";
+//     std::cout << " > hash: 0x" << std::hex << board.readHash() << "\n";
+//     std::cout << " > hash: 0x" << ZorbistHash::Instance().HashBoard(board) << "\n";
+//     std::cout << " > castling state: " << PrintCastlingState(board) << "\n";
+//     std::cout << " > prev move: " << Notation::toString(move.SourceSquare) << Notation::toString(move.TargetSquare) << "\n";
+//     std::string output;
+//     FENParser::serialize(context, output);
+//     std::cout << " > fen: " << output << "\n";
 
-    return true;
-}
+//     return true;
+// }
 
-void GameContext::Reset()
+void
+GameContext::Reset()
 {
     m_board.Clear();
-    m_moveCount = 0;
-    m_plyCount = 0;
-    m_fiftyMoveRule = 0;
     m_moveHistory.clear();
 }
 
-void GameContext::NewGame()
+void
+GameContext::NewGame()
 {
     Reset();
     FENParser::deserialize(c_startPositionFen.c_str(), *this);
     m_toPlay = Set::WHITE;
 }
 
-bool GameContext::GameOver() const
+bool
+GameContext::GameOver() const
 {
     // if (m_fiftyMoveRule >= 50) // not fully implemented yet
     //     return true;
-    if (readChessboard().isCheckmated(m_toPlay))
-        return true;
-    if (readChessboard().isStalemated(m_toPlay))
-        return true;
+    // if (readChessboard().isCheckmated(m_toPlay))
+    //     return true;
+    // if (readChessboard().isStalemated(m_toPlay))
+    //     return true;
 
     // Set opSet = ChessPiece::FlipSet(m_toPlay);
     // if (readChessboard().isCheckmated(opSet))
@@ -100,118 +100,81 @@ bool GameContext::GameOver() const
     return false;
 }
 
-bool GameContext::PlayMove(Move& move)
+bool
+GameContext::MakeMove(const PackedMove move)
 {
-    std::string pgn = m_board.SerializeMoveToPGN(move);
+    auto undoUnit = m_board.MakeMove<false>(move);
+    m_undoUnits.push(undoUnit);
 
-    if (!MakeMove(move))
-        return false;
+    // m_moveHistory.push_back(MoveHistory());
+    // m_moveHistory.back().HashKey = m_board.readHash();
+    // m_moveHistory.back().PlyCount = m_board.readPlyCount();
+    // m_moveHistory.back().MoveCount = m_board.readMoveCount();
+    // m_moveHistory.back().FiftyMoveRule = m_board.readFiftyMoveRule();
+    // m_moveHistory.back().SAN = Notation::toString(m);
 
-    MoveHistory entry = {m_board.readHash(), m_plyCount, m_moveCount, m_fiftyMoveRule, pgn};
-    m_moveHistory.emplace_back(entry);
-
+    m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
 }
 
-bool GameContext::MakeLegalMove(Move& move)
+bool
+GameContext::TryMakeMove(Move move)
 {
-    m_board.MakeMoveUnchecked(move);
+    PackedMove found = PackedMove::NullMove();
+    if (move.isAmbiguous()) {
+        MoveGenerator generator(m_board.readPosition(), m_toPlay, move.Piece.getType());
+        generator.generate();
 
-    if (move.Piece.getSet() == Set::BLACK)
-        m_moveCount++;
+        generator.forEachMove([&](const PrioratizedMove& pm) {
+            if (pm.move.targetSqr() == move.TargetSquare.toSquare()) {
+                found = pm.move;
+                return;
+            }
+        });
 
-    if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-        m_fiftyMoveRule = 0;
-    else
-        m_fiftyMoveRule++;
-
-    m_plyCount++;
-
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-    return true;
-}
-
-bool GameContext::MakeMove(Move& move)
-{
-    Move actualMove = move;
-
-    if (!m_board.MakeMove(actualMove))
-        return false;
-
-    if (actualMove.isInvalid())
-        return false;
-
-    if (actualMove.Piece.getSet() == Set::BLACK)
-        m_moveCount++;
-
-    if (actualMove.isCapture() || actualMove.Piece.getType() == PieceType::PAWN)
-        m_fiftyMoveRule = 0;
-    else
-        m_fiftyMoveRule++;
-
-    m_plyCount++;
-
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-    move = actualMove;
-    return true;
-}
-
-bool GameContext::UnmakeMove(const Move& move)
-{
-    if (m_board.UnmakeMove(move)) {
-        if (move.Piece.getSet() == Set::BLACK)
-            m_moveCount--;
-
-        if (move.isCapture() || move.Piece.getType() == PieceType::PAWN)
-            m_fiftyMoveRule = 0;
-        else
-            m_fiftyMoveRule--;
-
-        m_plyCount--;
-
-        m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-
-        return true;
+        if (found == PackedMove::NullMove())
+            return false;
+    }
+    else {
+        // set capture if the target square is occupied.
+        if (m_board.readPieceAt(move.TargetSquare.toSquare()).isValid()) {
+            move.setCapture(true);
+        }
+        found = move.readPackedMove();
     }
 
+    return MakeMove(found);
+}
+
+bool
+GameContext::UnmakeMove()
+{
+    if (m_undoUnits.empty())
+        return false;
+
+    auto undoUnit = m_undoUnits.top();
+    m_undoUnits.pop();
+    m_board.UnmakeMove(undoUnit);
+
+    // m_board.readHash() = m_moveHistory.back().HashKey;
+    // m_board.readPlyCount() = m_moveHistory.back().PlyCount;
+    // m_board.readMoveCount() = m_moveHistory.back().MoveCount;
+    // m_board.readFiftyMoveRule() = m_moveHistory.back().FiftyMoveRule;
+    // m_moveHistory.pop_back();
+
+    m_toPlay = ChessPiece::FlipSet(m_toPlay);
+    return true;
+}
+
+SearchResult
+GameContext::CalculateBestMove(SearchParameters params)
+{
+    Search search;
+    return search.CalculateBestMove(*this, params);
+}
+
+bool
+GameContext::isGameOver() const
+{
     return false;
-}
-
-bool GameContext::MakeNullMove(Move& move)
-{
-    m_board.MakeNullMove(move);
-
-    if (m_toPlay == Set::BLACK)
-        m_moveCount++;
-
-    m_fiftyMoveRule++;
-    m_plyCount++;
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-    return true;
-}
-
-bool GameContext::UnmakeNullMove(const Move& move)
-{
-    m_board.UnmakeNullMove(move);
-    if (m_toPlay == Set::WHITE)
-        m_moveCount--;
-
-    --m_fiftyMoveRule;
-    --m_plyCount;
-    m_toPlay = m_toPlay == Set::WHITE ? Set::BLACK : Set::WHITE;
-    return true;
-}
-
-SearchResult GameContext::CalculateBestMove(SearchParameters params)
-{
-    MoveGenerator generator;
-    return generator.CalculateBestMove(*this, params);
-}
-
-bool GameContext::isGameOver() const
-{
-    return m_board.isCheckmated(Set::WHITE) || m_board.isCheckmated(Set::BLACK) ||
-           m_board.isStalemated(Set::WHITE) || m_board.isStalemated(Set::BLACK);
 }

@@ -13,51 +13,57 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
-#pragma once
-#include "defines.h"
-#include "chess_piece.h"
-#include "notation.h"
-#include <vector>
+#ifndef MOVE_HEADER
+#define MOVE_HEADER
 
-enum MoveFlag : byte
-{
+#include <vector>
+#include "chess_piece.h"
+#include "defines.h"
+#include "notation.h"
+
+enum MoveFlag : byte {
     Zero = 0,
     Capture = 1,
     Promotion = 2,
     Castle = 4,
     Check = 8,
-    EnPassant = 16,    
+    EnPassant = 16,
     Checkmate = 32,
-	Ambiguous = 64, // Used for disambiguation of moves
+    Ambiguous = 64,  // Used for disambiguation of moves
     Invalid = 128
 };
 
-inline MoveFlag operator|(MoveFlag a, MoveFlag b)
+inline MoveFlag
+operator|(MoveFlag a, MoveFlag b)
 {
     return static_cast<MoveFlag>(static_cast<byte>(a) | static_cast<byte>(b));
 }
 
-inline MoveFlag operator&(MoveFlag a, MoveFlag b)
+inline MoveFlag
+operator&(MoveFlag a, MoveFlag b)
 {
     return static_cast<MoveFlag>(static_cast<byte>(a) & static_cast<byte>(b));
 }
 
-inline MoveFlag& operator|=(MoveFlag& a, MoveFlag b) 
-{ 
+inline MoveFlag&
+operator|=(MoveFlag& a, MoveFlag b)
+{
     a = a | b;
     return a;
 }
 
-inline MoveFlag& operator&=(MoveFlag& a, MoveFlag b)
+inline MoveFlag&
+operator&=(MoveFlag& a, MoveFlag b)
 {
-	a = a & b;
-	return a;
+    a = a & b;
+    return a;
 }
 
-inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
+inline MoveFlag&
+operator^=(MoveFlag& a, MoveFlag b)
 {
-	a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
-	return a;
+    a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
+    return a;
 }
 
 /**
@@ -69,8 +75,8 @@ inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
  * bit 1 is for captures
  * bit 2 & 3 are special cases
  * during promotions bit 2 & 3 represent the promotion type
- * with typeIndex - 2, i.e. knight 0, bishop 1, rook 2 and queen 3
- * 
+ * with typeId - 2, i.e. knight 0, bishop 1, rook 2 and queen 3
+ *
  * Move Type Encoding:
  * -------------------
  *         bit 16 bit 15 bit 14 bit 13
@@ -92,79 +98,237 @@ inline MoveFlag& operator^=(MoveFlag& a, MoveFlag b)
  *    15     1      1      1      1      Queen-promo capture
  * ------------------------------------------------       */
 
-const int c_sourceSquareConstant = 0x3F;
-const int c_targetSquareConstant = 0xfc0;
+constexpr int c_sourceSquareConstant = 0x3F;
+constexpr int c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
-    QUIET_MOVES          = 0,
-    DOUBLE_PAWN_PUSH     = 1,
-    CASTLE               = 2,   
-    KING_CASTLE          = 2,
-    QUEEN_CASTLE         = 3,
-    CAPTURES             = 4,
-    EN_PASSANT_CAPTURE   = 5,
-    PROMOTIONS            = 8,
-    KNIGHT_PROMOTION     = 8,
-    BISHOP_PROMOTION     = 9,
-    ROOK_PROMOTION       = 10,
-    QUEEN_PROMOTION      = 11,
+    QUIET_MOVES = 0,
+    DBL_PAWN_PUSH = 1,
+    CASTLE = 2,
+    KING_CASTLE = 2,
+    QUEEN_CASTLE = 3,
+    CAPTURES = 4,
+    EN_PASSANT_CAPTURE = 5,
+    PROMOTIONS = 8,
+    KNIGHT_PROMOTION = 8,
+    BISHOP_PROMOTION = 9,
+    ROOK_PROMOTION = 10,
+    QUEEN_PROMOTION = 11,
     KNIGHT_PROMO_CAPTURE = 12,
     BISHOP_PROMO_CAPTURE = 13,
-    ROOK_PROMO_CAPTURE   = 14,
-    QUEEN_PROMO_CAPTURE  = 15
+    ROOK_PROMO_CAPTURE = 14,
+    QUEEN_PROMO_CAPTURE = 15
 };
 
-struct PackedMove
-{
+struct PackedMove {
 public:
-    int sourceSqr() { return m_internals & 0x3F; }
-    int targetSqr() { return (m_internals >> 6) & 0x3F; }
-    bool isQuiet() { return (m_internals >> 12) == 0; }
-    bool isCapture() {return ((m_internals >> 12) & CAPTURES) == CAPTURES; }
-    bool isPromotion() {return ((m_internals >> 12) & PROMOTIONS) == PROMOTIONS; }
-    bool isCastling() {
+    static PackedMove NullMove() { return PackedMove{0x0}; };
+
+    PackedMove() :
+        m_internals(0)
+    {
+    }
+    PackedMove(u16 packed) :
+        m_internals(packed)
+    {
+    }
+    PackedMove(Square source, Square target) :
+        m_internals(0)
+    {
+        setSource(source);
+        setTarget(target);
+    }
+
+    [[nodiscard]] constexpr Square sourceSqr() const { return static_cast<Square>(source()); }
+    [[nodiscard]] constexpr Square targetSqr() const { return static_cast<Square>(target()); }
+    [[nodiscard]] constexpr i32 source() const { return m_internals & c_sourceSquareConstant; }
+    [[nodiscard]] constexpr i32 target() const { return (m_internals >> 6) & c_sourceSquareConstant; }
+    [[nodiscard]] constexpr u16 flags() const { return m_internals >> 12; }
+
+    [[nodiscard]] constexpr bool isNull() const { return m_internals == 0; }
+    [[nodiscard]] constexpr bool isQuiet() const { return flags() == 0; }
+    [[nodiscard]] constexpr bool isCapture() const { return !!(flags() & CAPTURES); }
+    [[nodiscard]] constexpr bool isEnPassant() const
+    {
+        return isPromotion() ? false : !!((flags() & EN_PASSANT_CAPTURE) == EN_PASSANT_CAPTURE);
+    }
+    [[nodiscard]] constexpr bool isPromotion() const { return !!(flags() & PROMOTIONS); }
+    [[nodiscard]] constexpr bool isCastling() const
+    {
         u16 flag = m_internals >> 12;
         if (flag & PROMOTIONS)
             return false;
         return (flag & CASTLE);
-        }
-    bool isPawnDoublePush() { return ((m_internals >> 12) & 0xF) == 1; }
-    
-    int readPromoteToPieceType() { return ((m_internals >> 12) & 3)+2; }
+    }
+
+    [[nodiscard]] constexpr i32 readPromoteToPieceType() const { return ((m_internals >> 12) & 3) + 2; }
 
     void set(u16 packed) { m_internals = packed; }
-    u16 read() const { return m_internals; }
+    [[nodiscard]] constexpr u16 read() const { return m_internals; }
+
+    inline void setSource(u16 source)
+    {
+        m_internals &= ~c_sourceSquareConstant;
+        m_internals |= (source & c_sourceSquareConstant);
+    }
+    inline void setSource(Square sqr)
+    {
+        u16 u16sqr = static_cast<u16>(sqr);
+        setSource(u16sqr);
+    }
+
+    inline void setTarget(u16 target)
+    {
+        m_internals &= ~c_targetSquareConstant;
+        m_internals |= ((target & c_sourceSquareConstant) << 6);
+    }
+    inline void setTarget(Square sqr)
+    {
+        u16 u16sqr = static_cast<u16>(sqr);
+        setTarget(u16sqr);
+    }
+    inline void setCapture(bool value)
+    {
+        if (value == true)
+            m_internals |= CAPTURES << 12;
+        else
+            m_internals &= ~(CAPTURES << 12);
+    }
+    inline void setEnPassant(bool value)
+    {
+        if (value == true)
+            m_internals |= EN_PASSANT_CAPTURE << 12;
+        else
+            m_internals &= ~(EN_PASSANT_CAPTURE << 12);
+    }
+
+    inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
+    inline void setPromoteTo(u16 pieceIndx)
+    {
+        m_internals &= ~(11 << 12);              // clear promotion bits
+        m_internals |= (8 << 12);                // set promotion flag
+        m_internals |= ((pieceIndx - 1) << 12);  // store piece type
+    }
+
+    inline void setCastleQueenSide(bool value)
+    {
+        if (value == true)
+            m_internals |= QUEEN_CASTLE << 12;
+        else
+            m_internals &= ~(QUEEN_CASTLE << 12);
+    }
+
+    inline void setCastleKingSide(bool value)
+    {
+        if (value == true)
+            m_internals |= KING_CASTLE << 12;
+        else
+            m_internals &= ~(KING_CASTLE << 12);
+    }
+
+    // operators
+    bool operator==(const PackedMove& rhs) const { return m_internals == rhs.m_internals; }
+    bool operator!=(const PackedMove& rhs) const { return m_internals != rhs.m_internals; }
+    operator bool() const { return m_internals != 0; }
+
+    [[nodiscard]] std::string toString() const
+    {
+        std::string ret;
+        ret += Notation(sourceSqr()).toString();
+        ret += Notation(targetSqr()).toString();
+        return ret;
+    }
 
 private:
-    u16 m_internals;    
+
+#ifdef __clang__
+    #define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
+    #define POP_DIAGNOSTIC  _Pragma("clang diagnostic pop")
+    #define IGNORE_WARNING(warning) _Pragma("clang diagnostic ignored " #warning)
+#elif defined(__GNUC__) || defined(__GNUG__)
+    #define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
+    #define POP_DIAGNOSTIC  _Pragma("GCC diagnostic pop")
+    #define IGNORE_WARNING(warning) _Pragma("GCC diagnostic ignored " #warning)
+#else
+    #define PUSH_DIAGNOSTIC
+    #define POP_DIAGNOSTIC
+    #define IGNORE_WARNING(warning)
+#endif
+
+PUSH_DIAGNOSTIC
+    union {
+        u16 m_internals;
+        struct {
+            // public:
+            //     internals_struct() = default;
+            //     internals_struct(u16 data) { memcpy(this, &data, sizeof(u16)); }
+            u16 src : 6;
+            u16 trg : 6;
+            u16 flag : 1;
+            u16 castle : 1;
+            u16 capture : 1;
+            u16 promote : 1;
+        } m_internals_struct;
+    };
+POP_DIAGNOSTIC
 };
 
-struct Move
-{
+
+
+static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
+
+struct PrioratizedMove {
+    PrioratizedMove() :
+        move(0),
+        priority(0),
+        check(0){};
+
+    PrioratizedMove(PackedMove move, int _priority) :
+        move(move),
+        priority(_priority),
+        check(0){};
+
+    void setCheck(bool value) { check = value ? 1 : 0; }
+    bool isCheck() const { return check == 1; }
+
+    PackedMove move;
+    u16 priority : 15;
+    u16 check : 1;
+};
+static_assert(sizeof(PrioratizedMove) == 4, "PrioratizedMove is not 4 bytes");
+
+struct PrioratizedMoveComparator {
+    constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const
+    {
+        return lhs.priority < rhs.priority;
+    }
+};
+
+struct Move {
 public:
     Move();
     Move(Notation source, Notation target);
     Move(const Move& other);
-	Move(Move&& other);
-    
+    Move(Move&& other);
+
     bool isCapture() const { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
     bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
-	bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
-	bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
+    bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
+    bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
     bool isCheckmate() const { return MoveFlag::Checkmate == (Flags & MoveFlag::Checkmate); }
-	bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
-	bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
+    bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
+    bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
     bool isInvalid() const { return MoveFlag::Invalid == (Flags & MoveFlag::Invalid); }
-    i16 calcCaptureValue() const; 
+    i16 calcCaptureValue() const;
 
-	void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
-	void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
-	void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
+    void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
+    void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
+    void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
     void setCastling(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Castle : Flags & ~MoveFlag::Castle); }
     void setInvalid(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Invalid : Flags & ~MoveFlag::Invalid); }
 
     PackedMove readPackedMove() const;
-        
+
     Move& operator=(const Move& other);
     std::string toString() const;
 
@@ -193,13 +357,14 @@ public:
     Move* NextMove;
 };
 
-inline bool operator==(const Move& lhs, const Move& rhs)
+inline bool
+operator==(const Move& lhs, const Move& rhs)
 {
-    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare && lhs.PromoteToPiece == rhs.PromoteToPiece;
+    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
+           lhs.PromoteToPiece == rhs.PromoteToPiece;
 }
 
-struct MoveResult
-{
+struct MoveResult {
     Notation SourceSquare;
     Notation TargetSquare;
 
@@ -217,3 +382,4 @@ struct MoveResult
     Move* NextMove;
 };
 
+#endif  // MOVE_HEADER

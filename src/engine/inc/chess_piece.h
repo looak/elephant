@@ -14,60 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
+#include "chess_piece_defines.hpp"
 #include "defines.h"
-
-#define pieceIndexMax 6
-
-enum class PieceType : byte {
-    NON = 0,
-    PAWN = 1,
-    KNIGHT = 2,
-    BISHOP = 3,
-    ROOK = 4,
-    QUEEN = 5,
-    KING = 6,
-    NR_OF_PIECES = 7,
-};
-
-enum class Set : byte { WHITE = 0, BLACK = 1, NR_OF_SETS = 2 };
-
-constexpr signed short pieceValues[6] = {100, 350, 350, 525, 1000, 10000};
-constexpr byte moveCount[6] = {2, 8, 4, 4, 8, 8};
-
-constexpr bool slides[6] = {
-    false, false, true, true, true, false,
-};
-
-constexpr signed short moves0x88[6][8] = {
-    {-16, -32, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
-    {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-    {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
-
-constexpr signed short attacks0x88[6][8] = {
-    {-15, -17, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
-    {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-    {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
-
-constexpr PieceType slidingPieceTypes[3] = {PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN};
-
-class ChessPieceDef {
-public:
-    static inline constexpr byte MoveCount(byte pIndex) { return moveCount[pIndex]; };
-    static inline constexpr bool Slides(byte pIndex) { return slides[pIndex]; }
-    static inline constexpr signed short Moves0x88(byte pIndex, byte mIndex)
-    {
-        return moves0x88[pIndex][mIndex];
-    }
-    static inline constexpr signed short Attacks0x88(byte pIndex, byte mIndex)
-    {
-        return attacks0x88[pIndex][mIndex];
-    }
-    static inline constexpr signed short Value(byte pIndex) { return pieceValues[pIndex]; }
-    static inline constexpr bool IsDiagonalMove(signed short mvValue)
-    {
-        return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17);
-    }
-};
 
 struct ChessPiece {
 public:
@@ -78,17 +26,21 @@ public:
 public:
     ChessPiece();
     ChessPiece(Set _set, PieceType _type);
+    ChessPiece(byte setId, byte typeId);
 
     char toString() const;
     bool fromString(char piece);
 
-    bool isPawn() const { return type() == 1; }
-    bool isKnight() const { return type() == 2; }
-    bool isBishop() const { return type() == 3; }
-    bool isRook() const { return type() == 4; }
-    bool isQueen() const { return type() == 5; }
-    bool isKing() const { return type() == 6; }
+    // todo cleanup typeid, typeindx and typeenum
+
+    bool isPawn() const { return typeId() == 1; }
+    bool isKnight() const { return typeId() == 2; }
+    bool isBishop() const { return typeId() == 3; }
+    bool isRook() const { return typeId() == 4; }
+    bool isQueen() const { return typeId() == 5; }
+    bool isKing() const { return typeId() == 6; }
     bool isWhite() const { return set() == 0; }
+    bool isBlack() const { return set() == 1; }
 
     bool operator==(const ChessPiece& rhs) const;
     bool operator!=(const ChessPiece& rhs) const;
@@ -96,12 +48,12 @@ public:
 
     PieceType getType() const { return static_cast<PieceType>(m_internalState & 0x07); }
     Set getSet() const { return static_cast<Set>(m_internalState >> 7); }
-    inline byte type() const { return m_internalState & 0x07; }
+    inline byte typeId() const { return m_internalState & 0x07; }
     inline byte set() const { return m_internalState >> 7; }
-    byte index() const { return type() - 1; }
+    byte index() const { return typeId() - 1; }
     byte raw() const { return m_internalState; }
 
-    bool isValid() const { return type() > 0; }
+    bool isValid() const { return typeId() > 0; }
     bool isSliding() const { return ChessPieceDef::Slides(index()); }
 
 private:

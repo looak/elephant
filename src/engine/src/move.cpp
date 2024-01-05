@@ -1,7 +1,7 @@
 #include "move.h"
 
-#include <sstream>
 #include <list>
+#include <sstream>
 
 Move::Move(Notation source, Notation target) :
     TargetSquare(target),
@@ -10,7 +10,7 @@ Move::Move(Notation source, Notation target) :
     PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
-	CapturedPiece(ChessPiece()),
+    CapturedPiece(ChessPiece()),
     Flags(MoveFlag::Zero),
     Score(0)
 {
@@ -23,7 +23,7 @@ Move::Move() :
     PrevCastlingState(0),
     Piece(ChessPiece()),
     PromoteToPiece(ChessPiece()),
-	CapturedPiece(ChessPiece()),
+    CapturedPiece(ChessPiece()),
     Flags(MoveFlag::Invalid),
     Score(0),
     PrevMove(nullptr),
@@ -32,13 +32,11 @@ Move::Move() :
 {
 }
 
-Move::Move(const Move& other)
-{
-    *this = other;
-}
+Move::Move(const Move& other) { *this = other; }
 
-Move& Move::operator=(const Move& other)
-{   
+Move&
+Move::operator=(const Move& other)
+{
     TargetSquare = Notation(other.TargetSquare);
     SourceSquare = Notation(other.SourceSquare);
     Piece = other.Piece;
@@ -55,33 +53,28 @@ Move& Move::operator=(const Move& other)
     return *this;
 }
 
-Move::Move(Move&& other)
-{
-	*this = std::move(other);
-}
+Move::Move(Move&& other) { *this = std::move(other); }
 
-PackedMove Move::readPackedMove() const
+PackedMove
+Move::readPackedMove() const
 {
     u16 packedMove = 0;
     packedMove = (SourceSquare.index() & 63);
     packedMove |= (TargetSquare.index() & 63) << 6;
     packedMove |= isCapture() << 14;
-    if (isCastling())
-    {
+    if (isCastling()) {
         packedMove |= 1 << 13;
-        if (TargetSquare.file == c_file) // queen side castling
+        if (TargetSquare.file == file_c)  // queen side castling
             packedMove |= 1 << 12;
     }
-    if (isPromotion())
-    {
+    if (isPromotion()) {
         packedMove |= 1 << 15;
 
-        u8 packedPiece = PromoteToPiece.type() - 2;
+        u8 packedPiece = PromoteToPiece.typeId() - 2;
         packedMove |= packedPiece << 12;
     }
 
-    if (Piece.isPawn())
-    {
+    if (Piece.isPawn()) {
         if (abs(SourceSquare.rank - TargetSquare.rank) == 2)
             packedMove |= 1 << 12;
     }
@@ -91,7 +84,8 @@ PackedMove Move::readPackedMove() const
     return mv;
 }
 
-i16 Move::calcCaptureValue() const
+i16
+Move::calcCaptureValue() const
 {
     i16 victim = ChessPieceDef::Value(CapturedPiece.index());
     i16 attacker = ChessPieceDef::Value(Piece.index());
@@ -99,27 +93,24 @@ i16 Move::calcCaptureValue() const
     return victim * 10 - attacker;
 }
 
-void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
+void
+ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhite)
 {
     char character = moveStr.at(cursor);
-    if (character == 'O') // castling move
+    if (character == 'O')  // castling move
     {
         // we will either have two or three O's in a row, seperated by dashes.
         int o_counter = 1;
         char lookingFor = '-';
-        while (true)
-        {
+        while (true) {
             cursor++;
-            if (cursor >= moveStr.length())
-            {
+            if (cursor >= moveStr.length()) {
                 break;
             }
 
             character = moveStr.at(cursor);
-            if (character == lookingFor)
-            {
-                if (character == 'O')
-                {
+            if (character == lookingFor) {
+                if (character == 'O') {
                     lookingFor = '-';
                     o_counter++;
                 }
@@ -132,38 +123,37 @@ void ParsePiece(const std::string& moveStr, size_t& cursor, Move& mv, bool isWhi
 
         mv.Piece = ChessPiece(isWhite ? Set::WHITE : Set::BLACK, PieceType::KING);
         mv.Flags |= MoveFlag::Castle;
-        byte rank = isWhite ? 0 : 7;
-        byte file = o_counter == 3 ? 1 : 6; // o_counter == 3 means queen side castling
+        byte rank = isWhite ? rank_1 : rank_8;
+        byte file = o_counter == 3 ? file_c : file_g;  // o_counter == 3 means queen side castling
         mv.TargetSquare = Notation(file, rank);
     }
-    else
-    {
-        if (std::isupper(character))
-        {
+    else {
+        if (std::isupper(character)) {
             if (isWhite == false)
                 character = std::tolower(character);
 
             mv.Piece.fromString(character);
             cursor++;
         }
-        else
-        {
+        else {
             mv.Piece = ChessPiece(isWhite ? Set::WHITE : Set::BLACK, PieceType::PAWN);
         }
     }
 }
 
-Notation ReadWholeNotation(const std::string& moveStr, size_t& cursor)
+Notation
+ReadWholeNotation(const std::string& moveStr, size_t& cursor)
 {
     byte file = moveStr.at(cursor);
     byte rank = moveStr.at(cursor + 1);
-   
+
     file = file - 'a';
     rank = rank - '1';
     return Notation(file, rank);
 }
 
-void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool)
+void
+ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool)
 {
     if (cursor >= moveStr.length())
         return;
@@ -175,7 +165,7 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
     if (isupper(character))
         return;
 
-    if (character == 'x') // we're looking at a capture
+    if (character == 'x')  // we're looking at a capture
     {
         mv.Flags |= MoveFlag::Capture;
         cursor++;
@@ -185,24 +175,20 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
     bool readPosition = false;
     // when moves need more information to distinguish them, there might be additional characters
     // at this portion, examples; 1) Rdf8, 2) R1a3, 3) Qh4e1
-    if (isdigit(character))
-    { 
+    if (isdigit(character)) {
         byte rank = character - '1';
         mv.SourceSquare = Notation(9, rank);
         cursor++;
     }
-    else
-    {
+    else {
         // verify if next two are a whole notation or only file.
-        byte scnd = moveStr.at(cursor+1);
-        if (isdigit(scnd))
-        {
+        byte scnd = moveStr.at(cursor + 1);
+        if (isdigit(scnd)) {
             mv.TargetSquare = ReadWholeNotation(moveStr, cursor);
             cursor++;
             readPosition = true;
         }
-        else
-        {
+        else {
             byte file = character - 'a';
             mv.SourceSquare = Notation(file, 9);
             // we're a pawn capture if we have two files in a row and our piece is a pwan.
@@ -218,49 +204,43 @@ void ParseFileAndRank(const std::string& moveStr, size_t& cursor, Move& mv, bool
 
     character = moveStr.at(cursor);
     // there might be a capture indicator here too
-    if (character == 'x') // we're looking at a capture
+    if (character == 'x')  // we're looking at a capture
     {
         mv.Flags |= MoveFlag::Capture;
         cursor++;
         character = moveStr.at(cursor);
     }
-    if (islower(character))
-    {        
+    if (islower(character)) {
         auto target = ReadWholeNotation(moveStr, cursor);
         cursor += 2;
 
-        if (readPosition)
-        {
+        if (readPosition) {
             mv.SourceSquare = mv.TargetSquare;
             mv.setAmbiguous(false);
         }
         mv.TargetSquare = target;
-
-    }    
+    }
 
     // read any checks or checkmate indications
-    if (cursor < moveStr.length())
-    {
+    if (cursor < moveStr.length()) {
         byte character = moveStr.at(cursor);
-        if (character == '+')
-        {
+        if (character == '+') {
             mv.Flags |= MoveFlag::Check;
             cursor++;
         }
-        else if (character == '#')
-        {
+        else if (character == '#') {
             mv.Flags |= MoveFlag::Checkmate;
             cursor++;
         }
     }
 }
 
-std::string trim(const std::string& str,
-    const std::string& whitespace = " \t")
+std::string
+trim(const std::string& str, const std::string& whitespace = " \t")
 {
     const auto strBegin = str.find_first_not_of(whitespace);
     if (strBegin == std::string::npos)
-        return ""; // no content
+        return "";  // no content
 
     const auto strEnd = str.find_last_not_of(whitespace);
     const auto strRange = strEnd - strBegin + 1;
@@ -268,19 +248,18 @@ std::string trim(const std::string& str,
     return str.substr(strBegin, strRange);
 }
 
-std::vector<std::string> 
+std::vector<std::string>
 Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
-{       
+{
     std::vector<std::string> comments;
     std::list<std::string> tokens;
     std::string token;
     size_t cursor = pgn.find('{');
     size_t endPos = 0;
 
-    while (cursor != std::string::npos)
-    {
+    while (cursor != std::string::npos) {
         endPos = pgn.find('}');
-        endPos++; // inclusive
+        endPos++;  // inclusive
         token = pgn.substr(cursor, endPos - cursor);
         comments.push_back(token);
         pgn.erase(cursor, endPos - cursor);
@@ -289,11 +268,10 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
 
     cursor = 0;
     endPos = pgn.find('.', 2);
-    
-    while (endPos != std::string::npos)
-    {
-        size_t orgEnd = endPos+1;
-        endPos--; // step back one.
+
+    while (endPos != std::string::npos) {
+        size_t orgEnd = endPos + 1;
+        endPos--;  // step back one.
         while (std::isdigit(pgn.at(endPos)))
             endPos--;
 
@@ -303,20 +281,17 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
         endPos = pgn.find('.', orgEnd);
     }
 
-    if (endPos == std::string::npos)
-    {
+    if (endPos == std::string::npos) {
         token = pgn.substr(cursor, pgn.size() - cursor);
         tokens.push_back(trim(token));
     }
 
-    for (auto moveStr : tokens)
-    {
-        // split token 
+    for (auto moveStr : tokens) {
+        // split token
         std::istringstream ssboard(moveStr);
         std::vector<std::string> notations;
         std::string notation;
-        while (std::getline(ssboard, notation, ' '))
-        {
+        while (std::getline(ssboard, notation, ' ')) {
             notation.erase(std::find(notation.begin(), notation.end(), ' '), notation.end());
             notations.push_back(notation);
         }
@@ -330,8 +305,7 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
         ParsePiece(notations[1], cursor, whiteMv, isWhite);
         ParseFileAndRank(notations[1], cursor, whiteMv, isWhite);
 
-        if (notations.size() > 2)
-        {
+        if (notations.size() > 2) {
             auto& blackMv = ret.emplace_back();
             blackMv.setAmbiguous(true);
             isWhite = false;
@@ -343,8 +317,7 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
 
     // fixup pointers
     size_t index = 0;
-    for (auto&& mv : ret)
-    {
+    for (auto&& mv : ret) {
         if (index > 0)
             mv.PrevMove = &ret[index - 1];
 
@@ -357,34 +330,37 @@ Move::ParsePGN(std::string pgn, std::vector<Move>& ret)
     return comments;
 }
 
-Move Move::fromPGN(std::string pgn, bool isWhiteMove)
+Move
+Move::fromPGN(std::string pgn, bool isWhiteMove)
 {
-	Move mv;
+    Move mv;
     mv.setAmbiguous(true);
     mv.SourceSquare = Notation::Invalid();
     mv.TargetSquare = Notation::Invalid();
 
-	size_t cursor = 0;
-	ParsePiece(pgn, cursor, mv, isWhiteMove);
-	ParseFileAndRank(pgn, cursor, mv, isWhiteMove);
-	return mv;
+    size_t cursor = 0;
+    ParsePiece(pgn, cursor, mv, isWhiteMove);
+    ParseFileAndRank(pgn, cursor, mv, isWhiteMove);
+    mv.setInvalid(false);
+    return mv;
 }
 
-std::string Move::toString() const
+std::string
+Move::toString() const
 {
-    std::string ret;    
+    std::string ret;
     ret += SourceSquare.toString();
     ret += TargetSquare.toString();
 
-    if (isPromotion())
-    {        
+    if (isPromotion()) {
         ret += PromoteToPiece.toString();
     }
 
     return ret;
 }
 
-Move Move::fromString(std::string str)
+Move
+Move::fromString(std::string str)
 {
     Move mv;
     mv.setAmbiguous(false);
@@ -394,15 +370,13 @@ Move Move::fromString(std::string str)
     mv.SourceSquare = Notation::BuildPosition(str[0], std::atoi(&str[1]));
     mv.TargetSquare = Notation::BuildPosition(str[2], std::atoi(&str[3]));
 
-    if (str.size() == 4)
-    {
+    if (str.size() == 4) {
         if (str[4] == '=' || str[4] == '#')
-            return mv; 
+            return mv;
         mv.PromoteToPiece.fromString(str[4]);
         mv.Flags |= MoveFlag::Promotion;
     }
-    else if (str.size() == 5)
-    {
+    else if (str.size() == 5) {
         mv.PromoteToPiece.fromString(str[4]);
         mv.Flags |= MoveFlag::Promotion;
     }
