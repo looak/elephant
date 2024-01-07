@@ -36,21 +36,23 @@ Evaluator::Evaluate(const Chessboard& board, i32)
 }
 
 i32
-Evaluator::EvaluateMaterial(const Chessboard&) const
+Evaluator::EvaluateMaterial(const Chessboard& board) const
 {
-    // const auto& whiteMaterial = board.readMaterial((Set)0);
-    // const auto& blackMaterial = board.readMaterial((Set)1);
+    const auto& whiteMaterial = board.readPosition().readMaterial<Set::WHITE>();
+    const auto& blackMaterial = board.readPosition().readMaterial<Set::BLACK>();
 
-    // i32 score = 0;
-    // for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-    //     u32 pieceValue = ChessPieceDef::Value(pieceIndx);
-    //     u32 count = (u32)whiteMaterial.getPieceCount((PieceType)(pieceIndx + 1));
-    //     score += pieceValue * count;
+    i32 score = 0;
+    for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
+        u32 pieceValue = ChessPieceDef::Value(pieceIndx);
+        u32 count = (u32)whiteMaterial.material[pieceIndx].count();
+        score += pieceValue * count;
 
-    //     count = (u32)blackMaterial.getPieceCount((PieceType)(pieceIndx + 1));
-    //     score -= pieceValue * count;
-    // }
-    // return score;
+        count = (u32)blackMaterial.material[pieceIndx].count();
+        score -= pieceValue * count;
+    }
+    score += whiteMaterial.combine().count();
+    score -= blackMaterial.combine().count();
+    return score;
     return 0;
 }
 
@@ -68,27 +70,27 @@ Evaluator::EvaluateMove(Move move) const
 }
 
 i32
-Evaluator::EvalutePiecePositions(const Chessboard&) const
+Evaluator::EvalutePiecePositions(const Chessboard& board) const
 {
     i32 score = 0;
 
-    // for (u32 pieceIndx = 0; pieceIndx < pieceIndexMax; ++pieceIndx) {
-    //     const auto& whiteMat = board.readMaterial(Set::WHITE);
-    //     u64 whitePieceBitboard = whiteMat.readPieceBitboard(pieceIndx);
+    const auto& whiteMaterial = board.readPosition().readMaterial<Set::WHITE>();
+    const auto& blackMaterial = board.readPosition().readMaterial<Set::BLACK>();
 
-    //     while (whitePieceBitboard > 0) {
-    //         i32 sqr = whiteMat.readNextPiece(whitePieceBitboard);
-    //         score += evaluator_data::pestoTables[pieceIndx][sqr];
-    //     }
+    for (u32 pieceIndx = 0; pieceIndx < pieceIndexMax; ++pieceIndx) {
+        Bitboard whitePieces = whiteMaterial[pieceIndx];
 
-    //     const auto& blackMat = board.readMaterial(Set::BLACK);
-    //     u64 blackPieceBitboard = whiteMat.readPieceBitboard(pieceIndx);
+        while (whitePieces.empty() == false) {
+            i32 sqr = whitePieces.popLsb();
+            score += evaluator_data::pestoTables[pieceIndx][sqr];
+        }
 
-    //     while (blackPieceBitboard > 0) {
-    //         i32 sqr = blackMat.readNextPiece(blackPieceBitboard);
-    //         score += evaluator_data::pestoTables[pieceIndx][sqr];
-    //     }
-    // }
+        Bitboard blackPieces = blackMaterial[pieceIndx];
+        while (blackPieces.empty() == false) {
+            i32 sqr = blackPieces.popLsb();
+            score -= evaluator_data::pestoTables[pieceIndx][sqr];
+        }
+    }
 
     return score;
 }

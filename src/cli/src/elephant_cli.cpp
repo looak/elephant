@@ -2,11 +2,13 @@
 //
 #include "elephant_cli.h"
 #include "commands.h"
+#include "commands_uci.h"
 #include "commands_utils.h"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
 #include "game_context.h"
 #include "log.h"
+
 
 #include <iostream>
 #include <list>
@@ -26,21 +28,28 @@ Application::Application()
     MESSAGE() << "                         88";
     MESSAGE() << "                         88                                               *j*m";
     MESSAGE() << "\n                                                            a uci chess engine";
-    MESSAGE() << "                                                                      v: "
-              << ELEPHANT_CLI_VERSION_STR;
+    MESSAGE() << "                                                                      v: " << ELEPHANT_CLI_VERSION_STR;
 
 #ifdef EG_DEBUGGING
     MESSAGE() << "\nEG_DEBUGGING\n v: ";
-    MESSAGE() << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE
-              << ELEPHANT_CLI_VERSION_SUFFIX;
+    MESSAGE() << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX;
 #endif
 }
 
-void Application::Run()
+void
+Application::RunUci()
 {
 #ifdef OUTPUT_LOG_TO_FILE
-    LoggingInternals::ScopedDualRedirect redirect_cout(
-        std::cout, LoggingInternals::LogHelpers::readOutputFilename());
+    LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
+#endif
+    UCICommands::UCIEnable();
+}
+
+void
+Application::Run()
+{
+#ifdef OUTPUT_LOG_TO_FILE
+    LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
 #endif
 
     GameContext context;
@@ -73,8 +82,7 @@ void Application::Run()
         }
         else {
             std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-            std::cout << " Invalid command: " << invalidInput << ", help for all commands!"
-                      << std::endl;
+            std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
         }
     }
 }

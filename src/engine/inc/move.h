@@ -240,25 +240,24 @@ public:
     }
 
 private:
-
-#ifdef __clang__    
-    #define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
-    #define POP_DIAGNOSTIC  _Pragma("clang diagnostic pop")
-    #define DO_PRAGMA(x) _Pragma(#x)
-    #define IGNORE_WARNING(warning) DO_PRAGMA(clang diagnostic ignored warning)
+#ifdef __clang__
+#define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
+#define POP_DIAGNOSTIC _Pragma("clang diagnostic pop")
+#define DO_PRAGMA(x) _Pragma(#x)
+#define IGNORE_WARNING(warning) DO_PRAGMA(clang diagnostic ignored warning)
 #elif defined(__GNUC__) || defined(__GNUG__)
-    #define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
-    #define POP_DIAGNOSTIC  _Pragma("GCC diagnostic pop")
-    #define IGNORE_WARNING(warning) _Pragma("GCC diagnostic ignored " #warning)
+#define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
+#define POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
+#define IGNORE_WARNING(warning) _Pragma("GCC diagnostic ignored " #warning)
 #else
-    #define PUSH_DIAGNOSTIC
-    #define POP_DIAGNOSTIC
-    #define IGNORE_WARNING(warning)
+#define PUSH_DIAGNOSTIC
+#define POP_DIAGNOSTIC
+#define IGNORE_WARNING(warning)
 #endif
 
-PUSH_DIAGNOSTIC
-IGNORE_WARNING("-Wgnu-anonymous-struct")
-IGNORE_WARNING("-Wnested-anon-types")
+    PUSH_DIAGNOSTIC
+    IGNORE_WARNING("-Wgnu-anonymous-struct")
+    IGNORE_WARNING("-Wnested-anon-types")
     union {
         u16 m_internals;
         struct {
@@ -273,10 +272,8 @@ IGNORE_WARNING("-Wnested-anon-types")
             u16 promote : 1;
         } m_internals_struct;
     };
-POP_DIAGNOSTIC
+    POP_DIAGNOSTIC
 };
-
-
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 
@@ -299,6 +296,30 @@ struct PrioratizedMove {
     u16 check : 1;
 };
 static_assert(sizeof(PrioratizedMove) == 4, "PrioratizedMove is not 4 bytes");
+
+struct ScoredMove {
+    ScoredMove() :
+        move(0),
+        score(0){};
+
+    ScoredMove(PackedMove move, int _score) :
+        move(move),
+        score(_score){};
+
+    ScoredMove(const ScoredMove& other) :
+        move(other.move),
+        score(other.score){};
+
+    ScoredMove operator=(const ScoredMove& other)
+    {
+        move = other.move;
+        score = other.score;
+        return *this;
+    }
+
+    PackedMove move;
+    i32 score;
+};
 
 struct PrioratizedMoveComparator {
     constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const

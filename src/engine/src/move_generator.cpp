@@ -79,7 +79,8 @@ MoveGenerator::generateNextMove()
         }
     }
 
-    FATAL_ASSERT(!m_moves.empty()) << "This should never be able to happen since our bitboards have moves in them.";
+    if (m_moves.empty())
+        return PackedMove::NullMove();
 
     m_movesGenerated = true;
     auto move = m_moves.top();
@@ -451,4 +452,13 @@ MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcS
         m_moves.push(prioratizedMove);
         m_unsortedMoves.push_back(prioratizedMove);
     }
+}
+
+bool
+MoveGenerator::isChecked() const
+{
+    if (m_toMove == Set::WHITE)
+        return m_pinThreats[0].isCheckedCount() > 0;
+    else
+        return m_pinThreats[1].isCheckedCount() > 0;
 }

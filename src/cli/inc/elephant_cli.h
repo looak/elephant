@@ -16,11 +16,11 @@
 
 #pragma once
 
-class Application
-{
+class Application {
 public:
-	Application();
-	~Application() = default;
+    Application();
+    ~Application() = default;
 
-	void Run();
+    void Run();
+    void RunUci();
 };

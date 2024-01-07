@@ -63,6 +63,8 @@ public:
     void forEachMove(std::function<void(const PrioratizedMove&)> func) const;
     void generate();
 
+    bool isChecked() const;
+
 private:
     void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
 

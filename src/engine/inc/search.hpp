@@ -73,13 +73,13 @@ struct SearchParameters {
 
 struct SearchResult {
     i32 score;
-    Move move;
+    PackedMove move;
     bool ForcedMate = false;
 };
 
 struct SearchContext {
     u32 count;
-    std::vector<Move> pv;
+    std::vector<ScoredMove> pv;
     std::vector<std::array<Move, 3>> killerMoves;
     // maybe add history heuristic as well.
 };
@@ -111,8 +111,6 @@ struct PerftResult {
 
 class Search {
 public:
-    std::vector<Move> GeneratePossibleMoves(const GameContext& context, bool captureMoves = false) const;
-
     PerftResult Perft(GameContext& context, int depth);
     PerftResult PerftDivide(GameContext& context, int depth);
 
@@ -123,7 +121,7 @@ public:
 private:
     template<bool UseCache>
     SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta,
-                                 i32 perspective, std::vector<Move>& pv, u32 doNullMove);
+                                 i32 perspective, std::vector<ScoredMove>& pv, u32 doNullMove);
 
     template<bool UseCache>
     i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count);

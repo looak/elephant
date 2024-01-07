@@ -1,10 +1,18 @@
+#include <string>
 #include "cli/inc/elephant_cli.h"
 
-int main()
+int
+main(int argc, char* argv[])
 {
-	Application app;
+    Application app;
 
-	app.Run();
+    if (argc > 1) {
+        std::string argument(argv[1]);
+        if (argument == "uci")
+            app.RunUci();
+    }
 
-	return 0;
+    app.Run();
+
+    return 0;
 }
