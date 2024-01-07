@@ -363,6 +363,7 @@ Move
 Move::fromString(std::string str)
 {
     Move mv;
+    mv.Flags = MoveFlag::Zero;
     mv.setAmbiguous(false);
     mv.SourceSquare = Notation::Invalid();
     mv.TargetSquare = Notation::Invalid();

@@ -128,26 +128,26 @@ Chessboard::MakeMove(const PackedMove move)
     undoState.castlingState.write(m_position.readCastling().read());
 
     switch (piece.getType()) {
-        case PieceType::PAWN:
-            // updating pieceTarget since if we're capturing enpassant the target will be on a
-            // different square.
-            captureTarget = InternalHandlePawnMove(move);
-            m_plyCount = 0;  // reset ply count on pawn move
-            break;
+    case PieceType::PAWN:
+        // updating pieceTarget since if we're capturing enpassant the target will be on a
+        // different square.
+        captureTarget = InternalHandlePawnMove(move);
+        m_plyCount = 0;  // reset ply count on pawn move
+        break;
 
-        case PieceType::KING:
-            [[fallthrough]];
-        case PieceType::ROOK:
-            InternalHandleKingRookMove(piece, move, undoState);
-            [[fallthrough]];
+    case PieceType::KING:
+        [[fallthrough]];
+    case PieceType::ROOK:
+        InternalHandleKingRookMove(piece, move, undoState);
+        [[fallthrough]];
 
-        default:
-            // update hash, start by removing old en passant if there was one.
-            if (m_position.readEnPassant() == true)
-                m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_position.readEnPassant().readSquare());
+    default:
+        // update hash, start by removing old en passant if there was one.
+        if (m_position.readEnPassant() == true)
+            m_hash = ZorbistHash::Instance().HashEnPassant(m_hash, m_position.readEnPassant().readSquare());
 
-            // reset enpassant cached values
-            m_position.editEnPassant().clear();
+        // reset enpassant cached values
+        m_position.editEnPassant().clear();
     }
 
     InternalHandleCapture(move, captureTarget, undoState);
@@ -280,7 +280,7 @@ Chessboard::InternalHandlePawnMove(const PackedMove move)
 
 bool
 Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& targetRook, Notation& rookMove,
-                                   MoveUndoUnit& undoUnit)
+    MoveUndoUnit& undoUnit)
 {
     const u8 setIndx = (u8)set;
     bool castling = false;
@@ -319,7 +319,7 @@ Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& tar
 
 void
 Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
-                                   MoveUndoUnit& undoState)
+    MoveUndoUnit& undoState)
 {
     if (piece.getType() == PieceType::KING && targetRook != Notation()) {
         InternalMakeMove(targetRook, rookMove);
@@ -351,22 +351,22 @@ Chessboard::InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit&
     byte mask = 0;
     // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
     switch (rookSquare.index()) {
-        case 63:  // H8 Black King Side Rook
-            mask |= 0x04;
-            InternalUpdateCastlingState(mask, undoState);
-            break;
-        case 56:  // A8 Black Queen Side Rook
-            mask |= 0x08;
-            InternalUpdateCastlingState(mask, undoState);
-            break;
-        case 7:  // H1 White King Side Rook
-            mask |= 0x01;
-            InternalUpdateCastlingState(mask, undoState);
-            break;
-        case 0:  // A1 White Queen Side Rook
-            mask |= 0x02;
-            InternalUpdateCastlingState(mask, undoState);
-            break;
+    case 63:  // H8 Black King Side Rook
+        mask |= 0x04;
+        InternalUpdateCastlingState(mask, undoState);
+        break;
+    case 56:  // A8 Black Queen Side Rook
+        mask |= 0x08;
+        InternalUpdateCastlingState(mask, undoState);
+        break;
+    case 7:  // H1 White King Side Rook
+        mask |= 0x01;
+        InternalUpdateCastlingState(mask, undoState);
+        break;
+    case 0:  // A1 White Queen Side Rook
+        mask |= 0x02;
+        InternalUpdateCastlingState(mask, undoState);
+        break;
     }
 }
 
@@ -375,18 +375,18 @@ Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove 
 {
     Notation targetRook, rookMove;
     switch (piece.getType()) {
-        case PieceType::KING:
-            if (InternalHandleKingMove(move, piece.getSet(), targetRook, rookMove, undoState) == false)
-                break;
+    case PieceType::KING:
+        if (InternalHandleKingMove(move, piece.getSet(), targetRook, rookMove, undoState) == false)
+            break;
 
-            [[fallthrough]];
+        [[fallthrough]];
 
-        case PieceType::ROOK:
-            InternalHandleRookMove(piece, move, targetRook, rookMove, undoState);
-            [[fallthrough]];
+    case PieceType::ROOK:
+        InternalHandleRookMove(piece, move, targetRook, rookMove, undoState);
+        [[fallthrough]];
 
-        default:
-            return;
+    default:
+        return;
     }
 }
 
@@ -426,7 +426,7 @@ Chessboard::InternalMakeMove(const std::string& moveString)
                 if (move.move.target() == parsedMove.TargetSquare.index()) {
                     parsedMove.SourceSquare = Notation(move.move.source());
                 }
-            });
+                });
         }
     }
 
@@ -542,10 +542,10 @@ float
 Chessboard::calculateEndGameCoeficient() const
 {
     static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
-                                                     + ChessPieceDef::Value(1) * 4   // knight
-                                                     + ChessPieceDef::Value(2) * 4   // bishop
-                                                     + ChessPieceDef::Value(3) * 4   // rook
-                                                     + ChessPieceDef::Value(4) * 2;  // queens
+        + ChessPieceDef::Value(1) * 4   // knight
+        + ChessPieceDef::Value(2) * 4   // bishop
+        + ChessPieceDef::Value(3) * 4   // rook
+        + ChessPieceDef::Value(4) * 2;  // queens
 
     // check if we have promoted a pawn because that will screw with this endgame coeficient
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a

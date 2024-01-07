@@ -122,7 +122,7 @@ enum PackedMoveType {
 
 struct PackedMove {
 public:
-    static PackedMove NullMove() { return PackedMove{0x0}; };
+    static PackedMove NullMove() { return PackedMove{ 0x0 }; };
 
     PackedMove() :
         m_internals(0)
@@ -256,9 +256,9 @@ private:
 #endif
 
     PUSH_DIAGNOSTIC
-    IGNORE_WARNING("-Wgnu-anonymous-struct")
-    IGNORE_WARNING("-Wnested-anon-types")
-    union {
+        IGNORE_WARNING("-Wgnu-anonymous-struct")
+        IGNORE_WARNING("-Wnested-anon-types")
+        union {
         u16 m_internals;
         struct {
             // public:
@@ -281,12 +281,12 @@ struct PrioratizedMove {
     PrioratizedMove() :
         move(0),
         priority(0),
-        check(0){};
+        check(0) {};
 
     PrioratizedMove(PackedMove move, int _priority) :
         move(move),
         priority(_priority),
-        check(0){};
+        check(0) {};
 
     void setCheck(bool value) { check = value ? 1 : 0; }
     bool isCheck() const { return check == 1; }
@@ -300,15 +300,15 @@ static_assert(sizeof(PrioratizedMove) == 4, "PrioratizedMove is not 4 bytes");
 struct ScoredMove {
     ScoredMove() :
         move(0),
-        score(0){};
+        score(0) {};
 
     ScoredMove(PackedMove move, int _score) :
         move(move),
-        score(_score){};
+        score(_score) {};
 
     ScoredMove(const ScoredMove& other) :
         move(other.move),
-        score(other.score){};
+        score(other.score) {};
 
     ScoredMove operator=(const ScoredMove& other)
     {
@@ -347,6 +347,7 @@ public:
 
     void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
     void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
+    void setEnPassant(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::EnPassant : Flags & ~MoveFlag::EnPassant); }
     void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
     void setCastling(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Castle : Flags & ~MoveFlag::Castle); }
     void setInvalid(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Invalid : Flags & ~MoveFlag::Invalid); }
@@ -385,7 +386,7 @@ inline bool
 operator==(const Move& lhs, const Move& rhs)
 {
     return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
-           lhs.PromoteToPiece == rhs.PromoteToPiece;
+        lhs.PromoteToPiece == rhs.PromoteToPiece;
 }
 
 struct MoveResult {

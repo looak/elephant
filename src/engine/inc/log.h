@@ -26,7 +26,7 @@
 #include <sstream>
 #include <string>
 
-// #define OUTPUT_LOG_TO_FILE
+#define OUTPUT_LOG_TO_FILE
 // #define EG_DEBUGGING
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
@@ -70,6 +70,15 @@
     switch (0)        \
     case 0:           \
     default:          \
+        LoggingInternals::LogMessage("[  WARNING ] ", __FILENAME__, __LINE__)
+
+// @brief Logs a warning message with the file name and line number.
+#define LOG_WARNING_EXPR(expr) \
+    if ((expr) != 0) {    \
+        int ___noop = 5;  \
+        (void)___noop;    \
+    }                     \
+    else                  \
         LoggingInternals::LogMessage("[  WARNING ] ", __FILENAME__, __LINE__)
 
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
