@@ -103,6 +103,11 @@ enum class Square : uint8_t {
     NullSQ
 };
 
+constexpr byte operator*(Square sqr)
+{
+    return static_cast<byte>(sqr);
+}
+
 template<typename T>
 T&
 increment(T& value)

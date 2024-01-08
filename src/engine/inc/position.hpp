@@ -298,7 +298,7 @@ public:
      * @param source Position on board of the king.
      * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
      * @return A mask struct containing a seperate mask for each direction.  */
-    KingPinThreats calcKingMask(ChessPiece king, Notation source, const SlidingMaterialMasks& opponentSlidingMask) const;
+    KingPinThreats calcKingMask(ChessPiece king, Square source, const SlidingMaterialMasks& opponentSlidingMask) const;
     template<Set us>
     KingPinThreats calcKingMask() const;
 

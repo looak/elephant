@@ -2779,7 +2779,7 @@ TEST_F(PositionFixture, KingMask_Pawns)
     expected |= INT64_C(1) << b7.index();
 
     // do
-    auto kingMask = board.calcKingMask(k, a8, {0, 0}).combined();
+    auto kingMask = board.calcKingMask(k, Square::A8, { 0, 0 }).combined();
 
     // validate
     EXPECT_EQ(expected, kingMask.read());

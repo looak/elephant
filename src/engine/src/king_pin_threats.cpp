@@ -90,7 +90,7 @@ KingPinThreats::checks() const
 }
 
 void
-KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const Position& position)
+KingPinThreats::calculateEnPassantPinThreat(Set set, Square kingSquare, const Position& position)
 {
     if (position.readEnPassant() == false) {
         return;
@@ -98,7 +98,8 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const 
 
     const Set opSet = ChessPiece::FlipSet(set);
     const size_t opIndx = static_cast<size_t>(opSet);
-    Bitboard kingSquareMask = squareMaskTable[kingSquare.index()];
+    Bitboard kingSquareMask = squareMaskTable[*kingSquare];
+    Notation kingNotation(kingSquare);
 
     if (kingSquareMask & board_constants::enPassantRankRelative[opIndx]) {
         const Bitboard usMaterial = position.readMaterial(set).combine();
@@ -120,7 +121,7 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const 
         Notation epTarget(epTargetSquare);
 
         Bitboard resultMask;
-        if (epTarget.file > kingSquare.file) {
+        if (epTarget.file > kingNotation.file) {
             do {
                 kingSquareMask = kingSquareMask.shiftEast();
                 resultMask |= kingSquareMask;
@@ -150,8 +151,8 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Notation kingSquare, const 
 }
 
 void
-KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
-                         const SlidingMaterialMasks& opponentSlidingMask)
+KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
+    const SlidingMaterialMasks& opponentSlidingMask)
 {
     byte moveCount = ChessPieceDef::MoveCount(kingId);
 
@@ -162,8 +163,8 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
     const Bitboard opMaterial = position.readMaterial(opSet).combine();
     const Bitboard allMaterial = usMaterial | opMaterial;
 
-    const Bitboard slideMatCache[2]{opponentSlidingMask.orthogonal & orthogonalMaterial,
-                                    opponentSlidingMask.diagonal & diagonalMaterial};
+    const Bitboard slideMatCache[2]{ opponentSlidingMask.orthogonal & orthogonalMaterial,
+                                    opponentSlidingMask.diagonal & diagonalMaterial };
 
     u8 matCount = 0;
     bool threatened = (!diagonalMaterial.empty() || !orthogonalMaterial.empty());
@@ -173,7 +174,7 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
         matCount = 0;
         threatened = threatenedReset;
 
-        byte curSqr = kingSquare.index();
+        byte curSqr = *kingSquare;
         signed short dir = ChessPieceDef::Moves0x88(kingId, moveIndx);
 
         m_threatenedAngles[moveIndx] = ~universe;
@@ -220,7 +221,7 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
         moveCount = ChessPieceDef::MoveCount(knightId);
 
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-            byte curSqr = kingSquare.index();
+            byte curSqr = *kingSquare;
             signed short dir = ChessPieceDef::Moves0x88(knightId, moveIndx);
 
             u64 mvMask = 0;
@@ -247,10 +248,11 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
         }
     }
 
+    Notation kingNotation(kingSquare);
     if (position.readMaterial(opSet).pawns().empty() == false) {
         // figure out if we're checked by a pawn
         i8 pawnMod = set == Set::WHITE ? 1 : -1;
-        auto pawnSqr = Notation(kingSquare.file + 1, kingSquare.rank + pawnMod);
+        auto pawnSqr = Notation(kingNotation.file + 1, kingNotation.rank + pawnMod);
         if (Position::IsValidSquare(pawnSqr)) {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
             sqrMak &= position.readMaterial(opSet).pawns().read();
@@ -259,7 +261,7 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
                 m_knightOrPawnCheck = true;
             }
         }
-        pawnSqr = Notation(kingSquare.file - 1, kingSquare.rank + pawnMod);
+        pawnSqr = Notation(kingNotation.file - 1, kingNotation.rank + pawnMod);
         if (Position::IsValidSquare(pawnSqr)) {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
             sqrMak &= position.readMaterial(opSet).pawns().read();
@@ -274,14 +276,14 @@ KingPinThreats::evaluate(Set set, Notation kingSquare, const Position& position,
 }
 
 void
-KingPinThreats::calculateOpponentOpenAngles(Set opSet, const Notation kingSquare, const Position& position)
+KingPinThreats::calculateOpponentOpenAngles(Set opSet, const Square kingSquare, const Position& position)
 {
     const byte moveCount = ChessPieceDef::MoveCount(kingId);
     const Bitboard opMaterial = position.readMaterial(opSet).combine();
     const Bitboard usMaterial = position.readMaterial(ChessPiece::FlipSet(opSet)).combine();
 
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        byte curSqr = kingSquare.index();
+        byte curSqr = *kingSquare;
         signed short dir = ChessPieceDef::Moves0x88(kingId, moveIndx);
         bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
         Bitboard* openAnglePtr = &m_opponentOpenAngles[diagonal];

@@ -117,11 +117,11 @@ Position::calcKingMask() const
     constexpr Set op = opposing_set<us>();
     auto slidingMask = calcMaterialSlidingMasksBulk<op>();
     auto king = ChessPiece(us, PieceType::KING);
-    auto kingSqr = m_material[(size_t)us].material[kingId].lsbIndex();
-    auto ret = calcKingMask(king, Notation(kingSqr), slidingMask);
+    Square kingSqr = static_cast<Square>(m_material[(size_t)us].material[kingId].lsbIndex());
+    auto ret = calcKingMask(king, kingSqr, slidingMask);
 
-    auto opKingSqr = m_material[(size_t)op].kings().lsbIndex();
-    ret.calculateOpponentOpenAngles(op, Notation(opKingSqr), *this);
+    Square opKingSqr = static_cast<Square>(m_material[(size_t)op].kings().lsbIndex());
+    ret.calculateOpponentOpenAngles(op, opKingSqr, *this);
 
     return ret;
 }
@@ -130,7 +130,7 @@ template KingPinThreats Position::calcKingMask<Set::WHITE>() const;
 template KingPinThreats Position::calcKingMask<Set::BLACK>() const;
 
 KingPinThreats
-Position::calcKingMask(ChessPiece king, Notation source, const SlidingMaterialMasks& opponentSlidingMask) const
+Position::calcKingMask(ChessPiece king, Square source, const SlidingMaterialMasks& opponentSlidingMask) const
 {
     KingPinThreats ret;
     ret.evaluate(king.getSet(), source, *this, opponentSlidingMask);
