@@ -197,9 +197,13 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
             u64 sqrMask = squareMaskTable[curSqr];
 
             mvMask |= sqrMask;
-            matCount += (allMaterial & sqrMask).count();
 
-        } while ((mvMask & slideMat).count() == 0 && matCount < 2);
+            if (allMaterial & sqrMask)
+                matCount++;  // increment mat count since we found a piece on this square.
+            if (slideMat & sqrMask)
+    			break; // (mvMask & slideMat).count() == 0 
+
+        } while (matCount < 2);
 
         // comparing against two here since we'll find the sliding piece causing the pin
         // and at least one piece in between our king and this piece. This found piece isn't

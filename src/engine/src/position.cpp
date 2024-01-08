@@ -50,7 +50,7 @@ Position::IsValidSquare(signed short currSqr)
 {
     if (currSqr < 0)
         return false;
-    if (currSqr > 127) {
+    if (currSqr > 63) {
         // LOG_ERROR() << "In case index is larger than 127 it will wrap around our board.";
         return false;
     }
@@ -493,24 +493,24 @@ std::tuple<Bitboard, Bitboard>
 Position::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
     switch (pieceId) {
-        case pawnId:
-            return internalIsolatePawn<us>(source, movesbb, kingMask);
-        case bishopId:
-            return internalIsolateBishop<us>(source, movesbb, kingMask);
-        case rookId:
-            return internalIsolateRook<us>(source, movesbb, kingMask);
-        case knightId:
-            return internalIsolateKnightMoves<us>(source, movesbb, kingMask);
-        case queenId: {
-            auto [moves, captures] = internalIsolateBishop<us>(source, movesbb, kingMask, queenId);
-            auto [rookMoves, rookCaptures] = internalIsolateRook<us>(source, movesbb, kingMask, queenId);
-            return {moves | rookMoves, captures | rookCaptures};
-        }
-        default:
-            FATAL_ASSERT(false) << "Not implemented";
+    case pawnId:
+        return internalIsolatePawn<us>(source, movesbb, kingMask);
+    case bishopId:
+        return internalIsolateBishop<us>(source, movesbb, kingMask);
+    case rookId:
+        return internalIsolateRook<us>(source, movesbb, kingMask);
+    case knightId:
+        return internalIsolateKnightMoves<us>(source, movesbb, kingMask);
+    case queenId: {
+        auto [moves, captures] = internalIsolateBishop<us>(source, movesbb, kingMask, queenId);
+        auto [rookMoves, rookCaptures] = internalIsolateRook<us>(source, movesbb, kingMask, queenId);
+        return { moves | rookMoves, captures | rookCaptures };
+    }
+    default:
+        FATAL_ASSERT(false) << "Not implemented";
     }
 
-    return {0, 0};
+    return { 0, 0 };
 }
 
 template std::tuple<Bitboard, Bitboard> Position::isolatePiece<Set::WHITE>(u8, Notation, Bitboard, const KingPinThreats&) const;
@@ -552,13 +552,13 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
         isolatedbb &= pinned;
         threatns &= pinned;
     }
-    return {movesbb & isolatedbb, movesbb & opMatCombined & threatns};
+    return { movesbb & isolatedbb, movesbb & opMatCombined & threatns };
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::WHITE>(Notation, Bitboard,
-                                                                                  const KingPinThreats&) const;
+    const KingPinThreats&) const;
 template std::tuple<Bitboard, Bitboard> Position::internalIsolatePawn<Set::BLACK>(Notation, Bitboard,
-                                                                                  const KingPinThreats&) const;
+    const KingPinThreats&) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
@@ -575,7 +575,7 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
     }
 
     if (readMaterial<us>()[knightId].count() <= 1)
-        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+        return { movesbb & ~opMatCombined, movesbb & opMatCombined };
 
     Bitboard isolatedbb;
 
@@ -599,7 +599,7 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
     Bitboard ourMaterial = readMaterial<us>().combine();
     isolatedbb &= ~ourMaterial;
 
-    return {movesbb & isolatedbb & ~opMatCombined, movesbb & isolatedbb & opMatCombined};
+    return { movesbb & isolatedbb & ~opMatCombined, movesbb & isolatedbb & opMatCombined };
 }
 
 template<Set us>
@@ -615,7 +615,7 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
     }
 
     if (readMaterial<us>()[pieceIndex].count() <= 1) {
-        return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+        return { movesbb & ~opMatCombined, movesbb & opMatCombined };
     }
 
     if (pieceIndex == bishopId) {
@@ -624,11 +624,11 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
         Bitboard darkSquaredMaterial = material & board_constants::darkSquares;
         Bitboard lightSquaredMaterial = material & board_constants::lightSquares;
         if (srcMask & darkSquaredMaterial && darkSquaredMaterial.count() == 1)
-            return {movesbb & board_constants::darkSquares & ~opMatCombined,
-                    movesbb & board_constants::darkSquares & opMatCombined};
+            return { movesbb & board_constants::darkSquares & ~opMatCombined,
+                    movesbb & board_constants::darkSquares & opMatCombined };
         else if (srcMask & lightSquaredMaterial && lightSquaredMaterial.count() == 1)
-            return {movesbb & board_constants::lightSquares & ~opMatCombined,
-                    movesbb & board_constants::lightSquares & opMatCombined};
+            return { movesbb & board_constants::lightSquares & ~opMatCombined,
+                    movesbb & board_constants::lightSquares & opMatCombined };
     }
 
     const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
@@ -641,13 +641,13 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
     moves |= internalCalculateThreat<us, northwest, bishopId>(bounds[north] | bounds[west], srcMask, usMaterial, opMatCombined);
     movesbb &= moves;
 
-    return {movesbb & ~opMatCombined, movesbb & opMatCombined};
+    return { movesbb & ~opMatCombined, movesbb & opMatCombined };
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
-                                                                                    i8) const;
+    i8) const;
 template std::tuple<Bitboard, Bitboard> Position::internalIsolateBishop<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
-                                                                                    i8) const;
+    i8) const;
 
 template<Set us>
 std::tuple<Bitboard, Bitboard>
@@ -664,7 +664,7 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
     }
 
     if (readMaterial<us>()[pieceIndx].count() <= 1)
-        return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
+        return { movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces };
 
     Bitboard mask(board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank]);
     Bitboard pieceMask = readMaterial<us>()[pieceIndx] & mask;
@@ -711,13 +711,13 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
     moves |= internalCalculateThreat<us, west, rookId>(bounds[west], thisSrcMask, usMaterial, opMatCombined);
     movesbb &= moves;
 
-    return {movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces};
+    return { movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces };
 }
 
 template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
-                                                                                  i8) const;
+    i8) const;
 template std::tuple<Bitboard, Bitboard> Position::internalIsolateRook<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
-                                                                                  i8) const;
+    i8) const;
 
 i32
 Position::diffWestEast(Notation a, Notation b) const
