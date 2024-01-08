@@ -99,7 +99,6 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Square kingSquare, const Po
     const Set opSet = ChessPiece::FlipSet(set);
     const size_t opIndx = static_cast<size_t>(opSet);
     Bitboard kingSquareMask = squareMaskTable[*kingSquare];
-    Notation kingNotation(kingSquare);
 
     if (kingSquareMask & board_constants::enPassantRankRelative[opIndx]) {
         const Bitboard usMaterial = position.readMaterial(set).combine();
@@ -121,6 +120,7 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Square kingSquare, const Po
         Notation epTarget(epTargetSquare);
 
         Bitboard resultMask;
+        Notation kingNotation(kingSquare);
         if (epTarget.file > kingNotation.file) {
             do {
                 kingSquareMask = kingSquareMask.shiftEast();
@@ -248,8 +248,8 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
         }
     }
 
-    Notation kingNotation(kingSquare);
     if (position.readMaterial(opSet).pawns().empty() == false) {
+        Notation kingNotation(kingSquare);
         // figure out if we're checked by a pawn
         i8 pawnMod = set == Set::WHITE ? 1 : -1;
         auto pawnSqr = Notation(kingNotation.file + 1, kingNotation.rank + pawnMod);
