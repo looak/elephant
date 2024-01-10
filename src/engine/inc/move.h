@@ -248,22 +248,19 @@ private:
 #elif defined(__GNUC__) || defined(__GNUG__)
 #define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
 #define POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
-#define IGNORE_WARNING(warning) _Pragma("GCC diagnostic ignored " #warning)
+#define IGNORE_WARNING(warning) // do nothing
 #else
 #define PUSH_DIAGNOSTIC
 #define POP_DIAGNOSTIC
 #define IGNORE_WARNING(warning)
 #endif
 
-    PUSH_DIAGNOSTIC
+    PUSH_DIAGNOSTIC    
         IGNORE_WARNING("-Wgnu-anonymous-struct")
         IGNORE_WARNING("-Wnested-anon-types")
         union {
         u16 m_internals;
         struct {
-            // public:
-            //     internals_struct() = default;
-            //     internals_struct(u16 data) { memcpy(this, &data, sizeof(u16)); }
             u16 src : 6;
             u16 trg : 6;
             u16 flag : 1;
