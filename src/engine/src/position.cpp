@@ -98,16 +98,24 @@ Position::PlacePiece(ChessPiece piece, Notation target)
 ChessPiece
 Position::readPieceAt(Square sqr) const
 {
-    Bitboard mask(squareMaskTable[static_cast<u8>(sqr)]);
-    //mask[sqr] = true;
+    Bitboard mask(UINT64_C(1) << (u8)sqr);
 
     for (byte set = 0; set < 2; ++set) {
         if (m_materialMask.m_set[set] & mask)
         {
-            for (byte pieceId = 0; pieceId < 6; ++pieceId) {
-                if (m_materialMask.read(pieceId) & mask)
-                    return ChessPiece(set, pieceId);
-            }
+            // unrolled this for loop in an attempt to make it quicker.
+            if (m_materialMask.pawns() & mask)
+                return piece_constants::pieces[set][pawnId];
+            else if (m_materialMask.knights() & mask)
+                return piece_constants::pieces[set][knightId];
+            else if (m_materialMask.bishops() & mask)
+                return piece_constants::pieces[set][bishopId];
+            else if (m_materialMask.rooks() & mask)
+                return piece_constants::pieces[set][rookId];
+            else if (m_materialMask.queens() & mask)
+                return piece_constants::pieces[set][queenId];
+            else if (m_materialMask.kings() & mask)
+                return piece_constants::pieces[set][kingId];
         }
     }
     return ChessPiece::None();

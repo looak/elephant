@@ -69,20 +69,23 @@ private:
     byte m_internalState;
 };
 
-constexpr ChessPiece WhitePawn(Set::WHITE, PieceType::PAWN);
-constexpr ChessPiece BlackPawn(Set::BLACK, PieceType::PAWN);
-constexpr ChessPiece WhiteKnight(Set::WHITE, PieceType::KNIGHT);
-constexpr ChessPiece BlackKnight(Set::BLACK, PieceType::KNIGHT);
-constexpr ChessPiece WhiteBishop(Set::WHITE, PieceType::BISHOP);
-constexpr ChessPiece BlackBishop(Set::BLACK, PieceType::BISHOP);
-constexpr ChessPiece WhiteRook(Set::WHITE, PieceType::ROOK);
-constexpr ChessPiece BlackRook(Set::BLACK, PieceType::ROOK);
-constexpr ChessPiece WhiteQueen(Set::WHITE, PieceType::QUEEN);
-constexpr ChessPiece BlackQueen(Set::BLACK, PieceType::QUEEN);
-constexpr ChessPiece WhiteKing(Set::WHITE, PieceType::KING);
-constexpr ChessPiece BlackKing(Set::BLACK, PieceType::KING);
+namespace piece_constants {
+constexpr ChessPiece white_pawn(Set::WHITE, PieceType::PAWN);
+constexpr ChessPiece black_pawn(Set::BLACK, PieceType::PAWN);
+constexpr ChessPiece white_knight(Set::WHITE, PieceType::KNIGHT);
+constexpr ChessPiece black_knight(Set::BLACK, PieceType::KNIGHT);
+constexpr ChessPiece white_bishop(Set::WHITE, PieceType::BISHOP);
+constexpr ChessPiece black_bishop(Set::BLACK, PieceType::BISHOP);
+constexpr ChessPiece white_rook(Set::WHITE, PieceType::ROOK);
+constexpr ChessPiece black_rook(Set::BLACK, PieceType::ROOK);
+constexpr ChessPiece white_queen(Set::WHITE, PieceType::QUEEN);
+constexpr ChessPiece black_queen(Set::BLACK, PieceType::QUEEN);
+constexpr ChessPiece white_king(Set::WHITE, PieceType::KING);
+constexpr ChessPiece black_king(Set::BLACK, PieceType::KING);
 
-constexpr ChessPiece s_pieces[2][6] = {
-    {WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing},
-    {BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing}
+constexpr ChessPiece pieces[2][6] = {
+    { white_pawn, white_knight, white_bishop, white_rook, white_queen, white_king },
+    { black_pawn, black_knight, black_bishop, black_rook, black_queen, black_king }
 };
+
+} // namespace piece_constants
