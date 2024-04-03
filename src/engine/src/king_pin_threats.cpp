@@ -89,29 +89,29 @@ KingPinThreats::checks() const
     return combined;
 }
 
-void
-KingPinThreats::calculateEnPassantPinThreat(Set set, Square kingSquare, const Position& position)
+template<Set us>
+void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, const Position& position)
 {
     if (position.readEnPassant() == false) {
         return;
     }
 
-    const Set opSet = ChessPiece::FlipSet(set);
-    const size_t opIndx = static_cast<size_t>(opSet);
+    constexpr Set op = opposing_set<us>();
+    constexpr size_t opIndx = static_cast<size_t>(op);
     Bitboard kingSquareMask = squareMaskTable[*kingSquare];
 
     if (kingSquareMask & board_constants::enPassantRankRelative[opIndx]) {
-        const Bitboard usMaterial = position.readMaterial(set).combine();
-        const Bitboard opMaterial = position.readMaterial(opSet).combine();
+        const Bitboard usMaterial = position.readMaterial().combine<us>();
+        const Bitboard opMaterial = position.readMaterial().combine<op>();
         const Bitboard allMaterial = usMaterial | opMaterial;
-        const Bitboard orthogonalMaterial = position.readMaterial(opSet).rooks() | position.readMaterial(opSet).queens();
+        const Bitboard orthogonalMaterial = position.readMaterial().rooks<op>() | position.readMaterial().queens<op>();
 
         Bitboard riskOfPin = allMaterial & board_constants::enPassantRankRelative[opIndx];
 
         if ((riskOfPin & orthogonalMaterial).empty())
             return;  // no one to pin us on this rank.
 
-        const Bitboard usPawns = position.readMaterial(set).pawns();
+        const Bitboard usPawns = position.readMaterial().pawns<us>();
 
         if ((usPawns & board_constants::enPassantRankRelative[opIndx]).empty())
             return;  // no pawns on this rank to pin.
@@ -150,17 +150,23 @@ KingPinThreats::calculateEnPassantPinThreat(Set set, Square kingSquare, const Po
     }
 }
 
-void
-KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
+template void KingPinThreats::calculateEnPassantPinThreat<Set::WHITE>(Square, const Position&);
+template void KingPinThreats::calculateEnPassantPinThreat<Set::BLACK>(Square, const Position&);
+
+template<Set us>
+void KingPinThreats::evaluate(Square kingSquare, const Position& position,
     const SlidingMaterialMasks& opponentSlidingMask)
 {
     byte moveCount = ChessPieceDef::MoveCount(kingId);
 
-    const Set opSet = ChessPiece::FlipSet(set);
-    const Bitboard diagonalMaterial = position.readMaterial(opSet).bishops() | position.readMaterial(opSet).queens();
-    const Bitboard orthogonalMaterial = position.readMaterial(opSet).rooks() | position.readMaterial(opSet).queens();
-    const Bitboard usMaterial = position.readMaterial(set).combine();
-    const Bitboard opMaterial = position.readMaterial(opSet).combine();
+    constexpr Set op = opposing_set<us>();
+
+    //const Set opSet = ChessPiece::FlipSet(us);
+
+    const Bitboard diagonalMaterial = position.readMaterial().bishops<op>() | position.readMaterial().queens<op>();
+    const Bitboard orthogonalMaterial = position.readMaterial().rooks<op>() | position.readMaterial().queens<op>();
+    const Bitboard usMaterial = position.readMaterial().combine<us>();
+    const Bitboard opMaterial = position.readMaterial().combine<op>();
     const Bitboard allMaterial = usMaterial | opMaterial;
 
     const Bitboard slideMatCache[2]{ opponentSlidingMask.orthogonal & orthogonalMaterial,
@@ -201,7 +207,7 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
             if (allMaterial & sqrMask)
                 matCount++;  // increment mat count since we found a piece on this square.
             if (slideMat & sqrMask)
-    			break; // (mvMask & slideMat).count() == 0 
+                break; // (mvMask & slideMat).count() == 0 
 
         } while (matCount < 2);
 
@@ -217,7 +223,7 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
         }
     }
 
-    const u64 knightMat = position.readMaterial(opSet).knights().read();
+    const u64 knightMat = position.readMaterial().knights<op>().read();
 
     m_knightsAndPawns = ~universe;
     if (knightMat > 0) {
@@ -252,14 +258,14 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
         }
     }
 
-    if (position.readMaterial(opSet).pawns().empty() == false) {
+    if (position.readMaterial().pawns<op>().empty() == false) {
         Notation kingNotation(kingSquare);
         // figure out if we're checked by a pawn
-        i8 pawnMod = set == Set::WHITE ? 1 : -1;
+        i8 pawnMod = pawn_modifier<us>();
         auto pawnSqr = Notation(kingNotation.file + 1, kingNotation.rank + pawnMod);
         if (Position::IsValidSquare(pawnSqr)) {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= position.readMaterial(opSet).pawns().read();
+            sqrMak &= position.readMaterial().pawns<op>().read();
             if (sqrMak > 0) {
                 m_knightsAndPawns |= sqrMak;
                 m_knightOrPawnCheck = true;
@@ -268,7 +274,7 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
         pawnSqr = Notation(kingNotation.file - 1, kingNotation.rank + pawnMod);
         if (Position::IsValidSquare(pawnSqr)) {
             u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= position.readMaterial(opSet).pawns().read();
+            sqrMak &= position.readMaterial().pawns<op>().read();
             if (sqrMak > 0) {
                 m_knightsAndPawns |= sqrMak;
                 m_knightOrPawnCheck = true;
@@ -276,15 +282,19 @@ KingPinThreats::evaluate(Set set, Square kingSquare, const Position& position,
         }
     }
 
-    calculateEnPassantPinThreat(set, kingSquare, position);
+    calculateEnPassantPinThreat<us>(kingSquare, position);
 }
 
-void
-KingPinThreats::calculateOpponentOpenAngles(Set opSet, const Square kingSquare, const Position& position)
+template void KingPinThreats::evaluate<Set::WHITE>(Square, const Position&, const SlidingMaterialMasks&);
+template void KingPinThreats::evaluate<Set::BLACK>(Square, const Position&, const SlidingMaterialMasks&);
+
+template<Set op>
+void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, const Position& position)
 {
     const byte moveCount = ChessPieceDef::MoveCount(kingId);
-    const Bitboard opMaterial = position.readMaterial(opSet).combine();
-    const Bitboard usMaterial = position.readMaterial(ChessPiece::FlipSet(opSet)).combine();
+    const Bitboard opMaterial = position.readMaterial().combine<op>();
+    constexpr Set us = opposing_set<op>();
+    const Bitboard usMaterial = position.readMaterial().combine<us>();
 
     for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
         byte curSqr = *kingSquare;
@@ -316,3 +326,6 @@ KingPinThreats::calculateOpponentOpenAngles(Set opSet, const Square kingSquare, 
         } while (openAngle);
     }
 }
+
+template void KingPinThreats::calculateOpponentOpenAngles<Set::WHITE>(Square, const Position&);
+template void KingPinThreats::calculateOpponentOpenAngles<Set::BLACK>(Square, const Position&);

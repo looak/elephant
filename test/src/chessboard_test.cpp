@@ -16,7 +16,7 @@ public:
         DefaultStartingPosition();
         GameOfTheCentury_WindmillPosition();
     };
-    virtual void TearDown(){};
+    virtual void TearDown() {};
 
     Chessboard m_emptyChessboard;  // by default a board should start empty.
     Chessboard m_defaultStartingPosition;
@@ -130,7 +130,7 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
     auto n = BLACKKNIGHT;
     auto p = BLACKPAWN;
 
-    const auto& whiteKing = board.readPosition().readMaterial<Set::WHITE>().kings();
+    auto whiteKing = board.readPosition().readMaterial().kings<Set::WHITE>();
     u64 oldHash = board.readHash();
 
     // validate emptiness
@@ -139,6 +139,7 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
 
     // do
     board.PlacePiece(K, a1);
+    whiteKing = board.readPosition().readMaterial().kings<Set::WHITE>();
 
     // validate
     EXPECT_EQ(K, board.readPieceAt(Square::A1));
@@ -149,7 +150,7 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
     // do some more
     board.PlacePieces(r, Square::C6, r, Square::C7, r, Square::G4);
 
-    const auto& blackRooks = board.readPosition().readMaterial<Set::BLACK>().rooks();
+    const auto& blackRooks = board.readPosition().readMaterial().rooks<Set::BLACK>();
     EXPECT_EQ(3, blackRooks.count());
     EXPECT_TRUE(blackRooks[Square::C6]);
     EXPECT_TRUE(blackRooks[Square::C7]);
@@ -703,13 +704,13 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     cpyMask = scndCopy.calculateThreatenedMask(Set::WHITE);
     EXPECT_EQ(orgMask, cpyMask);
 
-    Bitboard orgMat = m_gameOfTheCentury.readPosition().readMaterial<Set::BLACK>().combine();
-    Bitboard cpyMat = scndCopy.readPosition().readMaterial<Set::BLACK>().combine();
+    Bitboard orgMat = m_gameOfTheCentury.readPosition().readMaterial().combine<Set::BLACK>();
+    Bitboard cpyMat = scndCopy.readPosition().readMaterial().combine<Set::BLACK>();
     EXPECT_EQ(orgMat.count(), cpyMat.count());
     EXPECT_EQ(orgMat, cpyMat);
 
-    orgMat = m_gameOfTheCentury.readPosition().readMaterial<Set::WHITE>().combine();
-    cpyMat = scndCopy.readPosition().readMaterial<Set::WHITE>().combine();
+    orgMat = m_gameOfTheCentury.readPosition().readMaterial().combine<Set::WHITE>();
+    cpyMat = scndCopy.readPosition().readMaterial().combine<Set::WHITE>();
     EXPECT_EQ(orgMat.count(), cpyMat.count());
     EXPECT_EQ(orgMat, cpyMat);
 }
@@ -773,7 +774,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(5);
     EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_KINGSIDE,
-              m_defaultStartingPosition.readCastlingState().read());
+        m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -784,7 +785,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(6);
     EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_KINGSIDE,
-              m_defaultStartingPosition.readCastlingState().read());
+        m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -815,7 +816,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(9);
     EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_QUEENSIDE,
-              m_defaultStartingPosition.readCastlingState().read());
+        m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());
@@ -826,7 +827,7 @@ TEST_F(ChessboardFixture, CastlingStateInfoTest)
 
     m_defaultStartingPosition.setCastlingState(10);
     EXPECT_EQ(CastlingState::WHITE_QUEENSIDE | CastlingState::BLACK_QUEENSIDE,
-              m_defaultStartingPosition.readCastlingState().read());
+        m_defaultStartingPosition.readCastlingState().read());
     EXPECT_TRUE(castlingState.hasAny());
     EXPECT_TRUE(castlingState.hasWhite());
     EXPECT_TRUE(castlingState.hasBlack());

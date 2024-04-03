@@ -17,9 +17,9 @@ Chessboard::Chessboard() :
     m_moveCount(1),
     m_plyCount(0)
 {
-    m_kings[0].first = ChessPiece();
+    m_kings[0].first = ChessPiece::None();
     m_kings[0].second = Notation();
-    m_kings[1].first = ChessPiece();
+    m_kings[1].first = ChessPiece::None();
     m_kings[1].second = Notation();
 }
 
@@ -75,9 +75,9 @@ void
 Chessboard::Clear()
 {
     m_hash = 0;
-    m_kings[0].first = ChessPiece();
+    m_kings[0].first = ChessPiece::None();
     m_kings[0].second = Notation();
-    m_kings[1].first = ChessPiece();
+    m_kings[1].first = ChessPiece::None();
     m_kings[1].second = Notation();
     m_position.Clear();
     m_plyCount = 0;
@@ -89,7 +89,7 @@ bool
 Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 {
     auto tsqrPiece = m_position.readPieceAt(target.toSquare());
-    if (tsqrPiece != ChessPiece()) {
+    if (tsqrPiece != ChessPiece::None()) {
         if (overwrite == true) {
             m_position.ClearPiece(tsqrPiece, target);
             m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, tsqrPiece, target);
@@ -117,8 +117,11 @@ Chessboard::MakeMove(const PackedMove move)
     undoState.move = move;
     undoState.hash = m_hash;
 
-    const auto& piece = m_position.readPieceAt(move.sourceSqr());  // m_tiles[move.source()].readPiece();
-    Square targetSqr = move.targetSqr();
+    auto piece = m_position.readPieceAt(move.sourceSqr());
+    undoState.movedPiece = piece;
+
+    auto materialEditor = m_position.materialEditor(piece.getSet(), piece.getType());
+    const Square targetSqr = move.targetSqr();
 
     // cache captureTarget in seperate variable since we might be capturing enpassant
     Square captureTarget = targetSqr;
@@ -131,7 +134,7 @@ Chessboard::MakeMove(const PackedMove move)
     case PieceType::PAWN:
         // updating pieceTarget since if we're capturing enpassant the target will be on a
         // different square.
-        captureTarget = InternalHandlePawnMove(move);
+        std::tie(captureTarget, piece) = InternalHandlePawnMove(move, piece.getSet(), materialEditor, undoState);
         m_plyCount = 0;  // reset ply count on pawn move
         break;
 
@@ -150,10 +153,11 @@ Chessboard::MakeMove(const PackedMove move)
         m_position.editEnPassant().clear();
     }
 
-    InternalHandleCapture(move, captureTarget, undoState);
+    if (move.isCapture())
+        InternalHandleCapture(move, captureTarget, undoState);
 
     // do move
-    InternalMakeMove(move.sourceSqr(), move.targetSqr());
+    InternalMakeMove(piece, move.sourceSqr(), move.targetSqr(), materialEditor);
 
     m_isWhiteTurn = !m_isWhiteTurn;
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
@@ -169,7 +173,8 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 {
     const i32 srcSqr = undoState.move.source();
     const i32 trgSqr = undoState.move.target();
-    const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
+    //const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
+    const ChessPiece movedPiece = undoState.movedPiece;
 
     // idea here is to store the piece to place back on the board in this variable,
     // if we're dealing with a promotion this will be a pawn of the correct set.
@@ -208,7 +213,9 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
             rookSource = Notation(file_h, target.rank);
             rookTarget = Notation(file_f, target.rank);
         }
-        InternalMakeMove(rookTarget, rookSource);
+        ChessPiece rook(movedPiece.getSet(), PieceType::ROOK);
+        auto editor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
+        InternalMakeMove(rook, rookTarget, rookSource, editor);
     }
 
     m_position.editEnPassant().write(undoState.enPassantState.read());  // restore enpassant state
@@ -236,10 +243,11 @@ Chessboard::InternalUpdateEnPassant(Notation source, Notation target)
     return false;
 }
 
-Square
-Chessboard::InternalHandlePawnMove(const PackedMove move)
+std::tuple<Square, ChessPiece>
+Chessboard::InternalHandlePawnMove(const PackedMove move, Set set, MutableMaterialProxy& materialEditor, MoveUndoUnit& undoState)
 {
     Square pieceTarget = move.targetSqr();
+    const ChessPiece src(set, PieceType::PAWN);
 
     // compare target square with en passant, if this is true we're capturing enpassant
     if (pieceTarget == m_position.readEnPassant().readSquare()) {
@@ -259,11 +267,8 @@ Chessboard::InternalHandlePawnMove(const PackedMove move)
     InternalUpdateEnPassant(move.sourceSqr(), move.targetSqr());
 
     if (move.isPromotion()) {
-        // ensure promotion piece is same set as piece we're moving. There is a bug in string
-        // parsing of piece which assumses capitalized string is white, but that doesn't work for
-        // promotions
-        const ChessPiece src = m_position.readPieceAt(move.sourceSqr());
-        const ChessPiece promote(src.getSet(), static_cast<PieceType>(move.readPromoteToPieceType()));
+        const ChessPiece promote(set, static_cast<PieceType>(move.readPromoteToPieceType()));
+        undoState.movedPiece = promote; // store promotion piece in undo state as moved piece
 
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, src, move.sourceSqr());
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, promote, move.sourceSqr());
@@ -271,11 +276,14 @@ Chessboard::InternalHandlePawnMove(const PackedMove move)
         // updating the piece on the source tile since we're doing this pre-move.
         // internal move will handle the actual move of the piece, but what piece it is doesn't
         // really mater at that point.
-        m_position.ClearPiece(src, move.sourceSqr());
-        m_position.PlacePiece(promote, move.sourceSqr());
+        materialEditor[move.sourceSqr()] = false;
+        MutableMaterialProxy matPromoteEditor = m_position.materialEditor(set, static_cast<PieceType>(move.readPromoteToPieceType()));
+        matPromoteEditor[move.sourceSqr()] = true;
+        materialEditor = matPromoteEditor;
+        return std::make_tuple(pieceTarget, promote);
     }
 
-    return pieceTarget;
+    return std::make_tuple(pieceTarget, src);
 }
 
 bool
@@ -322,7 +330,9 @@ Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move
     MoveUndoUnit& undoState)
 {
     if (piece.getType() == PieceType::KING && targetRook != Notation()) {
-        InternalMakeMove(targetRook, rookMove);
+        ChessPiece rook(piece.getSet(), PieceType::ROOK);
+        auto editor = m_position.materialEditor(piece.getSet(), PieceType::ROOK);
+        InternalMakeMove(rook, targetRook, rookMove, editor);
     }
     else {
         InternalHandleRookMovedOrCaptured(move.sourceSqr(), undoState);
@@ -391,13 +401,10 @@ Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove 
 }
 
 void
-Chessboard::InternalMakeMove(Notation source, Notation target)
+Chessboard::InternalMakeMove(ChessPiece piece, Notation source, Notation target, MutableMaterialProxy materialEditor)
 {
-    ChessPiece piece = m_position.readPieceAt(source.toSquare());
-    FATAL_ASSERT(piece.isValid() == true);
-
-    m_position.ClearPiece(piece, source);
-    m_position.PlacePiece(piece, target);
+    materialEditor[source.toSquare()] = false;
+    materialEditor[target.toSquare()] = true;
 
     // update hash
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
@@ -411,7 +418,7 @@ Chessboard::InternalMakeMove(const std::string& moveString)
     Set toMove = m_isWhiteTurn ? Set::WHITE : Set::BLACK;
 
     if (parsedMove.isAmbiguous() == true) {
-        Bitboard pieceBB = m_position.readMaterial(toMove)[static_cast<u8>(parsedMove.Piece.index())];
+        Bitboard pieceBB = m_position.readMaterial().read(toMove, parsedMove.Piece.index());
 
         if (pieceBB.count() == 1) {
             parsedMove.SourceSquare = Notation(pieceBB.lsbIndex());
@@ -442,8 +449,7 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
     // handle capture
     auto capturedPiece = m_position.readPieceAt(pieceTarget.toSquare());
 
-    if (capturedPiece != ChessPiece()) {
-        FATAL_ASSERT(move.isCapture() == true);
+    if (capturedPiece != ChessPiece::None()) {
         m_plyCount = 0;
 
         // store captured piece in undo state
@@ -458,10 +464,10 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTar
 
         // remove piece from hash
         m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, capturedPiece, pieceTarget);
+        return;
     }
-    else {
-        FATAL_ASSERT(move.isCapture() == false);
-    }
+
+    FATAL_ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
 }
 
 u64
@@ -553,8 +559,8 @@ Chessboard::calculateEndGameCoeficient() const
 
     i32 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial<Set::WHITE>()[index].count();
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial<Set::BLACK>()[index].count();
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial().read<Set::WHITE>(index).count();
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial().read<Set::BLACK>(index).count();
     }
 
     return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);

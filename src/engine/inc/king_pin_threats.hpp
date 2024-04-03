@@ -26,11 +26,16 @@ struct KingPinThreats {
     // [[nodiscard]] const Bitboard& readKnightsAndPawns() const { return m_knightsAndPawns; }
     // [[nodiscard]] const Bitboard* readThreatenedAngles() const { return &m_threatenedAngles[0]; }
 
-    void evaluate(Set set, Square kingSquare, const Position& position, const SlidingMaterialMasks& opponentSlidingMask);
-    void calculateOpponentOpenAngles(Set set, const Square kingSquare, const Position& position);
+    template<Set us>
+    void evaluate(Square kingSquare, const Position& position, const SlidingMaterialMasks& opponentSlidingMask);
+
+    template<Set op>
+    void calculateOpponentOpenAngles(const Square kingSquare, const Position& position);
 
 private:
-    void calculateEnPassantPinThreat(Set set, Square kingSquare, const Position& position);
+    template<Set us>
+    void calculateEnPassantPinThreat(Square kingSquare, const Position& position);
+
     Bitboard m_threatenedAngles[8];
     Bitboard m_specialEnPassantMask;
     Bitboard m_opponentOpenAngles[2];

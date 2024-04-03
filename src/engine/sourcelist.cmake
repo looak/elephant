@@ -29,6 +29,7 @@ ${ENGINE_INC_DIR}/king_pin_threats.hpp
 ${ENGINE_INC_DIR}/log.h
 ${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
+${ENGINE_INC_DIR}/material_mask.hpp
 ${ENGINE_INC_DIR}/move_generator.hpp
 ${ENGINE_INC_DIR}/position.hpp
 ${ENGINE_INC_DIR}/search.hpp
@@ -51,6 +52,7 @@ ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/hash_zorbist.cpp
 ${ENGINE_SRC_DIR}/king_pin_threats.cpp
 ${ENGINE_SRC_DIR}/log.cpp
+${ENGINE_SRC_DIR}/material_mask.cpp
 ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp

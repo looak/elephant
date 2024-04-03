@@ -816,7 +816,7 @@ TEST_F(PositionFixture, Pawn_BulkAttacksWhite_ThereShouldBeAFewAttackedPieces)
     // do
     KingPinThreats empty{};
     u64 result = board.calcThreatenedSquaresPawnBulk<Set::WHITE>().read();
-    Bitboard opMaterial = board.readMaterial<Set::BLACK>().combine();
+    Bitboard opMaterial = board.readMaterial().combine<Set::BLACK>();
 
     result = (opMaterial & result).read();
     // verify
@@ -1399,7 +1399,7 @@ TEST_F(PositionFixture, Knight_AttackedPieces_ThreateningToCaptureOpponentsBisho
 
     // as of November 2023 I don't see a reason to supply a attacked function
     u64 result = board.calcThreatenedSquaresKnightBulk<Set::WHITE>().read();
-    u64 opMat = board.readMaterial<Set::BLACK>().combine().read();
+    u64 opMat = board.readMaterial().combine<Set::BLACK>().read();
     result &= opMat;
     EXPECT_EQ(expected, result);
 }
@@ -2779,7 +2779,8 @@ TEST_F(PositionFixture, KingMask_Pawns)
     expected |= INT64_C(1) << b7.index();
 
     // do
-    auto kingMask = board.calcKingMask(k, Square::A8, { 0, 0 }).combined();
+    auto kingMask = board.calcKingMask<Set::BLACK>().combined();
+    //auto kingMask = board.calcKingMask(k, Square::A8, { 0, 0 }).combined();
 
     // validate
     EXPECT_EQ(expected, kingMask.read());

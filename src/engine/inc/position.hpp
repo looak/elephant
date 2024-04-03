@@ -31,68 +31,11 @@
 #include "intrinsics.hpp"
 #include "king_pin_threats.hpp"
 #include "notation.h"
+#include "material_mask.hpp"
 
 struct Notation;
 
-struct MaterialMask {
-    Bitboard material[6]{};
 
-    inline constexpr Bitboard combine() const
-    {
-        return material[pawnId] | material[knightId] | material[bishopId] | material[rookId] | material[queenId] |
-               material[kingId];
-    }
-
-    [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
-    [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
-
-    [[nodiscard]] constexpr const Bitboard& kings() const { return material[kingId]; }
-    [[nodiscard]] constexpr const Bitboard& queens() const { return material[queenId]; }
-    [[nodiscard]] constexpr const Bitboard& rooks() const { return material[rookId]; }
-    [[nodiscard]] constexpr const Bitboard& bishops() const { return material[bishopId]; }
-    [[nodiscard]] constexpr const Bitboard& knights() const { return material[knightId]; }
-    [[nodiscard]] constexpr const Bitboard& pawns() const { return material[pawnId]; }
-};
-
-// this would be 8 x 64bits, i.e. 64 bytes per position rather than the currently used
-// 12 x 64bits, i.e. 96 bytes per position.
-// struct MaterialPositionMask {
-//     Bitboard set[2];
-//     Bitboard material[6];
-
-//     template<Set us>
-//     [[nodiscard]] constexpr Bitboard operator[](i32 pieceId)
-//     {
-//         if constexpr (us == Set::WHITE) {
-//             return material[pieceId] & set[0];
-//         }
-//         else {
-//             return material[pieceId] & set[1];
-//         }
-//     }
-//     template<Set us>
-//     [[nodiscard]] constexpr Bitboard operator[](i32 pieceId) const
-//     {
-//         if constexpr (us == Set::WHITE) {
-//             return material[pieceId] & set[0];
-//         }
-//         else {
-//             return material[pieceId] & set[1];
-//         }
-//     }
-
-//     [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
-//     [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
-
-//     template<Set us>
-//     [[nodiscard]] constexpr Bitboard combine() const
-//     {
-//         if constexpr (us == Set::WHITE) {
-//             return set[0];
-//         }
-//         return set[1];
-//     }
-// };
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState {
@@ -206,14 +149,12 @@ private:
 
 /**
  * A chess position, represented as a set of bitboards and some bytes of additional state.
- * 96 bytes of material information, could be reduced to 64 by using 2 boards for set and 6 for pieces
- * instaed of 2x6.
+ * 64 bytes of material information, by using 2 boards for set and 6 for pieces
  * 1 byte of castling information.
  * 1 byte for enpassant information.
  * 7 bits for halfmoves // no point in tracking it past 100
  * 1 bit determining active set
- * 2 bytes for fullmoves  (max number 65,535)
- * */
+ * 2 bytes for fullmoves  (max number 65,535) */
 class Position {
 public:
     static bool IsValidSquare(signed short currSqr);
@@ -226,19 +167,15 @@ public:
     /* Material Manpulators and readers */
 
     void Clear();
+    bool empty() const;
 
     bool PlacePiece(ChessPiece piece, Notation target);
     bool ClearPiece(ChessPiece piece, Notation target);
+
     ChessPiece readPieceAt(Square sqr) const;
+    const MaterialPositionMask& readMaterial() const { return m_materialMask; }
 
-    bool empty() const;
-
-    template<Set us>
-    const MaterialMask& readMaterial() const;
-    const MaterialMask& readMaterial(Set set) const
-    {
-        return set == Set::WHITE ? readMaterial<Set::WHITE>() : readMaterial<Set::BLACK>();
-    }
+    MutableMaterialProxy materialEditor(Set set, PieceType pType);
 
     EnPassantStateInfo& editEnPassant() { return m_enpassantState; }
     EnPassantStateInfo readEnPassant() const { return m_enpassantState; }
@@ -281,24 +218,13 @@ public:
 
     template<Set us>
     std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb,
-                                                const KingPinThreats& kingPinThreats) const;
+        const KingPinThreats& kingPinThreats) const;
 
     template<Set us, u8 pieceId>
     std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
 
     i32 diffWestEast(Notation a, Notation b) const;
 
-    /**
-     * @brief Calculate the king's potential threats and pins.
-     * This function calculates the king's potential threats and pins, taking into account the
-     * current game state. From Kings position, we look at all directions until we hit end of board
-     * and see if we run into a sliding piece which is threatening the king and taking into account
-     * same set pieces in between to figure out if they are pinned.
-     * @param king ChessPiece representing the king we are using as source.
-     * @param source Position on board of the king.
-     * @param opponentSlidingMask A mask struct that contains opponents sliding masks.
-     * @return A mask struct containing a seperate mask for each direction.  */
-    KingPinThreats calcKingMask(ChessPiece king, Square source, const SlidingMaterialMasks& opponentSlidingMask) const;
     template<Set us>
     KingPinThreats calcKingMask() const;
 
@@ -314,44 +240,32 @@ private:
      * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square. */
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb,
-                                                       const KingPinThreats& kingPinThreats) const;
+        const KingPinThreats& kingPinThreats) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb,
-                                                              const KingPinThreats& kingPinThreats) const;
+        const KingPinThreats& kingPinThreats) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb,
-                                                         const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
+        const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
     template<Set us>
     std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats,
-                                                       i8 pieceIndex = rookId) const;
+        i8 pieceIndex = rookId) const;
 
-    Bitboard SlidingMaterialCombined(byte set) const;
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;
 
-    mutable MaterialMask m_material[2];
+    mutable MaterialPositionMask m_materialMask;
+    //mutable MaterialMask m_material[2];
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
 };
-
-template<Set us>
-const MaterialMask&
-Position::readMaterial() const
-{
-    if constexpr (us == Set::WHITE) {
-        return m_material[0];
-    }
-    else {
-        return m_material[1];
-    }
-}
 
 template<Set us, u8 direction, u8 pieceId>
 Bitboard
 Position::internalCalculateThreat(Bitboard bounds) const
 {
-    const Bitboard piecebb = readMaterial<us>()[pieceId];
-    const Bitboard materialbb = readMaterial<us>().combine();
-    const Bitboard opMaterial = readMaterial<opposing_set<us>()>().combine();
+    const Bitboard piecebb = m_materialMask.read<us, pieceId>(); //readMaterial<us>()[pieceId];
+    const Bitboard materialbb = readMaterial().combine<us>();
+    const Bitboard opMaterial = readMaterial().combine<opposing_set<us>()>();
 
     bounds |= opMaterial;
 
@@ -402,9 +316,10 @@ Position::calcThreatenedSquares() const
     // removing king from opmaterial so it doesn't stop our sliding.
     // needs to be reset later on.
     if constexpr (pierceKing) {
-        // can we build a scoped struct to make this a bit cleaner?
-        kingMask = readMaterial<op>()[kingId];
-        m_material[(size_t)op].material[kingId] = 0;
+        // can we build a scoped struct to make this a bit cleaner?        
+        kingMask = m_materialMask.kings<op>();
+        //m_material[(size_t)op].material[kingId] = 0;
+        m_materialMask.clear<op, kingId>(kingMask);
     }
 
     result |= calcThreatenedSquaresPawnBulk<us>();
@@ -416,10 +331,10 @@ Position::calcThreatenedSquares() const
     result |= calcThreatenedSquaresKing<us>();
 
     if constexpr (pierceKing)
-        m_material[(size_t)op].material[kingId] = kingMask;
+        m_materialMask.write<op, kingId>(kingMask);
 
     if constexpr (includeMaterial)
-        result |= readMaterial<us>().combine();
+        result |= m_materialMask.combine<us>();
 
     return result;
 }
@@ -438,10 +353,10 @@ Position::calcMaterialSlidingMasksBulk() const
     orthogonal |= calcThreatenedSquaresRookBulk<us, queenId>();
 
     // add material
-    diagonal |= readMaterial<us>()[bishopId] | readMaterial<us>()[queenId];
-    orthogonal |= readMaterial<us>()[rookId] | readMaterial<us>()[queenId];
+    diagonal |= m_materialMask.bishops<us>() | m_materialMask.queens<us>();
+    orthogonal |= m_materialMask.rooks<us>() | m_materialMask.queens<us>();
 
-    return {orthogonal, diagonal};
+    return { orthogonal, diagonal };
 }
 
 template<Set us, u8 pieceId>

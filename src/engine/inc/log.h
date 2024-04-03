@@ -26,7 +26,7 @@
 #include <sstream>
 #include <string>
 
-#define OUTPUT_LOG_TO_FILE
+// #define OUTPUT_LOG_TO_FILE
 // #define EG_DEBUGGING
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)

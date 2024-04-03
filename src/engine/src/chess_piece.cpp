@@ -2,6 +2,8 @@
 #include <iostream>
 #include "log.h"
 
+ChessPiece ChessPiece::s_empty = ChessPiece();
+
 Set
 ChessPiece::FlipSet(Set source)
 {
@@ -21,13 +23,6 @@ ChessPiece::ChessPiece() :
 {
 }
 
-ChessPiece::ChessPiece(Set _set, PieceType _type) :
-    m_internalState(0x00)
-{
-    m_internalState |= (byte)_set << 7;
-    m_internalState |= (byte)_type;
-}
-
 ChessPiece::ChessPiece(byte setId, byte typeId) :
     m_internalState(0x00)
 {
@@ -40,29 +35,29 @@ ChessPiece::toString() const
 {
     char retValue = ' ';
     switch (getType()) {
-        case PieceType::PAWN:
-            retValue = 'p';
-            break;
-        case PieceType::BISHOP:
-            retValue = 'b';
-            break;
-        case PieceType::KNIGHT:
-            retValue = 'n';
-            break;
-        case PieceType::ROOK:
-            retValue = 'r';
-            break;
-        case PieceType::QUEEN:
-            retValue = 'q';
-            break;
-        case PieceType::KING:
-            retValue = 'k';
-            break;
-        case PieceType::NONE:
-            retValue = ' ';
-            break;
-        default:
-            LOG_ERROR() << "Invalid Chess Piece;\n";
+    case PieceType::PAWN:
+        retValue = 'p';
+        break;
+    case PieceType::BISHOP:
+        retValue = 'b';
+        break;
+    case PieceType::KNIGHT:
+        retValue = 'n';
+        break;
+    case PieceType::ROOK:
+        retValue = 'r';
+        break;
+    case PieceType::QUEEN:
+        retValue = 'q';
+        break;
+    case PieceType::KING:
+        retValue = 'k';
+        break;
+    case PieceType::NONE:
+        retValue = ' ';
+        break;
+    default:
+        LOG_ERROR() << "Invalid Chess Piece;\n";
     }
 
     if (getSet() == Set::WHITE)
@@ -82,27 +77,27 @@ ChessPiece::fromString(char piece)
     char lower = std::tolower(piece);
     PieceType type;
     switch (lower) {
-        case 'p':
-            type = PieceType::PAWN;
-            break;
-        case 'n':
-            type = PieceType::KNIGHT;
-            break;
-        case 'b':
-            type = PieceType::BISHOP;
-            break;
-        case 'r':
-            type = PieceType::ROOK;
-            break;
-        case 'q':
-            type = PieceType::QUEEN;
-            break;
-        case 'k':
-            type = PieceType::KING;
-            break;
-        default:
-            m_internalState = 0;
-            return false;
+    case 'p':
+        type = PieceType::PAWN;
+        break;
+    case 'n':
+        type = PieceType::KNIGHT;
+        break;
+    case 'b':
+        type = PieceType::BISHOP;
+        break;
+    case 'r':
+        type = PieceType::ROOK;
+        break;
+    case 'q':
+        type = PieceType::QUEEN;
+        break;
+    case 'k':
+        type = PieceType::KING;
+        break;
+    default:
+        m_internalState = 0;
+        return false;
     }
 
     *this = ChessPiece(set, type);

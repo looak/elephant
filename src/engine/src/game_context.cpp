@@ -65,6 +65,9 @@ GameContext::GameOver() const
 bool
 GameContext::MakeMove(const PackedMove move)
 {
+    // if (m_toPlay == Set::WHITE) {
+    //     m_board.MakeMove<true>(move);
+    // }
     auto undoUnit = m_board.MakeMove<false>(move);
     m_undoUnits.push(undoUnit);
 
@@ -85,7 +88,7 @@ GameContext::TryMakeMove(Move move)
                 found = pm.move;
                 return;
             }
-        });
+            });
 
         if (found == PackedMove::NullMove())
             return false;

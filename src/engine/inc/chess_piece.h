@@ -21,11 +21,19 @@ struct ChessPiece {
 public:
     static Set FlipSet(Set source);
     static byte FlipSet(byte source);
-    static ChessPiece None() { return ChessPiece(); }
+    static ChessPiece None() { return s_empty; }
+private:
+    static ChessPiece s_empty;
 
 public:
     ChessPiece();
-    ChessPiece(Set _set, PieceType _type);
+    constexpr ChessPiece(Set _set, PieceType _type)
+        : m_internalState(0x00)
+    {
+        m_internalState |= (byte)_set << 7;
+        m_internalState |= (byte)_type;
+    }
+
     ChessPiece(byte setId, byte typeId);
 
     char toString() const;
@@ -59,4 +67,22 @@ public:
 private:
     // [set][not used][not used][not used][not used][piece t][piece t][piece t]
     byte m_internalState;
+};
+
+constexpr ChessPiece WhitePawn(Set::WHITE, PieceType::PAWN);
+constexpr ChessPiece BlackPawn(Set::BLACK, PieceType::PAWN);
+constexpr ChessPiece WhiteKnight(Set::WHITE, PieceType::KNIGHT);
+constexpr ChessPiece BlackKnight(Set::BLACK, PieceType::KNIGHT);
+constexpr ChessPiece WhiteBishop(Set::WHITE, PieceType::BISHOP);
+constexpr ChessPiece BlackBishop(Set::BLACK, PieceType::BISHOP);
+constexpr ChessPiece WhiteRook(Set::WHITE, PieceType::ROOK);
+constexpr ChessPiece BlackRook(Set::BLACK, PieceType::ROOK);
+constexpr ChessPiece WhiteQueen(Set::WHITE, PieceType::QUEEN);
+constexpr ChessPiece BlackQueen(Set::BLACK, PieceType::QUEEN);
+constexpr ChessPiece WhiteKing(Set::WHITE, PieceType::KING);
+constexpr ChessPiece BlackKing(Set::BLACK, PieceType::KING);
+
+constexpr ChessPiece s_pieces[2][6] = {
+    {WhitePawn, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing},
+    {BlackPawn, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing}
 };

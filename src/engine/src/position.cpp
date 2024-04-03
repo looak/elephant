@@ -25,21 +25,16 @@ CastlingStateInfo::toString() const
 }
 
 Position::Position() :
-    m_material(),
     m_castlingState(),
     m_enpassantState()
 {
-    m_material[0] = {};
-    m_material[1] = {};
+    m_materialMask = {};
 }
 
 Position&
 Position::operator=(const Position& other)
 {
-    m_material[0] = {};
-    m_material[1] = {};
-    m_material[0] = other.m_material[0];
-    m_material[1] = other.m_material[1];
+    m_materialMask = other.m_materialMask;
     m_castlingState = other.m_castlingState;
     m_enpassantState = other.m_enpassantState;
     return *this;
@@ -68,8 +63,7 @@ Position::IsValidSquare(Notation source)
 void
 Position::Clear()
 {
-    m_material[0] = {};
-    m_material[1] = {};
+    m_materialMask.clear();
     m_enpassantState = {};
     m_castlingState = {};
 }
@@ -77,15 +71,16 @@ Position::Clear()
 bool
 Position::empty() const
 {
-    return m_material[0].combine().empty() && m_material[1].combine().empty();
+    return m_materialMask.empty();
 }
 
 bool
 Position::ClearPiece(ChessPiece piece, Notation target)
 {
     Square sqr = target.toSquare();
-    Bitboard& piecebb = m_material[piece.set()].material[piece.index()];
-    piecebb[sqr] = false;
+    Bitboard pieceMask;
+    pieceMask[sqr] = true;
+    m_materialMask.clear(pieceMask, piece.getSet(), piece.index());
     return true;
 }
 
@@ -93,22 +88,37 @@ bool
 Position::PlacePiece(ChessPiece piece, Notation target)
 {
     auto sqr = target.toSquare();
-    Bitboard& piecebb = m_material[piece.set()].material[piece.index()];
+    Bitboard piecebb;
     piecebb[sqr] = true;
-    return piecebb[sqr];
+    m_materialMask.write(piecebb, piece.getSet(), piece.index());
+
+    return true;
 }
 
 ChessPiece
 Position::readPieceAt(Square sqr) const
 {
+    Bitboard mask(squareMaskTable[static_cast<u8>(sqr)]);
+    //mask[sqr] = true;
+
     for (byte set = 0; set < 2; ++set) {
-        for (byte pieceId = 0; pieceId < 6; ++pieceId) {
-            if (m_material[set].material[pieceId][sqr])
-                return ChessPiece(set, pieceId);
+        if (m_materialMask.m_set[set] & mask)
+        {
+            for (byte pieceId = 0; pieceId < 6; ++pieceId) {
+                if (m_materialMask.read(pieceId) & mask)
+                    return ChessPiece(set, pieceId);
+            }
         }
     }
     return ChessPiece::None();
 }
+
+MutableMaterialProxy
+Position::materialEditor(Set set, PieceType pType)
+{
+    return MutableMaterialProxy(&m_materialMask.m_set[static_cast<i8>(set)], &m_materialMask.m_material[toPieceId(pType)]);
+}
+
 
 template<Set us>
 KingPinThreats
@@ -117,25 +127,18 @@ Position::calcKingMask() const
     constexpr Set op = opposing_set<us>();
     auto slidingMask = calcMaterialSlidingMasksBulk<op>();
     auto king = ChessPiece(us, PieceType::KING);
-    Square kingSqr = static_cast<Square>(m_material[(size_t)us].material[kingId].lsbIndex());
-    auto ret = calcKingMask(king, kingSqr, slidingMask);
+    Square kingSqr = static_cast<Square>(m_materialMask.kings<us>().lsbIndex());
+    KingPinThreats ret;
+    ret.evaluate<us>(kingSqr, *this, slidingMask);
 
-    Square opKingSqr = static_cast<Square>(m_material[(size_t)op].kings().lsbIndex());
-    ret.calculateOpponentOpenAngles(op, opKingSqr, *this);
+    Square opKingSqr = static_cast<Square>(m_materialMask.kings<op>().lsbIndex());
+    ret.calculateOpponentOpenAngles<op>(opKingSqr, *this);
 
     return ret;
 }
 
 template KingPinThreats Position::calcKingMask<Set::WHITE>() const;
 template KingPinThreats Position::calcKingMask<Set::BLACK>() const;
-
-KingPinThreats
-Position::calcKingMask(ChessPiece king, Square source, const SlidingMaterialMasks& opponentSlidingMask) const
-{
-    KingPinThreats ret;
-    ret.evaluate(king.getSet(), source, *this, opponentSlidingMask);
-    return ret;
-}
 
 u64
 Position::Castling(byte set, byte castling, u64 threatenedMask) const
@@ -155,7 +158,7 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
         return retVal;
 
     u64 attacked = threatenedMask;
-    u64 combMat = readMaterial<Set::WHITE>().combine().read() | readMaterial<Set::BLACK>().combine().read();
+    u64 combMat = m_materialMask.combine().read();
 
     // check king side
     if (castling & 1) {
@@ -189,22 +192,15 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
     return retVal;
 }
 
-Bitboard
-Position::SlidingMaterialCombined(byte set) const
-{
-    return (m_material[set].material[bishopId] | m_material[set].material[rookId] | m_material[set].material[queenId]);
-}
-
 template<Set us>
 Bitboard
 Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask, bool captures) const
 {
     const size_t usIndx = static_cast<size_t>(us);
-    const size_t opIndx = static_cast<size_t>(opposing_set<us>());
-    const Bitboard usMat = m_material[usIndx].combine();
-    const Bitboard opMat = m_material[opIndx].combine();
+    const Bitboard usMat = m_materialMask.combine<us>();
+    const Bitboard opMat = m_materialMask.combine<opposing_set<us>()>();
     const Bitboard unoccupied(~(usMat | opMat));
-    const Bitboard piecebb = m_material[usIndx].material[pawnId];
+    const Bitboard piecebb = m_materialMask.pawns<us>();
 
     Bitboard mvsbb;
     mvsbb = piecebb.shiftNorthRelative<us>();
@@ -238,7 +234,7 @@ Bitboard
 Position::calcThreatenedSquaresPawnBulk() const
 {
     const size_t usIndx = static_cast<size_t>(us);
-    Bitboard piecebb = m_material[usIndx].material[pawnId];
+    Bitboard piecebb = m_materialMask.pawns<us>();
 
     // special case for a file & h file, removing pawns from a & h file respectively
     // so we don't shift them "off" the board and we shift them only in one direction.
@@ -269,12 +265,12 @@ Position::calcAvailableMovesKing(byte castlingRights, bool captures) const
     Bitboard threatened = calcThreatenedSquares<op, includeMaterial, pierceKing>();
     Bitboard moves = calcThreatenedSquaresKing<us>();
     // remove any squares blocked by our own pieces.
-    moves &= ~readMaterial<us>().combine();
+    moves &= ~m_materialMask.combine<us>();
     moves &= ~threatened;
-    if ((threatened & readMaterial<us>().kings()).empty())
+    if ((threatened & m_materialMask.kings<us>()).empty())
         moves |= Castling((byte)us, castlingRights, threatened.read());
     if (captures == true)
-        moves &= readMaterial<op>().combine();
+        moves &= m_materialMask.combine<op>();
     return moves;
 }
 
@@ -285,9 +281,8 @@ template<Set us>
 Bitboard
 Position::calcThreatenedSquaresKing() const
 {
-    const size_t setIndx = (size_t)us;
     Bitboard moves;
-    const auto kingbb = m_material[setIndx].material[kingId];
+    const auto kingbb = m_materialMask.kings<us>();
     if (kingbb.empty())
         return moves;
 
@@ -318,7 +313,7 @@ template<Set us, u8 pieceId>
 Bitboard
 Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask, bool captures) const
 {
-    const Bitboard materialbb = readMaterial<us>().combine();
+    const Bitboard materialbb = readMaterial().combine<us>();
     Bitboard moves = calcThreatenedSquaresBishopBulk<us, pieceId>();
 
     if (kingMask.isChecked())
@@ -327,7 +322,7 @@ Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask, bool capt
         moves ^= (materialbb & moves);
 
     if (captures == true)
-        moves &= readMaterial<opposing_set<us>()>().combine();
+        moves &= readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
@@ -341,7 +336,7 @@ template<Set us, u8 pieceId>
 Bitboard
 Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask, bool captures) const
 {
-    const Bitboard materialbb = readMaterial<us>().combine();
+    const Bitboard materialbb = readMaterial().combine<us>();
 
     Bitboard moves = calcThreatenedSquaresRookBulk<us, pieceId>();
 
@@ -351,7 +346,7 @@ Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask, bool captur
         moves ^= (materialbb & moves);
 
     if (captures == true)
-        moves &= readMaterial<opposing_set<us>()>().combine();
+        moves &= readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
@@ -379,7 +374,7 @@ Bitboard
 Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask, bool captures) const
 {
     auto moves = calcThreatenedSquaresKnightBulk<us>();
-    const Bitboard ourMaterial = readMaterial<us>().combine();
+    const Bitboard ourMaterial = readMaterial().combine<us>();
 
     moves &= ~ourMaterial;
 
@@ -387,7 +382,7 @@ Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask, bool capt
         return moves & kingMask.checks();
 
     if (captures == true)
-        return moves & readMaterial<opposing_set<us>()>().combine();
+        return moves & readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
@@ -400,7 +395,7 @@ Bitboard
 Position::calcThreatenedSquaresKnightBulk() const
 {
     Bitboard result = 0;
-    const Bitboard knights = readMaterial<us>()[knightId];
+    const Bitboard knights = m_materialMask.knights<us>();
     if (knights == 0)
         return result;  // early out
 
@@ -522,10 +517,9 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
 {
     const size_t usIndx = static_cast<size_t>(us);
 
-    Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine() | m_enpassantState.readBitboard();
+    Bitboard opMatCombined = readMaterial().combine<opposing_set<us>()>() | m_enpassantState.readBitboard();
     Bitboard srcMask = Bitboard(squareMaskTable[source.index()]);
 
-    // const Bitboard checks = pinThreats.checks();
     const Bitboard pinned = pinThreats.pinned(srcMask);
 
     // special case for when there is a enpassant available.
@@ -544,7 +538,7 @@ Position::internalIsolatePawn(Notation source, Bitboard movesbb, const KingPinTh
         threatns |= srcMask.shiftNorthEastRelative<us>();
 
     Bitboard isolatedbb = srcMask.shiftNorthRelative<us>();
-    Bitboard unoccupied = ~(readMaterial<us>().combine() | opMatCombined);
+    Bitboard unoccupied = ~(readMaterial().combine<us>() | opMatCombined);
     Bitboard doublePush = isolatedbb & pawn_constants::baseRank[usIndx] & unoccupied;
     isolatedbb |= doublePush.shiftNorthRelative<us>();
     isolatedbb &= unoccupied;
@@ -564,7 +558,7 @@ template<Set us>
 std::tuple<Bitboard, Bitboard>
 Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
 {
-    Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+    Bitboard opMatCombined = readMaterial().combine<opposing_set<us>()>();
 
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
@@ -574,7 +568,7 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
         // return {movesbb & ~opMatCombined, movesbb & opMatCombined};
     }
 
-    if (readMaterial<us>()[knightId].count() <= 1)
+    if (readMaterial().knights<us>().count() <= 1)
         return { movesbb & ~opMatCombined, movesbb & opMatCombined };
 
     Bitboard isolatedbb;
@@ -596,7 +590,7 @@ Position::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const Ki
         u64 sqrMask = squareMaskTable[curSqr];
         isolatedbb |= sqrMask;
     }
-    Bitboard ourMaterial = readMaterial<us>().combine();
+    Bitboard ourMaterial = readMaterial().combine<us>();
     isolatedbb &= ~ourMaterial;
 
     return { movesbb & isolatedbb & ~opMatCombined, movesbb & isolatedbb & opMatCombined };
@@ -606,7 +600,7 @@ template<Set us>
 std::tuple<Bitboard, Bitboard>
 Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8 pieceIndex) const
 {
-    const Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+    const Bitboard opMatCombined = readMaterial().combine<opposing_set<us>()>();
     // figure out if piece is pinned
     u64 srcMask = squareMaskTable[source.index()];
     const Bitboard pinned = kingMask.pinned(srcMask);
@@ -614,13 +608,13 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
         movesbb &= pinned;
     }
 
-    if (readMaterial<us>()[pieceIndex].count() <= 1) {
+    if (readMaterial().read<us>(pieceIndex).count() <= 1) {
         return { movesbb & ~opMatCombined, movesbb & opMatCombined };
     }
 
     if (pieceIndex == bishopId) {
         // isolate using dark & light squares
-        Bitboard material = readMaterial<us>()[pieceIndex];
+        Bitboard material = readMaterial().bishops<us>();
         Bitboard darkSquaredMaterial = material & board_constants::darkSquares;
         Bitboard lightSquaredMaterial = material & board_constants::lightSquares;
         if (srcMask & darkSquaredMaterial && darkSquaredMaterial.count() == 1)
@@ -632,7 +626,7 @@ Position::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPin
     }
 
     const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
-    const Bitboard usMaterial = readMaterial<us>().combine();
+    const Bitboard usMaterial = readMaterial().combine<us>();
 
     Bitboard moves = 0;
     moves |= internalCalculateThreat<us, northeast, bishopId>(bounds[north] | bounds[east], srcMask, usMaterial, opMatCombined);
@@ -653,8 +647,8 @@ template<Set us>
 std::tuple<Bitboard, Bitboard>
 Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8 pieceIndx) const
 {
-    const Bitboard opThreatenedPieces = readMaterial<opposing_set<us>()>().combine() & movesbb;
-    const Bitboard opMatCombined = readMaterial<opposing_set<us>()>().combine();
+    const Bitboard opThreatenedPieces = readMaterial().combine<opposing_set<us>()>() & movesbb;
+    const Bitboard opMatCombined = readMaterial().combine<opposing_set<us>()>();
 
     u64 srcMask = squareMaskTable[source.index()];
     Bitboard pinned = kingMask.pinned(srcMask);
@@ -663,16 +657,16 @@ Position::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinTh
         // return {movesbb & ~opMatCombined, movesbb & opThreatenedPieces};
     }
 
-    if (readMaterial<us>()[pieceIndx].count() <= 1)
+    if (readMaterial().read<us>(pieceIndx).count() <= 1)
         return { movesbb & ~opThreatenedPieces, movesbb & opThreatenedPieces };
 
     Bitboard mask(board_constants::fileMasks[source.file] | board_constants::rankMasks[source.rank]);
-    Bitboard pieceMask = readMaterial<us>()[pieceIndx] & mask;
+    Bitboard pieceMask = readMaterial().read<us>(pieceIndx) & mask;
     movesbb &= mask;
 
     Bitboard otherRooks = pieceMask & ~squareMaskTable[source.index()];
     Bitboard includeMask = squareMaskTable[source.index()];
-    Bitboard usMaterial = readMaterial<us>().combine();
+    Bitboard usMaterial = readMaterial().combine<us>();
     // remove self from us material
     usMaterial &= ~squareMaskTable[source.index()];
 

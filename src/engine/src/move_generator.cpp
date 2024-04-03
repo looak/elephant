@@ -136,7 +136,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
         return;
 
     // cache pawns in local variable which we'll use to iterate over all pawns.
-    Bitboard pawns = pos.readMaterial<set>().material[pawnId];
+    Bitboard pawns = pos.readMaterial().pawns<set>();
 
     while (pawns.empty() == false) {
         // build source square and remove pawn from pawns bitboard.
@@ -192,7 +192,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
                 Position checkedPos;
                 checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial<opposing_set<set>()>().kings())
+                if (threat & pos.readMaterial().kings<opposing_set<set>()>())
                     prioratizedMove.setCheck(true);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(prioratizedMove);
@@ -238,7 +238,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
                 Position checkedPos;
                 checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial<opposing_set<set>()>().kings())
+                if (threat & pos.readMaterial().kings<opposing_set<set>()>())
                     prioratizedMove.setCheck(true);
                 m_moves.push(prioratizedMove);
                 m_unsortedMoves.push_back(prioratizedMove);
@@ -259,7 +259,7 @@ MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreat
     if (movesbb.empty())
         return;
 
-    Bitboard pieces = bb.readMaterial<set>().material[pieceId];
+    Bitboard pieces = bb.readMaterial().read<set>(pieceId);
 
     while (pieces.empty() == false) {
         // build source square and remove knight from cached material bitboard.
@@ -320,7 +320,7 @@ void
 MoveGenerator::internalGenerateKingMoves()
 {
     const auto& bb = m_position;
-    const Bitboard opMaterial = bb.readMaterial<opposing_set<set>()>().combine();
+    const Bitboard opMaterial = bb.readMaterial().combine<opposing_set<set>()>();
     const u8 setId = static_cast<u8>(set);
 
     Bitboard movesbb = m_moveMasks[setId].material[kingId];
@@ -330,7 +330,7 @@ MoveGenerator::internalGenerateKingMoves()
         return;
 #endif
 
-    u32 srcSqr = bb.readMaterial<set>().material[kingId].lsbIndex();
+    u32 srcSqr = bb.readMaterial().kings<set>().lsbIndex();
     u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
 
     while (movesbb.empty() == false) {
@@ -397,27 +397,27 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTy
     }
     else {
         switch (ptype) {
-            case PieceType::PAWN:
-                target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
-                break;
-            case PieceType::KNIGHT:
-                target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
-                break;
-            case PieceType::BISHOP:
-                target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
-                break;
-            case PieceType::ROOK:
-                target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
-                break;
-            case PieceType::QUEEN:
-                target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
-                break;
-            case PieceType::KING:
-                target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
-                break;
-            default:
-                FATAL_ASSERT(false) << "Invalid piece type";
-                break;
+        case PieceType::PAWN:
+            target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
+            break;
+        case PieceType::KNIGHT:
+            target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
+            break;
+        case PieceType::BISHOP:
+            target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
+            break;
+        case PieceType::ROOK:
+            target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
+            break;
+        case PieceType::QUEEN:
+            target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
+            break;
+        case PieceType::KING:
+            target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
+            break;
+        default:
+            FATAL_ASSERT(false) << "Invalid piece type";
+            break;
         }
     }
 }
@@ -427,7 +427,7 @@ template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& targe
 
 void
 MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture,
-                                          const KingPinThreats& pinThreats)
+    const KingPinThreats& pinThreats)
 {
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();

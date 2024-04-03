@@ -13,11 +13,11 @@ namespace ElephantTest {
  * https://osherove.com/blog/2005/4/3/naming-standards-for-unit-tests.html
  * @author Alexander Loodin Ek *
  */
-////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////
 class UciFixture : public ::testing::Test {
 public:
-    virtual void SetUp(){};
-    virtual void TearDown(){};
+    virtual void SetUp() {};
+    virtual void TearDown() {};
 
     /**
      * This is the exact function that exists in commands_util which is the first
@@ -100,7 +100,7 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     m_uci.Enable();
 
     // do
-    std::list<std::string> args{"startpos"};
+    std::list<std::string> args{ "startpos" };
     bool result = m_uci.Position(args);
 
     // verify
@@ -127,6 +127,37 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     // setup
     m_uci.Enable();
     std::string gocFen = "r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1";
+    GameContext expected;
+    FENParser::deserialize(gocFen.c_str(), expected);
+
+    // do
+    std::string commandLine = "position fen " + gocFen;
+    std::list<std::string> args;
+    extractArgsFromCommand(commandLine, args);
+    args.pop_front();  // pop position
+    bool result = m_uci.Position(args);
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
+    // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
+
+    const auto& board = m_uci.readGameContext().readChessboard();
+    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::G1));
+    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::G8));
+
+    EXPECT_FALSE(board.readCastlingState().hasAny());
+
+    std::string outputFen;
+    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
+}
+
+TEST_F(UciFixture, position_fen_perft)
+{
+    // setup
+    m_uci.Enable();
+    std::string gocFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ;D1 20 ;D2 400 ;D3 8902";
     GameContext expected;
     FENParser::deserialize(gocFen.c_str(), expected);
 

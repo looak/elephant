@@ -5,9 +5,11 @@
 #include "move.h"
 #include "search.hpp"
 
+
 #include <functional>
 #include <map>
 #include <optional>
+#include <string>
 
 UCI::UCI() :
     m_enabled(true),
@@ -62,7 +64,7 @@ UCI::Position(std::list<std::string>& args)
     else if (arg == "fen") {
         args.pop_front();
         std::string fen = "";
-        while (args.size() > 0 && args.front() != "moves") {
+        while (args.size() > 0 && args.front() != "moves" && args.front().find(";") == std::string::npos) {
             fen += args.front() + " ";
             args.pop_front();
         }
@@ -109,6 +111,32 @@ UCI::Position(std::list<std::string>& args)
             }
         }
     }
+
+    // if (args.front().find(";") != std::string::npos)
+    // {
+    //     std::vector<std::pair<int, int>> depthNodeCount;
+    //     do {
+    //         std::string depthValue = args.front();
+    //         args.pop_front();
+    //         std::string nodeCountStr = args.front();
+    //         args.pop_front();
+
+    //         depthValue.erase(0, 2);
+    //         int depth = std::stoi(depthValue);
+    //         int nodeCount = std::stoi(nodeCountStr);
+
+    //         depthNodeCount.push_back(std::make_pair(depth, nodeCount));
+
+    //     } while (args.size() > 0 && args.front().find(";") != std::string::npos);
+
+    //     for (auto&& [depth, nodeCount] : depthNodeCount)
+    //     {
+    //         Search search;
+    //         auto result = search.PerftDivide(m_context, depth);
+    //         //LOG_DEBUG() << "Depth: " << depth << " NodeCount: " << nodeCount << "\n";
+    //         std::cout << "nodes " << result.Nodes << "\n";
+    //     }
+    // }
 
     return true;
 }
@@ -258,4 +286,10 @@ UCI::Go(std::list<std::string>& args)
     SearchResult result = m_context.CalculateBestMove(searchParams);
     m_stream << "bestmove " << result.move.toString() << "\n";
     return true;
+}
+
+bool
+UCI::Perft(std::list<std::string>&)
+{
+    return false;
 }

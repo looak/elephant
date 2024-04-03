@@ -34,10 +34,16 @@ enum class PieceType : byte {
 constexpr u8
 toPieceId(PieceType type)
 {
-    return static_cast<u8>(type);
+    return static_cast<u8>(type) - 1;
 }
 
 enum class Set : byte { WHITE = 0, BLACK = 1, NR_OF_SETS = 2 };
+
+constexpr u8
+toSetId(Set set)
+{
+    return static_cast<u8>(set);
+}
 
 template<Set s>
 constexpr Set
@@ -49,22 +55,31 @@ opposing_set()
     return Set::WHITE;
 }
 
-constexpr signed short pieceValues[6] = {100, 350, 350, 525, 1000, 10000};
-constexpr byte moveCount[6] = {2, 8, 4, 4, 8, 8};
+template<Set s>
+constexpr i8 pawn_modifier()
+{
+    if constexpr (s == Set::WHITE)
+        return 1;
+
+    return -1;
+}
+
+constexpr signed short pieceValues[6] = { 100, 350, 350, 525, 1000, 10000 };
+constexpr byte moveCount[6] = { 2, 8, 4, 4, 8, 8 };
 
 constexpr bool slides[6] = {
     false, false, true, true, true, false,
 };
 
-constexpr signed short moves0x88[6][8] = {{-16, -32, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
+constexpr signed short moves0x88[6][8] = { {-16, -32, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
                                           {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-                                          {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
+                                          {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17} };
 
-constexpr signed short attacks0x88[6][8] = {{-15, -17, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
+constexpr signed short attacks0x88[6][8] = { {-15, -17, 0, 0, 0, 0, 0, 0},       {-33, -31, -18, -14, 14, 18, 31, 33},
                                             {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
-                                            {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17}};
+                                            {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17} };
 
-constexpr PieceType slidingPieceTypes[3] = {PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN};
+constexpr PieceType slidingPieceTypes[3] = { PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };
 
 class ChessPieceDef {
 public:

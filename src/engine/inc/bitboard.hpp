@@ -21,9 +21,10 @@
 #include "defines.h"
 #include "intrinsics.hpp"
 
+template<typename T>
 class BitboardSquare {
-    friend class Bitboard;
-
+    template<typename U>
+    friend class BitboardImpl;
 public:
     constexpr void operator=(bool value)
     {
@@ -38,31 +39,36 @@ public:
     constexpr operator bool() const { return (m_bb & squareMaskTable[static_cast<u8>(m_sqr)]) != 0; }
 
 private:
-    constexpr BitboardSquare(u64& bb, Square sqr) :
+    constexpr BitboardSquare(T& bb, Square sqr) :
         m_bb(bb),
         m_sqr(sqr)
     {
     }
 
-    u64& m_bb;
+    T& m_bb;
     Square m_sqr;
 };
 
-class Bitboard {
+template<typename T>
+class BitboardImpl {
 public:
-    constexpr Bitboard(u64 board) :
+    constexpr BitboardImpl(T board) :
         m_board(board)
     {
     }
 
-    constexpr Bitboard() :
+    constexpr BitboardImpl() :
         m_board(0)
     {
     }
 
     /**
      * @brief returns the internal 64bit integer    */
-    [[nodiscard]] constexpr u64 read() const { return m_board; }
+    [[nodiscard]] constexpr T read() const { return m_board; }
+
+    /**
+    * @brief returns the internal 64bit integer for mutating    */
+    [[nodiscard]] T& edit() { return m_board; }
 
     /**
      * @brief returns true if the bitboard is empty    */
@@ -71,6 +77,14 @@ public:
     /**
      * @brief returns the number of set bits in the bitboard    */
     [[nodiscard]] constexpr i32 count() const { return intrinsics::popcnt(m_board); }
+
+    /**
+     * @brief resets board to 0    */
+    void reset() { m_board = 0; }
+
+    /**
+     * @brief clears given mask from bitboard    */
+    void clear(u64 mask) { m_board &= ~mask; }
 
     /**
      * @brief returns index of the least significant bit        */
@@ -95,76 +109,72 @@ public:
     }
 
     /**
-     * @brief resets board to 0    */
-    void reset() { m_board = 0; }
-
-    /**
      * @brief combine given bitboards   */
     template<typename... Args>
-    [[nodiscard]] Bitboard combine(Bitboard first, Args... args) const
+    [[nodiscard]] BitboardImpl combine(BitboardImpl first, Args... args) const
     {
         return first | combine(args...);
     }
 
-    [[nodiscard]] constexpr Bitboard shiftNorth(u8 shift) const { return Bitboard(m_board << shift); }
+    [[nodiscard]] constexpr BitboardImpl shiftNorth(u8 shift) const { return BitboardImpl(m_board << shift); }
 
-    [[nodiscard]] constexpr Bitboard shiftRight(u8 shift) const { return Bitboard(m_board >> shift); }
-    [[nodiscard]] constexpr Bitboard shiftLeft(u8 shift) const { return Bitboard(m_board << shift); }
+    [[nodiscard]] constexpr BitboardImpl shiftRight(u8 shift) const { return BitboardImpl(m_board >> shift); }
+    [[nodiscard]] constexpr BitboardImpl shiftLeft(u8 shift) const { return BitboardImpl(m_board << shift); }
 
     /**
      * Section: operators */
-    constexpr Bitboard& operator|=(const Bitboard& rhs)
+    constexpr BitboardImpl& operator|=(const BitboardImpl& rhs)
     {
         m_board |= rhs.m_board;
         return *this;
     }
 
-    constexpr Bitboard& operator&=(const Bitboard& rhs)
+    constexpr BitboardImpl& operator&=(const BitboardImpl& rhs)
     {
         m_board &= rhs.m_board;
         return *this;
     }
 
-    constexpr Bitboard& operator^=(const Bitboard& rhs)
+    constexpr BitboardImpl& operator^=(const BitboardImpl& rhs)
     {
         m_board ^= rhs.m_board;
         return *this;
     }
 
-    [[nodiscard]] constexpr Bitboard operator|(const Bitboard& rhs) const { return Bitboard(m_board | rhs.m_board); }
-    [[nodiscard]] constexpr Bitboard operator&(const Bitboard& rhs) const { return Bitboard(m_board & rhs.m_board); }
-    [[nodiscard]] constexpr Bitboard operator^(const Bitboard& rhs) const { return Bitboard(m_board ^ rhs.m_board); }
+    [[nodiscard]] constexpr BitboardImpl operator|(const BitboardImpl& rhs) const { return BitboardImpl(m_board | rhs.m_board); }
+    [[nodiscard]] constexpr BitboardImpl operator&(const BitboardImpl& rhs) const { return BitboardImpl(m_board & rhs.m_board); }
+    [[nodiscard]] constexpr BitboardImpl operator^(const BitboardImpl& rhs) const { return BitboardImpl(m_board ^ rhs.m_board); }
 
-    constexpr Bitboard& operator|=(u64 rhs)
+    constexpr BitboardImpl& operator|=(u64 rhs)
     {
         m_board |= rhs;
         return *this;
     }
 
-    constexpr Bitboard& operator&=(u64 rhs)
+    constexpr BitboardImpl& operator&=(u64 rhs)
     {
         m_board &= rhs;
         return *this;
     }
 
-    constexpr Bitboard& operator^=(u64 rhs)
+    constexpr BitboardImpl& operator^=(u64 rhs)
     {
         m_board ^= rhs;
         return *this;
     }
 
-    [[nodiscard]] constexpr Bitboard operator|(u64 rhs) const { return Bitboard(m_board | rhs); }
-    [[nodiscard]] constexpr Bitboard operator&(u64 rhs) const { return Bitboard(m_board & rhs); }
-    [[nodiscard]] constexpr Bitboard operator^(u64 rhs) const { return Bitboard(m_board ^ rhs); }
+    [[nodiscard]] constexpr BitboardImpl operator|(u64 rhs) const { return BitboardImpl(m_board | rhs); }
+    [[nodiscard]] constexpr BitboardImpl operator&(u64 rhs) const { return BitboardImpl(m_board & rhs); }
+    [[nodiscard]] constexpr BitboardImpl operator^(u64 rhs) const { return BitboardImpl(m_board ^ rhs); }
 
-    [[nodiscard]] constexpr Bitboard operator<<(u8 rhs) const { return shiftLeft(rhs); }
-    [[nodiscard]] constexpr Bitboard operator>>(u8 rhs) const { return shiftRight(rhs); }
+    [[nodiscard]] constexpr BitboardImpl operator<<(u8 rhs) const { return shiftLeft(rhs); }
+    [[nodiscard]] constexpr BitboardImpl operator>>(u8 rhs) const { return shiftRight(rhs); }
 
-    [[nodiscard]] constexpr Bitboard operator~() const { return Bitboard(~m_board); };
+    [[nodiscard]] constexpr BitboardImpl operator~() const { return BitboardImpl(~m_board); };
     [[nodiscard]] explicit constexpr operator bool() const { return !empty(); }
 
-    [[nodiscard]] constexpr bool operator==(const Bitboard& rhs) const { return m_board == rhs.m_board; }
-    [[nodiscard]] constexpr bool operator!=(const Bitboard& rhs) const { return !(*this == rhs); }
+    [[nodiscard]] constexpr bool operator==(const BitboardImpl& rhs) const { return m_board == rhs.m_board; }
+    [[nodiscard]] constexpr bool operator!=(const BitboardImpl& rhs) const { return !(*this == rhs); }
     [[nodiscard]] constexpr bool operator==(const u64 rhs) const { return m_board == rhs; }
     [[nodiscard]] constexpr bool operator!=(const u64 rhs) const { return !(*this == rhs); }
 
@@ -172,45 +182,45 @@ public:
      * @brief returns true if the square is set in the bitboard    */
     constexpr bool operator[](Square sqr) const { return (m_board & squareMaskTable[static_cast<u8>(sqr)]) != 0; }
     /**
-     * @brief returns a BitboardSquare object that can be used to set the square    */
-    constexpr BitboardSquare operator[](Square sqr) { return BitboardSquare(m_board, sqr); }
+     * @brief returns a BitboardSquare object that can be used to mutate the square    */
+    constexpr BitboardSquare<T> operator[](Square sqr) { return BitboardSquare<T>(m_board, sqr); }
 
     /**
      * Section: shifts */
-    [[nodiscard]] constexpr Bitboard shiftNorth() const { return Bitboard(m_board << shifts::vertical); }
-    [[nodiscard]] constexpr Bitboard shiftEast() const { return Bitboard(m_board << shifts::horizontal); }
-    [[nodiscard]] constexpr Bitboard shiftSouth() const { return Bitboard(m_board >> shifts::vertical); }
-    [[nodiscard]] constexpr Bitboard shiftWest() const { return Bitboard(m_board >> shifts::horizontal); }
-    [[nodiscard]] constexpr Bitboard shiftNorthEast() const { return Bitboard(m_board << shifts::forward_diagonal); }
-    [[nodiscard]] constexpr Bitboard shiftSouthEast() const { return Bitboard(m_board >> shifts::backward_diagonal); }
-    [[nodiscard]] constexpr Bitboard shiftSouthWest() const { return Bitboard(m_board >> shifts::forward_diagonal); }
-    [[nodiscard]] constexpr Bitboard shiftNorthWest() const { return Bitboard(m_board << shifts::backward_diagonal); }
+    [[nodiscard]] constexpr BitboardImpl shiftNorth() const { return BitboardImpl(m_board << shifts::vertical); }
+    [[nodiscard]] constexpr BitboardImpl shiftEast() const { return BitboardImpl(m_board << shifts::horizontal); }
+    [[nodiscard]] constexpr BitboardImpl shiftSouth() const { return BitboardImpl(m_board >> shifts::vertical); }
+    [[nodiscard]] constexpr BitboardImpl shiftWest() const { return BitboardImpl(m_board >> shifts::horizontal); }
+    [[nodiscard]] constexpr BitboardImpl shiftNorthEast() const { return BitboardImpl(m_board << shifts::forward_diagonal); }
+    [[nodiscard]] constexpr BitboardImpl shiftSouthEast() const { return BitboardImpl(m_board >> shifts::backward_diagonal); }
+    [[nodiscard]] constexpr BitboardImpl shiftSouthWest() const { return BitboardImpl(m_board >> shifts::forward_diagonal); }
+    [[nodiscard]] constexpr BitboardImpl shiftNorthWest() const { return BitboardImpl(m_board << shifts::backward_diagonal); }
 
     template<Set us, u8 direction>
-    [[nodiscard]] constexpr Bitboard shiftRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftRelative() const;
 
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftNorthRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftNorthRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftEastRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftEastRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftSouthRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftSouthRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftWestRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftWestRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftNorthEastRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftNorthEastRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftSouthEastRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftSouthEastRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftSouthWestRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftSouthWestRelative() const;
     template<Set us>
-    [[nodiscard]] constexpr Bitboard shiftNorthWestRelative() const;
+    [[nodiscard]] constexpr BitboardImpl shiftNorthWestRelative() const;
 
     /**
      * Section: fill */
-    [[nodiscard]] constexpr Bitboard inclusiveFill(const u64* begin, const u64* end) const
+    [[nodiscard]] constexpr BitboardImpl inclusiveFill(const u64* begin, const u64* end) const
     {
-        Bitboard result(0);
+        BitboardImpl result(0);
         if (*begin == *end) {
             return result | *begin;
         }
@@ -222,45 +232,45 @@ public:
         return result;
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillWest(i8 file) const
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillWest(i8 file) const
     {
         return inclusiveFill(&board_constants::fileMasks[0], &board_constants::fileMasks[file]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillEast(i8 file) const
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillEast(i8 file) const
     {
         return inclusiveFill(&board_constants::fileMasks[file], &board_constants::fileMasks[7]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillSouth(i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillSouth(i8 rank)
     {
         return inclusiveFill(&board_constants::rankMasks[0], &board_constants::rankMasks[rank]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillNorth(i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillNorth(i8 rank)
     {
         return inclusiveFill(&board_constants::rankMasks[rank], &board_constants::rankMasks[7]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillNorthEast(i8 file, i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillNorthEast(i8 file, i8 rank)
     {
         i8 index = file + rank;
         return inclusiveFill(&board_constants::backwardDiagonalMasks[index], &board_constants::backwardDiagonalMasks[14]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillSouthEast(i8 file, i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillSouthEast(i8 file, i8 rank)
     {
         i8 index = 7 + file - rank;
         return inclusiveFill(&board_constants::forwardDiagonalMasks[index], &board_constants::forwardDiagonalMasks[14]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillSouthWest(i8 file, i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillSouthWest(i8 file, i8 rank)
     {
         i8 index = file + rank;
         return inclusiveFill(&board_constants::backwardDiagonalMasks[0], &board_constants::backwardDiagonalMasks[index]);
     }
 
-    [[nodiscard]] constexpr Bitboard inclusiveFillNorthWest(i8 file, i8 rank)
+    [[nodiscard]] constexpr BitboardImpl inclusiveFillNorthWest(i8 file, i8 rank)
     {
         i8 index = 7 + file - rank;
         return inclusiveFill(&board_constants::forwardDiagonalMasks[0], &board_constants::forwardDiagonalMasks[index]);
@@ -268,14 +278,15 @@ public:
 
 private:
     // internal combine for end of variadic template recursion
-    [[nodiscard]] Bitboard combine() const { return Bitboard(0); }
+    [[nodiscard]] BitboardImpl combine() const { return BitboardImpl(0); }
 
-    u64 m_board;
+    T m_board;
 };
 
+template<typename T>
 template<Set us, u8 direction>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftRelative() const
 {
     if constexpr (direction == north) {
         return shiftNorthRelative<us>();
@@ -305,9 +316,11 @@ Bitboard::shiftRelative() const
     FATAL_ASSERT(false) << "Invalid direction";
 }
 
+
+template<typename T>
 template<Set us>
-constexpr Bitboard
-Bitboard::shiftNorthRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftNorthRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftNorth();
@@ -316,9 +329,10 @@ Bitboard::shiftNorthRelative() const
         return shiftSouth();
     }
 }
+template<typename T>
 template<Set us>
-constexpr Bitboard
-Bitboard::shiftEastRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftEastRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftEast();
@@ -328,9 +342,10 @@ Bitboard::shiftEastRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-constexpr Bitboard
-Bitboard::shiftSouthRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftSouthRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftSouth();
@@ -340,9 +355,10 @@ Bitboard::shiftSouthRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-constexpr Bitboard
-Bitboard::shiftWestRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftWestRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftWest();
@@ -352,9 +368,10 @@ Bitboard::shiftWestRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftNorthEastRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftNorthEastRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftNorthEast();
@@ -364,9 +381,10 @@ Bitboard::shiftNorthEastRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftSouthEastRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftSouthEastRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftSouthEast();
@@ -376,9 +394,10 @@ Bitboard::shiftSouthEastRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftSouthWestRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftSouthWestRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftSouthWest();
@@ -388,9 +407,10 @@ Bitboard::shiftSouthWestRelative() const
     }
 }
 
+template<typename T>
 template<Set us>
-[[nodiscard]] constexpr Bitboard
-Bitboard::shiftNorthWestRelative() const
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shiftNorthWestRelative() const
 {
     if constexpr (us == Set::WHITE) {
         return shiftNorthWest();
@@ -399,6 +419,8 @@ Bitboard::shiftNorthWestRelative() const
         return shiftSouthEast();
     }
 }
+
+typedef BitboardImpl<u64> Bitboard;
 
 [[nodiscard]] inline u64
 operator&(const u64& lhs, const Bitboard& rhs)

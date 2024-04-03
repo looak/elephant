@@ -32,6 +32,7 @@ struct PrioratizedMoveComparator;
 struct MoveUndoUnit {
     MoveUndoUnit() :
         move(),
+        movedPiece(),
         capturedPiece(),
         castlingState(),
         enPassantState(),
@@ -39,6 +40,7 @@ struct MoveUndoUnit {
     {
     }
     PackedMove move;
+    ChessPiece movedPiece;
     ChessPiece capturedPiece;
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
@@ -191,15 +193,9 @@ private:
 
     MoveUndoUnit InternalMakeMove(const std::string& moveString);
 
-    /**
-     * Internal helper function for handling the movement of a pawn chess piece.
-     *
-     * @param move The move being made.
-     * @return The updated target location for the pawn, in case we double moved the piece and
-     * target differ.*/
-    Square InternalHandlePawnMove(const PackedMove move);
+    std::tuple<Square, ChessPiece> InternalHandlePawnMove(const PackedMove move, Set set, MutableMaterialProxy& materialEditor, MoveUndoUnit& undoState);
     void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
-                                MoveUndoUnit& undoState);
+        MoveUndoUnit& undoState);
     void InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState);
     void InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState);
 
@@ -212,12 +208,12 @@ private:
      * @param rookMove The position that the rook will move to during the castle move (if any).
      * @return True if the move is a castle move, false otherwise. */
     bool InternalHandleKingMove(const PackedMove move, Set set, Notation& targetRook, Notation& rookMove,
-                                MoveUndoUnit& undoState);
+        MoveUndoUnit& undoState);
     void InternalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState);
     void InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState);
 
     bool InternalUpdateEnPassant(Notation source, Notation target);
-    void InternalMakeMove(Notation source, Notation target);
+    void InternalMakeMove(ChessPiece piece, Notation source, Notation target, MutableMaterialProxy materialEditor);
 
     // std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
     //                                                             KingMask checkedMask, bool captureMoves) const;
