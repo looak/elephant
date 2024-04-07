@@ -29,10 +29,10 @@ public:
     constexpr void operator=(bool value)
     {
         if (value) {
-            m_bb |= squareMaskTable[static_cast<u8>(m_sqr)];
+            m_bb |= squareMaskTable[*m_sqr];
         }
         else {
-            m_bb &= ~squareMaskTable[static_cast<u8>(m_sqr)];
+            m_bb &= ~squareMaskTable[*m_sqr];
         }
     }
 

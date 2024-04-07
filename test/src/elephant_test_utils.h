@@ -52,19 +52,20 @@ struct MoveCount {
 MoveCount CountMoves(
     const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) -> bool { return true; });
 
-#define BLACKPAWN ChessPiece(Set::BLACK, PieceType::PAWN)
-#define BLACKKNIGHT ChessPiece(Set::BLACK, PieceType::KNIGHT)
-#define BLACKBISHOP ChessPiece(Set::BLACK, PieceType::BISHOP)
-#define BLACKROOK ChessPiece(Set::BLACK, PieceType::ROOK)
-#define BLACKQUEEN ChessPiece(Set::BLACK, PieceType::QUEEN)
-#define BLACKKING ChessPiece(Set::BLACK, PieceType::KING)
 
-#define WHITEPAWN ChessPiece(Set::WHITE, PieceType::PAWN)
-#define WHITEKNIGHT ChessPiece(Set::WHITE, PieceType::KNIGHT)
-#define WHITEBISHOP ChessPiece(Set::WHITE, PieceType::BISHOP)
-#define WHITEROOK ChessPiece(Set::WHITE, PieceType::ROOK)
-#define WHITEQUEEN ChessPiece(Set::WHITE, PieceType::QUEEN)
-#define WHITEKING ChessPiece(Set::WHITE, PieceType::KING)
+#define BLACKPAWN piece_constants::black_pawn
+#define BLACKKNIGHT piece_constants::black_knight
+#define BLACKBISHOP piece_constants::black_bishop
+#define BLACKROOK piece_constants::black_rook
+#define BLACKQUEEN piece_constants::black_queen
+#define BLACKKING piece_constants::black_king
+
+#define WHITEPAWN piece_constants::white_pawn
+#define WHITEKNIGHT piece_constants::white_knight
+#define WHITEBISHOP piece_constants::white_bishop
+#define WHITEROOK piece_constants::white_rook
+#define WHITEQUEEN piece_constants::white_queen
+#define WHITEKING piece_constants::white_king
 
 #define a1 Notation::BuildPosition('a', 1)
 #define a2 Notation::BuildPosition('a', 2)
