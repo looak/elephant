@@ -68,8 +68,8 @@ public:
 private:
     void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
 
-    template<Set set>
-    void initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype);
+    template<Set set, bool captures>
+    void initializeMoveMasks(MaterialMask& target, PieceType ptype);
 
     template<Set set>
     PackedMove generateNextMove();

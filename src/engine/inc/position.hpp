@@ -184,18 +184,18 @@ public:
     CastlingStateInfo readCastling() const { return m_castlingState; }
     const CastlingStateInfo& refCastling() const { return m_castlingState; }
 
-    template<Set us>
-    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
-    template<Set us>
-    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
-    template<Set us, u8 pieceId = rookId>
-    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
-    template<Set us, u8 pieceId = bishopId>
-    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
-    template<Set us>
-    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats, bool captures = false) const;
-    template<Set us, Set op = opposing_set<us>()>
-    Bitboard calcAvailableMovesKing(byte castlingRights, bool captures = false) const;
+    template<Set us, bool captures = false>
+    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
+    template<Set us, bool captures = false>
+    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats) const;
+    template<Set us, bool captures = false, u8 pieceId = rookId>
+    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats) const;
+    template<Set us, bool captures = false, u8 pieceId = bishopId>
+    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats) const;
+    template<Set us, bool captures = false>
+    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats) const;
+    template<Set us, bool captures = false, Set op = opposing_set<us>()>
+    Bitboard calcAvailableMovesKing(byte castlingRights) const;
 
     template<Set us>
     SlidingMaterialMasks calcMaterialSlidingMasksBulk() const;

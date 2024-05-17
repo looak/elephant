@@ -81,7 +81,7 @@ TEST_F(PositionFixture, King_OnlyWhiteKingOnBoard_e1_ShouldHaveMoves)
     // f2 should be available for moving
     expected |= INT64_C(1) << f2.index();
 
-    auto result = board.calcAvailableMovesKing<Set::WHITE>(0, false).read();
+    auto result = board.calcAvailableMovesKing<Set::WHITE>(0).read();
     EXPECT_EQ(expected, result);
 }
 

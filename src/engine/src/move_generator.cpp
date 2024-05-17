@@ -369,15 +369,25 @@ template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>();
 void
 MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
 {
+    bool captures = mtype == MoveTypes::CAPTURES_ONLY;
+
     if (m_toMove == Set::WHITE)
-        initializeMoveMasks<Set::WHITE>(m_moveMasks[0], ptype, mtype);
+    {
+        if (captures)
+            initializeMoveMasks<Set::WHITE, true>(m_moveMasks[0], ptype);
+        else
+            initializeMoveMasks<Set::WHITE, false>(m_moveMasks[0], ptype);
+    }
     else
-        initializeMoveMasks<Set::BLACK>(m_moveMasks[1], ptype, mtype);
+        if (captures)
+            initializeMoveMasks<Set::BLACK, true>(m_moveMasks[1], ptype);
+        else
+            initializeMoveMasks<Set::BLACK, false>(m_moveMasks[1], ptype);
 }
 
-template<Set set>
+template<Set set, bool captures>
 void
-MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTypes mtype)
+MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype)
 {
     const auto& bb = m_position;
     if (bb.empty())
@@ -385,35 +395,33 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTy
     const size_t setIndx = static_cast<size_t>(set);
     m_pinThreats[setIndx] = bb.calcKingMask<set>();
 
-    bool captures = mtype == MoveTypes::CAPTURES_ONLY;
-
     if (ptype == PieceType::NONE) {
-        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
-        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
-        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
-        target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
-        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
-        target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
+        target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set, captures>(m_pinThreats[setIndx]);
+        target.material[knightId] = bb.calcAvailableMovesKnightBulk<set, captures>(m_pinThreats[setIndx]);
+        target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set, captures>(m_pinThreats[setIndx]);
+        target.material[rookId] = bb.calcAvailableMovesRookBulk<set, captures>(m_pinThreats[setIndx]);
+        target.material[queenId] = bb.calcAvailableMovesQueenBulk<set, captures>(m_pinThreats[setIndx]);
+        target.material[kingId] = bb.calcAvailableMovesKing<set, captures>(bb.readCastling().read());
     }
     else {
         switch (ptype) {
         case PieceType::PAWN:
-            target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set>(m_pinThreats[setIndx], captures);
+            target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set, captures>(m_pinThreats[setIndx]);
             break;
         case PieceType::KNIGHT:
-            target.material[knightId] = bb.calcAvailableMovesKnightBulk<set>(m_pinThreats[setIndx], captures);
+            target.material[knightId] = bb.calcAvailableMovesKnightBulk<set, captures>(m_pinThreats[setIndx]);
             break;
         case PieceType::BISHOP:
-            target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set>(m_pinThreats[setIndx], captures);
+            target.material[bishopId] = bb.calcAvailableMovesBishopBulk<set, captures>(m_pinThreats[setIndx]);
             break;
         case PieceType::ROOK:
-            target.material[rookId] = bb.calcAvailableMovesRookBulk<set>(m_pinThreats[setIndx], captures);
+            target.material[rookId] = bb.calcAvailableMovesRookBulk<set, captures>(m_pinThreats[setIndx]);
             break;
         case PieceType::QUEEN:
-            target.material[queenId] = bb.calcAvailableMovesQueenBulk<set>(m_pinThreats[setIndx], captures);
+            target.material[queenId] = bb.calcAvailableMovesQueenBulk<set, captures>(m_pinThreats[setIndx]);
             break;
         case PieceType::KING:
-            target.material[kingId] = bb.calcAvailableMovesKing<set>(bb.readCastling().read(), captures);
+            target.material[kingId] = bb.calcAvailableMovesKing<set, captures>(bb.readCastling().read());
             break;
         default:
             FATAL_ASSERT(false) << "Invalid piece type";
@@ -422,8 +430,10 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype, MoveTy
     }
 }
 
-template void MoveGenerator::initializeMoveMasks<Set::WHITE>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
-template void MoveGenerator::initializeMoveMasks<Set::BLACK>(MaterialMask& target, PieceType ptype, MoveTypes mtype);
+template void MoveGenerator::initializeMoveMasks<Set::WHITE, true>(MaterialMask& target, PieceType ptype);
+template void MoveGenerator::initializeMoveMasks<Set::BLACK, true>(MaterialMask& target, PieceType ptype);
+template void MoveGenerator::initializeMoveMasks<Set::WHITE, false>(MaterialMask& target, PieceType ptype);
+template void MoveGenerator::initializeMoveMasks<Set::BLACK, false>(MaterialMask& target, PieceType ptype);
 
 void
 MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture,

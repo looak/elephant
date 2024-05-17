@@ -200,9 +200,9 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
     return retVal;
 }
 
-template<Set us>
+template<Set us, bool captures>
 Bitboard
-Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask, bool captures) const
+Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask) const
 {
     const size_t usIndx = static_cast<size_t>(us);
     const Bitboard usMat = m_materialMask.combine<us>();
@@ -228,14 +228,16 @@ Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask, bool captur
         mvsbb &= checksMask;
     }
 
-    if (captures == true)
+    if constexpr (captures == true)
         mvsbb &= opMat;
 
     return mvsbb;
 }
 
-template Bitboard Position::calcAvailableMovesPawnBulk<Set::WHITE>(const KingPinThreats& kingMask, bool captures) const;
-template Bitboard Position::calcAvailableMovesPawnBulk<Set::BLACK>(const KingPinThreats& kingMask, bool captures) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::WHITE, true>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::WHITE, false>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::BLACK, true>(const KingPinThreats& kingMask) const;
+template Bitboard Position::calcAvailableMovesPawnBulk<Set::BLACK, false>(const KingPinThreats& kingMask) const;
 
 template<Set us>
 Bitboard
@@ -264,9 +266,9 @@ Position::calcThreatenedSquaresPawnBulk() const
 template Bitboard Position::calcThreatenedSquaresPawnBulk<Set::WHITE>() const;
 template Bitboard Position::calcThreatenedSquaresPawnBulk<Set::BLACK>() const;
 
-template<Set us, Set op>
+template<Set us, bool captures, Set op>
 Bitboard
-Position::calcAvailableMovesKing(byte castlingRights, bool captures) const
+Position::calcAvailableMovesKing(byte castlingRights) const
 {
     bool constexpr includeMaterial = false;
     bool constexpr pierceKing = true;
@@ -277,13 +279,15 @@ Position::calcAvailableMovesKing(byte castlingRights, bool captures) const
     moves &= ~threatened;
     if ((threatened & m_materialMask.kings<us>()).empty())
         moves |= Castling((byte)us, castlingRights, threatened.read());
-    if (captures == true)
+    if constexpr (captures == true)
         moves &= m_materialMask.combine<op>();
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesKing<Set::WHITE, Set::BLACK>(byte, bool) const;
-template Bitboard Position::calcAvailableMovesKing<Set::BLACK, Set::WHITE>(byte, bool) const;
+template Bitboard Position::calcAvailableMovesKing<Set::WHITE, true, Set::BLACK>(byte) const;
+template Bitboard Position::calcAvailableMovesKing<Set::WHITE, false, Set::BLACK>(byte) const;
+template Bitboard Position::calcAvailableMovesKing<Set::BLACK, true, Set::WHITE>(byte) const;
+template Bitboard Position::calcAvailableMovesKing<Set::BLACK, false, Set::WHITE>(byte) const;
 
 template<Set us>
 Bitboard
@@ -317,9 +321,9 @@ Position::calcThreatenedSquaresKing() const
 template Bitboard Position::calcThreatenedSquaresKing<Set::WHITE>() const;
 template Bitboard Position::calcThreatenedSquaresKing<Set::BLACK>() const;
 
-template<Set us, u8 pieceId>
+template<Set us, bool captures, u8 pieceId>
 Bitboard
-Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask, bool captures) const
+Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask) const
 {
     const Bitboard materialbb = readMaterial().combine<us>();
     Bitboard moves = calcThreatenedSquaresBishopBulk<us, pieceId>();
@@ -329,20 +333,24 @@ Position::calcAvailableMovesBishopBulk(const KingPinThreats& kingMask, bool capt
     else
         moves ^= (materialbb & moves);
 
-    if (captures == true)
+    if constexpr (captures == true)
         moves &= readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, bishopId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, bishopId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, queenId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, queenId>(const KingPinThreats&, bool) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, true, bishopId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, true, bishopId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, true, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, true, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, false, bishopId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, false, bishopId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::WHITE, false, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesBishopBulk<Set::BLACK, false, queenId>(const KingPinThreats&) const;
 
-template<Set us, u8 pieceId>
+template<Set us, bool captures, u8 pieceId>
 Bitboard
-Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask, bool captures) const
+Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask) const
 {
     const Bitboard materialbb = readMaterial().combine<us>();
 
@@ -353,33 +361,39 @@ Position::calcAvailableMovesRookBulk(const KingPinThreats& kingMask, bool captur
     else
         moves ^= (materialbb & moves);
 
-    if (captures == true)
+    if constexpr (captures == true)
         moves &= readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, rookId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, rookId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, queenId>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, queenId>(const KingPinThreats&, bool) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, true, rookId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, true, rookId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, true, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, true, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, false, rookId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, false, rookId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::WHITE, false, queenId>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesRookBulk<Set::BLACK, false, queenId>(const KingPinThreats&) const;
 
-template<Set us>
+template<Set us, bool captures>
 Bitboard
-Position::calcAvailableMovesQueenBulk(const KingPinThreats& kingMask, bool captures) const
+Position::calcAvailableMovesQueenBulk(const KingPinThreats& kingMask) const
 {
     Bitboard moves = 0;
-    moves |= calcAvailableMovesBishopBulk<us, queenId>(kingMask, captures);
-    moves |= calcAvailableMovesRookBulk<us, queenId>(kingMask, captures);
+    moves |= calcAvailableMovesBishopBulk<us, captures, queenId>(kingMask);
+    moves |= calcAvailableMovesRookBulk<us, captures, queenId>(kingMask);
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesQueenBulk<Set::WHITE>(const KingPinThreats&, bool) const;
-template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK>(const KingPinThreats&, bool) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::WHITE, true>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::WHITE, false>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK, true>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesQueenBulk<Set::BLACK, false>(const KingPinThreats&) const;
 
-template<Set us>
+template<Set us, bool captures>
 Bitboard
-Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask, bool captures) const
+Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask) const
 {
     auto moves = calcThreatenedSquaresKnightBulk<us>();
     const Bitboard ourMaterial = readMaterial().combine<us>();
@@ -389,14 +403,16 @@ Position::calcAvailableMovesKnightBulk(const KingPinThreats& kingMask, bool capt
     if (kingMask.isChecked())
         return moves & kingMask.checks();
 
-    if (captures == true)
+    if constexpr (captures == true)
         return moves & readMaterial().combine<opposing_set<us>()>();
 
     return moves;
 }
 
-template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE>(const KingPinThreats& kingMask, bool captures) const;
-template Bitboard Position::calcAvailableMovesKnightBulk<Set::BLACK>(const KingPinThreats& kingMask, bool captures) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE, true>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::BLACK, true>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::WHITE, false>(const KingPinThreats&) const;
+template Bitboard Position::calcAvailableMovesKnightBulk<Set::BLACK, false>(const KingPinThreats&) const;
 
 template<Set us>
 Bitboard
