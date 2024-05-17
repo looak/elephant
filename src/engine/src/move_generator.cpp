@@ -191,7 +191,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
             }
             else {
                 Position checkedPos;
-                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
+                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
                 if (threat & pos.readMaterial().kings<opposing_set<set>()>())
                     prioratizedMove.setCheck(true);
@@ -214,7 +214,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
             }
             else {
                 Position checkedPos;
-                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), Notation(dstSqr));
+                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
                 if (threat & pos.readMaterial().kings<opposing_set<set>()>())
                     prioratizedMove.setCheck(true);

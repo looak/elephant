@@ -75,21 +75,19 @@ Position::empty() const
 }
 
 bool
-Position::ClearPiece(ChessPiece piece, Notation target)
+Position::ClearPiece(ChessPiece piece, Square target)
 {
-    Square sqr = target.toSquare();
     Bitboard pieceMask;
-    pieceMask[sqr] = true;
+    pieceMask[target] = true;
     m_materialMask.clear(pieceMask, piece.getSet(), piece.index());
     return true;
 }
 
 bool
-Position::PlacePiece(ChessPiece piece, Notation target)
+Position::PlacePiece(ChessPiece piece, Square target)
 {
-    auto sqr = target.toSquare();
     Bitboard piecebb;
-    piecebb[sqr] = true;
+    piecebb[target] = true;
     m_materialMask.write(piecebb, piece.getSet(), piece.index());
 
     return true;

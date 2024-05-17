@@ -194,8 +194,7 @@ private:
     MoveUndoUnit InternalMakeMove(const std::string& moveString);
 
     std::tuple<Square, ChessPiece> InternalHandlePawnMove(const PackedMove move, Set set, MutableMaterialProxy& materialEditor, MoveUndoUnit& undoState);
-    void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
-        MoveUndoUnit& undoState);
+    void InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Square targetRook, Square rookMove, MoveUndoUnit& undoState);
     void InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState);
     void InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState);
 
@@ -207,16 +206,12 @@ private:
      * @param targetRook The position of the rook that will be involved in the castle move (if any).
      * @param rookMove The position that the rook will move to during the castle move (if any).
      * @return True if the move is a castle move, false otherwise. */
-    bool InternalHandleKingMove(const PackedMove move, Set set, Notation& targetRook, Notation& rookMove,
-        MoveUndoUnit& undoState);
+    bool InternalHandleKingMove(const PackedMove move, Set set, Square& targetRook, Square& rookMove, MoveUndoUnit& undoState);
     void InternalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState);
-    void InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState);
+    void InternalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState);
 
     bool InternalUpdateEnPassant(Notation source, Notation target);
-    void InternalMakeMove(ChessPiece piece, Notation source, Notation target, MutableMaterialProxy materialEditor);
-
-    // std::vector<Move> concurrentCalculateAvailableMovesForPiece(ChessPiece piece, u64 threatenedMask, KingMask kingMask,
-    //                                                             KingMask checkedMask, bool captureMoves) const;
+    void InternalMakeMove(ChessPiece piece, Square source, Square target, MutableMaterialProxy materialEditor);
 
     u64 m_hash;
     Position m_position;
@@ -227,8 +222,6 @@ private:
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];
-
-    // mutable std::array<std::tuple<bool, KingMask>, 2> m_cachedKingMask{};
 };
 
 template<typename T, bool isConst>

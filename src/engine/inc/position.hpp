@@ -169,8 +169,8 @@ public:
     void Clear();
     bool empty() const;
 
-    bool PlacePiece(ChessPiece piece, Notation target);
-    bool ClearPiece(ChessPiece piece, Notation target);
+    bool PlacePiece(ChessPiece piece, Square target);
+    bool ClearPiece(ChessPiece piece, Square target);
 
     ChessPiece readPieceAt(Square sqr) const;
     const MaterialPositionMask& readMaterial() const { return m_materialMask; }

@@ -88,10 +88,11 @@ Chessboard::Clear()
 bool
 Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
 {
-    auto tsqrPiece = m_position.readPieceAt(target.toSquare());
+    Square trgSqr = target.toSquare();
+    auto tsqrPiece = m_position.readPieceAt(trgSqr);
     if (tsqrPiece != ChessPiece::None()) {
         if (overwrite == true) {
-            m_position.ClearPiece(tsqrPiece, target);
+            m_position.ClearPiece(tsqrPiece, trgSqr);
             m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, tsqrPiece, target);
         }
         else
@@ -103,7 +104,7 @@ Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
         m_kings[piece.set()].second = Notation(target);
     }
 
-    m_position.PlacePiece(piece, target);
+    m_position.PlacePiece(piece, trgSqr);
 
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
     return true;
@@ -171,8 +172,8 @@ template MoveUndoUnit Chessboard::MakeMove<false>(PackedMove);
 bool
 Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 {
-    const i32 srcSqr = undoState.move.source();
-    const i32 trgSqr = undoState.move.target();
+    const Square srcSqr = undoState.move.sourceSqr();
+    const Square trgSqr = undoState.move.sourceSqr();
     //const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
     const ChessPiece movedPiece = undoState.movedPiece;
 
@@ -184,16 +185,15 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 
     // unmake move, currently we are tracking the piece and board state in two
     // different places, here in our tiles and in the position.
-    m_position.PlacePiece(promotedPiece, Notation(srcSqr));
-    m_position.ClearPiece(movedPiece, Notation(trgSqr));
+    m_position.PlacePiece(promotedPiece, srcSqr);
+    m_position.ClearPiece(movedPiece, trgSqr);
 
     if (undoState.move.isCapture()) {
         if (undoState.move.isEnPassant()) {
-            i32 epPieceSqr = static_cast<i32>(undoState.enPassantState.readTarget());
-            m_position.PlacePiece(undoState.capturedPiece, Notation(epPieceSqr));
+            m_position.PlacePiece(undoState.capturedPiece, undoState.enPassantState.readTarget());
         }
         else {
-            m_position.PlacePiece(undoState.capturedPiece, Notation(trgSqr));
+            m_position.PlacePiece(undoState.capturedPiece, trgSqr);
         }
     }
     else if (undoState.move.isCastling()) {
@@ -202,7 +202,7 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
         // king would have been moved back by regular undo move code.
         Notation rookSource;
         Notation rookTarget;
-        Notation target(undoState.move.targetSqr());
+        Notation target(trgSqr);
         if (target.file == file_c)  // queen side
         {
             rookSource = Notation(file_a, target.rank);
@@ -215,7 +215,7 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
         }
         ChessPiece rook(movedPiece.getSet(), PieceType::ROOK);
         auto editor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
-        InternalMakeMove(rook, rookTarget, rookSource, editor);
+        InternalMakeMove(rook, rookTarget.toSquare(), rookSource.toSquare(), editor);
     }
 
     m_position.editEnPassant().write(undoState.enPassantState.read());  // restore enpassant state
@@ -287,8 +287,7 @@ Chessboard::InternalHandlePawnMove(const PackedMove move, Set set, MutableMateri
 }
 
 bool
-Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& targetRook, Notation& rookMove,
-    MoveUndoUnit& undoUnit)
+Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Square& targetRook, Square& rookMove, MoveUndoUnit& undoUnit)
 {
     const u8 setIndx = (u8)set;
     bool castling = false;
@@ -299,14 +298,14 @@ Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& tar
         byte targetRank = 7 * setIndx;
         if (targetSquare.file == 2)  // we are in c file.
         {
-            targetRook = Notation(0, targetRank);
-            rookMove = Notation(3, targetRank);
+            targetRook = Notation(0, targetRank).toSquare();
+            rookMove = Notation(3, targetRank).toSquare();
             castling = true;
         }
         else if (targetSquare.file == 6)  // we are in g file.
         {
-            targetRook = Notation(7, targetRank);
-            rookMove = Notation(5, targetRank);
+            targetRook = Notation(7, targetRank).toSquare();
+            rookMove = Notation(5, targetRank).toSquare();
             castling = true;
         }
     }
@@ -325,11 +324,8 @@ Chessboard::InternalHandleKingMove(const PackedMove move, Set set, Notation& tar
     return castling;
 }
 
-void
-Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Notation targetRook, Notation rookMove,
-    MoveUndoUnit& undoState)
-{
-    if (piece.getType() == PieceType::KING && targetRook != Notation()) {
+void Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move, Square targetRook, Square rookMove, MoveUndoUnit& undoState) {
+    if (piece.getType() == PieceType::KING && targetRook != Square::NullSQ) {
         ChessPiece rook(piece.getSet(), PieceType::ROOK);
         auto editor = m_position.materialEditor(piece.getSet(), PieceType::ROOK);
         InternalMakeMove(rook, targetRook, rookMove, editor);
@@ -339,9 +335,7 @@ Chessboard::InternalHandleRookMove(const ChessPiece piece, const PackedMove move
     }
 }
 
-void
-Chessboard::InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState)
-{
+void Chessboard::InternalUpdateCastlingState(byte mask, MoveUndoUnit& undoState) {
     byte castlingState = m_position.readCastling().read();
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     // in a situation where rook captures rook from original positions we don't need to store
@@ -383,7 +377,9 @@ Chessboard::InternalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit&
 void
 Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState)
 {
-    Notation targetRook, rookMove;
+    Square targetRook = Square::NullSQ;
+    Square rookMove = Square::NullSQ;
+
     switch (piece.getType()) {
     case PieceType::KING:
         if (InternalHandleKingMove(move, piece.getSet(), targetRook, rookMove, undoState) == false)
@@ -401,10 +397,10 @@ Chessboard::InternalHandleKingRookMove(const ChessPiece piece, const PackedMove 
 }
 
 void
-Chessboard::InternalMakeMove(ChessPiece piece, Notation source, Notation target, MutableMaterialProxy materialEditor)
+Chessboard::InternalMakeMove(ChessPiece piece, Square source, Square target, MutableMaterialProxy materialEditor)
 {
-    materialEditor[source.toSquare()] = false;
-    materialEditor[target.toSquare()] = true;
+    materialEditor[source] = false;
+    materialEditor[target] = true;
 
     // update hash
     m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
@@ -444,10 +440,10 @@ Chessboard::InternalMakeMove(const std::string& moveString)
 }
 
 void
-Chessboard::InternalHandleCapture(const PackedMove move, const Notation pieceTarget, MoveUndoUnit& undoState)
+Chessboard::InternalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState)
 {
     // handle capture
-    auto capturedPiece = m_position.readPieceAt(pieceTarget.toSquare());
+    auto capturedPiece = m_position.readPieceAt(pieceTarget);
 
     if (capturedPiece != ChessPiece::None()) {
         m_plyCount = 0;

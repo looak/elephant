@@ -65,7 +65,7 @@ TEST_F(PositionFixture, King_OnlyWhiteKingOnBoard_e1_ShouldHaveMoves)
 {
     Position board;
     auto K = WHITEKING;
-    bool placementRes = board.PlacePiece(K, e1);
+    bool placementRes = board.PlacePiece(K, e1.toSquare());
     EXPECT_EQ(true, placementRes);
 
     // setup
@@ -98,7 +98,7 @@ TEST_F(PositionFixture, King_OnlyWhiteKingOnBoard_d4_ShouldHaveMoves)
 {
     Position board;
     auto K = WHITEKING;
-    board.PlacePiece(K, d4);
+    board.PlacePiece(K, d4.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -128,7 +128,7 @@ TEST_F(PositionFixture, King_OnlyBlackKingOnBoard_e8_ShouldHaveMoves)
 {
     Position board;
     auto k = BLACKKING;
-    board.PlacePiece(k, e8);
+    board.PlacePiece(k, e8.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -157,8 +157,8 @@ TEST_F(PositionFixture, King_KingCanCapture_CaptureQueenShouldBeAvailableButCant
     auto K = WHITEKING;
     auto q = BLACKQUEEN;
 
-    pos.PlacePiece(K, d5);
-    pos.PlacePiece(q, c6);
+    pos.PlacePiece(K, d5.toSquare());
+    pos.PlacePiece(q, c6.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -184,7 +184,7 @@ TEST_F(PositionFixture, King_InEachCorner_NoWrapAroundOfMovesOnBoard)
     // each corner but one corner at a time.
     Position board;
     auto k = BLACKKING;
-    board.PlacePiece(k, a1);
+    board.PlacePiece(k, a1.toSquare());
 
     // setup a1 corner
     u64 expected = ~universe;
@@ -196,8 +196,8 @@ TEST_F(PositionFixture, King_InEachCorner_NoWrapAroundOfMovesOnBoard)
     EXPECT_EQ(expected, result);
 
     // setup a8 corner
-    board.ClearPiece(k, a1);
-    board.PlacePiece(k, a8);
+    board.ClearPiece(k, a1.toSquare());
+    board.PlacePiece(k, a8.toSquare());
     expected = ~universe;
     expected |= INT64_C(1) << b8.index();
     expected |= INT64_C(1) << b7.index();
@@ -207,8 +207,8 @@ TEST_F(PositionFixture, King_InEachCorner_NoWrapAroundOfMovesOnBoard)
     EXPECT_EQ(expected, result);
 
     // setup h8 corner
-    board.ClearPiece(k, a8);
-    board.PlacePiece(k, h8);
+    board.ClearPiece(k, a8.toSquare());
+    board.PlacePiece(k, h8.toSquare());
     expected = ~universe;
     expected |= INT64_C(1) << h7.index();
     expected |= INT64_C(1) << g8.index();
@@ -218,8 +218,8 @@ TEST_F(PositionFixture, King_InEachCorner_NoWrapAroundOfMovesOnBoard)
     EXPECT_EQ(expected, result);
 
     // setup h1 corner
-    board.ClearPiece(k, h8);
-    board.PlacePiece(k, h1);
+    board.ClearPiece(k, h8.toSquare());
+    board.PlacePiece(k, h1.toSquare());
     expected = ~universe;
     expected |= INT64_C(1) << h2.index();
     expected |= INT64_C(1) << g1.index();
@@ -243,9 +243,9 @@ TEST_F(PositionFixture, King_BlackCastlingRights_AllAvailable)
     Position board;
     auto k = BLACKKING;
     auto r = BLACKROOK;
-    board.PlacePiece(k, e8);
-    board.PlacePiece(r, h8);
-    board.PlacePiece(r, a8);
+    board.PlacePiece(k, e8.toSquare());
+    board.PlacePiece(r, h8.toSquare());
+    board.PlacePiece(r, a8.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << c8.index();
@@ -275,9 +275,9 @@ TEST_F(PositionFixture, King_BlackCastlingRights_WhiteHasAvailableShouldNotAffec
     Position board;
     auto k = BLACKKING;
     auto r = BLACKROOK;
-    board.PlacePiece(k, e8);
-    board.PlacePiece(r, h8);
-    board.PlacePiece(r, a8);
+    board.PlacePiece(k, e8.toSquare());
+    board.PlacePiece(r, h8.toSquare());
+    board.PlacePiece(r, a8.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << d8.index();
@@ -305,9 +305,9 @@ TEST_F(PositionFixture, King_WhiteCasstlingRights_AllAvailable)
     Position board;
     auto K = WHITEKING;
     auto R = WHITEROOK;
-    board.PlacePiece(K, e1);
-    board.PlacePiece(R, h1);
-    board.PlacePiece(R, a1);
+    board.PlacePiece(K, e1.toSquare());
+    board.PlacePiece(R, h1.toSquare());
+    board.PlacePiece(R, a1.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << c1.index();
@@ -338,10 +338,10 @@ TEST_F(PositionFixture, King_WhiteCastlingRights_OnlyKingSideAvailableQueenBlock
     auto K = WHITEKING;
     auto R = WHITEROOK;
     auto Q = WHITEQUEEN;
-    board.PlacePiece(K, e1);
-    board.PlacePiece(R, h1);
-    board.PlacePiece(R, a1);
-    board.PlacePiece(Q, d1);
+    board.PlacePiece(K, e1.toSquare());
+    board.PlacePiece(R, h1.toSquare());
+    board.PlacePiece(R, a1.toSquare());
+    board.PlacePiece(Q, d1.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << d2.index();
@@ -369,9 +369,9 @@ TEST_F(PositionFixture, King_Castling_BlockedByOpponentPieceInBetween)
     Position pos;
 
     // setup
-    pos.PlacePiece(BLACKROOK, a8);
-    pos.PlacePiece(WHITEBISHOP, b8);
-    pos.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(BLACKROOK, a8.toSquare());
+    pos.PlacePiece(WHITEBISHOP, b8.toSquare());
+    pos.PlacePiece(BLACKKING, e8.toSquare());
 
     // queen side castling available
     byte castling = 8;
@@ -404,9 +404,9 @@ TEST_F(PositionFixture, King_Castling_BlockedByOwnPieceInBetween)
     Position pos;
 
     // setup
-    pos.PlacePiece(BLACKROOK, a8);
-    pos.PlacePiece(BLACKKNIGHT, b8);
-    pos.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(BLACKROOK, a8.toSquare());
+    pos.PlacePiece(BLACKKNIGHT, b8.toSquare());
+    pos.PlacePiece(BLACKKING, e8.toSquare());
 
     // queen side castling available
     byte castling = 8 + 4;
@@ -440,10 +440,10 @@ TEST_F(PositionFixture, King_Capture_CantCaptureGuardedPieceByKnight)
     Position pos;
 
     // setup
-    pos.PlacePiece(BLACKKING, e8);
-    pos.PlacePiece(WHITEROOK, f7);
-    pos.PlacePiece(WHITEKNIGHT, h6);
-    pos.PlacePiece(WHITEBISHOP, d7);
+    pos.PlacePiece(BLACKKING, e8.toSquare());
+    pos.PlacePiece(WHITEROOK, f7.toSquare());
+    pos.PlacePiece(WHITEKNIGHT, h6.toSquare());
+    pos.PlacePiece(WHITEBISHOP, d7.toSquare());
 
     byte castling = 0;
 
@@ -470,9 +470,9 @@ TEST_F(PositionFixture, Pawn_BulkCalc_SinglePawnShouldIdentifyCaptureAsWell)
 {
     Position pos;
     auto P = WHITEPAWN;
-    pos.PlacePiece(P, a3);
+    pos.PlacePiece(P, a3.toSquare());
 
-    pos.PlacePiece(BLACKKNIGHT, b4);
+    pos.PlacePiece(BLACKKNIGHT, b4.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -497,7 +497,7 @@ TEST_F(PositionFixture, Pawn_BulkCalc_SinglePawnOneMove)
 {
     Position pos;
     auto p = BLACKPAWN;
-    pos.PlacePiece(p, b3);
+    pos.PlacePiece(p, b3.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -521,7 +521,7 @@ TEST_F(PositionFixture, Pawn_BulkMoveDoubleMove_SinglePawnShouldBeAbleToPushTwoR
 {
     Position pos;
     auto P = WHITEPAWN;
-    pos.PlacePiece(P, b2);
+    pos.PlacePiece(P, b2.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -547,8 +547,8 @@ TEST_F(PositionFixture, Pawn_Blocked_NoMovesAvailable)
     Position board;
     auto P = WHITEPAWN;
     auto N = WHITEKNIGHT;
-    board.PlacePiece(P, c2);
-    board.PlacePiece(N, c3);
+    board.PlacePiece(P, c2.toSquare());
+    board.PlacePiece(N, c3.toSquare());
 
     // setup
     u64 expected = 0x0;
@@ -571,7 +571,7 @@ TEST_F(PositionFixture, Pawn_BlackBaseRank_DoubleMoveAvailable)
 {
     Position board;
     auto p = BLACKPAWN;
-    board.PlacePiece(p, e7);
+    board.PlacePiece(p, e7.toSquare());
     // setup
     u64 expected = ~universe;
     expected |= INT64_C(1) << e6.index();
@@ -597,10 +597,10 @@ TEST_F(PositionFixture, Pawn_BulkMovesBlack_NothingIsBlocked)
     Position board;
     auto p = BLACKPAWN;
 
-    board.PlacePiece(p, b2);
-    board.PlacePiece(p, d6);
-    board.PlacePiece(p, e7);
-    board.PlacePiece(p, g7);
+    board.PlacePiece(p, b2.toSquare());
+    board.PlacePiece(p, d6.toSquare());
+    board.PlacePiece(p, e7.toSquare());
+    board.PlacePiece(p, g7.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << b1.index();
@@ -636,19 +636,19 @@ TEST_F(PositionFixture, Pawn_BulkMovesBlack_SomePawnsAreBlocked)
     auto B = WHITEBISHOP;
     auto n = BLACKKNIGHT;
 
-    board.PlacePiece(p, b2);
-    board.PlacePiece(R, b1);
+    board.PlacePiece(p, b2.toSquare());
+    board.PlacePiece(R, b1.toSquare());
 
-    board.PlacePiece(p, c6);
-    board.PlacePiece(B, c5);
+    board.PlacePiece(p, c6.toSquare());
+    board.PlacePiece(B, c5.toSquare());
 
-    board.PlacePiece(p, d6);
-    board.PlacePiece(n, d4);
+    board.PlacePiece(p, d6.toSquare());
+    board.PlacePiece(n, d4.toSquare());
 
-    board.PlacePiece(p, e7);
-    board.PlacePiece(p, e5);
-    board.PlacePiece(p, g7);
-    board.PlacePiece(n, g6);
+    board.PlacePiece(p, e7.toSquare());
+    board.PlacePiece(p, e5.toSquare());
+    board.PlacePiece(p, g7.toSquare());
+    board.PlacePiece(n, g6.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << d5.index();
@@ -682,16 +682,16 @@ TEST_F(PositionFixture, Pawn_BulkMovesWhite_SomeMixOfBlockedAndNonBlocked)
     auto B = WHITEBISHOP;
     auto n = BLACKKNIGHT;
 
-    board.PlacePiece(P, b2);
-    board.PlacePiece(P, c3);
-    board.PlacePiece(P, d5);
-    board.PlacePiece(p, d6);
-    board.PlacePiece(P, e7);
-    board.PlacePiece(P, f2);
-    board.PlacePiece(n, f3);
-    board.PlacePiece(P, g2);
-    board.PlacePiece(B, g4);
-    board.PlacePiece(P, h5);
+    board.PlacePiece(P, b2.toSquare());
+    board.PlacePiece(P, c3.toSquare());
+    board.PlacePiece(P, d5.toSquare());
+    board.PlacePiece(p, d6.toSquare());
+    board.PlacePiece(P, e7.toSquare());
+    board.PlacePiece(P, f2.toSquare());
+    board.PlacePiece(n, f3.toSquare());
+    board.PlacePiece(P, g2.toSquare());
+    board.PlacePiece(B, g4.toSquare());
+    board.PlacePiece(P, h5.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << b3.index();
@@ -725,10 +725,10 @@ TEST_F(PositionFixture, Pawn_BulkThreatsWhite_ThereShouldBeAFewThreatenedSquares
     Position board;
     auto P = WHITEPAWN;
 
-    board.PlacePiece(P, a3);
-    board.PlacePiece(P, b5);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, h2);
+    board.PlacePiece(P, a3.toSquare());
+    board.PlacePiece(P, b5.toSquare());
+    board.PlacePiece(P, c2.toSquare());
+    board.PlacePiece(P, h2.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a6.index();
@@ -760,10 +760,10 @@ TEST_F(PositionFixture, Pawn_BulkThreatsBlack_ThereShouldBeAFewThreatenedSquares
     Position board;
     auto p = BLACKPAWN;
 
-    board.PlacePiece(p, a3);
-    board.PlacePiece(p, b7);
-    board.PlacePiece(p, d4);
-    board.PlacePiece(p, h5);
+    board.PlacePiece(p, a3.toSquare());
+    board.PlacePiece(p, b7.toSquare());
+    board.PlacePiece(p, d4.toSquare());
+    board.PlacePiece(p, h5.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a6.index();
@@ -798,15 +798,15 @@ TEST_F(PositionFixture, Pawn_BulkAttacksWhite_ThereShouldBeAFewAttackedPieces)
     auto n = BLACKKNIGHT;
     auto q = BLACKQUEEN;
 
-    board.PlacePiece(P, b5);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, d3);
-    board.PlacePiece(P, h2);
+    board.PlacePiece(P, b5.toSquare());
+    board.PlacePiece(P, c2.toSquare());
+    board.PlacePiece(P, d3.toSquare());
+    board.PlacePiece(P, h2.toSquare());
 
-    board.PlacePiece(p, a6);
-    board.PlacePiece(q, a3);
-    board.PlacePiece(n, c6);
-    board.PlacePiece(n, e4);
+    board.PlacePiece(p, a6.toSquare());
+    board.PlacePiece(q, a3.toSquare());
+    board.PlacePiece(n, c6.toSquare());
+    board.PlacePiece(n, e4.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a6.index();
@@ -839,9 +839,9 @@ TEST_F(PositionFixture, Pawn_ThreatenVsAttack_ThreatAndAttacksAreNotTheSameThing
     auto p = BLACKPAWN;
     auto B = WHITEBISHOP;
 
-    board.PlacePiece(P, b3);
-    board.PlacePiece(p, b6);
-    board.PlacePiece(B, a5);
+    board.PlacePiece(P, b3.toSquare());
+    board.PlacePiece(p, b6.toSquare());
+    board.PlacePiece(B, a5.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -879,8 +879,8 @@ TEST_F(PositionFixture, Pawn_EnPassant_BlackShouldBeAbleToCaptureWhitePawn)
     auto p = BLACKPAWN;
 
     // setup
-    pos.PlacePiece(P, g4);
-    pos.PlacePiece(p, f4);
+    pos.PlacePiece(P, g4.toSquare());
+    pos.PlacePiece(p, f4.toSquare());
     pos.editEnPassant().writeSquare(g3.toSquare());
     //  do
     KingPinThreats empty{};
@@ -909,8 +909,8 @@ TEST_F(PositionFixture, Pawn_EnPassantWhitePerspective_AvailableEnPassantCapture
     auto p = BLACKPAWN;
 
     // setup
-    pos.PlacePiece(P, g5);
-    pos.PlacePiece(p, f5);
+    pos.PlacePiece(P, g5.toSquare());
+    pos.PlacePiece(p, f5.toSquare());
     pos.editEnPassant().writeSquare(f6.toSquare());
 
     // do
@@ -942,10 +942,10 @@ TEST_F(PositionFixture, Pawn_PinnedPieceBlack_NoAvailableMovesSinceItsPinned)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(p, f7);
-    pos.PlacePiece(k, e7);
-    pos.PlacePiece(R, h7);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(p, f7.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
+    pos.PlacePiece(R, h7.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     auto kingMask = pos.calcKingMask<Set::BLACK>();
@@ -977,11 +977,11 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_NoAvailableMovesSinceItsPinned)
     auto k = BLACKKING;
 
     // setup
-    pos.PlacePiece(P, f5);
-    pos.PlacePiece(P, c5);
-    pos.PlacePiece(K, e5);
-    pos.PlacePiece(r, h5);
-    pos.PlacePiece(k, e7);
+    pos.PlacePiece(P, f5.toSquare());
+    pos.PlacePiece(P, c5.toSquare());
+    pos.PlacePiece(K, e5.toSquare());
+    pos.PlacePiece(r, h5.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::WHITE>();
@@ -1022,11 +1022,11 @@ TEST_F(PositionFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
     auto k = BLACKKING;
 
     // setup
-    pos.PlacePiece(P, f6);
-    pos.PlacePiece(P, c5);
-    pos.PlacePiece(K, e5);
-    pos.PlacePiece(b, g7);
-    pos.PlacePiece(k, e7);
+    pos.PlacePiece(P, f6.toSquare());
+    pos.PlacePiece(P, c5.toSquare());
+    pos.PlacePiece(K, e5.toSquare());
+    pos.PlacePiece(b, g7.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::WHITE>();
@@ -1068,10 +1068,10 @@ TEST_F(PositionFixture, Pawn_KingMask_PawnCanMoveIntoBlockingCheckButNoFurther)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(p, f7);
-    pos.PlacePiece(k, e6);
-    pos.PlacePiece(R, h6);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(p, f7.toSquare());
+    pos.PlacePiece(k, e6.toSquare());
+    pos.PlacePiece(R, h6.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1105,10 +1105,10 @@ TEST_F(PositionFixture, Pawn_KingMask_CanCaptureCheckingPiece)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(p, f7);
-    pos.PlacePiece(k, e6);
-    pos.PlacePiece(R, g6);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(p, f7.toSquare());
+    pos.PlacePiece(k, e6.toSquare());
+    pos.PlacePiece(R, g6.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1142,10 +1142,10 @@ TEST_F(PositionFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(p, f7);
-    pos.PlacePiece(k, e5);
-    pos.PlacePiece(R, g5);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(p, f7.toSquare());
+    pos.PlacePiece(k, e5.toSquare());
+    pos.PlacePiece(R, g5.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1164,8 +1164,8 @@ TEST_F(PositionFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
 TEST_F(PositionFixture, Pawn_IsolatingPiece_PawnOnDifferentRankAndFile)
 {
     Position board;
-    board.PlacePiece(WHITEPAWN, d4);
-    board.PlacePiece(WHITEPAWN, c2);
+    board.PlacePiece(WHITEPAWN, d4.toSquare());
+    board.PlacePiece(WHITEPAWN, c2.toSquare());
 
     u64 expected = 0x804040000;
     KingPinThreats empty{};
@@ -1186,8 +1186,8 @@ TEST_F(PositionFixture, Pawn_IsolatingPiece_PawnOnDifferentRankAndFile)
 TEST_F(PositionFixture, Pawn_IsolatingPiece_PawnOnSameRank)
 {
     Position board;
-    board.PlacePiece(WHITEPAWN, d4);
-    board.PlacePiece(WHITEPAWN, e4);
+    board.PlacePiece(WHITEPAWN, d4.toSquare());
+    board.PlacePiece(WHITEPAWN, e4.toSquare());
 
     u64 expected = 0x1800000000;
     KingPinThreats empty{};
@@ -1208,8 +1208,8 @@ TEST_F(PositionFixture, Pawn_IsolatingPiece_PawnOnSameRank)
 TEST_F(PositionFixture, Pawn_IsolatingPiece_PawnOnSameFile)
 {
     Position board;
-    board.PlacePiece(WHITEPAWN, d4);
-    board.PlacePiece(WHITEPAWN, d2);
+    board.PlacePiece(WHITEPAWN, d4.toSquare());
+    board.PlacePiece(WHITEPAWN, d2.toSquare());
 
     u64 expected = 0x800080000;
     KingPinThreats empty{};
@@ -1243,9 +1243,9 @@ TEST_F(PositionFixture, Pawn_EnPassantIsolate_BothBlackPawnsShouldBeAbleToCaptur
     auto p = BLACKPAWN;
 
     // setup
-    pos.PlacePiece(P, g4);
-    pos.PlacePiece(p, f4);
-    pos.PlacePiece(p, h4);
+    pos.PlacePiece(P, g4.toSquare());
+    pos.PlacePiece(p, f4.toSquare());
+    pos.PlacePiece(p, h4.toSquare());
     pos.editEnPassant().writeSquare(g3.toSquare());
     KingPinThreats empty{};
     Bitboard movesbb = pos.calcAvailableMovesPawnBulk<Set::BLACK>(empty);
@@ -1284,7 +1284,7 @@ TEST_F(PositionFixture, Knight_MovesFromB2_ShouldIdentifyBoundsOfBoard)
 {
     Position board;
     auto N = WHITEKNIGHT;
-    board.PlacePiece(N, b2);
+    board.PlacePiece(N, b2.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1313,7 +1313,7 @@ TEST_F(PositionFixture, Knight_AvailableMoves_SimplestCaseResultShouldHaveEightB
     auto N = WHITEKNIGHT;
 
     // setup
-    pos.PlacePiece(N, c3);
+    pos.PlacePiece(N, c3.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << b1.index();
@@ -1346,7 +1346,7 @@ TEST_F(PositionFixture, Knight_CloseToEdge_CanNotPlaceKnightOutsideOfBoardAndSho
 {
     Position pos;
     auto N = WHITEKNIGHT;
-    pos.PlacePiece(N, b5);
+    pos.PlacePiece(N, b5.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1389,9 +1389,9 @@ TEST_F(PositionFixture, Knight_AttackedPieces_ThreateningToCaptureOpponentsBisho
     auto B = WHITEBISHOP;
     auto b = BLACKBISHOP;
 
-    board.PlacePiece(N, e3);
-    board.PlacePiece(B, f5);
-    board.PlacePiece(b, d5);
+    board.PlacePiece(N, e3.toSquare());
+    board.PlacePiece(B, f5.toSquare());
+    board.PlacePiece(b, d5.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1407,8 +1407,8 @@ TEST_F(PositionFixture, Knight_AttackedPieces_ThreateningToCaptureOpponentsBisho
 TEST_F(PositionFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlockingEachOther)
 {
     Position board;
-    board.PlacePiece(WHITEKNIGHT, d4);
-    board.PlacePiece(WHITEKNIGHT, e2);
+    board.PlacePiece(WHITEKNIGHT, d4.toSquare());
+    board.PlacePiece(WHITEKNIGHT, e2.toSquare());
 
     u64 expected = 0x142220660444ull;
     KingPinThreats empty{};
@@ -1429,8 +1429,8 @@ TEST_F(PositionFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBloc
 TEST_F(PositionFixture, Knight_IsolatingPiece_SharingTargetSquares)
 {
     Position board;
-    board.PlacePiece(WHITEKNIGHT, d4);
-    board.PlacePiece(WHITEKNIGHT, f4);
+    board.PlacePiece(WHITEKNIGHT, d4.toSquare());
+    board.PlacePiece(WHITEKNIGHT, f4.toSquare());
 
     u64 expected = 0x54aa00aa5400ull;
     KingPinThreats empty{};
@@ -1451,8 +1451,8 @@ TEST_F(PositionFixture, Knight_IsolatingPiece_SharingTargetSquares)
 TEST_F(PositionFixture, Knight_IsolatingPiece_SharingTargetSquaresOnEdge)
 {
     Position board;
-    board.PlacePiece(WHITEKNIGHT, g2);
-    board.PlacePiece(WHITEKNIGHT, g4);
+    board.PlacePiece(WHITEKNIGHT, g2.toSquare());
+    board.PlacePiece(WHITEKNIGHT, g4.toSquare());
 
     u64 expected = 0xa010a010a010ull;
     KingPinThreats empty{};
@@ -1483,7 +1483,7 @@ TEST_F(PositionFixture, Bishop_BulkCalc_SingleBishopEmptyBoardBlack)
 {
     Position board;
     auto b = BLACKBISHOP;
-    board.PlacePiece(b, f6);
+    board.PlacePiece(b, f6.toSquare());
     // setup
     u64 expected = ~universe;
     expected |= INT64_C(1) << a1.index();
@@ -1518,8 +1518,8 @@ TEST_F(PositionFixture, Bishop_BulkCalc_WhiteBishopAvailableCapture)
     auto b = BLACKBISHOP;
     auto B = WHITEBISHOP;
 
-    board.PlacePiece(b, e3);
-    board.PlacePiece(B, c5);
+    board.PlacePiece(b, e3.toSquare());
+    board.PlacePiece(B, c5.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1551,7 +1551,7 @@ TEST_F(PositionFixture, Bishop_BulkCalculateAvailableMovePosition_BishopOnEmptyB
     Position board;
     auto b = BLACKBISHOP;
 
-    board.PlacePiece(b, b7);
+    board.PlacePiece(b, b7.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1583,8 +1583,8 @@ TEST_F(PositionFixture, Bishop_BulkCalculateAvailableMovePosition_TwoWhiteBishop
     Position board;
     auto B = WHITEBISHOP;
 
-    board.PlacePiece(B, b7);
-    board.PlacePiece(B, e2);
+    board.PlacePiece(B, b7.toSquare());
+    board.PlacePiece(B, e2.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1628,8 +1628,8 @@ TEST_F(PositionFixture, Bishop_BulkCalculateAvailableMovePosition_TwoWhiteBishop
 TEST_F(PositionFixture, Bishop_IsolatingPiece_OnlyOneBishopLeftInTheMask)
 {
     Position board;
-    board.PlacePiece(BLACKBISHOP, g7);
-    board.PlacePiece(BLACKBISHOP, d2);
+    board.PlacePiece(BLACKBISHOP, g7.toSquare());
+    board.PlacePiece(BLACKBISHOP, d2.toSquare());
 
     u64 expected = 0xa000a0512a140215ull;
     KingPinThreats empty{};
@@ -1660,8 +1660,8 @@ TEST_F(PositionFixture, Bishop_IsolatingPiece_OnlyOneBishopLeftInTheMask)
 TEST_F(PositionFixture, Bishop_IsolatingPiece_BishopsOnSameDiagonal)
 {
     Position board;
-    board.PlacePiece(BLACKBISHOP, c4);
-    board.PlacePiece(BLACKBISHOP, e2);
+    board.PlacePiece(BLACKBISHOP, c4.toSquare());
+    board.PlacePiece(BLACKBISHOP, e2.toSquare());
 
     u64 expected = 0x4020118a402a0128ull;
     KingPinThreats empty{};
@@ -1695,10 +1695,10 @@ TEST_F(PositionFixture, Bishop_KingMask_AvailableMovesAreCaptureCheckingPieceOrB
     Position pos;
 
     // setup
-    pos.PlacePiece(WHITEKING, e1);
-    pos.PlacePiece(WHITEROOK, a8);
-    pos.PlacePiece(BLACKBISHOP, b7);
-    pos.PlacePiece(BLACKKING, e8);
+    pos.PlacePiece(WHITEKING, e1.toSquare());
+    pos.PlacePiece(WHITEROOK, a8.toSquare());
+    pos.PlacePiece(BLACKBISHOP, b7.toSquare());
+    pos.PlacePiece(BLACKKING, e8.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1734,11 +1734,11 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_AbleToMoveAlongThreatenedSquar
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(b, c4);
-    pos.PlacePiece(k, f7);
-    pos.PlacePiece(b, f3);
-    pos.PlacePiece(B, a2);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(b, c4.toSquare());
+    pos.PlacePiece(k, f7.toSquare());
+    pos.PlacePiece(b, f3.toSquare());
+    pos.PlacePiece(B, a2.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1782,11 +1782,11 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_E4BishopHasNoMoves)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(k, e8);
-    pos.PlacePiece(b, h6);
-    pos.PlacePiece(b, e4);
-    pos.PlacePiece(K, g1);
-    pos.PlacePiece(Q, e2);
+    pos.PlacePiece(k, e8.toSquare());
+    pos.PlacePiece(b, h6.toSquare());
+    pos.PlacePiece(b, e4.toSquare());
+    pos.PlacePiece(K, g1.toSquare());
+    pos.PlacePiece(Q, e2.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1833,12 +1833,12 @@ TEST_F(PositionFixture, Bishop_IsolatePinnedPiece_BlockedDiagonalSquareNotShared
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(b, c4);
-    pos.PlacePiece(k, f7);
-    pos.PlacePiece(b, f3);
-    pos.PlacePiece(n, e4);
-    pos.PlacePiece(B, a2);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(b, c4.toSquare());
+    pos.PlacePiece(k, f7.toSquare());
+    pos.PlacePiece(b, f3.toSquare());
+    pos.PlacePiece(n, e4.toSquare());
+    pos.PlacePiece(B, a2.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats kingMask = pos.calcKingMask<Set::BLACK>();
@@ -1875,7 +1875,7 @@ TEST_F(PositionFixture, Rook_BulkCalculateThreat_EmptyBoardWhite)
 {
     Position board;
     auto R = WHITEROOK;
-    board.PlacePiece(R, d4);
+    board.PlacePiece(R, d4.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1912,7 +1912,7 @@ TEST_F(PositionFixture, Rook_BulkCalculateThreatenedSquares_EmptyBoardBlack)
     Position board;
     auto r = BLACKROOK;
 
-    board.PlacePiece(r, b7);
+    board.PlacePiece(r, b7.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1949,8 +1949,8 @@ TEST_F(PositionFixture, Rook_BulkCalculateThreatenedSquares_TwoBlackRooksOnEmpty
     Position board;
     auto r = BLACKROOK;
 
-    board.PlacePiece(r, b7);
-    board.PlacePiece(r, h1);
+    board.PlacePiece(r, b7.toSquare());
+    board.PlacePiece(r, h1.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -1999,9 +1999,9 @@ TEST_F(PositionFixture, Rook_BulkCalculateAvailableMovePosition_TwoRooksMoveBloc
     Position board;
     auto r = BLACKROOK;
     auto n = BLACKKNIGHT;
-    board.PlacePiece(r, b7);
-    board.PlacePiece(r, e7);
-    board.PlacePiece(n, g7);
+    board.PlacePiece(r, b7.toSquare());
+    board.PlacePiece(r, e7.toSquare());
+    board.PlacePiece(n, g7.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2047,7 +2047,7 @@ TEST_F(PositionFixture, Rook_BulkCalculateAvailableMovePosition_EmptyBoardBlackF
 {
     Position board;
     auto r = BLACKROOK;
-    board.PlacePiece(r, c1);
+    board.PlacePiece(r, c1.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2084,7 +2084,7 @@ TEST_F(PositionFixture, Rook_BulkCalculateAvailableMovePosition_EmptyBoardBlackF
 {
     Position board;
     auto r = BLACKROOK;
-    board.PlacePiece(r, a8);
+    board.PlacePiece(r, a8.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2125,9 +2125,9 @@ TEST_F(PositionFixture, Rook_CalcThreat_BlockedBySomePieces)
     auto N = WHITEKNIGHT;
 
     // setup
-    board.PlacePiece(r, c3);
-    board.PlacePiece(p, f3);
-    board.PlacePiece(N, c5);
+    board.PlacePiece(r, c3.toSquare());
+    board.PlacePiece(p, f3.toSquare());
+    board.PlacePiece(N, c5.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a3.index();
@@ -2164,10 +2164,10 @@ TEST_F(PositionFixture, Rook_KingMask_OnlyAvailableMoveIsToBlockCheck)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(r, c3);
-    pos.PlacePiece(k, e7);
-    pos.PlacePiece(R, e2);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(r, c3.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
+    pos.PlacePiece(R, e2.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats km = pos.calcKingMask<Set::BLACK>();
@@ -2197,10 +2197,10 @@ TEST_F(PositionFixture, Rook_KingMask_CanCaptureCheckingPiece)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(r, c2);
-    pos.PlacePiece(k, e7);
-    pos.PlacePiece(R, e2);
-    pos.PlacePiece(K, e1);
+    pos.PlacePiece(r, c2.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
+    pos.PlacePiece(R, e2.toSquare());
+    pos.PlacePiece(K, e1.toSquare());
 
     // do
     KingPinThreats km = pos.calcKingMask<Set::BLACK>();
@@ -2230,11 +2230,11 @@ TEST_F(PositionFixture, Rook_CheckedMask_HasNoMovesSinceKingIsInCheck)
     auto K = WHITEKING;
 
     // setup
-    pos.PlacePiece(r, c1);
-    pos.PlacePiece(r, g4);
-    pos.PlacePiece(k, e7);
-    pos.PlacePiece(R, e2);
-    pos.PlacePiece(K, d2);
+    pos.PlacePiece(r, c1.toSquare());
+    pos.PlacePiece(r, g4.toSquare());
+    pos.PlacePiece(k, e7.toSquare());
+    pos.PlacePiece(R, e2.toSquare());
+    pos.PlacePiece(K, d2.toSquare());
     constexpr Set black = Set::BLACK;
     // do
     KingPinThreats kingMask = pos.calcKingMask<black>();
@@ -2251,8 +2251,8 @@ TEST_F(PositionFixture, Rook_CheckedMask_HasNoMovesSinceKingIsInCheck)
 TEST_F(PositionFixture, Rook_IsolatingPiece_OnlyOneRookLeftInMask)
 {
     Position board;
-    board.PlacePiece(BLACKROOK, g7);
-    board.PlacePiece(BLACKROOK, d2);
+    board.PlacePiece(BLACKROOK, g7.toSquare());
+    board.PlacePiece(BLACKROOK, d2.toSquare());
 
     u64 expected = 0x40bf404040404040ull;
     KingPinThreats empty{};
@@ -2265,8 +2265,8 @@ TEST_F(PositionFixture, Rook_IsolatingPiece_OnlyOneRookLeftInMask)
 TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnSameRank)
 {
     Position board;
-    board.PlacePiece(BLACKROOK, g7);
-    board.PlacePiece(BLACKROOK, d7);
+    board.PlacePiece(BLACKROOK, g7.toSquare());
+    board.PlacePiece(BLACKROOK, d7.toSquare());
 
     KingPinThreats empty{};
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::BLACK>(empty).read();
@@ -2294,11 +2294,11 @@ TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnSameRank)
 TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnBaseRankWithOpPieces)
 {
     Position board;
-    board.PlacePiece(BLACKROOK, a2);
-    board.PlacePiece(BLACKQUEEN, h7);
-    board.PlacePiece(WHITEROOK, a1);
-    board.PlacePiece(WHITEKING, e1);
-    board.PlacePiece(WHITEROOK, h1);
+    board.PlacePiece(BLACKROOK, a2.toSquare());
+    board.PlacePiece(BLACKQUEEN, h7.toSquare());
+    board.PlacePiece(WHITEROOK, a1.toSquare());
+    board.PlacePiece(WHITEKING, e1.toSquare());
+    board.PlacePiece(WHITEROOK, h1.toSquare());
 
     KingPinThreats empty{};
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::WHITE>(empty).read();
@@ -2331,12 +2331,12 @@ TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnBaseRankWithOpPieces)
 TEST_F(PositionFixture, Rook_IsolatingPiece_RooksShareSquare)
 {
     Position board;
-    //    board.PlacePiece(BLACKROOK, a8);
-    //    board.PlacePiece(BLACKROOK, h8);
-    board.PlacePiece(BLACKBISHOP, d4);
+    //    board.PlacePiece(BLACKROOK, a8.toSquare());
+    //    board.PlacePiece(BLACKROOK, h8.toSquare());
+    board.PlacePiece(BLACKBISHOP, d4.toSquare());
 
-    board.PlacePiece(WHITEROOK, a4);
-    board.PlacePiece(WHITEROOK, h1);
+    board.PlacePiece(WHITEROOK, a4.toSquare());
+    board.PlacePiece(WHITEROOK, h1.toSquare());
 
     KingPinThreats empty{};
     u64 movesbb = board.calcAvailableMovesRookBulk<Set::WHITE>(empty).read();
@@ -2360,8 +2360,8 @@ TEST_F(PositionFixture, Rook_IsolatingPiece_RooksShareSquare)
 TEST_F(PositionFixture, Rook_IsolatingPiece_RooksAreOnSameFile)
 {
     Position board;
-    board.PlacePiece(BLACKROOK, d4);
-    board.PlacePiece(BLACKROOK, d7);
+    board.PlacePiece(BLACKROOK, d4.toSquare());
+    board.PlacePiece(BLACKROOK, d7.toSquare());
 
     u64 expected = 0x8f70808f7080808ull;
     KingPinThreats empty{};
@@ -2397,9 +2397,9 @@ TEST_F(PositionFixture, Rook_ThreatenMask_FromStartingPos)
     auto n = BLACKKNIGHT;
 
     // setup
-    board.PlacePiece(r, a8);
-    board.PlacePiece(p, a7);
-    board.PlacePiece(n, b8);
+    board.PlacePiece(r, a8.toSquare());
+    board.PlacePiece(p, a7.toSquare());
+    board.PlacePiece(n, b8.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << a7.index();
@@ -2426,8 +2426,8 @@ TEST_F(PositionFixture, Queen_BulkCalculateAvailableMovePosition_TwoWhiteQueensO
     Position board;
     auto Q = WHITEQUEEN;
 
-    board.PlacePiece(Q, b7);
-    board.PlacePiece(Q, e2);
+    board.PlacePiece(Q, b7.toSquare());
+    board.PlacePiece(Q, e2.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2498,9 +2498,9 @@ TEST_F(PositionFixture, Queen_BulkCalculateAvailableMovePosition_TwoQueensCanCap
     auto Q = WHITEQUEEN;
     auto n = BLACKKNIGHT;
 
-    board.PlacePiece(Q, b7);
-    board.PlacePiece(Q, e2);
-    board.PlacePiece(n, g2);
+    board.PlacePiece(Q, b7.toSquare());
+    board.PlacePiece(Q, e2.toSquare());
+    board.PlacePiece(n, g2.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2569,8 +2569,8 @@ TEST_F(PositionFixture, Queen_BulkCalc_BlackQueenCaptureAndMoves)
     auto q = BLACKQUEEN;
     auto B = WHITEBISHOP;
 
-    board.PlacePiece(B, e3);
-    board.PlacePiece(q, c5);
+    board.PlacePiece(B, e3.toSquare());
+    board.PlacePiece(q, c5.toSquare());
 
     // setup
     u64 expected = ~universe;
@@ -2611,10 +2611,10 @@ TEST_F(PositionFixture, Queen_CalcThreaten_BlockedByPawns)
     auto P = WHITEPAWN;
 
     // setup
-    board.PlacePiece(Q, d1);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, d2);
-    board.PlacePiece(P, e2);
+    board.PlacePiece(Q, d1.toSquare());
+    board.PlacePiece(P, c2.toSquare());
+    board.PlacePiece(P, d2.toSquare());
+    board.PlacePiece(P, e2.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << c2.index();
@@ -2656,13 +2656,13 @@ TEST_F(PositionFixture, Queen_IsolateQueen_TwoQueensDiagonal)
     auto q = BLACKQUEEN;
 
     // setup
-    pos.PlacePiece(K, h2);
-    pos.PlacePiece(Q, c2);
-    pos.PlacePiece(R, f2);
+    pos.PlacePiece(K, h2.toSquare());
+    pos.PlacePiece(Q, c2.toSquare());
+    pos.PlacePiece(R, f2.toSquare());
 
-    pos.PlacePiece(k, e8);
-    pos.PlacePiece(q, a1);
-    pos.PlacePiece(q, b3);
+    pos.PlacePiece(k, e8.toSquare());
+    pos.PlacePiece(q, a1.toSquare());
+    pos.PlacePiece(q, b3.toSquare());
 
     auto kingMask = pos.calcKingMask<Set::BLACK>();
     // do
@@ -2716,13 +2716,13 @@ TEST_F(PositionFixture, Queen_IsolateQueen_TwoQueensOrthogonal)
     auto q = BLACKQUEEN;
 
     // setup
-    pos.PlacePiece(K, h2);
-    pos.PlacePiece(Q, b1);
-    pos.PlacePiece(R, f2);
+    pos.PlacePiece(K, h2.toSquare());
+    pos.PlacePiece(Q, b1.toSquare());
+    pos.PlacePiece(R, f2.toSquare());
 
-    pos.PlacePiece(k, e8);
-    pos.PlacePiece(q, a1);
-    pos.PlacePiece(q, a4);
+    pos.PlacePiece(k, e8.toSquare());
+    pos.PlacePiece(q, a1.toSquare());
+    pos.PlacePiece(q, a4.toSquare());
 
     auto kingMask = pos.calcKingMask<Set::BLACK>();
     // do
@@ -2772,8 +2772,8 @@ TEST_F(PositionFixture, KingMask_Pawns)
     auto P = WHITEPAWN;
 
     // setup
-    board.PlacePiece(k, a8);
-    board.PlacePiece(P, b7);
+    board.PlacePiece(k, a8.toSquare());
+    board.PlacePiece(P, b7.toSquare());
 
     u64 expected = ~universe;
     expected |= INT64_C(1) << b7.index();
@@ -2800,8 +2800,8 @@ TEST_F(PositionFixture, KingMask_Threatened_KingisPierced)
     Position board;
 
     // setup
-    board.PlacePiece(BLACKROOK, g7);
-    board.PlacePiece(WHITEKING, g2);
+    board.PlacePiece(BLACKROOK, g7.toSquare());
+    board.PlacePiece(WHITEKING, g2.toSquare());
 
     u64 orthogonal = ~universe;
     constexpr bool includeMaterial = true;
