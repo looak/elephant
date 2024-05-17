@@ -85,6 +85,7 @@ private:
 
     template<Set set>
     void internalGeneratePawnMoves(const KingPinThreats& pinThreats);
+    void internalBuildPawnPromotionMoves(PackedMove move, const KingPinThreats& pinThreats, i32 dstSqr);
     template<Set set>
     void internalGenerateKnightMoves(const KingPinThreats& pinThreats);
     template<Set set>
@@ -101,13 +102,13 @@ private:
     Set m_toMove;
     const Position& m_position;
 
-    PriorityMoveQueue m_moves;
-    std::vector<PrioratizedMove> m_unsortedMoves;
-    std::vector<PackedMove> m_returnedMoves;
+    bool m_movesGenerated;
+    uint16_t m_moveCount;
+    uint16_t m_currentMoveIndx;
+    std::array<PrioratizedMove, 256> m_movesBuffer;
 
     // pseudo legal move masks for each piece type
     MaterialMask m_moveMasks[2];
-    bool m_movesGenerated;
     KingPinThreats m_pinThreats[2];
 };
 

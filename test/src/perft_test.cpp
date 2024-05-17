@@ -337,7 +337,7 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions Checks Checkmates
 //     // EXPECT_EQ(22, count.Checkmates);
 // }
 
-void
+std::pair<u64, u64>
 Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int atDepth)
 {
     // setup
@@ -353,49 +353,100 @@ Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int at
     i64 elapsedTime = clock.getElapsedTime();
     u64 nps = clock.calcNodesPerSecond(result.Nodes);
 
-    LOG_INFO() << "Elapsed time: " << elapsedTime << " ms";
+    LOG_INFO() << "Elapsed time:     " << elapsedTime << " ms";
     LOG_INFO() << "Nodes per second: " << nps << " nps";
 
     // verify
     EXPECT_EQ(expectedValue, result.Nodes);
+
+    return { result.Nodes, nps };
 }
 
-TEST_F(PerftFixture, Catching_IllegalEnPassant) { Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6); }
+TEST_F(PerftFixture, Bulk_Peft_Tests)
+{
+    std::vector<std::tuple<std::string, std::string, unsigned int, unsigned int>> tests = {
+        { "illegal enpassant", "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6 },
+        { "illegal enpassant", "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6 },
+        { "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
+        { "short castling", "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6 },
+        { "long castling", "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6 },
+        { "castling rights", "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4 },
+        { "castling prevented", "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4 },
+        { "promotion out of check", "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6 },
+        { "discovered check", "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5 },
+        { "promote to give check", "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6 },
+        { "under promote to give check", "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6 },
+        { "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
+        { "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
+        { "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
+        { "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
+        { "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
+        //{ "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
+        { "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
+    };
 
-TEST_F(PerftFixture, Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6); }
+    Clock clock, innerClock;
+    clock.Start();
+    u64 totalNodes = 0;
+    u64 totalNps = 0;
+    for (auto& test : tests) {
+        innerClock.Start();
+        LOG_INFO() << "Running test:     " << std::get<0>(test);
+        auto [nodes, nps] = Catching_TestFunction(std::get<1>(test), std::get<2>(test), std::get<3>(test));
+        totalNodes += nodes;
+        totalNps += nps;
+        LOG_INFO() << "Finished test:    " << std::get<0>(test);
+        LOG_INFO() << "---------------------------------";
+    }
 
-TEST_F(PerftFixture, Catching_EnPassantCapture_ChecksOpponent)
+    u64 nps = clock.calcNodesPerSecond(totalNodes);
+    i64 elapsedTime = clock.getElapsedTime();
+    LOG_INFO() << " [ RESULTS ] Total nodes:  - - - - - - - " << totalNodes << " nodes";
+    LOG_INFO() << " [ RESULTS ] Total elapsed time: - - - - " << elapsedTime << " ms";
+    LOG_INFO() << " [ RESULTS ] Total nodes per second: - - " << nps << " nps";
+    LOG_INFO() << " [ RESULTS ] Average nodes per second: - " << totalNps / tests.size() << " nps";
+    LOG_INFO() << "---------------------------------";
+}
+
+TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassant)
+{
+    Catching_TestFunction("3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6);
+}
+
+TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassantTwo) { Catching_TestFunction("8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6); }
+
+TEST_F(PerftFixture, DISABLED_Catching_EnPassantCapture_ChecksOpponent)
 {
     Catching_TestFunction("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6);
 }
 
-TEST_F(PerftFixture, Catching_ShortCastlingCheck) { Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_ShortCastlingCheck) { Catching_TestFunction("5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6); }
 
-TEST_F(PerftFixture, Catching_LongCastlingGivesCheck) { Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_LongCastlingGivesCheck) { Catching_TestFunction("3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6); }
 
-TEST_F(PerftFixture, Catching_CastlingRights)
+TEST_F(PerftFixture, DISABLED_Catching_CastlingRights)
 {
     Catching_TestFunction("r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4);
 }
 
-TEST_F(PerftFixture, Catching_CastlingPrevented)
+TEST_F(PerftFixture, DISABLED_Catching_CastlingPrevented)
 {
     Catching_TestFunction("r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4);
 }
 
-TEST_F(PerftFixture, Catching_PromoteOutOfCheck) { Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_PromoteOutOfCheck) { Catching_TestFunction("2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6); }
 
-TEST_F(PerftFixture, Catching_DiscoveredCheck) { Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5); }
+TEST_F(PerftFixture, DISABLED_Catching_DiscoveredCheck) { Catching_TestFunction("8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5); }
 
-TEST_F(PerftFixture, Catching_PromoteToGiveCheck) { Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_PromoteToGiveCheck) { Catching_TestFunction("4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6); }
 
-TEST_F(PerftFixture, Catching_UnderPromoteToGiveCheck) { Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_UnderPromoteToGiveCheck) { Catching_TestFunction("8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6); }
 
-TEST_F(PerftFixture, Catching_SelfStalemate) { Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6); }
+TEST_F(PerftFixture, DISABLED_Catching_SelfStalemate) { Catching_TestFunction("K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6); }
 
-TEST_F(PerftFixture, Catching_StalemateAndCheckmate) { Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7); }
+TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmate) { Catching_TestFunction("8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7); }
 
-TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
+TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmateTwo)
 {
     Catching_TestFunction("8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4);
 }
@@ -403,7 +454,7 @@ TEST_F(PerftFixture, Catching_StalemateAndCheckmateTwo)
 /* This test takes a long time to run, so it is disabled by default
 https://www.chessprogramming.net/perfect-perft/
 */
-TEST_F(PerftFixture, Catching_TwoHundrarMillionNodes_Twice)
+TEST_F(PerftFixture, DISABLED_Catching_TwoHundrarMillionNodes_Twice)
 {
     Catching_TestFunction("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
     Catching_TestFunction("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7);
@@ -414,7 +465,7 @@ TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
     Catching_TestFunction("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6);
 }
 
-TEST_F(PerftFixture, Catching_BishopVsTwoRookEndgame)
+TEST_F(PerftFixture, DISABLED_Catching_BishopVsTwoRookEndgame)
 {
     Catching_TestFunction("1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5);
 }
