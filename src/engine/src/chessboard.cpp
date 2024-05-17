@@ -173,7 +173,7 @@ bool
 Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
 {
     const Square srcSqr = undoState.move.sourceSqr();
-    const Square trgSqr = undoState.move.sourceSqr();
+    const Square trgSqr = undoState.move.targetSqr();
     //const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
     const ChessPiece movedPiece = undoState.movedPiece;
 
