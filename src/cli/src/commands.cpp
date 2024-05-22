@@ -239,7 +239,7 @@ bool
 EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
-    i32 value = evaluator.Evaluate(context.readChessboard(), 1);
+    i32 value = evaluator.Evaluate(context.readChessboard());
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
@@ -264,6 +264,7 @@ EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context)
 
     SearchResult result = context.CalculateBestMove(searchParams);
     std::cout << " Best Move: " << result.move.toString() << std::endl;
+    std::cout << " Score: " << result.score << std::endl;
     return true;
 }
 
@@ -311,14 +312,35 @@ NewGameHelpCommand(const std::string&)
 }
 
 bool
-AvailableMovesCommand(std::list<std::string>&, GameContext&)
+AvailableMovesCommand(std::list<std::string>&, GameContext& context)
 {
     std::cout << " Available Moves: \n";
-    // Search search;
-    // auto moves = search.GeneratePossibleMoves(context);
-    // for (auto&& move : moves) {
-    //     std::cout << context.readChessboard().SerializeMoveToPGN(move) << " ";
-    // }
+
+    MoveGenerator moveGen(context);
+    moveGen.generate();
+    Search search;
+    SearchParameters params;
+    params.SearchDepth = 1;
+    params.QuiescenceDepth = 2;
+    Evaluator evaluator;
+
+    moveGen.forEachMove([&](const PrioratizedMove& pm) {
+        bool maximizingPlayer = context.readToPlay() == Set::WHITE;
+        context.MakeMove(pm.move);
+        std::cout << " " << pm.move.toString();
+        if (pm.move.isPromotion()) {
+            // using black here since we want to print the type in lowercase.
+            ChessPiece promoted(Set::BLACK, (PieceType)pm.move.readPromoteToPieceType());
+            std::cout << promoted.toString();
+        }
+        // auto bestmove = search.CalculateBestMove(context, params);
+        i32 evaluation = evaluator.Evaluate(context.readChessboard());
+
+        i32 score = search.CalculateMove(context, maximizingPlayer, 3);
+        std::cout << ": " << evaluation << " <" << score << ">\n";
+        context.UnmakeMove();
+        });
+
     std::cout << std::endl;
     return true;
 }

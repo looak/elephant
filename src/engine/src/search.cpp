@@ -102,9 +102,7 @@ Search::OrganizeMoves(const std::vector<Move>& moves) const
 }
 
 template<bool UseCache>
-i32
-Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, i32 perspective, u32& count)
-{
+i32 Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, u32& count) {
     // something that we aren't considering here is moves that put opponent in check.
     i32 score = -c_maxScore;
     MoveGenerator generator(context.readChessboard().readPosition(), context.readToPlay(), PieceType::NONE,
@@ -117,14 +115,7 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
     if (depth == 0 && isChecked)
         depth++;
 
-    if (move.isNull()) {
-        if (isChecked)
-            return -c_checmkateConstant + (i32)ply;  // negative "infinity" since we're in checkmate
-
-        return 0;  // we're in stalemate
-    }
-
-    if (depth == 0) {
+    if (depth == 0 || move.isNull()) {
         if constexpr (UseCache) {
             auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
             if (tpItr != m_evaluationTable.end()) {
@@ -134,7 +125,7 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
             else {
                 Evaluator evaluator;
 
-                i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+                i32 staticEval = evaluator.Evaluate(context.readChessboard());
                 m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{staticEval});
                 return staticEval;
             }
@@ -142,14 +133,14 @@ Search::QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i3
         else {
             Evaluator evaluator;
 
-            i32 staticEval = perspective * evaluator.Evaluate(context.readChessboard(), perspective);
+            i32 staticEval = evaluator.Evaluate(context.readChessboard());
             return staticEval;
         }
     }
 
     do {
         context.MakeMove(move);
-        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, -perspective, count));
+        score = std::max(score, -QuiescenceSearch<UseCache>(context, depth - 1, ply + 1, -beta, -alpha, count));
         context.UnmakeMove();
 
         ++count;
@@ -171,38 +162,13 @@ static float failHighFirst = 0.f;
 #endif
 
 template<bool UseCache>
-SearchResult
-Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta,
-                        i32 perspective, std::vector<ScoredMove>& pv, u32 doNullMove)
-{
-    bool isChecked = false;  // context.readChessboard().isChecked(context.readToPlay());
+SearchResult Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, std::vector<ScoredMove>& pv, u32 doNullMove) {
 
     if (depth == 0) {
-        if (!isChecked) {
-            if constexpr (UseCache) {
-                Evaluator evaluator;
-
-                auto tpItr = m_evaluationTable.find(context.readChessboard().readHash());
-                if (tpItr != m_evaluationTable.end()) {
-                    EvaluationEntry& entry = tpItr->second;
-#ifdef DEBUG_SEARCHING
-                    evaluation_hits++;
-#endif
-                    return {entry.score, PackedMove::NullMove()};
-                }
-                else {
-                    i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective, searchContext.count);
-                    m_evaluationTable.emplace(context.readChessboard().readHash(), EvaluationEntry{score});
-                    return {score, PackedMove::NullMove()};
-                }
-            }
-            else {
-                i32 score = QuiescenceSearch<UseCache>(context, 5, ply, alpha, beta, perspective, searchContext.count);
-                return {score, PackedMove::NullMove()};
-            }
-        }
-
-        depth++;
+        Evaluator evaluator;
+        i32 score = evaluator.Evaluate(context.readChessboard());
+        //i32 score = -QuiescenceSearch<UseCache>(context, 3, ply, -beta, -alpha, searchContext.count);
+        return { score, PackedMove::NullMove() };
     }
 
     i32 bestScore = -c_maxScore;
@@ -233,10 +199,9 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
 
     MoveGenerator generator(context);
     auto move = generator.generateNextMove();
-    isChecked = generator.isChecked();
 
     if (move.isNull()) {
-        if (isChecked)
+        if (generator.isChecked())
             return {-c_checmkateConstant + (i32)ply, PackedMove::NullMove()};  // negative "infinity" since we're in checkmate
 
         return {0, PackedMove::NullMove()};  // we're in stalemate
@@ -247,18 +212,15 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
 
     do {
         context.MakeMove(move);
-        // FATAL_ASSERT(context.MakeMove(mv));
 
         SearchResult result;
-        result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta, -alpha, -perspective, localPv,
-                                           doNullMove);
+        result = AlphaBetaNegmax<UseCache>(context, searchContext, depth - 1, ply + 1, -beta, -alpha, localPv, doNullMove);
         i32 score = -result.score;
         context.UnmakeMove();
 
         ++localCount;
 
-        if (score > alpha) {
-            alpha = score;
+        if (score > bestScore) {
             bestScore = score;
             bestMove = move;
             // copy all lower moves to pv.
@@ -267,6 +229,8 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
             for (u32 i = 1; i < depth; ++i)
                 pv[i] = localPv[i - 1];
         }
+
+        alpha = std::max(alpha, bestScore);
 
         if (alpha >= beta) {
 #ifdef DEBUG_SEARCHING
@@ -294,6 +258,8 @@ Search::AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 
 
     return {bestScore, bestMove};
 }
+
+
 
 SearchResult
 Search::CalculateBestMove(GameContext& context, SearchParameters params)
@@ -351,7 +317,6 @@ Search::CalculateBestMove(GameContext& context, SearchParameters params)
 
     i32 alpha = -c_maxScore;
     i32 beta = c_maxScore;
-    i32 perspective = isWhite ? 1 : -1;
 #ifdef DEBUG_SEARCHING
     evaluation_hits = 0;
     failHigh = 0.f;
@@ -370,7 +335,7 @@ Search::CalculateBestMove(GameContext& context, SearchParameters params)
 
     for (u32 itrDepth = 1; itrDepth <= depth; ++itrDepth) {
         std::vector<ScoredMove> localPv(itrDepth + 1);
-        SearchResult result = AlphaBetaNegmax<false>(context, searchContext, itrDepth, 1, alpha, beta, perspective, localPv, 1);
+        SearchResult result = AlphaBetaNegmax<false>(context, searchContext, itrDepth, 1, alpha, beta, localPv, 1);
 
         searchContext.pv = localPv;
         bestResult = result;
@@ -480,4 +445,92 @@ Search::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
             mv.Score = mv.calcCaptureValue();
     }
     std::sort(moves.begin(), moves.end(), s_moveComparer);  // sort all captures to be upfront
+}
+
+SearchResult Search::CalculateBestMove(GameContext& context)
+{
+    bool maximizingPlayer = context.readToPlay() == Set::WHITE;
+    return AlphaBetaMinmax(context, 4, -c_maxScore, c_maxScore, maximizingPlayer);
+}
+
+SearchResult Search::AlphaBetaMinmax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer)
+{
+    if (depth == 0) {
+        Evaluator evaluator;
+        return { evaluator.Evaluate(context.readChessboard()), PackedMove::NullMove() };
+    }
+
+    MoveGenerator generator(context);
+    auto move = generator.generateNextMove();
+
+    if (move.isNull()) {
+        if (generator.isChecked())
+            return { -c_checmkateConstant, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
+
+        return { 0, PackedMove::NullMove() };  // we're in stalemate
+    }
+
+    if (maximizingPlayer)
+    {
+        i32 maxEval = -c_maxScore;
+        PackedMove bestMove;
+        do {
+            context.MakeMove(move);
+            auto result = AlphaBetaMinmax(context, depth - 1, alpha, beta, false);
+            auto eval = result.score;
+            context.UnmakeMove();
+
+            if (eval > maxEval)
+            {
+                maxEval = eval;
+                bestMove = move;
+            }
+
+            maxEval = std::max(maxEval, eval);
+            alpha = std::max(alpha, eval);
+
+            if (beta <= alpha)
+                break;
+
+            move = generator.generateNextMove();
+        } while (move.isNull() == false);
+
+        return { maxEval, bestMove };
+    }
+    else
+    {
+        i32 minEval = c_maxScore;
+        PackedMove bestMove;
+
+        do {
+            context.MakeMove(move);
+            auto result = AlphaBetaMinmax(context, depth - 1, alpha, beta, true);
+            auto eval = result.score;
+            context.UnmakeMove();
+
+            if (eval < minEval)
+            {
+                minEval = eval;
+                bestMove = move;
+            }
+
+            beta = std::min(beta, eval);
+
+            if (beta <= alpha)
+                break;
+
+            move = generator.generateNextMove();
+        } while (move.isNull() == false);
+
+        return { minEval, bestMove };
+    }
+}
+
+i32 Search::CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth)
+{
+    i32 alpha = -c_maxScore;
+    i32 beta = c_maxScore;
+    auto eval = AlphaBetaMinmax(context, depth, alpha, beta, !maximizingPlayer);
+
+    return eval.score;
 }

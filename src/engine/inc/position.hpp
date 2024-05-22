@@ -212,6 +212,10 @@ public:
     Bitboard calcThreatenedSquaresQueenBulk() const;
     template<Set us>
     Bitboard calcThreatenedSquaresKing() const;
+    template<Set us>
+    Bitboard calcThreatenedDiagonals() const;
+    template<Set us>
+    Bitboard calcThreatenedOrthogonals() const;
 
     template<Set us, bool includeMaterial, bool pierceKing = false>
     Bitboard calcThreatenedSquares() const;
@@ -231,6 +235,17 @@ public:
 private:
     template<Set us, u8 direction, u8 pieceId>
     Bitboard internalCalculateThreat(Bitboard bounds) const;
+
+    /**
+     * @brief Calculate the threats of a given piece type in a given direction.
+     * @tparam us The set of the piece type.
+     * @tparam direction The direction to calculate threats in.
+     * @param bounds The bounds of the board.
+     * @param pieces The bitboard of pieces we're calculating threatened squares from.
+     * Using this function to calculate orthogonal pieces & diagonal pieces at once,
+     * i.e. combinging queen & bishop or queen & rook for when we calculate diagonal piece threat.  */
+    template<Set us, u8 direction>
+    Bitboard internalCalculateThreatBulk(Bitboard bounds, Bitboard pieces) const;
     template<Set us, u8 direction, u8 pieceId>
     Bitboard internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard materialbb, Bitboard opMaterial) const;
 
@@ -254,16 +269,39 @@ private:
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;
 
     mutable MaterialPositionMask m_materialMask;
-    //mutable MaterialMask m_material[2];
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
 };
+
+template<Set us, u8 direction>
+Bitboard Position::internalCalculateThreatBulk(Bitboard bounds, Bitboard pieces) const
+{
+    const Bitboard piecebb = pieces;
+    const Bitboard materialbb = readMaterial().combine<us>();
+    const Bitboard opMaterial = readMaterial().combine<opposing_set<us>()>();
+
+    bounds |= opMaterial;
+
+    Bitboard bbCopy = piecebb;
+    Bitboard moves = 0;
+    do {
+        Bitboard purge = bbCopy & bounds;
+        bbCopy &= ~purge;
+
+        bbCopy = bbCopy.shiftRelative<us, direction>();
+        moves |= bbCopy;
+        bbCopy ^= (materialbb & bbCopy);
+
+    } while (bbCopy.empty() == false);
+
+    return moves;
+}
 
 template<Set us, u8 direction, u8 pieceId>
 Bitboard
 Position::internalCalculateThreat(Bitboard bounds) const
 {
-    const Bitboard piecebb = m_materialMask.read<us, pieceId>(); //readMaterial<us>()[pieceId];
+    const Bitboard piecebb = m_materialMask.read<us, pieceId>();
     const Bitboard materialbb = readMaterial().combine<us>();
     const Bitboard opMaterial = readMaterial().combine<opposing_set<us>()>();
 
@@ -318,7 +356,6 @@ Position::calcThreatenedSquares() const
     if constexpr (pierceKing) {
         // can we build a scoped struct to make this a bit cleaner?        
         kingMask = m_materialMask.kings<op>();
-        //m_material[(size_t)op].material[kingId] = 0;
         m_materialMask.clear<op, kingId>(kingMask);
     }
 
@@ -343,14 +380,8 @@ template<Set us>
 SlidingMaterialMasks
 Position::calcMaterialSlidingMasksBulk() const
 {
-    Bitboard orthogonal;
-    Bitboard diagonal;
-
-    diagonal |= calcThreatenedSquaresBishopBulk<us>();
-    diagonal |= calcThreatenedSquaresBishopBulk<us, queenId>();
-
-    orthogonal |= calcThreatenedSquaresRookBulk<us>();
-    orthogonal |= calcThreatenedSquaresRookBulk<us, queenId>();
+    Bitboard orthogonal = calcThreatenedOrthogonals<us>();
+    Bitboard diagonal = calcThreatenedDiagonals<us>();
 
     // add material
     diagonal |= m_materialMask.bishops<us>() | m_materialMask.queens<us>();

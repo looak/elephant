@@ -11,7 +11,7 @@
 Evaluator::Evaluator() {}
 
 i32
-Evaluator::Evaluate(const Chessboard& board, i32)
+Evaluator::Evaluate(const Chessboard& board)
 {
     i32 score = 0;
     // Set set = perspective > 0 ? Set::WHITE : Set::BLACK;
@@ -36,24 +36,21 @@ Evaluator::Evaluate(const Chessboard& board, i32)
 }
 
 i32
-Evaluator::EvaluateMaterial(const Chessboard&) const
+Evaluator::EvaluateMaterial(const Chessboard& board) const
 {
-    // const auto& whiteMaterial = board.readPosition().readMaterial<Set::WHITE>();
-    // const auto& blackMaterial = board.readPosition().readMaterial<Set::BLACK>();
+    const auto& material = board.readPosition().readMaterial();
+    i32 score = 0;
 
-    // i32 score = 0;
-    // for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-    //     u32 pieceValue = ChessPieceDef::Value(pieceIndx);
-    //     u32 count = (u32)whiteMaterial.material[pieceIndx].count();
-    //     score += pieceValue * count;
+    for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
+        u32 pieceValue = ChessPieceDef::Value(pieceIndx);
+        i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
+        i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
 
-    //     count = (u32)blackMaterial.material[pieceIndx].count();
-    //     score -= pieceValue * count;
-    // }
-    // score += whiteMaterial.combine().count();
-    // score -= blackMaterial.combine().count();
-    // return score;
-    return 0;
+        score += pieceValue * whiteCount;
+        score -= pieceValue * blackCount;
+    }
+
+    return score;
 }
 
 i32
@@ -70,27 +67,25 @@ Evaluator::EvaluateMove(Move move) const
 }
 
 i32
-Evaluator::EvalutePiecePositions(const Chessboard&) const
+Evaluator::EvalutePiecePositions(const Chessboard& board) const
 {
+    const auto& material = board.readPosition().readMaterial();
     i32 score = 0;
 
-    // const auto& whiteMaterial = board.readPosition().readMaterial<Set::WHITE>();
-    // const auto& blackMaterial = board.readPosition().readMaterial<Set::BLACK>();
+    for (u32 pieceIndx = 0; pieceIndx < pieceIndexMax; ++pieceIndx) {
+        Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
 
-    // for (u32 pieceIndx = 0; pieceIndx < pieceIndexMax; ++pieceIndx) {
-    //     Bitboard whitePieces = whiteMaterial[pieceIndx];
+        while (whitePieces.empty() == false) {
+            i32 sqr = whitePieces.popLsb();
+            score += evaluator_data::pestoTables[pieceIndx][sqr];
+        }
 
-    //     while (whitePieces.empty() == false) {
-    //         i32 sqr = whitePieces.popLsb();
-    //         score += evaluator_data::pestoTables[pieceIndx][sqr];
-    //     }
-
-    //     Bitboard blackPieces = blackMaterial[pieceIndx];
-    //     while (blackPieces.empty() == false) {
-    //         i32 sqr = blackPieces.popLsb();
-    //         score -= evaluator_data::pestoTables[pieceIndx][sqr];
-    //     }
-    // }
+        Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
+        while (blackPieces.empty() == false) {
+            i32 sqr = blackPieces.popLsb();
+            score -= evaluator_data::pestoTables[pieceIndx][sqr];
+        }
+    }
 
     return score;
 }

@@ -450,6 +450,42 @@ Position::calcThreatenedSquaresKnightBulk() const
 template Bitboard Position::calcThreatenedSquaresKnightBulk<Set::WHITE>() const;
 template Bitboard Position::calcThreatenedSquaresKnightBulk<Set::BLACK>() const;
 
+template<Set us>
+Bitboard Position::calcThreatenedDiagonals() const
+{
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
+    Bitboard diagonalPieces = readMaterial().queens<us>() | readMaterial().bishops<us>();
+
+    Bitboard moves = 0;
+    moves |= internalCalculateThreatBulk<us, northeast>(bounds[north] | bounds[east], diagonalPieces);
+    moves |= internalCalculateThreatBulk<us, southeast>(bounds[south] | bounds[east], diagonalPieces);
+    moves |= internalCalculateThreatBulk<us, southwest>(bounds[south] | bounds[west], diagonalPieces);
+    moves |= internalCalculateThreatBulk<us, northwest>(bounds[north] | bounds[west], diagonalPieces);
+
+    return moves;
+}
+
+template Bitboard Position::calcThreatenedDiagonals<Set::WHITE>() const;
+template Bitboard Position::calcThreatenedDiagonals<Set::BLACK>() const;
+
+template<Set us>
+Bitboard Position::calcThreatenedOrthogonals() const
+{
+    const auto bounds = board_constants::boundsRelativeMasks[(size_t)us];
+    Bitboard orthogonalPieces = readMaterial().queens<us>() | readMaterial().rooks<us>();
+
+    Bitboard moves = 0;
+    moves |= internalCalculateThreatBulk<us, north>(bounds[north], orthogonalPieces);
+    moves |= internalCalculateThreatBulk<us, east>(bounds[east], orthogonalPieces);
+    moves |= internalCalculateThreatBulk<us, south>(bounds[south], orthogonalPieces);
+    moves |= internalCalculateThreatBulk<us, west>(bounds[west], orthogonalPieces);
+
+    return moves;
+}
+
+template Bitboard Position::calcThreatenedOrthogonals<Set::WHITE>() const;
+template Bitboard Position::calcThreatenedOrthogonals<Set::BLACK>() const;
+
 template<Set us, u8 pieceId>
 Bitboard
 Position::calcThreatenedSquaresBishopBulk() const

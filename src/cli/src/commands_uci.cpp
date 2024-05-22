@@ -7,45 +7,45 @@
 * Send back what options this engine supports. */
 void UCIOptions()
 {
-	// for (auto&& option : UCICommands::options)
-	// {
-	// 	std::cout << "option name " << option.first << " " << option.second.second << "\n";
-	// }
+    // for (auto&& option : UCICommands::options)
+    // {
+    // 	std::cout << "option name " << option.first << " " << option.second.second << "\n";
+    // }
 }
 
 void UCICommands::UCIEnable()
 {
     UCI interface;
-	UCIOptions();
+    UCIOptions();
     interface.Enable();
-	while (interface.Enabled())
-	{
-		std::string buffer = "";
-		std::getline(std::cin, buffer);
-		std::list<std::string> tokens;
-		extractArgsFromCommand(buffer, tokens);
+    while (interface.Enabled())
+    {
+        std::string buffer = "";
+        std::getline(std::cin, buffer);
+        std::list<std::string> tokens;
+        extractArgsFromCommand(buffer, tokens);
 
-		LOG_INFO() << "From GUI: " << buffer;
+        LOG_INFO() << "From GUI: " << buffer;
 
-		if (tokens.size() == 0)
-			continue;
+        if (tokens.size() == 0)
+            continue;
 
         std::string commandStr = tokens.front();
-		auto&& command = UCICommands::commands.find(commandStr);
-		if (tokens.size() > 0 && command != UCICommands::commands.end())
-		{
-			auto token = tokens.front();
+        auto&& command = UCICommands::commands.find(commandStr);
+        if (tokens.size() > 0 && command != UCICommands::commands.end())
+        {
+            auto token = tokens.front();
             if (token == "quit")
-				std::exit(0);
-			
+                std::exit(0);
+
             tokens.pop_front(); // remove command from arguments
-			if (!command->second(tokens, interface))
+            if (!command->second(tokens, interface))
             {
                 LOG_ERROR() << " Something went wrong during command: " << commandStr;
                 std::exit(1);
             }
-		}
-	}
+        }
+    }
 }
 
 bool UCICommands::DebugCommand(std::list<std::string>&, UCI&)
@@ -73,7 +73,7 @@ bool UCICommands::RegisterCommand(std::list<std::string>&, UCI&)
 
 bool UCICommands::NewGameCommand(std::list<std::string>&, UCI& interface)
 {
-	return interface.NewGame();
+    return interface.NewGame();
 }
 
 bool UCICommands::PositionCommand(std::list<std::string>& args, UCI& interface)
@@ -91,7 +91,7 @@ bool UCICommands::GoCommand(std::list<std::string>& args, UCI& interface)
     return interface.Go(args);
 }
 bool UCICommands::StopCommand(std::list<std::string>&, UCI& interface)
-{    
+{
     return interface.Stop();
 }
 bool UCICommands::PonderHitCommand(std::list<std::string>&, UCI&)
@@ -101,16 +101,16 @@ bool UCICommands::PonderHitCommand(std::list<std::string>&, UCI&)
 }
 bool UCICommands::QuitCommand(std::list<std::string>&, UCI&)
 {
-	std::cout << "bye bye\n";
+    std::cout << "bye bye\n";
     return true;
 }
 
 bool UCICommands::DebugOutputOption(std::list<std::string>& args, UCI&)
 {
-	for (auto&& arg : args)
-	{
-		LOG_INFO() << "DebugOutputOption: " << arg;
-	}	
+    for (auto&& arg : args)
+    {
+        LOG_INFO() << "DebugOutputOption: " << arg;
+    }
 
     return true;
 }

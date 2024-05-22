@@ -119,10 +119,10 @@ GameContext::UnmakeMove()
 }
 
 SearchResult
-GameContext::CalculateBestMove(SearchParameters params)
+GameContext::CalculateBestMove(SearchParameters)
 {
     Search search;
-    return search.CalculateBestMove(*this, params);
+    return search.CalculateBestMove(*this);
 }
 
 bool

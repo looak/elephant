@@ -64,7 +64,7 @@ constexpr i8 pawn_modifier()
     return -1;
 }
 
-constexpr signed short pieceValues[6] = { 100, 350, 350, 525, 1000, 10000 };
+constexpr signed short pieceValues[6] = { 100, 350, 350, 525, 10000, 10000 };
 constexpr byte moveCount[6] = { 2, 8, 4, 4, 8, 8 };
 
 constexpr bool slides[6] = {
