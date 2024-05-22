@@ -80,6 +80,7 @@ struct SearchResult {
 
 struct SearchContext {
     u32 count;
+    u32 currentPly;
     std::vector<ScoredMove> pv;
     std::vector<std::array<Move, 3>> killerMoves;
     // maybe add history heuristic as well.
@@ -117,19 +118,17 @@ public:
 
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
-    SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
+    //    SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
     SearchResult CalculateBestMove(GameContext& context);
 
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
 
 private:
-    template<bool UseCache>
-    SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, std::vector<ScoredMove>& pv, u32 doNullMove);
+    // template<bool UseCache>
+    // SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, std::vector<ScoredMove>& pv, u32 doNullMove);
 
-    template<bool UseCache>
-    i32 QuiescenceSearch(GameContext& context, u32 depth, u32 ply, i32 alpha, i32 beta, u32& count);
-
-    SearchResult AlphaBetaMinmax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer);
+    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
+    i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
 
