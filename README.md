@@ -40,7 +40,8 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
 |:-------:|:---:|:---:|:---:|:---:|
-|[v0.5.0]([head-link])|~11 million| N/A | ~1.65 million | testing |
+|[v0.6.0]([v0.6.0-link])|~10 million| N/A | ~1.0 million | testing |
+|[v0.5.0]|~11 million| N/A | ~1.65 million | ~1100 elo |
 |[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
 |[v0.2.0-alpha.1]([v0.2.0-alpha.1-link])| ~4 million | ~35 million best case | ~250k | ~1350 elo |
 |[v0.1.0-alpha.1]([v0.1.0-alpha.1-link])| ~2.5 million | N/A | N/A | N/A |
@@ -135,6 +136,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
+[v0.6.0-link]:          https://github.com/looak/elephant/releases/tag/0.6.0
 [v0.4.0-link]:          https://github.com/looak/elephant/releases/tag/0.4.0
 [v0.2.0-alpha.1-link]:  https://github.com/looak/elephant/releases/tag/0.2.0-alpha.1
 [v0.1.0-alpha.1-link]:  https://github.com/looak/elephant/releases/tag/0.1.0-alpha.1
