@@ -349,9 +349,10 @@ Catching_TestFunction(const std::string& fen, unsigned int expectedValue, int at
     // do
     Search search;
     PerftResult result = search.PerftDivide(context, atDepth);
-
+    clock.Stop();
     i64 elapsedTime = clock.getElapsedTime();
     u64 nps = clock.calcNodesPerSecond(result.Nodes);
+
 
     LOG_INFO() << "Elapsed time:     " << elapsedTime << " ms";
     LOG_INFO() << "Nodes per second: " << nps << " nps";

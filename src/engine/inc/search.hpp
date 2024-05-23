@@ -25,6 +25,7 @@
 #include "transposition_table.hpp"
 
 class Chessboard;
+class Clock;
 class GameContext;
 struct SearchParameters;
 
@@ -81,7 +82,6 @@ struct SearchResult {
 struct SearchContext {
     u32 count;
     u32 currentPly;
-    std::vector<ScoredMove> pv;
     std::vector<std::array<Move, 3>> killerMoves;
     // maybe add history heuristic as well.
 };
@@ -118,17 +118,19 @@ public:
 
     std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
 
-    //    SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
-    SearchResult CalculateBestMove(GameContext& context);
-
+    /*
+    *
+    */
+    SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
 
 private:
-    // template<bool UseCache>
-    // SearchResult AlphaBetaNegmax(GameContext& context, SearchContext& searchContext, u32 depth, u32 ply, i32 alpha, i32 beta, std::vector<ScoredMove>& pv, u32 doNullMove);
+    void ReportSearchResult(SearchResult& searchResult, const std::vector<PackedMove>& pv, u32 depth, u64 nodes, const Clock& clock) const;
 
-    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
-    i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
+    typedef std::pair<SearchResult, std::vector<PackedMove>> ResultPair;
+    ResultPair      CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount);
+    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount, std::vector<PackedMove>& pv);
+    i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
 
