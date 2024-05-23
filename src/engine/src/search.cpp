@@ -124,8 +124,8 @@ void Search::ReportSearchResult(SearchResult& searchResult, const std::vector<Pa
         return;
     }
 
-    float centipawn = searchResult.score / 100.f;
-    std::cout << "info score cp " << std::fixed << std::setprecision(2) << centipawn << " depth " << depth
+    i32 centipawn = searchResult.score;
+    std::cout << "info score cp " << centipawn << " depth " << depth
         << " nodes " << nodes << " time " << et << " pv" << pvSS.str() << "\n";
 }
 
@@ -155,6 +155,12 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
         clock.Stop();
         ReportSearchResult(itrResult, pv, itrDepth, nodeCount, clock);
         result = itrResult;
+
+        u32 timelimit = context.readToPlay() == Set::WHITE ? params.WhiteTimelimit : params.BlackTimelimit;
+        i32 timeInc = context.readToPlay() == Set::WHITE ? params.WhiteTimeIncrement : params.BlackTimeIncrement;
+
+        if (TimeManagement(clock.getElapsedTime(), timelimit, timeInc, itrDepth) == false)
+            break;
     }
 
     return result;
@@ -241,7 +247,7 @@ i32 Search::QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 be
     i32 maxEval = -c_maxScore;
     do {
         context.MakeMove(move);
-        i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ++ply, nodeCount);
+        i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount);
         nodeCount++;
         context.UnmakeMove();
 
@@ -257,11 +263,11 @@ i32 Search::QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 be
     return maxEval;
 }
 
-bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32, u32, u32 depth, i32) {
+bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth) {
     // should return false if we want to abort our search.
     // how do we manage time?
     // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = (timeleft / 24);  // at 5min this is 12 seconds.
+    const i64 c_maxTimeAllowed = timeInc + (timeleft / 24);  // at 5min this is 12 seconds.    
     if (elapsedTime > c_maxTimeAllowed) {
         // if score is negative we continue looking one more depth.
         // if (score < 0 && timeleft > (c_maxTimeAllowed * 6))

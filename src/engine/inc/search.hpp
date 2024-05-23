@@ -132,7 +132,7 @@ private:
     SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount, std::vector<PackedMove>& pv);
     i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
 
-    bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 moveCount, u32 depth, i32 score);
+    bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
 
     void OrderMoves(SearchContext& searchContext, std::vector<Move>& moves, u32 depth, u32 ply) const;
 
