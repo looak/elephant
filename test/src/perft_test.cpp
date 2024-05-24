@@ -386,12 +386,11 @@ TEST_F(PerftFixture, Bulk_Peft_Tests)
         { "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };
 
-    Clock clock, innerClock;
+    Clock clock;
     clock.Start();
     u64 totalNodes = 0;
     u64 totalNps = 0;
-    for (auto& test : tests) {
-        innerClock.Start();
+    for (auto& test : tests) {        
         LOG_INFO() << "Running test:     " << std::get<0>(test);
         auto [nodes, nps] = Catching_TestFunction(std::get<1>(test), std::get<2>(test), std::get<3>(test));
         totalNodes += nodes;
@@ -400,6 +399,7 @@ TEST_F(PerftFixture, Bulk_Peft_Tests)
         LOG_INFO() << "---------------------------------";
     }
 
+    clock.Stop();
     u64 nps = clock.calcNodesPerSecond(totalNodes);
     i64 elapsedTime = clock.getElapsedTime();
     LOG_INFO() << " [ RESULTS ] Total nodes:  - - - - - - - " << totalNodes << " nodes";

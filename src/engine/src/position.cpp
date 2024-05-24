@@ -127,19 +127,15 @@ Position::materialEditor(Set set, PieceType pType)
 
 
 template<Set us>
-KingPinThreats
-Position::calcKingMask() const
-{
+KingPinThreats Position::calcKingMask() const {
     constexpr Set op = opposing_set<us>();
-    auto slidingMask = calcMaterialSlidingMasksBulk<op>();
-    auto king = ChessPiece(us, PieceType::KING);
+    auto slidingMask = calcMaterialSlidingMasksBulk<op>();    
     Square kingSqr = static_cast<Square>(m_materialMask.kings<us>().lsbIndex());
+    Square opKingSqr = static_cast<Square>(m_materialMask.kings<op>().lsbIndex());
+    
     KingPinThreats ret;
     ret.evaluate<us>(kingSqr, *this, slidingMask);
-
-    Square opKingSqr = static_cast<Square>(m_materialMask.kings<op>().lsbIndex());
     ret.calculateOpponentOpenAngles<op>(opKingSqr, *this);
-
     return ret;
 }
 

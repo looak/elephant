@@ -1,4 +1,4 @@
-// Elephant Gambit Chess Engine - a Chess AI
+﻿// Elephant Gambit Chess Engine - a Chess AI
 // Copyright(C) 2021-2023  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
@@ -86,7 +86,6 @@ public:
      * Should be removed!*/
     u64 calculateThreatenedMask(Set set) const;
 
-#pragma region ChessboardIterator
     template<typename T, bool isConst = false>
     class ChessboardIterator {
         friend class Chessboard;
@@ -141,7 +140,6 @@ public:
     ConstIterator begin() const;
     ConstIterator end() const;
 
-#pragma endregion // ChessboardIterator
     /**
      * @brief Sets the en passant square.
      * Sets the en passant square, updates hash and calculates the en passant target square.
