@@ -264,6 +264,7 @@ EvaluateBestMoveCommand(std::list<std::string>& tokens, GameContext& context)
         std::from_chars(depth.data(), depth.data() + depth.size(), searchParams.SearchDepth);
     }
 
+    searchParams.Infinite = true;
     SearchResult result = context.CalculateBestMove(searchParams);
     std::cout << " Best Move: " << result.move.toString() << std::endl;
     std::cout << " Score: " << result.score << std::endl;

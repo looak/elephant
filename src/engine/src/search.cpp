@@ -111,13 +111,10 @@ void Search::ReportSearchResult(SearchResult& searchResult, const std::vector<Pa
     }
 
     i32 checkmateDistance = c_checmkateConstant - abs((int)searchResult.score);
+    checkmateDistance = abs(checkmateDistance);
     if ((u32)checkmateDistance <= depth) {
         // found checkmate within depth.
-        if (searchResult.score < 0) {
-            // we can pretty safely assume that if we find a mate against us it is forced.
-            checkmateDistance = -checkmateDistance;
-            searchResult.ForcedMate = true;
-        }
+        searchResult.ForcedMate = true;
         checkmateDistance /= 2;
         std::cout << "info mate " << checkmateDistance << " depth " << depth << " nodes " << nodes
             << " time " << et << " pv" << pvSS.str() << "\n";
@@ -155,12 +152,17 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
 
         clock.Stop();
         ReportSearchResult(itrResult, pv, itrDepth, nodeCount, clock);
-        result = itrResult;
+        if (itrResult.ForcedMate)
+            return itrResult;
 
+        result = itrResult;
         u32 timelimit = context.readToPlay() == Set::WHITE ? params.WhiteTimelimit : params.BlackTimelimit;
         i32 timeInc = context.readToPlay() == Set::WHITE ? params.WhiteTimeIncrement : params.BlackTimeIncrement;
 
-        if (TimeManagement(clock.getElapsedTime(), timelimit, timeInc, itrDepth) == false)
+        // TODO;
+        // for now we use Infinite as a flag to indicate that we should continue searching until we reach
+        // the given depth and ignore the any time limit.
+        if (params.Infinite == false && TimeManagement(clock.getElapsedTime(), timelimit, timeInc, itrDepth) == false)
             break;
     }
 

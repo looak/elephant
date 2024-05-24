@@ -18,15 +18,15 @@ Evaluator::Evaluate(const Chessboard& board, const MoveGenerator& movegen)
     score += EvaluateMaterial(board);
     LOG_DEBUG() << "Material score: " << score;
     i32 tmp = EvalutePiecePositions(board);
+    score += tmp;
     LOG_DEBUG() << "Piece position score: " << tmp;
-    score += tmp;
     tmp = EvaluatePawnStructure(board);
-    LOG_DEBUG() << "Pawn structure score: " << tmp;
     score += tmp;
+    LOG_DEBUG() << "Pawn structure score: " << tmp;
 
     tmp = EvaluateKingSafety(board, movegen);
-    LOG_DEBUG() << "King safety score: " << tmp;
     score += tmp;
+    LOG_DEBUG() << "King safety score: " << tmp;
     LOG_DEBUG() << "Total score: " << score;
     LOG_DEBUG() << "Endgame Coeficient: " << board.calculateEndGameCoeficient();
     LOG_DEBUG() << "---------------------------------";

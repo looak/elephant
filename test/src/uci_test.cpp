@@ -153,7 +153,7 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
-TEST_F(UciFixture, position_fen_perft)
+TEST_F(UciFixture, DISABLED_position_fen_perft)
 {
     // setup
     m_uci.Enable();

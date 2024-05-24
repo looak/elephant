@@ -28,6 +28,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     SearchParameters params;
     params.SearchDepth = 4;
+    params.Infinite = true;
     // execute
     SearchResult result = context.CalculateBestMove(params);
 
@@ -49,6 +50,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 
     SearchParameters params;
     params.SearchDepth = 4;
+    params.Infinite = true;
 
     // execute
     SearchResult result = context.CalculateBestMove(params);
@@ -69,6 +71,7 @@ TEST_F(SearchFixture, WhiteForcedMate)
 
     SearchParameters params;
     params.SearchDepth = 3;
+    params.Infinite = true;
 
     SearchResult result = context.CalculateBestMove(params);
     EXPECT_TRUE(result.ForcedMate);
