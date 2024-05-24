@@ -52,8 +52,7 @@ struct MoveUndoUnit {
  * It provides functions for moving and placing chess pieces, and updates
  * all underlying state accordingly.
  *
- * @author Alexander Loodin Ek
- */
+ * @author Alexander Loodin Ek  */
 class Chessboard {
 public:
     Chessboard();
@@ -87,6 +86,7 @@ public:
      * Should be removed!*/
     u64 calculateThreatenedMask(Set set) const;
 
+#pragma region ChessboardIterator
     template<typename T, bool isConst = false>
     class ChessboardIterator {
         friend class Chessboard;
@@ -141,6 +141,7 @@ public:
     ConstIterator begin() const;
     ConstIterator end() const;
 
+#pragma endregion // ChessboardIterator
     /**
      * @brief Sets the en passant square.
      * Sets the en passant square, updates hash and calculates the en passant target square.
@@ -177,8 +178,6 @@ public:
     }
     Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
     void setToPlay(Set set) { m_isWhiteTurn = set == Set::WHITE; }
-
-    // Notation readKingPosition(Set set) const;
 
     std::string toString() const;
 

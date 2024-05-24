@@ -160,6 +160,7 @@ Chessboard::MakeMove(const PackedMove move)
     // do move
     InternalMakeMove(piece, move.sourceSqr(), move.targetSqr(), materialEditor);
 
+    m_plyCount++;
     m_isWhiteTurn = !m_isWhiteTurn;
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
     m_moveCount += (short)m_isWhiteTurn;
@@ -551,7 +552,7 @@ Chessboard::calculateEndGameCoeficient() const
 
     // check if we have promoted a pawn because that will screw with this endgame coeficient
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a
-    // endgame already should just reutnr 1.f
+    // endgame already should just return 1.f
 
     i32 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index) {
@@ -559,5 +560,16 @@ Chessboard::calculateEndGameCoeficient() const
         boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial().read<Set::BLACK>(index).count();
     }
 
-    return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
+    // reflecting on the move counter, this can at most add .5 to the coeficient since I want piece value to be
+    // the dominating factor in the endgame coeficient.
+    const short maxCount = 100;
+    const float maxCountCoeficient = 0.5f;
+    // 100 moves into the game should give us a coeficient of 0.5
+    // 50 moves into the game should give us a coeficient of 0.25
+    float countCoeficient = ((float)m_moveCount / (float)maxCount) / 2.f;
+    countCoeficient = std::min(countCoeficient, maxCountCoeficient);
+
+    float coeficient = 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
+    coeficient += countCoeficient;
+    return std::min(coeficient, 1.f);
 }

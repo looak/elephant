@@ -372,7 +372,9 @@ MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype)
     if (bb.empty())
         return;
     const size_t setIndx = static_cast<size_t>(set);
-    m_pinThreats[setIndx] = bb.calcKingMask<set>();
+    //m_pinThreats[setIndx] = bb.calcKingMask<set>();
+    m_pinThreats[0] = bb.calcKingMask<Set::WHITE>();
+    m_pinThreats[1] = bb.calcKingMask<Set::BLACK>();
 
     if (ptype == PieceType::NONE) {
         target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set, captures>(m_pinThreats[setIndx]);

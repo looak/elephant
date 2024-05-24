@@ -65,6 +65,9 @@ public:
 
     bool isChecked() const;
 
+    template<Set us>
+    const KingPinThreats& readKingPinThreats() const;
+
 private:
     void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
 
@@ -139,6 +142,13 @@ MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
         default:
             FATAL_ASSERT(false) << "Invalid piece id";
     }
+}
+
+
+template<Set us>
+const KingPinThreats& MoveGenerator::readKingPinThreats() const
+{
+    return m_pinThreats[static_cast<u8>(us)];
 }
 
 #endif  // MOVE_GENERATOR_HEADER

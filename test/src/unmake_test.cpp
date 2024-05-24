@@ -749,7 +749,7 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     const auto& material = m_chessboard.readPosition().readMaterial();
 
     u64 hash = m_chessboard.readHash();
-    EXPECT_EQ(1, material.blackKings().count());
+    EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(1, material.blackRooks().count());
     EXPECT_EQ(1, material.whiteBishops().count());
 
@@ -759,7 +759,7 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     EXPECT_TRUE(m_chessboard.readCastlingState().hasNone());
     EXPECT_EQ(WHITEBISHOP, m_chessboard.readPieceAt(Square::A8));
     EXPECT_NE(hash, m_chessboard.readHash());
-    EXPECT_EQ(1, material.blackKings().count());
+    EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(0, material.blackRooks().count());
     EXPECT_EQ(1, material.whiteBishops().count());
 
@@ -769,7 +769,7 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     EXPECT_EQ(BLACKKING, m_chessboard.readPieceAt(Square::E8));
     EXPECT_EQ(BLACKROOK, m_chessboard.readPieceAt(Square::A8));
     EXPECT_EQ(hash, m_chessboard.readHash());
-    EXPECT_EQ(1, material.blackKings().count());
+    EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(1, material.blackRooks().count());
     EXPECT_EQ(1, material.whiteBishops().count());
 }

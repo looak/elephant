@@ -14,29 +14,47 @@ i32 operator*(const TaperedScore& lhs, const float& rhs)
 namespace evaluator_data
 {
 
+i32 flip(const i32 index) {
+    return index ^ 56;
+}
+
 #define TS(x,y) TaperedScore{x,y}
 
 /* piece/sq tables */
-const i32 pawnPositionTable[64] = {
-     0,   0,   0,   0,   0,   0,   0,   0,
-    15,  10,   5,  10,  10,   5,  10,  15,
-    -5,   0,  10,  10,  10,  10,   0,  -5,
-     0,   0,  10,  20,  20,  10,   0,   0,
-     0,   0,   5,  10,  10,   5,   0,   0,
-    10,  10,  10,  20,  20,  10,  10,  10,
-    20,	 20,  20,  30,  30,  20,  20,  20,
-     0,   0,   5,  10,  10,   5,   0,   0
+constexpr i32 pawnPositionTable_mg[64] = {
+    //   A    B    C    D    E    F    G    H
+         0,   0,   0,   0,   0,   0,   0,   0,   // 1
+        15,  10,   5,  10,  10,   5,  10,  15,   // 2
+        -5,   0,  10,  10,  10,  10,   0,  -5,   // 3
+         0,   0,  10,  20,  20,  10,   0,   0,   // 4
+         0,   0,   5,  10,  10,   5,   0,   0,   // 5
+        10,  10,  10,  20,  20,  10,  10,  10,   // 6
+        20,	 20,  20,  30,  30,  20,  20,  20,   // 7
+         0,   0,   5,  10,  10,   5,   0,   0    // 8
+};
+
+/* piece/sq tables */
+constexpr i32 pawnPositionTable_eg[64] = {
+    //   A    B    C    D    E    F    G    H
+         0,   0,   0,   0,   0,   0,   0,   0,   // 1
+         0,   0,  -5, -10, -10,  -5,   0,   0,   // 2
+        -5,   0,  10,  10,  10,  10,   0,  -5,   // 3
+         0,   0,  10,  20,  20,  10,   0,   0,   // 4
+        10,  10,  15,  20,  20,  15,  10,  10,   // 5
+        80,  80,  80,  80,  80,  80,  80,  80,   // 6
+       160, 180, 180, 200, 200, 180, 180, 160,   // 7
+         0,   0,   0,   0,   0,   0,   0,   0    // 8
 };
 
 constexpr TaperedScore pawnPositionTaperedScoreTable[64] = {
-    TS(0, 0),  TS(0, 0),  TS(0, 0),  TS(0, 0),   TS(0, 0),   TS(0, 0),   TS(0, 0),   TS(0, 0),
-    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0),
-    TS(0, 0),  TS(0, 0),  TS(10, 0), TS(10, 0),  TS(10, 0),  TS(10, 0),  TS(0, 0),   TS(0, 0),
-    TS(0, 0),  TS(0, 0),  TS(10, 0), TS(20, 0),  TS(20, 0),  TS(10, 0),  TS(0, 0),   TS(0, 0),
-    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0),
-    TS(10, 0), TS(10, 0), TS(10, 0), TS(20, 0),  TS(20, 0),  TS(10, 0),  TS(10, 0),  TS(10, 0),
-    TS(20, 0), TS(20, 0), TS(20, 0), TS(30, 0),  TS(30, 0),  TS(20, 0),  TS(20, 0),  TS(20, 0),
-    TS(0, 0),  TS(0, 0),  TS(5, 0),  TS(10, 0),  TS(10, 0),  TS(5, 0),   TS(0, 0),   TS(0, 0)
+    TS(pawnPositionTable_mg[0], pawnPositionTable_eg[0]),  TS(pawnPositionTable_mg[1], pawnPositionTable_eg[1]),   TS(pawnPositionTable_mg[2], pawnPositionTable_eg[2]),   TS(pawnPositionTable_mg[3], pawnPositionTable_eg[3]),   TS(pawnPositionTable_mg[4], pawnPositionTable_eg[4]),   TS(pawnPositionTable_mg[5], pawnPositionTable_eg[5]),   TS(pawnPositionTable_mg[6], pawnPositionTable_eg[6]),   TS(pawnPositionTable_mg[7], pawnPositionTable_eg[7]),
+    TS(pawnPositionTable_mg[8], pawnPositionTable_eg[8]),  TS(pawnPositionTable_mg[9], pawnPositionTable_eg[9]),   TS(pawnPositionTable_mg[10], pawnPositionTable_eg[10]), TS(pawnPositionTable_mg[11], pawnPositionTable_eg[11]), TS(pawnPositionTable_mg[12], pawnPositionTable_eg[12]), TS(pawnPositionTable_mg[13], pawnPositionTable_eg[13]), TS(pawnPositionTable_mg[14], pawnPositionTable_eg[14]), TS(pawnPositionTable_mg[15], pawnPositionTable_eg[15]),
+    TS(pawnPositionTable_mg[16], pawnPositionTable_eg[16]), TS(pawnPositionTable_mg[17], pawnPositionTable_eg[17]),  TS(pawnPositionTable_mg[18], pawnPositionTable_eg[18]), TS(pawnPositionTable_mg[19], pawnPositionTable_eg[19]), TS(pawnPositionTable_mg[20], pawnPositionTable_eg[20]), TS(pawnPositionTable_mg[21], pawnPositionTable_eg[21]), TS(pawnPositionTable_mg[22], pawnPositionTable_eg[22]), TS(pawnPositionTable_mg[23], pawnPositionTable_eg[23]),
+    TS(pawnPositionTable_mg[24], pawnPositionTable_eg[24]), TS(pawnPositionTable_mg[25], pawnPositionTable_eg[25]),  TS(pawnPositionTable_mg[26], pawnPositionTable_eg[26]), TS(pawnPositionTable_mg[27], pawnPositionTable_eg[27]), TS(pawnPositionTable_mg[28], pawnPositionTable_eg[28]), TS(pawnPositionTable_mg[29], pawnPositionTable_eg[29]), TS(pawnPositionTable_mg[30], pawnPositionTable_eg[30]), TS(pawnPositionTable_mg[31], pawnPositionTable_eg[31]),
+    TS(pawnPositionTable_mg[32], pawnPositionTable_eg[32]), TS(pawnPositionTable_mg[33], pawnPositionTable_eg[33]),  TS(pawnPositionTable_mg[34], pawnPositionTable_eg[34]), TS(pawnPositionTable_mg[35], pawnPositionTable_eg[35]), TS(pawnPositionTable_mg[36], pawnPositionTable_eg[36]), TS(pawnPositionTable_mg[37], pawnPositionTable_eg[37]), TS(pawnPositionTable_mg[38], pawnPositionTable_eg[38]), TS(pawnPositionTable_mg[39], pawnPositionTable_eg[39]),
+    TS(pawnPositionTable_mg[40], pawnPositionTable_eg[40]), TS(pawnPositionTable_mg[41], pawnPositionTable_eg[41]),  TS(pawnPositionTable_mg[42], pawnPositionTable_eg[42]), TS(pawnPositionTable_mg[43], pawnPositionTable_eg[43]), TS(pawnPositionTable_mg[44], pawnPositionTable_eg[44]), TS(pawnPositionTable_mg[45], pawnPositionTable_eg[45]), TS(pawnPositionTable_mg[46], pawnPositionTable_eg[46]), TS(pawnPositionTable_mg[47], pawnPositionTable_eg[47]),
+    TS(pawnPositionTable_mg[48], pawnPositionTable_eg[48]), TS(pawnPositionTable_mg[49], pawnPositionTable_eg[49]),  TS(pawnPositionTable_mg[50], pawnPositionTable_eg[50]), TS(pawnPositionTable_mg[51], pawnPositionTable_eg[51]), TS(pawnPositionTable_mg[52], pawnPositionTable_eg[52]), TS(pawnPositionTable_mg[53], pawnPositionTable_eg[53]), TS(pawnPositionTable_mg[54], pawnPositionTable_eg[54]), TS(pawnPositionTable_mg[55], pawnPositionTable_eg[55]),
+    TS(pawnPositionTable_mg[56], pawnPositionTable_eg[56]), TS(pawnPositionTable_mg[57], pawnPositionTable_eg[57]),  TS(pawnPositionTable_mg[58], pawnPositionTable_eg[58]), TS(pawnPositionTable_mg[59], pawnPositionTable_eg[59]), TS(pawnPositionTable_mg[60], pawnPositionTable_eg[60]), TS(pawnPositionTable_mg[61], pawnPositionTable_eg[61]), TS(pawnPositionTable_mg[62], pawnPositionTable_eg[62]), TS(pawnPositionTable_mg[63], pawnPositionTable_eg[63])
 };
 
 constexpr i32 knightPositionTable[64] = {
@@ -104,9 +122,8 @@ constexpr i32 mirrored[64] = {
      0,   1,   2,   3,   4,   5,   6,   7
 };
 
-const i32* pestoTables[6] =
-{
-    pawnPositionTable,
+const i32* pestoTables[6] = {
+    pawnPositionTable_eg,
     knightPositionTable,
     bishopPositionTable,
     rookPositionTable,

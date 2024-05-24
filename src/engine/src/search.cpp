@@ -106,8 +106,9 @@ void Search::ReportSearchResult(SearchResult& searchResult, const std::vector<Pa
 
     // build the principal variation string.
     std::stringstream pvSS;
-    for (u32 i = 0; i < pv.size(); ++i)
+    for (u32 i = 0; i < pv.size(); ++i) {
         pvSS << " " << pv[i].toString();
+    }
 
     i32 checkmateDistance = c_checmkateConstant - abs((int)searchResult.score);
     if ((u32)checkmateDistance <= depth) {
@@ -241,7 +242,7 @@ i32 Search::QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 be
     if (move.isNull() || ply >= c_maxSearchDepth || (depth <= 0 && generator.isChecked() == false)) {
         Evaluator evaluator;
         i32 perspective = maximizingPlayer ? 1 : -1;
-        return evaluator.Evaluate(context.readChessboard()) * perspective;
+        return evaluator.Evaluate(context.readChessboard(), generator) * perspective;
     }
 
     i32 maxEval = -c_maxScore;

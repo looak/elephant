@@ -236,6 +236,8 @@ public:
         std::string ret;
         ret += Notation(sourceSqr()).toString();
         ret += Notation(targetSqr()).toString();
+        if (isPromotion())
+            ret += ChessPiece(Set::BLACK, static_cast<PieceType>(readPromoteToPieceType())).toString();
         return ret;
     }
 

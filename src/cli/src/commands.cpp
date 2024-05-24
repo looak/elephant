@@ -239,7 +239,9 @@ bool
 EvaluateCommand(std::list<std::string>&, GameContext& context)
 {
     Evaluator evaluator;
-    i32 value = evaluator.Evaluate(context.readChessboard());
+    MoveGenerator moveGen(context);
+    moveGen.generate();
+    i32 value = evaluator.Evaluate(context.readChessboard(), moveGen);
     std::cout << " Evaluation: " << value << std::endl;
     return true;
 }
@@ -334,7 +336,7 @@ AvailableMovesCommand(std::list<std::string>&, GameContext& context)
             std::cout << promoted.toString();
         }
         // auto bestmove = search.CalculateBestMove(context, params);
-        i32 evaluation = evaluator.Evaluate(context.readChessboard());
+        i32 evaluation = evaluator.Evaluate(context.readChessboard(), moveGen);
 
         i32 score = search.CalculateMove(context, maximizingPlayer, 3);
         std::cout << ": " << evaluation << " <" << score << ">\n";

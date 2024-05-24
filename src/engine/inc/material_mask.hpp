@@ -113,8 +113,8 @@ public:
     [[nodiscard]] constexpr Bitboard knights() const { return m_material[knightId]; };
     [[nodiscard]] constexpr Bitboard pawns() const { return m_material[pawnId]; };
 
-    [[nodiscard]] constexpr Bitboard whiteKings() const { return kings<Set::WHITE>(); }
-    [[nodiscard]] constexpr Bitboard blackKings() const { return kings<Set::BLACK>(); }
+    [[nodiscard]] constexpr Bitboard whiteKing() const { return kings<Set::WHITE>(); }
+    [[nodiscard]] constexpr Bitboard blackKing() const { return kings<Set::BLACK>(); }
     [[nodiscard]] constexpr Bitboard whiteQueens() const { return queens<Set::WHITE>(); }
     [[nodiscard]] constexpr Bitboard blackQueens() const { return queens<Set::BLACK>(); }
     [[nodiscard]] constexpr Bitboard whiteRooks() const { return rooks<Set::WHITE>(); }
@@ -125,6 +125,9 @@ public:
     [[nodiscard]] constexpr Bitboard blackKnights() const { return knights<Set::BLACK>(); }
     [[nodiscard]] constexpr Bitboard whitePawns() const { return pawns<Set::WHITE>(); }
     [[nodiscard]] constexpr Bitboard blackPawns() const { return pawns<Set::BLACK>(); }
+
+    [[nodiscard]] constexpr Bitboard white() const { return m_set[0]; }
+    [[nodiscard]] constexpr Bitboard black() const { return m_set[1]; }
 };
 
 template<Set us>

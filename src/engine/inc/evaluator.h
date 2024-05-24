@@ -4,19 +4,21 @@
 #include <unordered_map>
 
 class Chessboard;
+class MoveGenerator;
 struct Move;
 
 class Evaluator
 {
 public:
     Evaluator();
-    i32 Evaluate(const Chessboard& board);
+    i32 Evaluate(const Chessboard& board, const MoveGenerator& movegen);
 
 private:
     i32 EvaluateMaterial(const Chessboard& board) const;
     i32 EvaluateMove(Move move) const;
     i32 EvalutePiecePositions(const Chessboard& board) const;
     i32 EvaluatePawnStructure(const Chessboard& board);
+    i32 EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const;
 
     template<typename Comparator>
     bool EvaluatePassedPawn(const Chessboard& board, u32 potentialPassedPawn, u64 opponentsPawns) const;
