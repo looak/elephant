@@ -25,7 +25,7 @@ void TranspositionTable::clear()
 #endif
 }
 
-bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, i32& score) const
+bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, PackedMove& move, i32& score) const
 {
 #ifdef DEBUG_SEARCHING
     ++m_reads;
@@ -43,16 +43,19 @@ bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, i32
         if (entry.exact())
         {
             score = entry.score;
+            move = entry.move;
             return true;
         }
         if (entry.alpha() && entry.score <= alpha)
         {
             score = alpha;
+            move = entry.move;
             return true;
         }
         if(entry.beta() && entry.score >= beta)
         {
             score = beta;
+            move = entry.move;
             return true;
         }
     }
@@ -60,7 +63,7 @@ bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, i32
     return false;
 }
 
-void TranspositionTable::store(u64 boardHash, Move mv, u8 depth, i32 score, TranspositionFlag flag)
+void TranspositionTable::store(u64 boardHash, PackedMove mv, u8 depth, i32 score, TranspositionFlag flag)
 {
     const auto& itr = m_table.find(boardHash);
     if (itr == m_table.end())
@@ -69,12 +72,12 @@ void TranspositionTable::store(u64 boardHash, Move mv, u8 depth, i32 score, Tran
     ++m_writes;
 #endif
         TranspositionEntry entry;
-        entry.move = mv.readPackedMove();
+        entry.move = mv;
         entry.flag = flag;
         entry.depth = depth;
         entry.score = (i16)score;
 
-        m_table.emplace(boardHash, entry);        
+        m_table.emplace(boardHash, entry);
     }
     else
     {
@@ -85,7 +88,7 @@ void TranspositionTable::store(u64 boardHash, Move mv, u8 depth, i32 score, Tran
         entry.score = (i16)score;
         entry.depth = depth;
         entry.flag = flag;
-        entry.move = mv.readPackedMove();
+        entry.move = mv;
     }
 }
 

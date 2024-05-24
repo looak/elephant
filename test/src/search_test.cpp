@@ -5,6 +5,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "search.hpp"
+#include "search_cases.hpp"
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
@@ -77,5 +78,35 @@ TEST_F(SearchFixture, WhiteForcedMate)
     EXPECT_TRUE(result.ForcedMate);
 }
 
+TEST_F(SearchFixture, ExpectedMoveSearchCases) {
+    for (const auto& searchCase : s_searchCases) {
+        GameContext context;
+        FENParser::deserialize(searchCase.fen.c_str(), context);
+
+        SearchParameters params;
+        params.SearchDepth = 5;
+        params.Infinite = true;
+
+        SearchResult result = context.CalculateBestMove(params);
+
+        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+    }
+}
+
+TEST_F(SearchFixture, ExpectedMoveMateInThree) {
+    for (const auto& searchCase : s_mateInThree) {
+        GameContext context;
+        FENParser::deserialize(searchCase.fen.c_str(), context);
+
+        SearchParameters params;
+        params.SearchDepth = 6; // depth in ply so 3 * 2.
+        params.Infinite = true;
+
+        SearchResult result = context.CalculateBestMove(params);
+
+        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+    }
+}
+// 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1
+
 }  // namespace ElephantTest
-   // 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1

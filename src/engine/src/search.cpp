@@ -194,6 +194,9 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
     MoveGenerator generator(context);
     auto move = generator.generateNextMove();
 
+    // for transposition table, cache old alpha.
+    i32 oldAlpha = alpha;
+
     // if there are no moves to make, we're either in checkmate or stalemate.
     if (move.isNull()) {
         if (generator.isChecked())
@@ -201,12 +204,18 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
         return { .score = 0, .move = PackedMove::NullMove() };  // we're in stalemate
     }
 
+    i32 maxEval = -c_maxScore;
+    PackedMove bestMove;
+
+    // probe transposition table.
+    if (m_transpositionTable.probe(context.readChessboard().readHash(), depth, alpha, beta, bestMove, maxEval)) {
+        return { .score = maxEval, .move = bestMove };
+    }
+
     // local principal variation. We need to cache this and only overwrite the global pv if we find a better move.
     // other wise we'll just cache the best move at each depth which isn't necessarily the same as the predicted best move path.
     std::vector<PackedMove> localPv(depth);
 
-    i32 maxEval = -c_maxScore;
-    PackedMove bestMove;
     do {
         context.MakeMove(move);
         auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount, localPv);
@@ -227,11 +236,18 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
 
         alpha = std::max(alpha, eval);
 
-        if (beta <= alpha)
+        if (beta <= alpha) {
+            m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, maxEval, TTF_CUT_BETA);
             break;
+        }
 
         move = generator.generateNextMove();
     } while (move.isNull() == false);
+
+    if (oldAlpha != alpha)
+        m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, maxEval, TTF_CUT_EXACT);
+    else
+        m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, alpha, TTF_CUT_ALPHA);
 
     return { .score = maxEval, .move = bestMove };
 }

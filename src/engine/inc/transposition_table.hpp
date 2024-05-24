@@ -46,8 +46,8 @@ public:
     TranspositionTable();
 
     void clear();
-    void store(u64 boardHash, Move mv, u8 depth, i32 score, TranspositionFlag flag);
-    bool probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, i32& score) const;
+    void store(u64 boardHash, PackedMove mv, u8 depth, i32 score, TranspositionFlag flag);
+    bool probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, PackedMove& move, i32& score) const;
 
 #ifdef DEBUG_SEARCHING
     void debugStatistics() const;
