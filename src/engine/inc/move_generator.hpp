@@ -23,35 +23,19 @@
 
 class GameContext;
 
-typedef std::priority_queue<PrioratizedMove, std::vector<PrioratizedMove>, PrioratizedMoveComparator> PriorityMoveQueue;
-
-namespace pieceFlags {
-constexpr u8 pawns = 1 << 1;
-constexpr u8 knights = 1 << 2;
-constexpr u8 bishops = 1 << 3;
-constexpr u8 rooks = 1 << 4;
-constexpr u8 queens = 1 << 5;
-constexpr u8 kings = 1 << 6;
-constexpr u8 all = pawns | knights | bishops | rooks | queens | kings;
-}  // namespace pieceFlags
-
-namespace MoveGeneratorFlags {
-constexpr u8 silent = 1 << 1;
-constexpr u8 capture = 1 << 2;
-constexpr u8 all = silent | capture;
-}  // namespace MoveGeneratorFlags
-
-// template<Set us, u8 pieceFlag = pieceFlags::all, u8 moveGenFlags = MoveGeneratorFlags::all>
-// class MoveGeneratorOther {
-// private:
-//     constexpr Set m_them = opposing_set<us>();
-// };
-
 enum class MoveTypes {
     ALL,
     CAPTURES_ONLY,
     QUIET_ONLY,
 };
+
+namespace move_generator_constants {
+// priority values for move generator
+// higher value means higher priority
+constexpr u16 capturePriority = 1000;
+constexpr u16 promotionPriority = 2000;
+constexpr u16 checkPriority = 500;
+} // namespace move_generator_constants
 
 class MoveGenerator {
 public:
@@ -108,7 +92,7 @@ private:
     bool m_movesGenerated;
     uint16_t m_moveCount;
     uint16_t m_currentMoveIndx;
-    std::array<PrioratizedMove, 256> m_movesBuffer;
+    std::array<PrioratizedMove, 256> m_movesBuffer;  // 1kb
 
     // pseudo legal move masks for each piece type
     MaterialMask m_moveMasks[2];

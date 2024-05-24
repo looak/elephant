@@ -109,8 +109,6 @@ struct PerftResult {
     }
 };
 
-// class MoveGenerator {};
-
 class Search {
 public:
     PerftResult Perft(GameContext& context, int depth);
@@ -138,4 +136,6 @@ private:
 
     EvaluationTable m_evaluationTable;
     TranspositionTable m_transpositionTable;
+
+    PackedMove m_killerMoves[3][64];
 };

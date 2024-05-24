@@ -323,7 +323,7 @@ struct ScoredMove {
 struct PrioratizedMoveComparator {
     constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const
     {
-        return lhs.priority < rhs.priority;
+        return lhs.priority > rhs.priority;
     }
 };
 
