@@ -259,26 +259,28 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position,
     }
 
     if (position.readMaterial().pawns<op>().empty() == false) {
-        Notation kingNotation(kingSquare);
-        // figure out if we're checked by a pawn
-        i8 pawnMod = pawn_modifier<us>();
-        auto pawnSqr = Notation(kingNotation.file + 1, kingNotation.rank + pawnMod);
-        if (Position::IsValidSquare(pawnSqr)) {
-            u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= position.readMaterial().pawns<op>().read();
-            if (sqrMak > 0) {
-                m_knightsAndPawns |= sqrMak;
-                m_knightOrPawnCheck = true;
-            }
-        }
-        pawnSqr = Notation(kingNotation.file - 1, kingNotation.rank + pawnMod);
-        if (Position::IsValidSquare(pawnSqr)) {
-            u64 sqrMak = squareMaskTable[pawnSqr.index()];
-            sqrMak &= position.readMaterial().pawns<op>().read();
-            if (sqrMak > 0) {
-                m_knightsAndPawns |= sqrMak;
-                m_knightOrPawnCheck = true;
-            }
+        Bitboard kingMask = position.readMaterial().kings<us>();
+        Bitboard pawnsMask = position.readMaterial().pawns<op>();
+        u8 usIndx = static_cast<u8>(us);
+        // special case for a file & h file, removing pawns from a & h file respectively
+        // so we don't shift them "off" the board and we shift them only in one direction.
+        // cache them and then we combine it with the main piecebb at the end.
+        Bitboard piecebb = kingMask;
+        Bitboard westFile = kingMask & board_constants::boundsRelativeMasks[usIndx][west];
+        piecebb &= ~westFile;
+        westFile = westFile.shiftNorthEastRelative<us>();
+
+        Bitboard eastFile = kingMask & board_constants::boundsRelativeMasks[usIndx][east];
+        piecebb &= ~eastFile;
+        eastFile = eastFile.shiftNorthWestRelative<us>();
+
+        Bitboard threatbb = westFile | eastFile;
+        threatbb |= piecebb.shiftNorthWestRelative<us>();
+        threatbb |= piecebb.shiftNorthEastRelative<us>();
+
+        if (threatbb & pawnsMask) {
+            m_knightsAndPawns |= threatbb & pawnsMask;
+            m_knightOrPawnCheck = true;
         }
     }
 

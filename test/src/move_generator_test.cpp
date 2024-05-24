@@ -1207,6 +1207,59 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
     EXPECT_EQ(10, result.size());
 }
 
+TEST_F(MoveGeneratorFixture, Pawn_NotCheckingKing)
+{
+    // setup
+    std::string fen = "r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34";
+    FENParser::deserialize(fen.c_str(), testContext);
+
+    // do
+    MoveGenerator gen(testContext);
+    gen.generate();
+
+    // verify
+    EXPECT_FALSE(gen.isChecked());
+    EXPECT_FALSE(gen.readKingPinThreats<Set::WHITE>().isChecked());
+}
+
+TEST_F(MoveGeneratorFixture, Pawn_White_CheckingKing)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.setToPlay(Set::BLACK);
+    board.PlacePiece(BLACKKING, g6);
+    board.PlacePiece(WHITEPAWN, h5);
+    board.PlacePiece(WHITEKING, h4);
+
+    // do
+    MoveGenerator gen(testContext);
+    gen.generate();
+
+    // verify
+    EXPECT_TRUE(gen.isChecked());
+    EXPECT_TRUE(gen.readKingPinThreats<Set::BLACK>().isChecked());
+    EXPECT_FALSE(gen.readKingPinThreats<Set::WHITE>().isChecked());
+}
+
+TEST_F(MoveGeneratorFixture, Pawn_Black_CheckingKing)
+{
+    // setup
+    auto& board = testContext.editChessboard();
+    board.setToPlay(Set::WHITE);
+    board.PlacePiece(BLACKKING, g6);
+    board.PlacePiece(BLACKPAWN, g5);
+    board.PlacePiece(WHITEKING, h4);
+
+    // do
+    MoveGenerator gen(testContext);
+    gen.generate();
+
+    // verify
+    EXPECT_TRUE(gen.isChecked());
+    EXPECT_TRUE(gen.readKingPinThreats<Set::WHITE>().isChecked());
+    EXPECT_FALSE(gen.readKingPinThreats<Set::BLACK>().isChecked());
+}
+
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 7 [   ][   ][   ][ B ][   ][   ][   ][   ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]

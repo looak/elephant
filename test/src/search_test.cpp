@@ -78,6 +78,20 @@ TEST_F(SearchFixture, WhiteForcedMate)
     EXPECT_TRUE(result.ForcedMate);
 }
 
+TEST_F(SearchFixture, MateAgainstSelf)
+{
+    std::string fen("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34");
+    GameContext context;
+    FENParser::deserialize(fen.c_str(), context);
+
+    SearchParameters params;
+    params.SearchDepth = 3;
+    params.Infinite = true;
+
+    SearchResult result = context.CalculateBestMove(params);
+    EXPECT_NE(result.move, PackedMove::NullMove());
+}
+
 TEST_F(SearchFixture, ExpectedMoveSearchCases) {
     for (const auto& searchCase : s_searchCases) {
         GameContext context;
