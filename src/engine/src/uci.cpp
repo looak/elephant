@@ -94,15 +94,16 @@ UCI::Position(std::list<std::string>& args)
                 LOG_ERROR() << "Invalid move: " << moveStr;
                 return false;
             }
-            else if (move.Piece.getType() == PieceType::PAWN && board.readPosition().readEnPassant())
+
+            move.setCapture(m_context.readChessboard().readPieceAt(move.TargetSquare.toSquare()).isValid());
+
+            if (move.Piece.getType() == PieceType::PAWN && board.readPosition().readEnPassant())
             {
                 bool enPassant = board.readPosition().readEnPassant().readSquare() == move.TargetSquare.toSquare();
-                move.setEnPassant(enPassant);
-                move.setCapture(enPassant);
-            }
-            else
-            {
-                move.setCapture(m_context.readChessboard().readPieceAt(move.TargetSquare.toSquare()).isValid());
+                if (enPassant) {
+                    move.setEnPassant(enPassant);
+                    move.setCapture(enPassant);
+                }
             }
 
             if (!m_context.MakeMove(move.readPackedMove())) {

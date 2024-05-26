@@ -33,14 +33,12 @@ struct MoveHistory {
 
 class GameContext {
 public:
-    GameContext() :
-        m_toPlay(Set::WHITE)
+    GameContext()
     {
     }
 
     GameContext(const GameContext& rhs) :
-        m_board(rhs.m_board),
-        m_toPlay(rhs.m_toPlay)
+        m_board(rhs.m_board)
     {
     }
 
@@ -76,7 +74,6 @@ public:
 
 private:
     Chessboard m_board;
-    Set m_toPlay;
 
     std::stack<MoveUndoUnit> m_undoUnits;
     std::vector<MoveHistory> m_moveHistory;

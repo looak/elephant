@@ -40,7 +40,6 @@ GameContext::NewGame()
 {
     Reset();
     FENParser::deserialize(c_startPositionFen.c_str(), *this);
-    m_toPlay = Set::WHITE;
 }
 
 bool
@@ -65,13 +64,8 @@ GameContext::GameOver() const
 bool
 GameContext::MakeMove(const PackedMove move)
 {
-    // if (m_toPlay == Set::WHITE) {
-    //     m_board.MakeMove<true>(move);
-    // }
     auto undoUnit = m_board.MakeMove<false>(move);
     m_undoUnits.push(undoUnit);
-
-    m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
 }
 
@@ -80,7 +74,7 @@ GameContext::TryMakeMove(Move move)
 {
     PackedMove found = PackedMove::NullMove();
     if (move.isAmbiguous()) {
-        MoveGenerator generator(m_board.readPosition(), m_toPlay, move.Piece.getType());
+        MoveGenerator generator(m_board.readPosition(), m_board.readToPlay(), move.Piece.getType());
         generator.generate();
 
         generator.forEachMove([&](const PrioratizedMove& pm) {
@@ -114,7 +108,6 @@ GameContext::UnmakeMove()
     m_undoUnits.pop();
     m_board.UnmakeMove(undoUnit);
 
-    m_toPlay = ChessPiece::FlipSet(m_toPlay);
     return true;
 }
 

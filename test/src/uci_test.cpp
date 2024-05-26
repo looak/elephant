@@ -153,6 +153,45 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
+// when converting the acn to a packed move we didn't identify the pawn capture as a capture for some reason.
+TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_PawnCaptureHandledCorrectly)
+{
+    // setup
+    m_uci.Enable();
+    std::string gocFen = "2r5/p1p1nk1p/q4pp1/1p1pp3/1P4P1/2P5/3PPP1P/2Q1K1NR w K - 0 32";
+    GameContext expected;
+    FENParser::deserialize(gocFen.c_str(), expected);
+
+    // do
+    std::string commandLine = "position fen " + gocFen + " moves d2d4 e5d4";
+    std::list<std::string> args;
+    extractArgsFromCommand(commandLine, args);
+    args.pop_front();  // pop position
+    bool result = m_uci.Position(args);
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_EQ(Set::WHITE, m_uci.readGameContext().readToPlay());
+    // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
+
+    const auto& board = m_uci.readGameContext().readChessboard();
+    EXPECT_EQ(BLACKPAWN, board.readPieceAt(Square::D4));
+    EXPECT_EQ(WHITEPAWN, board.readPieceAt(Square::C3));
+
+    CastlingStateInfo expectedCastlingState;
+    expectedCastlingState.setWhiteKingSide();
+    expectedCastlingState.unsetWhiteQueenSide();
+    expectedCastlingState.unsetBlack();
+    EXPECT_EQ(expectedCastlingState, board.readCastlingState());
+
+    EXPECT_FALSE(board.readPosition().readEnPassant());
+
+    gocFen = "2r5/p1p1nk1p/q4pp1/1p1p4/1P1p2P1/2P5/4PP1P/2Q1K1NR w K - 0 33";
+    std::string outputFen;
+    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
+}
+
 TEST_F(UciFixture, DISABLED_position_fen_perft)
 {
     // setup

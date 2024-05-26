@@ -154,21 +154,23 @@ Chessboard::MakeMove(const PackedMove move)
         m_position.editEnPassant().clear();
     }
 
+    // since capture will reset this to 0, we need to increment it here.
+    m_plyCount++;
+
     if (move.isCapture())
         InternalHandleCapture(move, captureTarget, undoState);
 
-    // do move
+    // should happen after capture since enpassant logic relies on that order.
     InternalMakeMove(piece, move.sourceSqr(), move.targetSqr(), materialEditor);
-
-    m_plyCount++;
-    m_isWhiteTurn = !m_isWhiteTurn;
 
     // unless something goes wrong, updating the black to move hash should remove it when it's time for white to move,
     // or add it when it's time for black to move.
     m_hash = ZorbistHash::Instance().HashBlackToMove(m_hash);
 
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
+    m_isWhiteTurn = !m_isWhiteTurn;
     m_moveCount += (short)m_isWhiteTurn;
+
     return undoState;
 }
 
@@ -230,6 +232,7 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
     m_hash = undoState.hash;  // this should be calculated and not just overwritten?
     m_moveCount -= (short)m_isWhiteTurn;
     m_isWhiteTurn = !m_isWhiteTurn;
+
     return true;
 }
 
