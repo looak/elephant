@@ -100,7 +100,7 @@ constexpr i32 queenPositionTable[64] = {
    -10,   0,   5,  0,  0,  0,  0, -10
 };
 
-constexpr i32 kingPositionTable[64] = {
+constexpr i32 kingPositionTable_mg[64] = {
      20,  30,  10,   0,   0,  10,  30,  20,
      20,  20,   0,   0,   0,   0,  20,  20,
     -10, -20, -20, -20, -20, -20, -20, -10,
@@ -109,6 +109,28 @@ constexpr i32 kingPositionTable[64] = {
     -30, -40, -40, -50, -50, -40, -40, -30,
     -20, -30, -30, -40, -40, -30, -30, -20,
     -10, -20, -20, -20, -20, -20, -20, -10
+};
+
+constexpr i32 kingPositionTable_eg[64] = {
+    -30, -20, -10, -10, -10, -10, -20, -30,
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
+    -10,  -5,   5,  10,  10,   5,  -5, -10,
+    -10,  -5,   5,  10,  10,   5,  -5, -10,
+    -10,  -5,  -5,  -5,  -5,  -5,  -5, -10,
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -30, -20, -10, -10, -10, -10, -20, -30,
+};
+
+constexpr TaperedScore kingPositionTaperedScoreTable[64] = {
+    TS(kingPositionTable_mg[0], kingPositionTable_eg[0]),  TS(kingPositionTable_mg[1], kingPositionTable_eg[1]),   TS(kingPositionTable_mg[2], kingPositionTable_eg[2]),   TS(kingPositionTable_mg[3], kingPositionTable_eg[3]),   TS(kingPositionTable_mg[4], kingPositionTable_eg[4]),   TS(kingPositionTable_mg[5], kingPositionTable_eg[5]),   TS(kingPositionTable_mg[6], kingPositionTable_eg[6]),   TS(kingPositionTable_mg[7], kingPositionTable_eg[7]),
+    TS(kingPositionTable_mg[8], kingPositionTable_eg[8]),  TS(kingPositionTable_mg[9], kingPositionTable_eg[9]),   TS(kingPositionTable_mg[10], kingPositionTable_eg[10]), TS(kingPositionTable_mg[11], kingPositionTable_eg[11]), TS(kingPositionTable_mg[12], kingPositionTable_eg[12]), TS(kingPositionTable_mg[13], kingPositionTable_eg[13]), TS(kingPositionTable_mg[14], kingPositionTable_eg[14]), TS(kingPositionTable_mg[15], kingPositionTable_eg[15]),
+    TS(kingPositionTable_mg[16], kingPositionTable_eg[16]), TS(kingPositionTable_mg[17], kingPositionTable_eg[17]),  TS(kingPositionTable_mg[18], kingPositionTable_eg[18]), TS(kingPositionTable_mg[19], kingPositionTable_eg[19]), TS(kingPositionTable_mg[20], kingPositionTable_eg[20]), TS(kingPositionTable_mg[21], kingPositionTable_eg[21]), TS(kingPositionTable_mg[22], kingPositionTable_eg[22]), TS(kingPositionTable_mg[23], kingPositionTable_eg[23]),
+    TS(kingPositionTable_mg[24], kingPositionTable_eg[24]), TS(kingPositionTable_mg[25], kingPositionTable_eg[25]),  TS(kingPositionTable_mg[26], kingPositionTable_eg[26]), TS(kingPositionTable_mg[27], kingPositionTable_eg[27]), TS(kingPositionTable_mg[28], kingPositionTable_eg[28]), TS(kingPositionTable_mg[29], kingPositionTable_eg[29]), TS(kingPositionTable_mg[30], kingPositionTable_eg[30]), TS(kingPositionTable_mg[31], kingPositionTable_eg[31]),
+    TS(kingPositionTable_mg[32], kingPositionTable_eg[32]), TS(kingPositionTable_mg[33], kingPositionTable_eg[33]),  TS(kingPositionTable_mg[34], kingPositionTable_eg[34]), TS(kingPositionTable_mg[35], kingPositionTable_eg[35]), TS(kingPositionTable_mg[36], kingPositionTable_eg[36]), TS(kingPositionTable_mg[37], kingPositionTable_eg[37]), TS(kingPositionTable_mg[38], kingPositionTable_eg[38]), TS(kingPositionTable_mg[39], kingPositionTable_eg[39]),
+    TS(kingPositionTable_mg[40], kingPositionTable_eg[40]), TS(kingPositionTable_mg[41], kingPositionTable_eg[41]),  TS(kingPositionTable_mg[42], kingPositionTable_eg[42]), TS(kingPositionTable_mg[43], kingPositionTable_eg[43]), TS(kingPositionTable_mg[44], kingPositionTable_eg[44]), TS(kingPositionTable_mg[45], kingPositionTable_eg[45]), TS(kingPositionTable_mg[46], kingPositionTable_eg[46]), TS(kingPositionTable_mg[47], kingPositionTable_eg[47]),
+    TS(kingPositionTable_mg[48], kingPositionTable_eg[48]), TS(kingPositionTable_mg[49], kingPositionTable_eg[49]),  TS(kingPositionTable_mg[50], kingPositionTable_eg[50]), TS(kingPositionTable_mg[51], kingPositionTable_eg[51]), TS(kingPositionTable_mg[52], kingPositionTable_eg[52]), TS(kingPositionTable_mg[53], kingPositionTable_eg[53]), TS(kingPositionTable_mg[54], kingPositionTable_eg[54]), TS(kingPositionTable_mg[55], kingPositionTable_eg[55]),
+    TS(kingPositionTable_mg[56], kingPositionTable_eg[56]), TS(kingPositionTable_mg[57], kingPositionTable_eg[57]),  TS(kingPositionTable_mg[58], kingPositionTable_eg[58]), TS(kingPositionTable_mg[59], kingPositionTable_eg[59]), TS(kingPositionTable_mg[60], kingPositionTable_eg[60]), TS(kingPositionTable_mg[61], kingPositionTable_eg[61]), TS(kingPositionTable_mg[62], kingPositionTable_eg[62]), TS(kingPositionTable_mg[63], kingPositionTable_eg[63])
 };
 
 constexpr i32 mirrored[64] = {
@@ -128,7 +150,7 @@ const i32* pestoTables[6] = {
     bishopPositionTable,
     rookPositionTable,
     queenPositionTable,
-    kingPositionTable
+    kingPositionTable_eg
 };
 
 /**

@@ -20,8 +20,8 @@ private:
     i32 EvaluatePawnStructure(const Chessboard& board);
     i32 EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const;
 
-    template<typename Comparator>
-    bool EvaluatePassedPawn(const Chessboard& board, u32 potentialPassedPawn, u64 opponentsPawns) const;
+    // template<Set us>
+    // i32 EvaluatePassedPawn(const Chessboard& board);
 
     struct PawnStructureHashEntry
     {

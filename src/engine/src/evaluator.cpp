@@ -118,7 +118,7 @@ Evaluator::EvalutePiecePositions(const Chessboard& board) const
         score -= evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
-    for (u32 pieceIndx = 1; pieceIndx < pieceIndexMax; ++pieceIndx) {
+    for (u32 pieceIndx = 1; pieceIndx < kingId; ++pieceIndx) {
         Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
 
         while (whitePieces.empty() == false) {
@@ -134,31 +134,20 @@ Evaluator::EvalutePiecePositions(const Chessboard& board) const
         }
     }
 
-    return score;
-}
-
-template<typename Comparator>
-bool Evaluator::EvaluatePassedPawn(const Chessboard&, u32 pawnSqr, u64 opponentsPawns) const {
-    // this code is wrong, in blacks case we want to use the first lsb, but in whites case we want
-    // to remove all lsbs until there's only one bit left, and that is the pawn we're interested in.
-    bool passed = true;
-    pawnSqr = pawnSqr / 8;
-
-    u64 opponentCopy = opponentsPawns;
-    while (opponentCopy != 0) {
-        i32 oppSqr = intrinsics::lsbIndex(opponentCopy);
-        opponentCopy = opponentCopy & (opponentCopy - 1);
-
-        oppSqr = oppSqr / 8;
-
-        Comparator comp{};
-        if (comp(pawnSqr, oppSqr)) {
-            passed = false;
-            break;
-        }
+    Bitboard whiteKing = material.read(Set::WHITE, kingId);
+    while (whiteKing.empty() == false) {
+        i32 sqr = whiteKing.popLsb();
+        score += evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
-    return passed;
+    Bitboard blackKing = material.read(Set::BLACK, kingId);
+    while (blackKing.empty() == false) {
+        i32 sqr = blackKing.popLsb();
+        sqr = evaluator_data::flip(sqr);
+        score -= evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
+    }
+
+    return score;
 }
 
 i32
@@ -228,3 +217,28 @@ Evaluator::EvaluatePawnStructure(const Chessboard&)
 
     return result;
 }
+
+// template<Set set>
+// i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) {
+//     int perspective = 0;
+//     if constexpr (set == Set::WHITE) {
+//         perspective = 1;
+//     }
+//     else {
+//         perspective = -1;
+//     }
+
+//     Bitboard pawns = board.readPosition().readMaterial().pawns<us>();
+
+//     while (pawns.empty() == false) {
+//         i32 pawnSqr = pawns.popLsb();
+//         Bitboard pawnMask = squareMaskTable[pawnSqr];
+
+//         pawnMask = pawnMask.shiftNorthRelative<set>();
+//     }
+
+
+// }
+
+// template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&);
+// template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&);

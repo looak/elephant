@@ -114,8 +114,6 @@ public:
     PerftResult Perft(GameContext& context, int depth);
     PerftResult PerftDivide(GameContext& context, int depth);
 
-    std::map<PieceKey, std::vector<Move>> OrganizeMoves(const std::vector<Move>& moves) const;
-
     /*
     *
     */
@@ -123,19 +121,19 @@ public:
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
 
 private:
-    void ReportSearchResult(SearchResult& searchResult, const std::vector<PackedMove>& pv, u32 depth, u64 nodes, const Clock& clock) const;
+    void ReportSearchResult(GameContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const;
 
-    typedef std::pair<SearchResult, std::vector<PackedMove>> ResultPair;
-    ResultPair      CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount);
-    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount, std::vector<PackedMove>& pv);
+
+    SearchResult    CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount);
+    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
     i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
 
-    void OrderMoves(SearchContext& searchContext, std::vector<Move>& moves, u32 depth, u32 ply) const;
+    void pushKillerMove(PackedMove mv, u32 ply);
 
     EvaluationTable m_evaluationTable;
     TranspositionTable m_transpositionTable;
 
-    PackedMove m_killerMoves[3][64];
+    PackedMove m_killerMoves[4][32];
 };

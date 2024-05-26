@@ -3,6 +3,7 @@
 #include "chessboard.h"
 #include "clock.hpp"
 #include "evaluator.h"
+#include "fen_parser.h"
 #include "game_context.h"
 #include "move_generator.hpp"
 
@@ -85,29 +86,24 @@ Search::PerftDivide(GameContext& context, int depth)
     return result;
 }
 
-std::map<PieceKey, std::vector<Move>>
-Search::OrganizeMoves(const std::vector<Move>& moves) const
-{
-    std::map<PieceKey, std::vector<Move>> ret;
-
-    for (auto&& mv : moves) {
-        PieceKey key = {mv.Piece, Notation(mv.SourceSquare)};
-        if (!ret.contains(key))
-            ret.insert(std::make_pair(key, std::vector<Move>()));
-
-        ret.at(key).push_back(mv);
-    }
-
-    return ret;
-}
-
-void Search::ReportSearchResult(SearchResult& searchResult, const std::vector<PackedMove>& pv, u32 depth, u64 nodes, const Clock& clock) const {
+void Search::ReportSearchResult(GameContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const {
     i64 et = clock.getElapsedTime();
 
     // build the principal variation string.
+    u32 madeMoves = 0;
     std::stringstream pvSS;
-    for (u32 i = 0; i < pv.size(); ++i) {
-        pvSS << " " << pv[i].toString();
+    for (u32 i = 0; i < depth; ++i) {
+        u64 hash = context.readChessboard().readHash();
+        auto pvMove = m_transpositionTable.probe(hash);
+        if (pvMove.isNull())
+            break;
+        context.MakeMove(pvMove);
+        pvSS << " " << pvMove.toString();
+        madeMoves++;
+    }
+
+    for (u32 i = 0; i < madeMoves; ++i) {
+        context.UnmakeMove();
     }
 
     i32 checkmateDistance = c_checmkateConstant - abs((int)searchResult.score);
@@ -135,7 +131,7 @@ i32 Search::CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth
     u64 nodeCount = 0;
     std::vector<PackedMove> pv;
     pv.resize(depth);
-    auto eval = AlphaBetaNegamax(context, depth, alpha, beta, !maximizingPlayer, ply, nodeCount, pv);
+    auto eval = AlphaBetaNegamax(context, depth, alpha, beta, !maximizingPlayer, ply, nodeCount);
 
     return eval.score;
 }
@@ -148,10 +144,10 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
         clock.Start();
         u64 nodeCount = 0;
 
-        auto [itrResult, pv] = CalculateBestMoveIterration(context, itrDepth, nodeCount);
+        auto itrResult = CalculateBestMoveIterration(context, itrDepth, nodeCount);
 
         clock.Stop();
-        ReportSearchResult(itrResult, pv, itrDepth, nodeCount, clock);
+        ReportSearchResult(context, itrResult, itrDepth, nodeCount, clock);
         if (itrResult.ForcedMate)
             return itrResult;
 
@@ -169,20 +165,17 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
     return result;
 }
 
-Search::ResultPair Search::CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount) {
+SearchResult Search::CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount) {
     bool maximizingPlayer = context.readToPlay() == Set::WHITE;
 
     u32 ply = 1;
 
-    std::vector<PackedMove> pv;
-    pv.resize(depth);
+    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply, nodeCount);
 
-    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply, nodeCount, pv);
-
-    return { result, pv };
+    return result;
 }
 
-SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount, std::vector<PackedMove>& pv) {
+SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount) {
     if (depth == 0) {
         // at depth zero we start the quiet search to get a better evaluation.
         // this search will try to go as deep as possible until it finds a quiet position.
@@ -212,13 +205,9 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
         return { .score = maxEval, .move = bestMove };
     }
 
-    // local principal variation. We need to cache this and only overwrite the global pv if we find a better move.
-    // other wise we'll just cache the best move at each depth which isn't necessarily the same as the predicted best move path.
-    std::vector<PackedMove> localPv(depth);
-
     do {
         context.MakeMove(move);
-        auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount, localPv);
+        auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount);
         auto eval = -result.score;
         nodeCount++;
         context.UnmakeMove();
@@ -227,11 +216,6 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
         {
             maxEval = eval;
             bestMove = move;
-
-            // copy pv to search result pv.
-            pv[0] = bestMove;
-            for (u32 i = 1; i < depth; ++i)
-                pv[i] = localPv[i - 1];
         }
 
         alpha = std::max(alpha, eval);
@@ -306,31 +290,12 @@ bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 dept
 
     return false;
 }
-struct MoveCompare {
-    bool operator()(const Move& lhs, const Move& rhs) const
-    {
-        if (lhs.isCapture() == true && rhs.isCapture() == true) {
-            return lhs.Score > rhs.Score;
-        }
-        else if (lhs.isCapture() == true) {
-            return true;
-        }
 
-        return false;
-    }
-} s_moveComparer;
+void Search::pushKillerMove(PackedMove mv, u32 ply) {
+    PackedMove* movesAtPly = &m_killerMoves[0][ply];
 
-void
-Search::OrderMoves(SearchContext&, std::vector<Move>& moves, u32, u32) const
-{
-    // ply = ply - 1; // 0-indexed
-    //    const Move& pvMv = searchContext.pv[ply];
-    for (auto& mv : moves) {
-        // if (mv == pvMv)
-        //     mv.Score = c_pvScore;
-        // else
-        if (mv.isCapture())
-            mv.Score = mv.calcCaptureValue();
-    }
-    std::sort(moves.begin(), moves.end(), s_moveComparer);  // sort all captures to be upfront
+    movesAtPly[3] = movesAtPly[2];
+    movesAtPly[2] = movesAtPly[1];
+    movesAtPly[1] = movesAtPly[0];
+    movesAtPly[0] = mv;
 }

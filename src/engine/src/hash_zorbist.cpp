@@ -80,6 +80,9 @@ ZorbistHash::HashBoard(const Chessboard& board) const
         hash ^= enpassant[ep.file];
     }
 
+    if (board.readToPlay() == Set::BLACK)
+        hash ^= black_to_move;
+
     return hash;
 }
 
@@ -94,6 +97,12 @@ u64
 ZorbistHash::HashEnPassant(const u64& oldHash, Notation position) const
 {
     return oldHash ^ enpassant[position.file];
+}
+
+u64
+ZorbistHash::HashBlackToMove(const u64& oldHash) const
+{
+    return oldHash ^ black_to_move;
 }
 
 u64

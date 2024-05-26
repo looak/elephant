@@ -29,6 +29,7 @@ struct ZorbistHash
     u64 HashPiecePlacement(const u64& oldHash, ChessPiece piece, Notation position) const;
     u64 HashEnPassant(const u64& oldHash, Notation position) const;
     u64 HashCastling(const u64& oldHash, const u8 castlingState) const;
+    u64 HashBlackToMove(const u64& oldHash) const;
     
 private:
 

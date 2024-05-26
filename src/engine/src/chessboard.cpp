@@ -162,6 +162,11 @@ Chessboard::MakeMove(const PackedMove move)
 
     m_plyCount++;
     m_isWhiteTurn = !m_isWhiteTurn;
+
+    // unless something goes wrong, updating the black to move hash should remove it when it's time for white to move,
+    // or add it when it's time for black to move.
+    m_hash = ZorbistHash::Instance().HashBlackToMove(m_hash);
+
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
     m_moveCount += (short)m_isWhiteTurn;
     return undoState;
@@ -514,6 +519,13 @@ Chessboard::setCastlingState(u8 castlingState)
     m_hash = ZorbistHash::Instance().HashCastling(m_hash, castlingState);
     castlingStateRef.write(castlingState);
     return true;
+}
+
+void Chessboard::setToPlay(Set set)
+{
+    m_isWhiteTurn = set == Set::WHITE;
+    if (set == Set::BLACK)
+        m_hash = ZorbistHash::Instance().HashBlackToMove(m_hash);
 }
 
 const Notation s_beginPos = Notation::BuildPosition('a', 1);

@@ -175,7 +175,7 @@ public:
         m_moveCount = moveCount;
     }
     Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
-    void setToPlay(Set set) { m_isWhiteTurn = set == Set::WHITE; }
+    void setToPlay(Set set);
 
     std::string toString() const;
 

@@ -285,8 +285,6 @@ UCI::Go(std::list<std::string>& args)
 
     SearchResult result = m_context.CalculateBestMove(searchParams);
     m_stream << "bestmove " << result.move.toString();
-    if (result.move.isPromotion())
-        m_stream << ChessPiece(Set::BLACK, static_cast<PieceType>(result.move.readPromoteToPieceType())).toString();
     m_stream << "\n";
     return true;
 }

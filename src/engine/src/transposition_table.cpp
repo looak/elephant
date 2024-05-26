@@ -25,6 +25,19 @@ void TranspositionTable::clear()
 #endif
 }
 
+PackedMove TranspositionTable::probe(u64 boardHash) const
+{
+    const auto itr = m_table.find(boardHash);
+    if (itr == m_table.end())
+        return PackedMove();
+
+    if (itr->second.flag != TranspositionFlag::TTF_CUT_EXACT)
+        return PackedMove::NullMove();
+
+    return itr->second.move;
+}
+
+
 bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, PackedMove& move, i32& score) const
 {
 #ifdef DEBUG_SEARCHING

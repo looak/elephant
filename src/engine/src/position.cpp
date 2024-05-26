@@ -195,9 +195,7 @@ Position::Castling(byte set, byte castling, u64 threatenedMask) const
 }
 
 template<Set us, bool captures>
-Bitboard
-Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask) const
-{
+Bitboard Position::calcAvailableMovesPawnBulk(const KingPinThreats& kingMask) const {
     const size_t usIndx = static_cast<size_t>(us);
     const Bitboard usMat = m_materialMask.combine<us>();
     const Bitboard opMat = m_materialMask.combine<opposing_set<us>()>();
