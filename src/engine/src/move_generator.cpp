@@ -1,10 +1,15 @@
 #include "move_generator.hpp"
 #include "game_context.h"
 #include "move.h"
+#include "transposition_table.hpp"
+
+#include <algorithm>
 
 MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, MoveTypes mtype) :
     m_toMove(toMove),
     m_position(pos),
+    m_tt(nullptr),
+    m_hashKey(0),
     m_movesGenerated(false),
     m_moveCount(0),
     m_currentMoveIndx(0),
@@ -16,6 +21,21 @@ MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, M
 MoveGenerator::MoveGenerator(const GameContext& context) :
     m_toMove(context.readToPlay()),
     m_position(context.readChessboard().readPosition()),
+    m_tt(nullptr),
+    m_hashKey(0),
+    m_movesGenerated(false),
+    m_moveCount(0),
+    m_currentMoveIndx(0),
+    m_movesBuffer()
+{
+    initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
+}
+
+MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTable& tt) :
+    m_toMove(context.readToPlay()),
+    m_position(context.readChessboard().readPosition()),
+    m_tt(&tt),
+    m_hashKey(context.readChessboard().readHash()),
     m_movesGenerated(false),
     m_moveCount(0),
     m_currentMoveIndx(0),
@@ -75,8 +95,8 @@ MoveGenerator::generateNextMove()
             generateMoves<set, kingId>(m_pinThreats[setIndx]);
         }
 
-        PrioratizedMoveComparator comparator;
-        std::sort(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, comparator);
+        sortMoves();
+
     }
 
     m_movesGenerated = true;
@@ -106,9 +126,26 @@ void MoveGenerator::generateAllMoves() {
         generateMoves<set, queenId>(m_pinThreats[setIndx]);
         generateMoves<set, kingId>(m_pinThreats[setIndx]);
     }
+    sortMoves();
+    m_movesGenerated = true;
+}
+
+void MoveGenerator::sortMoves() {
+    if (m_tt != nullptr) {
+        PackedMove pv = m_tt->probe(m_hashKey);
+        if (pv != PackedMove::NullMove()) {
+            auto itrMv = std::find_if(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, [&](const PrioratizedMove& pm) {
+                return pm.move == pv;
+                });
+
+            if (itrMv != m_movesBuffer.end()) {
+                itrMv->priority += move_generator_constants::pvMovePriority;
+            }
+        }
+    }
+
     PrioratizedMoveComparator comparator;
     std::sort(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, comparator);
-    m_movesGenerated = true;
 }
 
 void MoveGenerator::forEachMove(std::function<void(const PrioratizedMove&)> callback) const {

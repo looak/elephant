@@ -13,7 +13,7 @@
 #include <thread>
 #include <utility>
 
-static constexpr u32 c_maxSearchDepth = 5;
+static constexpr u32 c_maxSearchDepth = 8;
 static constexpr i32 c_maxScore = 32000;
 static constexpr i32 c_checmkateConstant = 24000;
 //static constexpr i32 c_pvScore = 10000;
@@ -86,24 +86,24 @@ Search::PerftDivide(GameContext& context, int depth)
     return result;
 }
 
-void Search::ReportSearchResult(GameContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const {
+void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const {
     i64 et = clock.getElapsedTime();
 
     // build the principal variation string.
     u32 madeMoves = 0;
     std::stringstream pvSS;
     for (u32 i = 0; i < depth; ++i) {
-        u64 hash = context.readChessboard().readHash();
+        u64 hash = context.game.readChessboard().readHash();
         auto pvMove = m_transpositionTable.probe(hash);
         if (pvMove.isNull())
             break;
-        context.MakeMove(pvMove);
+        context.game.MakeMove(pvMove);
         pvSS << " " << pvMove.toString();
         madeMoves++;
     }
 
     for (u32 i = 0; i < madeMoves; ++i) {
-        context.UnmakeMove();
+        context.game.UnmakeMove();
     }
 
     i32 checkmateDistance = c_checmkateConstant - abs((int)searchResult.score);
@@ -129,62 +129,75 @@ i32 Search::CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth
     i32 beta = c_maxScore;
     u32 ply = 1;
     u64 nodeCount = 0;
-    std::vector<PackedMove> pv;
-    pv.resize(depth);
-    auto eval = AlphaBetaNegamax(context, depth, alpha, beta, !maximizingPlayer, ply, nodeCount);
+    std::function<bool()> cancelleation = []() { return false; };
+    SearchContext searchContext = { context, nodeCount, cancelleation };
+    auto eval = AlphaBetaNegamax(searchContext, depth, alpha, beta, !maximizingPlayer, ply);
 
     return eval.score;
 }
 
 SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters params)
 {
+    Clock searchClock;
+    searchClock.Start();
+    u64 nodeCount = 0;
+    std::function<bool()> cancellationFunc = buildCancellationFunction(context.readToPlay(), params, searchClock);
+    SearchContext searchContext = { context, nodeCount, cancellationFunc };
+
     SearchResult result;
     for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
+
         Clock clock;
         clock.Start();
-        u64 nodeCount = 0;
-
-        auto itrResult = CalculateBestMoveIterration(context, itrDepth, nodeCount);
-
+        nodeCount = 0;
+        auto itrResult = CalculateBestMoveIterration(searchContext, itrDepth);
         clock.Stop();
-        ReportSearchResult(context, itrResult, itrDepth, nodeCount, clock);
+
+        ReportSearchResult(searchContext, itrResult, itrDepth, nodeCount, clock);
         if (itrResult.ForcedMate)
             return itrResult;
 
         result = itrResult;
-        u32 timelimit = context.readToPlay() == Set::WHITE ? params.WhiteTimelimit : params.BlackTimelimit;
-        i32 timeInc = context.readToPlay() == Set::WHITE ? params.WhiteTimeIncrement : params.BlackTimeIncrement;
 
-        // TODO;
-        // for now we use Infinite as a flag to indicate that we should continue searching until we reach
-        // the given depth and ignore the any time limit.
-        if (params.Infinite == false && TimeManagement(clock.getElapsedTime(), timelimit, timeInc, itrDepth) == false)
+        if (cancellationFunc() == true)
             break;
+    }
+
+#ifdef DEBUG_SEARCHING
+    m_transpositionTable.debugStatistics();
+#endif
+
+    // return move from pv.
+    i32 score = 0;
+    PackedMove pvMv = m_transpositionTable.probe(context.readChessboard().readHash(), score);
+    if (pvMv.isNull() == false) {
+        LOG_INFO() << "Used PV";
+        return { .score = score, .move = pvMv };
     }
 
     return result;
 }
 
-SearchResult Search::CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount) {
-    bool maximizingPlayer = context.readToPlay() == Set::WHITE;
+SearchResult Search::CalculateBestMoveIterration(SearchContext& context, u32 depth) {
+    bool maximizingPlayer = context.game.readToPlay() == Set::WHITE;
 
     u32 ply = 1;
 
-    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply, nodeCount);
+    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply);
 
     return result;
 }
 
-SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount) {
-    if (depth == 0) {
+SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
+    if (context.cancel() == true || depth <= 0) {
         // at depth zero we start the quiet search to get a better evaluation.
         // this search will try to go as deep as possible until it finds a quiet position.
-        i32 score = QuiescenceNegamax(context, 3, alpha, beta, maximizingPlayer, 1, nodeCount);
+        i32 score = QuiescenceNegamax(context, 6, alpha, beta, maximizingPlayer, 1);
         return { .score = score, .move = PackedMove::NullMove() };
     }
 
     // initialize the move generator.
-    MoveGenerator generator(context);
+    MoveGenerator generator(context.game, m_transpositionTable);
     auto move = generator.generateNextMove();
 
     // for transposition table, cache old alpha.
@@ -206,59 +219,71 @@ SearchResult Search::AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha
     }
 
     do {
-        context.MakeMove(move);
-        auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount);
+        context.game.MakeMove(move);
+        auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
         auto eval = -result.score;
-        nodeCount++;
-        context.UnmakeMove();
+        context.nodes++;
+        context.game.UnmakeMove();
 
         if (eval > maxEval)
         {
             maxEval = eval;
             bestMove = move;
-        }
 
-        alpha = std::max(alpha, eval);
+            alpha = std::max(alpha, eval);
 
-        if (beta <= alpha) {
-            m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, maxEval, TTF_CUT_BETA);
-            break;
+            if (beta <= alpha) {
+                m_transpositionTable.store(context.game.readChessboard().readHash(), bestMove, depth, beta, TTF_CUT_BETA);
+                break;
+            }
         }
 
         move = generator.generateNextMove();
     } while (move.isNull() == false);
 
     if (oldAlpha != alpha)
-        m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, maxEval, TTF_CUT_EXACT);
+        m_transpositionTable.store(context.game.readChessboard().readHash(), bestMove, depth, maxEval, TTF_CUT_EXACT);
     else
-        m_transpositionTable.store(context.readChessboard().readHash(), bestMove, depth, alpha, TTF_CUT_ALPHA);
+        m_transpositionTable.store(context.game.readChessboard().readHash(), bestMove, depth, alpha, TTF_CUT_ALPHA);
 
     return { .score = maxEval, .move = bestMove };
 }
 
-i32 Search::QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount) {
-    MoveGenerator generator(context.readChessboard().readPosition(), context.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
+i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
+
+    MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
     generator.generate();
+
+    Evaluator evaluator;
+    i32 perspective = maximizingPlayer ? 1 : -1;
+    i32 eval = evaluator.Evaluate(context.game.readChessboard(), generator) * perspective;
+    if (eval >= beta)
+        return beta;
+    if (eval > alpha)
+        alpha = eval;
+
     auto move = generator.generateNextMove();
 
-    if (move.isNull() || ply >= c_maxSearchDepth || (depth <= 0 && generator.isChecked() == false)) {
-        Evaluator evaluator;
-        i32 perspective = maximizingPlayer ? 1 : -1;
-        return evaluator.Evaluate(context.readChessboard(), generator) * perspective;
+    if (context.cancel() == true
+        || move.isNull()
+        || ply >= c_maxSearchDepth
+        || (depth <= 0 && generator.isChecked() == false)) {
+
+        return eval;
     }
 
     i32 maxEval = -c_maxScore;
     do {
-        context.MakeMove(move);
-        i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1, nodeCount);
-        nodeCount++;
-        context.UnmakeMove();
+        context.game.MakeMove(move);
+        i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
+        context.nodes++;
+        context.game.UnmakeMove();
 
         maxEval = std::max(maxEval, eval);
         alpha = std::max(alpha, eval);
 
         if (beta <= alpha)
-            break;
+            return beta;
 
         move = generator.generateNextMove();
     } while (move.isNull() == false);
@@ -270,7 +295,7 @@ bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 dept
     // should return false if we want to abort our search.
     // how do we manage time?
     // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = timeInc + (timeleft / 24);  // at 5min this is 12 seconds.    
+    const i64 c_maxTimeAllowed = timeInc + (timeleft / 24);  // at 5min this is 12 seconds.
     if (elapsedTime > c_maxTimeAllowed) {
         // if score is negative we continue looking one more depth.
         // if (score < 0 && timeleft > (c_maxTimeAllowed * 6))
@@ -289,6 +314,37 @@ bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 dept
     }
 
     return false;
+}
+
+CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
+
+    if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {
+        // we will never cancel a search based on time.
+        return [&]() {
+            return false;
+            };
+    }
+
+    if (params.MoveTime > 0) {
+        i64 moveTime = params.MoveTime;
+        return [&clock, moveTime]() {
+            return clock.getElapsedTime() > moveTime;
+            };
+    }
+
+    u32 timelimit = perspective == Set::WHITE ? params.WhiteTimelimit : params.BlackTimelimit;
+    i32 timeInc = perspective == Set::WHITE ? params.WhiteTimeIncrement : params.BlackTimeIncrement;
+
+    if (timelimit > 0) {
+        const i64 c_maxTimeAllowed = timeInc + (timelimit / 24);  // at 5min this is 12 seconds, at 1min this is 2.5 seconds
+        return [&clock, c_maxTimeAllowed]() {
+            return clock.getElapsedTime() > c_maxTimeAllowed;
+            };
+    }
+
+    return [&]() {
+        return true;
+        };
 }
 
 void Search::pushKillerMove(PackedMove mv, u32 ply) {

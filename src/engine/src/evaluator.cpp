@@ -33,6 +33,11 @@ Evaluator::Evaluate(const Chessboard& board, const MoveGenerator& movegen)
     return score;
 }
 
+i32 EvaluEvaluatePlus(const Chessboard&, const MoveGenerator&, PackedMove)
+{
+    return 0;
+}
+
 i32
 Evaluator::EvaluateMaterial(const Chessboard& board) const
 {

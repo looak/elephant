@@ -15,7 +15,7 @@ void Clock::Stop()
 i64 Clock::getElapsedTime() const
 {
     auto endTime = std::chrono::high_resolution_clock::now();
-    if (m_running)
+    if (m_running == false)
         endTime = m_endTime;
     return std::chrono::duration_cast<std::chrono::milliseconds>(endTime - m_startTime).count();
 }

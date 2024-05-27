@@ -5,7 +5,7 @@
 
 TranspositionTable::TranspositionTable()
 {
-    m_table.reserve(1024*8); // 8MB
+    m_table.reserve(1024 * 1024 * 2); // 2Mb
 #ifdef DEBUG_SEARCHING
     m_writes = 0;
     m_reads = 0;
@@ -24,19 +24,6 @@ void TranspositionTable::clear()
     m_overwrites = 0;
 #endif
 }
-
-PackedMove TranspositionTable::probe(u64 boardHash) const
-{
-    const auto itr = m_table.find(boardHash);
-    if (itr == m_table.end())
-        return PackedMove();
-
-    if (itr->second.flag != TranspositionFlag::TTF_CUT_EXACT)
-        return PackedMove::NullMove();
-
-    return itr->second.move;
-}
-
 
 bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, PackedMove& move, i32& score) const
 {
@@ -76,6 +63,26 @@ bool TranspositionTable::probe(u64 boardHash, u8 depth, i32 alpha, i32 beta, Pac
     return false;
 }
 
+PackedMove TranspositionTable::probe(u64 boardHash) const
+{
+    i32 score = 0;
+    return probe(boardHash, score);
+}
+
+PackedMove TranspositionTable::probe(u64 boardHash, i32& score) const
+{
+    const auto itr = m_table.find(boardHash);
+    if (itr == m_table.end())
+        return PackedMove::NullMove();
+
+    if (itr->second.flag != TranspositionFlag::TTF_CUT_EXACT)
+        return PackedMove::NullMove();
+
+    score = itr->second.score;
+    return itr->second.move;
+}
+
+
 void TranspositionTable::store(u64 boardHash, PackedMove mv, u8 depth, i32 score, TranspositionFlag flag)
 {
     const auto& itr = m_table.find(boardHash);
@@ -108,6 +115,6 @@ void TranspositionTable::store(u64 boardHash, PackedMove mv, u8 depth, i32 score
 #ifdef DEBUG_SEARCHING
     void TranspositionTable::debugStatistics() const
     {
-        LOG_DEBUG() << "TranspositionTable:\n\t" << m_writes << " writes,\n\t" << m_reads << " reads,\n\t" << m_hits << " hits,\n\t" << m_overwrites << " overwrites";
+        LOG_INFO() << "TranspositionTable:\n\t" << m_writes << " writes,\n\t" << m_reads << " reads,\n\t" << m_hits << " hits,\n\t" << m_overwrites << " overwrites";
     }
 #endif

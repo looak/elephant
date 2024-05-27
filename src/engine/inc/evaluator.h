@@ -6,12 +6,14 @@
 class Chessboard;
 class MoveGenerator;
 struct Move;
+struct PackedMove;
 
 class Evaluator
 {
 public:
     Evaluator();
     i32 Evaluate(const Chessboard& board, const MoveGenerator& movegen);
+    i32 EvaluatePlus(const Chessboard& board, const MoveGenerator& movegen, PackedMove move);
 
 private:
     i32 EvaluateMaterial(const Chessboard& board) const;

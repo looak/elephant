@@ -22,6 +22,7 @@
 #include "position.hpp"
 
 class GameContext;
+class TranspositionTable;
 
 enum class MoveTypes {
     ALL,
@@ -35,11 +36,13 @@ namespace move_generator_constants {
 constexpr u16 capturePriority = 1000;
 constexpr u16 promotionPriority = 2000;
 constexpr u16 checkPriority = 500;
+constexpr u16 pvMovePriority = 5000;
 } // namespace move_generator_constants
 
 class MoveGenerator {
 public:
     MoveGenerator(const GameContext& context);
+    MoveGenerator(const GameContext& context, const TranspositionTable& tt);
     MoveGenerator(const Position& pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
     ~MoveGenerator() = default;
 
@@ -86,8 +89,12 @@ private:
 
     void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
 
+    void sortMoves();
+
     Set m_toMove;
     const Position& m_position;
+    const TranspositionTable* m_tt;
+    u64 m_hashKey;
 
     bool m_movesGenerated;
     uint16_t m_moveCount;

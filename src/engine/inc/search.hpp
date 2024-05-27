@@ -79,11 +79,12 @@ struct SearchResult {
     bool ForcedMate = false;
 };
 
+typedef std::function<bool()> CancelSearchCondition;
+
 struct SearchContext {
-    u32 count;
-    u32 currentPly;
-    std::vector<std::array<Move, 3>> killerMoves;
-    // maybe add history heuristic as well.
+    GameContext& game;
+    u64& nodes;
+    CancelSearchCondition& cancel;
 };
 
 struct PerftResult {
@@ -121,16 +122,19 @@ public:
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
 
 private:
-    void ReportSearchResult(GameContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const;
+    void ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const;
 
 
-    SearchResult    CalculateBestMoveIterration(GameContext& context, u32 depth, u64& nodeCount);
-    SearchResult    AlphaBetaNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
-    i32             QuiescenceNegamax(GameContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply, u64& nodeCount);
+    SearchResult    CalculateBestMoveIterration(SearchContext& context, u32 depth);
+    SearchResult    AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
+    i32             QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
+    CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
 
     void pushKillerMove(PackedMove mv, u32 ply);
+
+
 
     EvaluationTable m_evaluationTable;
     TranspositionTable m_transpositionTable;
