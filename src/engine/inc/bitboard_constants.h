@@ -54,6 +54,28 @@ static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Ma
 static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
 static constexpr u64 baseRankRelative[2] = {rank0Mask, rank7Mask};
 
+constexpr u64 constexprAbs(i64 val) {
+    return val < 0 ? -val : val;
+}
+
+constexpr std::array<std::array<u64, 64>, 64>
+generateManhattanDistances() {
+    std::array<std::array<u64, 64>, 64> result{};
+    for (int i = 0; i < 64; ++i)
+    {
+        for (int j = 0; j < 64; ++j)
+        {
+            int rankDiff = (i / 8) - (j / 8);
+            int fileDiff = (i % 8) - (j % 8);
+            result[i][j] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+        }
+    }
+
+    return result;
+}
+
+static constexpr auto manhattanDistances = generateManhattanDistances();
+
 }  // namespace board_constants
 
 namespace pawn_constants {
@@ -81,3 +103,5 @@ generateSquareLookupTable()
 /**
  * Lookup table for per-square 64bit masks. Will match the Square class enum     */
 static constexpr auto squareMaskTable = generateSquareLookupTable();
+
+

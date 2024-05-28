@@ -46,15 +46,9 @@ struct PieceKey {
 };
 
 struct SearchParameters {
-    SearchParameters() :
-        SearchDepth(5),
-        MoveTime(0)
-    {
-    }
-
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
-    u32 SearchDepth = 5;
+    u32 SearchDepth = 8;
     u32 QuiescenceDepth = 2;
 
     // total amount of time allowed to search for a move in milliseconds.
@@ -122,7 +116,7 @@ public:
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
 
 private:
-    void ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 depth, u64 nodes, const Clock& clock) const;
+    void ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const;
 
 
     SearchResult    CalculateBestMoveIterration(SearchContext& context, u32 depth);

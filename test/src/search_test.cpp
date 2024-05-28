@@ -29,7 +29,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     SearchParameters params;
     params.SearchDepth = 4;
-    params.Infinite = true;
+    params.MoveTime = 30 * 1000; // 30 seconds
     // execute
     SearchResult result = context.CalculateBestMove(params);
 
@@ -51,7 +51,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 
     SearchParameters params;
     params.SearchDepth = 4;
-    params.Infinite = true;
+    params.MoveTime = 30 * 1000; // 30 seconds
 
     // execute
     SearchResult result = context.CalculateBestMove(params);
@@ -72,7 +72,7 @@ TEST_F(SearchFixture, WhiteForcedMate)
 
     SearchParameters params;
     params.SearchDepth = 3;
-    params.Infinite = true;
+    params.MoveTime = 30 * 1000; // 30 seconds
 
     SearchResult result = context.CalculateBestMove(params);
     EXPECT_TRUE(result.ForcedMate);
@@ -86,7 +86,7 @@ TEST_F(SearchFixture, MateAgainstSelf)
 
     SearchParameters params;
     params.SearchDepth = 3;
-    params.Infinite = true;
+    params.MoveTime = 30 * 1000; // 30 seconds
 
     SearchResult result = context.CalculateBestMove(params);
     EXPECT_NE(result.move, PackedMove::NullMove());
@@ -99,7 +99,7 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
 
         SearchParameters params;
         params.SearchDepth = 5;
-        params.Infinite = true;
+        params.MoveTime = 30 * 1000; // 30 seconds
 
         SearchResult result = context.CalculateBestMove(params);
 
@@ -114,9 +114,26 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
 
         SearchParameters params;
         params.SearchDepth = 6; // depth in ply so 3 * 2.
-        params.Infinite = true;
+        params.MoveTime = 30 * 1000; // 30 seconds
 
         SearchResult result = context.CalculateBestMove(params);
+
+        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+    }
+}
+
+// using this to test performance of search.
+TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInFive) {
+    for (const auto& searchCase : s_mateInFive) {
+        GameContext context;
+        FENParser::deserialize(searchCase.fen.c_str(), context);
+
+        SearchParameters params;
+        params.SearchDepth = 10; // depth in ply so 3 * 2.
+        params.MoveTime = 30 * 1000; // 30 seconds
+
+        SearchResult result = context.CalculateBestMove(params);
+        result = context.CalculateBestMove(params);
 
         EXPECT_EQ(searchCase.expectedMove, result.move.toString());
     }
