@@ -15,7 +15,7 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <stdint.h>
+#include <cstdint>
 #include "log.h"
 
 namespace platform {
@@ -39,6 +39,7 @@ typedef std::uint8_t u8;
 typedef std::uint16_t u16;
 typedef unsigned int u32;
 typedef std::uint64_t u64;
+typedef __int128_t i128;
 typedef std::int8_t i8;
 typedef signed short i16;
 typedef signed long long i64;

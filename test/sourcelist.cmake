@@ -34,6 +34,7 @@ ${SRC_DIR}/piece_test.cpp
 ${SRC_DIR}/position_test.cpp
 ${SRC_DIR}/search_test.cpp
 ${SRC_DIR}/search_cases.hpp
+${SRC_DIR}/transposition_test.cpp
 ${SRC_DIR}/unmake_test.cpp
 ${SRC_DIR}/uci_test.cpp
 

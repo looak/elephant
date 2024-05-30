@@ -18,11 +18,11 @@
 
 #include <queue>
 #include "king_pin_threats.hpp"
+#include "transposition_table.hpp"
 #include "move.h"
 #include "position.hpp"
 
 class GameContext;
-class TranspositionTable;
 
 enum class MoveTypes {
     ALL,

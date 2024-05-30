@@ -41,6 +41,17 @@ message(STATUS "## Warning level: ${WARNING_LEVEL}")
 
 include(GNUInstallDirs)
 
+include(cmake/options.cmake)
+
+foreach(option IN LISTS PRECOMPILE_OPTIONS)
+     if(${${option}})
+        message(STATUS "## Precompile option: ${option} ON")
+        add_definitions(-D${option})
+    else()
+        message(STATUS "## Precompile option: ${option} OFF")
+     endif()
+ endforeach()
+
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)

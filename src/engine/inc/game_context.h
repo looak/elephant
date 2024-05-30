@@ -16,6 +16,7 @@
 #pragma once
 #include <stack>
 #include "chessboard.h"
+#include "transposition_table.hpp"
 
 struct SearchResult;
 struct SearchParameters;
@@ -35,6 +36,8 @@ class GameContext {
 public:
     GameContext()
     {
+        m_transpositionTable.clear();
+        m_transpositionTable.resize(64);
     }
 
     GameContext(const GameContext& rhs) :
@@ -72,8 +75,11 @@ public:
 
     Set readToPlay() const { return m_board.readToPlay(); }
 
+    TranspositionTable& editTranspositionTable() { return m_transpositionTable; }
+
 private:
     Chessboard m_board;
+    TranspositionTable m_transpositionTable;
 
     std::stack<MoveUndoUnit> m_undoUnits;
     std::vector<MoveHistory> m_moveHistory;

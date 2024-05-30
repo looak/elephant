@@ -131,7 +131,7 @@ private:
 
 
     EvaluationTable m_evaluationTable;
-    TranspositionTable m_transpositionTable;
+    // TranspositionTable m_transpositionTable;
 
     PackedMove m_killerMoves[4][32];
 };

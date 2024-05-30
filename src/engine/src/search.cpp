@@ -1,4 +1,5 @@
 #include "search.hpp"
+#include "search_constants.hpp"
 
 #include "chessboard.h"
 #include "clock.hpp"
@@ -13,11 +14,7 @@
 #include <thread>
 #include <utility>
 
-static constexpr u32 c_maxSearchDepth = 8;
-static constexpr i32 c_maxScore = 32000;
-static constexpr i32 c_checmkateConstant = 24000;
-static constexpr i32 c_drawConstant = 0;
-//static constexpr i32 c_pvScore = 10000;
+
 
 PerftResult
 Search::Perft(GameContext& context, int depth)
@@ -95,7 +92,7 @@ void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResu
     std::stringstream pvSS;
     for (u32 i = 0; i < searchDepth; ++i) {
         u64 hash = context.game.readChessboard().readHash();
-        auto pvMove = m_transpositionTable.probe(hash);
+        auto pvMove = context.game.editTranspositionTable().probe(hash);
         if (pvMove.isNull())
             break;
         context.game.MakeMove(pvMove);
@@ -107,7 +104,7 @@ void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResu
         context.game.UnmakeMove();
     }
 
-    i32 checkmateDistance = c_checmkateConstant - abs((int)searchResult.score);
+    i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
     checkmateDistance = abs(checkmateDistance);
     if ((u32)checkmateDistance <= searchDepth) {
         // found checkmate within depth.
@@ -156,8 +153,8 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
 
         ReportSearchResult(searchContext, itrResult, params.SearchDepth, itrDepth, nodeCount, clock);
         if (itrResult.ForcedMate) {
-#ifdef DEBUG_SEARCHING
-            m_transpositionTable.debugStatistics();
+#ifdef DEBUG_TRANSITION_TABLE
+            context.editTranspositionTable().debugStatistics();
 #endif
             return itrResult;
         }
@@ -168,8 +165,8 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
         result = itrResult;
     }
 
-#ifdef DEBUG_SEARCHING
-    m_transpositionTable.debugStatistics();
+#ifdef DEBUG_TRANSITION_TABLE
+    context.editTranspositionTable().debugStatistics();
 #endif
 
     return result;
@@ -193,28 +190,28 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         return { .score = score, .move = PackedMove::NullMove() };
     }
 
-    auto& chessboard = context.game.readChessboard();
     // initialize the move generator.
-    MoveGenerator generator(context.game, m_transpositionTable);
+    MoveGenerator generator(context.game, context.game.editTranspositionTable());
     auto move = generator.generateNextMove();
-
-    // for transposition table, cache old alpha.
-    i32 oldAlpha = alpha;
 
     // if there are no moves to make, we're either in checkmate or stalemate.
     if (move.isNull()) {
         if (generator.isChecked())
-            return { -c_checmkateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
+            return { -c_checkmateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
         return { .score = -c_drawConstant, .move = PackedMove::NullMove() };  // we're in stalemate
     }
 
-    i32 maxEval = -c_maxScore;
+    i32 bestEval = -c_maxScore;
     PackedMove bestMove;
 
     // probe transposition table.
-    if (m_transpositionTable.probe(context.game.readChessboard().readHash(), depth, alpha, beta, bestMove, maxEval)) {
-        return { .score = maxEval, .move = bestMove };
+    auto& chessboard = context.game.readChessboard();
+    auto& entry = context.game.editTranspositionTable().editEntry(chessboard.readHash());
+    if (auto result = entry.evaluate(chessboard.readHash(), depth, alpha, beta); result.has_value()) {
+        return { .score = entry.score, .move = entry.move };
     }
+
+    auto flag = TranspositionFlag::TTF_CUT_EXACT;
 
     do {
         context.game.MakeMove(move);
@@ -226,15 +223,18 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         if (context.cancel() == true)
             return { .score = 0, .move = PackedMove::NullMove() };
 
-        if (eval > maxEval)
+        if (eval > bestEval)
         {
-            maxEval = eval;
+            bestEval = eval;
             bestMove = move;
 
-            alpha = std::max(alpha, eval);
+            if (eval > alpha) {
+                alpha = eval;
+                flag = TranspositionFlag::TTF_CUT_EXACT;
+            }
 
             if (beta <= alpha) {
-                m_transpositionTable.store(chessboard.readHash(), chessboard.readMoveCount(), bestMove, depth, beta, TTF_CUT_BETA);
+                entry.update(chessboard.readHash(), bestMove, 0, beta, ply, depth, TTF_CUT_BETA);
                 break;
             }
         }
@@ -242,12 +242,9 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         move = generator.generateNextMove();
     } while (move.isNull() == false);
 
-    if (oldAlpha != alpha)
-        m_transpositionTable.store(chessboard.readHash(), chessboard.readMoveCount(), bestMove, depth, maxEval, TTF_CUT_EXACT);
-    else
-        m_transpositionTable.store(chessboard.readHash(), chessboard.readMoveCount(), bestMove, depth, alpha, TTF_CUT_ALPHA);
+    entry.update(chessboard.readHash(), bestMove, 0, bestEval, ply, depth, flag);
 
-    return { .score = maxEval, .move = bestMove };
+    return { .score = bestEval, .move = bestMove };
 }
 
 i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {

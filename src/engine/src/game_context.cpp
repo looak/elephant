@@ -33,6 +33,8 @@ GameContext::Reset()
 {
     m_board.Clear();
     m_moveHistory.clear();
+
+    // keeping transposition table
 }
 
 void
