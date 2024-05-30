@@ -1,4 +1,4 @@
-option(DEBUG_TRANSITION_TABLE "Enable debug output for transition table" ON)
+option(DEBUG_TRANSITION_TABLE "Enable debug output for transition table" OFF)
 
 
 set(PRECOMPILE_OPTIONS
