@@ -71,6 +71,7 @@ struct SearchResult {
     i32 score;
     PackedMove move;
     bool ForcedMate = false;
+    u64 count = 0;
 };
 
 typedef std::function<bool()> CancelSearchCondition;
@@ -108,6 +109,7 @@ class Search {
 public:
     PerftResult Perft(GameContext& context, int depth);
     PerftResult PerftDivide(GameContext& context, int depth);
+    u64 Bench(GameContext& context, u32 depth);
 
     /*
     *

@@ -154,7 +154,7 @@ TranspositionTableImpl<T>::TranspositionTableImpl() :
 template<class T>
 void TranspositionTableImpl<T>::resize(u32 megabytes)
 {
-    u64 newSize = (std::min(c_tableMaxSize, megabytes) * std::pow(1024, 2)) / sizeof(T);
+    u64 newSize = (std::min(c_tableMaxSize, megabytes) * 1024 * 1024) / sizeof(T);
     LOG_WARNING_EXPR(megabytes < c_tableMaxSize) << "TranspositionTableImpl::resize() requested size is too large, resizing to "
         << c_tableMaxSize << "mb instead of " << megabytes << "mb.";
 

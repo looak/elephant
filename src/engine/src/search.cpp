@@ -84,6 +84,10 @@ Search::PerftDivide(GameContext& context, int depth)
     return result;
 }
 
+u64 Search::Bench(GameContext& context, u32 depth) {
+    return CalculateBestMove(context, { .SearchDepth = depth }).count;
+}
+
 void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
     i64 et = clock.getElapsedTime();
 
@@ -169,6 +173,7 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
     context.editTranspositionTable().debugStatistics();
 #endif
 
+    result.count = nodeCount;
     return result;
 }
 
