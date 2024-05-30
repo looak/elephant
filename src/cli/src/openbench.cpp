@@ -90,7 +90,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-
-    //UCICommands::UCIEnable();
+    UCICommands::UCIEnable();
     return 0;
 }
