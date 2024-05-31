@@ -167,9 +167,9 @@ Evaluator::EvaluatePawnStructure(const Chessboard& board)
     for (i8 idx = 0; idx < 8; ++idx) {
         // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
         // result in 1 if we have 3 pawns this will result in 1. Maybe we should use and 2?
-        result -= (evaluator_data::doubledPawnScore * egCoeficient) *
-            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
         result += (evaluator_data::doubledPawnScore * egCoeficient) *
+            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
+        result -= (evaluator_data::doubledPawnScore * egCoeficient) *
             (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
 
     //     // build neighbour files mask
