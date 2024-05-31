@@ -4,6 +4,7 @@
 #include "move.h"
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
 struct Move;
