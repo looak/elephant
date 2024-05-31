@@ -16,6 +16,7 @@ ${ENGINE_INC_DIR}/defines.h
 ${ENGINE_INC_DIR}/libpopcnt.h
 
 ${ENGINE_INC_DIR}/bitboard.hpp
+${ENGINE_INC_DIR}/bitboard_constants.hpp
 ${ENGINE_INC_DIR}/chessboard.h
 ${ENGINE_INC_DIR}/chess_piece.h
 ${ENGINE_INC_DIR}/clock.hpp
@@ -40,7 +41,6 @@ ${ENGINE_INC_DIR}/uci.hpp
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ${ENGINE_SRC_DIR}/elephant_gambit.cpp
-${ENGINE_SRC_DIR}/internal_defines.h
 
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp

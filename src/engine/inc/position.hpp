@@ -25,7 +25,7 @@
 #pragma once
 #include <functional>
 #include "bitboard.hpp"
-#include "bitboard_constants.h"
+#include "bitboard_constants.hpp"
 #include "chess_piece.h"
 #include "defines.h"
 #include "intrinsics.hpp"

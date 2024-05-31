@@ -1,6 +1,6 @@
 #include "evaluator.h"
 
-#include "bitboard_constants.h"
+#include "bitboard_constants.hpp"
 #include "chess_piece.h"
 #include "chessboard.h"
 #include "evaluator_data.h"

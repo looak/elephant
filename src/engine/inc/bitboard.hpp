@@ -16,7 +16,7 @@
 #ifndef BITBOARD_HEADER
 #define BITBOARD_HEADER
 
-#include "bitboard_constants.h"
+#include "bitboard_constants.hpp"
 #include "chess_piece_defines.hpp"
 #include "defines.h"
 #include "intrinsics.hpp"
