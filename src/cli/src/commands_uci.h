@@ -18,8 +18,7 @@
  * @file commands_uci.h
  * @brief UCI interface implementation for the engine.
  * https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
- * @author Alexander Loodin Ek
- */
+ * @author Alexander Loodin Ek  */
 #pragma once
 #include <functional>
 #include <map>
@@ -33,7 +32,7 @@ namespace UCICommands
 
 typedef std::function<bool(std::list<std::string>&, UCI&)> UCICommandFunction;
 typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
-typedef std::map<std::string, std::pair<UCICommandFunction,std::string>> UCIOptionsMap;
+typedef std::map<std::string, std::string> UCIOptionsMap;
 
 void UCIEnable();
 
@@ -48,7 +47,11 @@ bool StopCommand(std::list<std::string>& args, UCI& context);
 bool PonderHitCommand(std::list<std::string>& args, UCI& context);
 bool QuitCommand(std::list<std::string>& args, UCI& context);
 
-bool DebugOutputOption(std::list<std::string>& args, UCI& context);
+// engine options
+// bool DebugOutputOption(std::list<std::string>& args, UCI& context);
+// bool ThreadsOption(std::list<std::string>& args, UCI& context);
+// bool HashOption(std::list<std::string>& args, UCI& context);
+bool ForwardOption(std::list<std::string>& args, UCI& context);
 
 static UCICommandsMap commands = {
     { "debug", DebugCommand },
@@ -64,7 +67,8 @@ static UCICommandsMap commands = {
 };
 
 static UCIOptionsMap options = {
-    { "Debug Output File", { DebugOutputOption, "type string default"} }
+    { "Threads", "type spin default 1 min 1 max 1." },
+    { "Hash", "type is spin size of hash table in megabytes."}
 };
 
 } // namespace UCICommands

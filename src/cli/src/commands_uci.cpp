@@ -7,17 +7,17 @@
 * Send back what options this engine supports. */
 void UCIOptions()
 {
-    // for (auto&& option : UCICommands::options)
-    // {
-    // 	std::cout << "option name " << option.first << " " << option.second.second << "\n";
-    // }
+    for (auto&& option : UCICommands::options)
+    {
+    	std::cout << "option name " << option.first << " " << option.second << "\n";
+    }
 }
 
 void UCICommands::UCIEnable()
 {
     UCI interface;
     UCIOptions();
-    interface.Enable();
+    interface.Enable();    
     while (interface.Enabled())
     {
         std::string buffer = "";
@@ -59,10 +59,10 @@ bool UCICommands::IsReadyCommand(std::list<std::string>&, UCI& interface)
     return interface.IsReady();
 }
 
-bool UCICommands::SetOptionCommand(std::list<std::string>&, UCI&)
+bool UCICommands::SetOptionCommand(std::list<std::string>& args, UCI& interface)
 {
-    LOG_ERROR() << "Not implemented";
-    return false;
+    interface.SetOption(args);
+    return true;
 }
 
 bool UCICommands::RegisterCommand(std::list<std::string>&, UCI&)
@@ -102,15 +102,5 @@ bool UCICommands::PonderHitCommand(std::list<std::string>&, UCI&)
 bool UCICommands::QuitCommand(std::list<std::string>&, UCI&)
 {
     std::cout << "bye bye\n";
-    return true;
-}
-
-bool UCICommands::DebugOutputOption(std::list<std::string>& args, UCI&)
-{
-    for (auto&& arg : args)
-    {
-        LOG_INFO() << "DebugOutputOption: " << arg;
-    }
-
     return true;
 }

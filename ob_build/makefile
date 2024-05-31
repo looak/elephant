@@ -29,13 +29,15 @@ all: $(OUT)
 $(OUT): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+# ensure the output directory exists
+$(OBJDIR):
+	mkdir -p $@
+
 # Compilation rule for .cpp files
-$(OBJDIR)/%.o: ../src/cli/src/%.cpp $(HEADERS)
-	mkdir -p $(OBJDIR)
+$(OBJDIR)/%.o: ../src/cli/src/%.cpp $(HEADERS)	
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJDIR)/%.o: ../src/engine/src/%.cpp $(HEADERS)
-	mkdir -p $(OBJDIR)
+$(OBJDIR)/%.o: ../src/engine/src/%.cpp $(HEADERS)	
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Include dependency files (using basenames)

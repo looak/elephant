@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <list>
+#include <unordered_map>
 
 #include "game_context.h"
 
@@ -31,6 +32,11 @@ public:
     bool IsReady();
 
     /**
+     * option name [name] value [value]
+     * sets a option on the engine */
+    bool SetOption(const std::list<std::string>& args);
+
+    /**
      * Sets up the engine for a new game. The engine will respond "isready"    */
     bool NewGame();
 
@@ -51,7 +57,12 @@ public:
 
     const GameContext& readGameContext() { return m_context; }
 private:
+    /**
+     * initialize the engines options with default values    */
+    void InitializeOptions();
+
     bool m_enabled;
     GameContext m_context;
     std::ostream& m_stream;
+    std::unordered_map<std::string, std::string> m_options;
 };

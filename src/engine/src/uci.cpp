@@ -21,10 +21,10 @@ UCI::UCI() :
 
 UCI::~UCI() { m_stream << "quit\n"; }
 
-bool
-UCI::Enabled()
+void UCI::InitializeOptions() 
 {
-    return m_enabled;
+    SetOption({"name", "Threads", "value", "1"});
+    SetOption({"name", "Hash", "value", "8"});    
 }
 
 void
@@ -32,6 +32,12 @@ UCI::Enable()
 {
     m_enabled = true;
     m_stream << "uciok\n";
+}
+
+bool
+UCI::Enabled()
+{
+    return m_enabled;
 }
 
 void
@@ -45,6 +51,35 @@ UCI::IsReady()
 {
     m_stream << "readyok\n";
     return true;
+}
+
+bool
+UCI::SetOption(const std::list<std::string>& args)
+{
+    if (args.size() < 4) {
+        LOG_ERROR() << "SetOption: Not enough arguments";
+        return false;
+    }
+
+    auto&& option = args.begin();
+    auto&& name = std::next(option);
+    auto&& valuetype = std::next(name);
+    auto&& value = std::next(valuetype);
+
+    if (name->compare("Threads") == 0) {
+        LOG_DEBUG() << "Threads: " << *value;
+    }
+    else if (name->compare("Hash") == 0) {
+        m_options["Hash"] = *value;
+        m_context.editTranspositionTable().resize(std::stoi(*value));
+    }
+    else {
+        LOG_ERROR() << "Unknown option: " << *name;
+        return false;
+    }
+
+    return true;
+
 }
 
 bool

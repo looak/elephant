@@ -47,15 +47,19 @@
     else                     \
         LoggingInternals::LogMessage("[    ERROR ] ", __FILENAME__, __FUNCTION__, __LINE__)
 
+#ifdef LOGGING_ENABLED
 // @brief Logs an info message with the file name and line number.
 #define LOG_INFO() \
     switch (0)     \
     case 0:        \
     default:       \
         LoggingInternals::LogMessage("[     INFO ] ", __FILENAME__, __LINE__)
+#else
+#define LOG_INFO() LoggingInternals::NopMessage()
+#endif
 
 // @brief Logs a debug message with the file name and line number.
-#ifdef EG_DEBUGGING
+#if defined(DEBUG_LOGGING_ENABLED) && defined(LOGGING_ENABLED)
 #define LOG_DEBUG() \
     switch (0)      \
     case 0:         \

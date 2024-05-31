@@ -34,10 +34,9 @@ struct MoveHistory {
 
 class GameContext {
 public:
-    GameContext()
-    {
+    GameContext() {
         m_transpositionTable.clear();
-        m_transpositionTable.resize(64);
+        Reset();        
     }
 
     GameContext(const GameContext& rhs) :
