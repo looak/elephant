@@ -15,7 +15,8 @@ TEST(TranspositionTest, CalculateIndexEntry) {
     u64 hash = 0x1234567890abcdef;
     u64 index = table.entryIndex(hash);
 
-    u64 expected = ((i128)hash * (i128)(1024 * 1024 * 8 / 16)) >> 64;
+    //u64 expected = ((i128)hash * (i128)(1024 * 1024 * 8 / 16)) >> 64;
+    u64 expected = hash & ((1024 * 1024 * 8 / 16) - 1);
 
     EXPECT_EQ(expected, index);
 

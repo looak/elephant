@@ -112,7 +112,8 @@ public:
     void resize(u32 megabytes);
     void clear();
 
-    inline u64 entryIndex(u64 hash) const { return ((i128)hash * (i128)m_elementCountMax) >> 64; }
+    //inline u64 entryIndex(u64 hash) const { return ((i128)hash * (i128)m_elementCountMax) >> 64; }
+    inline u64 entryIndex(u64 hash) const { return hash & m_mask; }
 
     inline u64 readSize() const { return m_table.size(); }
     inline u64 readSizeMegaBytes() const { return m_table.size() * sizeof(T) / (1024 * 1024); }
@@ -131,6 +132,7 @@ public:
 private:
     std::vector<T> m_table;
     u64 m_elementCountMax;
+    u64 m_mask;
 };
 
 
@@ -163,6 +165,7 @@ void TranspositionTableImpl<T>::resize(u32 megabytes)
     m_table.resize(newSize);
     m_table.shrink_to_fit();
     m_elementCountMax = newSize;
+    m_mask = newSize - 1;
 }
 
 template<class T>
