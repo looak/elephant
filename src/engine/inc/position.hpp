@@ -87,7 +87,7 @@ public:
     bool operator==(const CastlingStateInfo& rhs) const { return m_innerState == rhs.m_innerState; }
 
 private:
-    byte m_innerState;
+    byte m_innerState = 0;
 };
 
 struct EnPassantStateInfo {

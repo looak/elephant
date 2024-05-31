@@ -35,7 +35,6 @@ struct MoveHistory {
 class GameContext {
 public:
     GameContext() {
-        m_transpositionTable.clear();
         Reset();
     }
 
