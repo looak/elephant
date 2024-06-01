@@ -47,12 +47,6 @@ bool StopCommand(std::list<std::string>& args, UCI& context);
 bool PonderHitCommand(std::list<std::string>& args, UCI& context);
 bool QuitCommand(std::list<std::string>& args, UCI& context);
 
-// engine options
-// bool DebugOutputOption(std::list<std::string>& args, UCI& context);
-// bool ThreadsOption(std::list<std::string>& args, UCI& context);
-// bool HashOption(std::list<std::string>& args, UCI& context);
-bool ForwardOption(std::list<std::string>& args, UCI& context);
-
 static UCICommandsMap commands = {
     { "debug", DebugCommand },
     { "isready", IsReadyCommand },
@@ -67,8 +61,8 @@ static UCICommandsMap commands = {
 };
 
 static UCIOptionsMap options = {
-    { "Threads", "type spin default 1 min 1 max 1." },
-    { "Hash", "type is spin size of hash table in megabytes."}
+    { "Threads", "type spin default 1 min 1 max 24" },
+    { "Hash", "type spin default 8 min 1 max 1024"}
 };
 
 } // namespace UCICommands

@@ -26,21 +26,21 @@
 a work in progress uci chess engine.
 </div>
 
-#
+---
 I got frustrated about how bad I was at playing chess, so I decided to write myself a chess engine and let the computer do it for me! Not intending to use it against unaware non engine players. This whole project initially started with my old engine [Gambit](https://github.com/looak/Gambit).
 
 First commit of Gambit was done on [September the 13th, 2017](https://github.com/looak/Gambit/commit/73ed8535876da5e2de65c7e9c1351b21b536912e). Since then I retired that engine and all my effort is going into elephant.
 
-I have been taking a test driven approach to ensure correcness of the engine. Once the engine gets a bit stronger I'm intending to setup [OpenBench](https://github.com/AndyGrant/OpenBench) and the goal is to enter in some computer chess engine competitions.
+Taking a test driven approach and implemented compatibilty with OpenBench, of which I have a instance running locally.
 
 Reading a lot on https://talkchess.com and the endless resource https://chessprogramming.org. Most recently, been very inspired by Ciekce's [Polaris](https://github.com/Ciekce/Polaris).
 
 ## Performance
-<div align="center">
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
 |:-------:|:---:|:---:|:---:|:---:|
-|[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | testing |
+|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | testing |
+|[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | N/A |
 |v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
 |[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
 |[v0.2.0-alpha.1]([v0.2.0-alpha.1-link])| ~4 million | ~35 million best case | ~250k | ~1350 elo |
@@ -48,28 +48,33 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
 
 *all performance numbers are from running on my local machine, AMD Ryzen 9 5950x*
 
-</div>
 
 ## Features
+
 * Engine:
     * bitboards
+
 * Search:
     * alpha beta neg max
     * quiescence search
-    * null move pruning
+    * transposition table
+
 * Evaluation:
     * material
     * position tables
+
 * API:
     * "user friendly" cli interface
     * UCI compatible
+    * OpenBench compatible - https://github.com/AndyGrant/OpenBench
 
 ## Goals & todo
+
 * tapered position evaluation
-* transposition table
+* null move pruning
 * multi threaded search
 * reach elo 2000
-* OpenBench - https://github.com/AndyGrant/OpenBench
+
 * github.io page?
 
 ## Getting Started
@@ -83,28 +88,36 @@ This is a C++20 project and I'm not distributing any binaries, so to run the eng
 Currently requiering a compiler which compiles [C++20](https://en.cppreference.com/w/cpp/20).
 
 ### Installing and Building
+
 Through your choice of means, clone the repository.
 
 git bash example:
+
 ```bash
 git clone --recursive https://github.com/looak/elephant.git
 ```
 
 #### Windows
+
 Easiest way to get running on Windows is installing Visual Studio Code and extensions for cmake projects, or Visual Studio Community and opening the initial CMakeLists.txt.
 
 #### Linux
 
 * Create a build directory:
+
 ```bash
 $ mkdir build
 $ cd build
 ```
+
 * Call Cmake:
+
 ```bash
 $ cmake ..
 ```
+
 * Build:
+
 ```
 $ make
 ```
@@ -136,6 +149,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
+[v0.6.5-link]:          https://github.com/looak/elephant/releases/tag/0.6.5
 [v0.6.0-link]:          https://github.com/looak/elephant/releases/tag/0.6.1
 [v0.4.0-link]:          https://github.com/looak/elephant/releases/tag/0.4.0
 [v0.2.0-alpha.1-link]:  https://github.com/looak/elephant/releases/tag/0.2.0-alpha.1

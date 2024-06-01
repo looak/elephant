@@ -1,10 +1,10 @@
 #include "uci.hpp"
 
+#include "elephant_gambit_config.h"
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
 #include "search.hpp"
-
 
 #include <functional>
 #include <map>
@@ -15,8 +15,9 @@ UCI::UCI() :
     m_enabled(true),
     m_stream(std::cout)
 {
-    m_stream << "id name Elephant Gambit\n";
+    m_stream << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
     m_stream << "id author Alexander Loodin Ek\n";
+    InitializeOptions();
 }
 
 UCI::~UCI() { m_stream << "quit\n"; }
@@ -24,7 +25,7 @@ UCI::~UCI() { m_stream << "quit\n"; }
 void UCI::InitializeOptions() 
 {
     SetOption({"name", "Threads", "value", "1"});
-    SetOption({"name", "Hash", "value", "8"});    
+    SetOption({ "name", "Hash", "value", "8" });
 }
 
 void
