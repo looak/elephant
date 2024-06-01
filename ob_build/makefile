@@ -37,7 +37,7 @@ $(OBJDIR):
 $(OBJDIR)/%.o: ../src/cli/src/%.cpp $(HEADERS) | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(OBJDIR)/%.o: ../src/engine/src/%.cpp $(HEADERS)| $(OBJDIR)
+$(OBJDIR)/%.o: ../src/engine/src/%.cpp $(HEADERS) | $(OBJDIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Include dependency files (using basenames)
