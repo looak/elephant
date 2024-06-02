@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 #include "clock.hpp"
 #include "commands_uci.h"
