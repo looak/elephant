@@ -87,13 +87,18 @@
 
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
 // number if it fails.
+#if defined(FATAL_ASSERTS_ENABLED)
 #define FATAL_ASSERT(expr) \
     if ((expr) != 0) {     \
         int ___noop = 5;   \
         (void)___noop;     \
     }                      \
     else                   \
+
         LoggingInternals::AssertMessage(#expr, "[FATAL ASRT] ", __FILENAME__, __LINE__)
+#else
+#define FATAL_ASSERT(expr) LoggingInternals::NopMessage(expr)
+#endif
 
 // @brief Logs a basic message without any prefix or suffix.
 #define MESSAGE() \
@@ -253,16 +258,16 @@ private:
 
 class NopMessage {
 public:
-    NopMessage() {}
+    constexpr NopMessage(bool ___noop = true) { (void)___noop; }
 
     template<typename T>
-    inline NopMessage& operator<<(const T&)
+    constexpr inline NopMessage& operator<<(const T&)
     {
         return *this;
     }
 
     typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
-    inline NopMessage& operator<<(BasicNarrowIoManip) { return *this; }
+    constexpr inline NopMessage& operator<<(BasicNarrowIoManip) { return *this; }
 };
 
 class LogMessage {
