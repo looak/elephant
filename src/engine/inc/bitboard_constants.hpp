@@ -3,12 +3,23 @@
 #include "defines.h"
 
 namespace shifts {
-static constexpr u64 horizontal = 1;
-static constexpr u64 vertical = 8;
+static constexpr i8 horizontal = 1;
+static constexpr i8 vertical = 8;
 /**
  * Naming comes from forward slash and backslash relative to the set */
-static constexpr u64 forward_diagonal = 9;
-static constexpr u64 backward_diagonal = 7;
+static constexpr i8 forward_diagonal = 9;
+static constexpr i8 backward_diagonal = 7;
+
+constexpr std::array<i8, 8> shifts = {
+    vertical,           // lsh - north
+    horizontal,         // lsh - east
+    -vertical,           // rsh - south
+    -horizontal,         // rsh - west
+    forward_diagonal,   // lsh - northeast
+    -backward_diagonal,  // rsh - southeast
+    -forward_diagonal,   // rsh - southwest
+    backward_diagonal   // lsh - northwest
+};
 }  // namespace shifts
 
 namespace board_constants {
@@ -91,7 +102,7 @@ static constexpr u64 queenSideCastleMask = board_constants::filecMask;
 static constexpr u64 kingSideCastleMask = board_constants::filegMask;
 }  // namespace king_constants
 
-constexpr std::array<u64, 64>
+consteval std::array<u64, 64>
 generateSquareLookupTable()
 {
     std::array<u64, 64> result{};

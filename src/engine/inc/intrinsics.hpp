@@ -140,4 +140,16 @@ resetLsb(u64 bitboard)
     return bitboard & (bitboard - 1);
     // return _blsr_u64(bitboard);
 }
+
+/*
+ * Parallel bits deposit */
+[[nodiscard]] constexpr u64 pdep(u64 val, u64 mask) {
+    u64 res = 0;
+    for (u64 bb = 1; mask != 0; bb <<= 1) {
+        if ((val & bb) != 0)
+            res |= mask & -mask;
+        mask &= mask - 1;
+    }
+    return res;
+}
 }  // namespace intrinsics

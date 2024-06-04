@@ -195,6 +195,7 @@ public:
     [[nodiscard]] constexpr BitboardImpl shiftSouthEast() const { return BitboardImpl(m_board >> shifts::backward_diagonal); }
     [[nodiscard]] constexpr BitboardImpl shiftSouthWest() const { return BitboardImpl(m_board >> shifts::forward_diagonal); }
     [[nodiscard]] constexpr BitboardImpl shiftNorthWest() const { return BitboardImpl(m_board << shifts::backward_diagonal); }
+    [[nodiscard]] constexpr BitboardImpl shift(u8 direcction) const;
 
     template<Set us, u8 direction>
     [[nodiscard]] constexpr BitboardImpl shiftRelative() const;
@@ -282,6 +283,38 @@ private:
 
     T m_board;
 };
+
+template<typename T>
+[[nodiscard]] constexpr BitboardImpl<T>
+BitboardImpl<T>::shift(u8 direction) const
+{
+    if (direction == north) {
+        return shiftNorth();
+    }
+    else if (direction == east) {
+        return shiftEast();
+    }
+    else if (direction == south) {
+        return shiftSouth();
+    }
+    else if (direction == west) {
+        return shiftWest();
+    }
+    else if (direction == northeast) {
+        return shiftNorthEast();
+    }
+    else if (direction == southeast) {
+        return shiftSouthEast();
+    }
+    else if (direction == southwest) {
+        return shiftSouthWest();
+    }
+    else if (direction == northwest) {
+        return shiftNorthWest();
+    }
+
+    FATAL_ASSERT(false) << "Invalid direction";
+}
 
 template<typename T>
 template<Set us, u8 direction>
@@ -422,7 +455,7 @@ BitboardImpl<T>::shiftNorthWestRelative() const
 
 typedef BitboardImpl<u64> Bitboard;
 
-[[nodiscard]] inline u64
+[[nodiscard]] constexpr u64
 operator&(const u64& lhs, const Bitboard& rhs)
 {
     return lhs & rhs.read();

@@ -15,6 +15,9 @@ ${ENGINE_INC_DIR}/elephant_gambit_config.h
 ${ENGINE_INC_DIR}/defines.h
 ${ENGINE_INC_DIR}/libpopcnt.h
 
+${ENGINE_INC_DIR}/attacks/attacks.hpp
+${ENGINE_INC_DIR}/attacks/magic_constants.hpp
+
 ${ENGINE_INC_DIR}/bitboard.hpp
 ${ENGINE_INC_DIR}/bitboard_constants.hpp
 ${ENGINE_INC_DIR}/chessboard.h
@@ -42,6 +45,7 @@ ${ENGINE_INC_DIR}/uci.hpp
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ${ENGINE_SRC_DIR}/elephant_gambit.cpp
 
+${ENGINE_INC_DIR}/attacks/attacks.cpp
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp
 ${ENGINE_SRC_DIR}/chess_piece.cpp

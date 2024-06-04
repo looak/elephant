@@ -39,7 +39,7 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
 |:-------:|:---:|:---:|:---:|:---:|
-|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | testing |
+|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | ~1500 elo |
 |[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | N/A |
 |v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
 |[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
