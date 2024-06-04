@@ -2,6 +2,6 @@
 
 namespace attacks {
 
-tables* tables::instance;
+tables tables::instance;
 
 }  // namespace attacks
