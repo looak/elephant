@@ -1,5 +1,5 @@
 #pragma once
-#include "defines.h"
+#include "defines.hpp"
 #include "move.h"
 
 #include <unordered_map>

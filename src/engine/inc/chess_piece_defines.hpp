@@ -16,7 +16,7 @@
 #ifndef CHESS_PIECE_DEFINES_HEADER
 #define CHESS_PIECE_DEFINES_HEADER
 
-#include "defines.h"
+#include "defines.hpp"
 
 #define pieceIndexMax 6
 

@@ -27,7 +27,7 @@
 #include "bitboard.hpp"
 #include "bitboard_constants.hpp"
 #include "chess_piece.h"
-#include "defines.h"
+#include "defines.hpp"
 #include "intrinsics.hpp"
 #include "king_pin_threats.hpp"
 #include "notation.h"

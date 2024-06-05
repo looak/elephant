@@ -19,7 +19,7 @@
 #include <optional>
 #include <vector>
 
-#include "defines.h"
+#include "defines.hpp"
 #include "evaluation_table.hpp"
 #include "move.h"
 #include "transposition_table.hpp"

@@ -1,6 +1,6 @@
 ﻿#include "chessboard.h"
 #include "bitboard_constants.hpp"
-#include "defines.h"
+#include "defines.hpp"
 #include "hash_zorbist.h"
 #include "intrinsics.hpp"
 #include "log.h"

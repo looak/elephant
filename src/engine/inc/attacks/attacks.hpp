@@ -3,7 +3,7 @@
 #include <array>
 
 #include "bitboard_constants.hpp"
-#include "defines.h"
+#include "defines.hpp"
 #include "intrinsics.hpp"
 #include "magic_constants.hpp"
 

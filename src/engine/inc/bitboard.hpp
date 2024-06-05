@@ -18,7 +18,7 @@
 
 #include "bitboard_constants.hpp"
 #include "chess_piece_defines.hpp"
-#include "defines.h"
+#include "defines.hpp"
 #include "intrinsics.hpp"
 
 template<typename T>

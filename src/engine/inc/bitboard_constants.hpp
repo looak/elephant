@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include "defines.h"
+#include "defines.hpp"
 
 namespace shifts {
 static constexpr i8 horizontal = 1;

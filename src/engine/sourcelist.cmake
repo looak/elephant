@@ -1,4 +1,4 @@
-﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -12,7 +12,7 @@ configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/e
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ${ENGINE_INC_DIR}/elephant_gambit.h
 ${ENGINE_INC_DIR}/elephant_gambit_config.h
-${ENGINE_INC_DIR}/defines.h
+${ENGINE_INC_DIR}/defines.hpp
 ${ENGINE_INC_DIR}/libpopcnt.h
 
 ${ENGINE_INC_DIR}/attacks/attacks.hpp

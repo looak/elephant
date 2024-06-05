@@ -16,7 +16,7 @@
 
 #pragma once
 #include <string>
-#include "defines.h"
+#include "defines.hpp"
 
 struct Notation {
     static Notation BuildPosition(byte file, byte rank);

@@ -1,5 +1,5 @@
 #pragma once
-#include "defines.h"
+#include "defines.hpp"
 #include "log.h"
 #include "move.h"
 
