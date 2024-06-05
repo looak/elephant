@@ -83,8 +83,7 @@ public:
         return attkMask;
     }
 
-    constexpr std::array<std::array<u64, 4096>, 64> generateRookTable() {
-        std::array<std::array<u64, 4096>, 64> result{};
+    constexpr void generateRookTable(std::array<std::array<u64, 4096>, 64>& result) {
         for (u8 sqr = 0; sqr < 64; ++sqr) {
 
             u64 attkMask = tables::rookAttacks[sqr];
@@ -96,11 +95,9 @@ public:
                 result[sqr][magicIndex] = generateRookAttackMask<true>(occupancy, sqr);
             }
         }
-        return result;
     }
 
-    constexpr std::array<std::array<u64, 1024>, 64> generateBishopTable() {
-        std::array<std::array<u64, 1024>, 64> bishopAttacksTable{};
+    constexpr void generateBishopTable(std::array<std::array<u64, 1024>, 64>& result) {
         for (u8 sqr = 0; sqr < 64; ++sqr) {
 
             u64 attkMask = tables::bishopAttacks[sqr];
@@ -109,10 +106,9 @@ public:
             for (u64 i = 0; i < occupancyVariations; ++i) {
                 u64 occupancy = intrinsics::pdep(i, attkMask);
                 u64 magicIndex = (occupancy * magics::constants::bishop[sqr]) >> (magics::constants::bishop_shifts[sqr]);
-                bishopAttacksTable[sqr][magicIndex] = generateBishopAttackMask<true>(occupancy, sqr);
+                result[sqr][magicIndex] = generateBishopAttackMask<true>(occupancy, sqr);
             }
         }
-        return bishopAttacksTable;
     }
 
     static tables instance;
@@ -120,10 +116,10 @@ public:
     tables()
         : rookAttacks(generateRookAttackTable())
         , bishopAttacks(generateBishopAttackTable())
-        , rookAttacksTable(generateRookTable())
-        , bishopAttacksTable(generateBishopTable())
-    { }
-
+    {
+        generateRookTable(rookAttacksTable);
+        generateBishopTable(bishopAttacksTable);
+    }
 
 public:
     static const tables& get() {

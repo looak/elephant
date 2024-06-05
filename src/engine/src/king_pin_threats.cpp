@@ -1,4 +1,5 @@
 #include "king_pin_threats.hpp"
+#include "attacks/attacks.hpp"
 #include "position.hpp"
 
 KingPinThreats::KingPinThreats() :
@@ -293,40 +294,18 @@ template void KingPinThreats::evaluate<Set::BLACK>(Square, const Position&, cons
 template<Set op>
 void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, const Position& position)
 {
-    const byte moveCount = ChessPieceDef::MoveCount(kingId);
     const Bitboard opMaterial = position.readMaterial().combine<op>();
     constexpr Set us = opposing_set<op>();
     const Bitboard usMaterial = position.readMaterial().combine<us>();
+    const Bitboard allMaterial = usMaterial | opMaterial;
 
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        byte curSqr = *kingSquare;
-        signed short dir = ChessPieceDef::Moves0x88(kingId, moveIndx);
-        bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
-        Bitboard* openAnglePtr = &m_opponentOpenAngles[diagonal];
-        bool openAngle = true;
+    u64 diagonals = attacks::getBishopAttacks(*kingSquare, allMaterial.read());
+    diagonals &= ~usMaterial.read();
+    m_opponentOpenAngles[1] = diagonals;
 
-        do {
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                break;
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-
-            if (usMaterial & sqrMask)
-                break;  // break since we don't want to add this square to our open angle mask.
-            else if (opMaterial & sqrMask)
-                openAngle = false;  // flip bool since we want this square in our open angle mask.
-
-            *openAnglePtr |= sqrMask;
-
-        } while (openAngle);
-    }
+    u64 orthogonals = attacks::getRookAttacks(*kingSquare, allMaterial.read());
+    orthogonals &= ~usMaterial.read();
+    m_opponentOpenAngles[0] = orthogonals;
 }
 
 template void KingPinThreats::calculateOpponentOpenAngles<Set::WHITE>(Square, const Position&);
