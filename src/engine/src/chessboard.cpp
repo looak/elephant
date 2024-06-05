@@ -488,15 +488,6 @@ Chessboard::calculateThreatenedMask(Set set) const
     return mask;
 }
 
-SlidingMaterialMasks
-Chessboard::readSlidingMaterialMask(Set set) const
-{
-    if (set == Set::BLACK)
-        return m_position.calcMaterialSlidingMasksBulk<Set::BLACK>();
-
-    return m_position.calcMaterialSlidingMasksBulk<Set::WHITE>();
-}
-
 bool
 Chessboard::setEnPassant(Notation notation)
 {

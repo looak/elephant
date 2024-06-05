@@ -27,7 +27,7 @@ struct KingPinThreats {
     // [[nodiscard]] const Bitboard* readThreatenedAngles() const { return &m_threatenedAngles[0]; }
 
     template<Set us>
-    void evaluate(Square kingSquare, const Position& position, const SlidingMaterialMasks& opponentSlidingMask);
+    void evaluate(Square kingSquare, const Position& position);
 
     template<Set op>
     void calculateOpponentOpenAngles(const Square kingSquare, const Position& position);

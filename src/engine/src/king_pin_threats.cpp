@@ -1,6 +1,7 @@
 #include "king_pin_threats.hpp"
 #include "attacks/attacks.hpp"
 #include "position.hpp"
+#include "rays/rays.hpp"
 
 KingPinThreats::KingPinThreats() :
     m_specialEnPassantMask(0),
@@ -155,72 +156,64 @@ template void KingPinThreats::calculateEnPassantPinThreat<Set::WHITE>(Square, co
 template void KingPinThreats::calculateEnPassantPinThreat<Set::BLACK>(Square, const Position&);
 
 template<Set us>
-void KingPinThreats::evaluate(Square kingSquare, const Position& position,
-    const SlidingMaterialMasks& opponentSlidingMask)
+void KingPinThreats::evaluate(Square kingSquare, const Position& position)
 {
-    byte moveCount = ChessPieceDef::MoveCount(kingId);
-
     constexpr Set op = opposing_set<us>();
-
-    //const Set opSet = ChessPiece::FlipSet(us);
-
     const Bitboard diagonalMaterial = position.readMaterial().bishops<op>() | position.readMaterial().queens<op>();
     const Bitboard orthogonalMaterial = position.readMaterial().rooks<op>() | position.readMaterial().queens<op>();
     const Bitboard usMaterial = position.readMaterial().combine<us>();
     const Bitboard opMaterial = position.readMaterial().combine<op>();
-    const Bitboard allMaterial = usMaterial | opMaterial;
 
-    const Bitboard slideMatCache[2]{ opponentSlidingMask.orthogonal & orthogonalMaterial,
-                                    opponentSlidingMask.diagonal & diagonalMaterial };
+    // clear threatened angles
+    for (u8 i = 0; i < 8; ++i) {
+        m_threatenedAngles[i] = 0;
+        m_checkedAngles[i] = false;
+    }
+    u8 threatIndex = 0;
 
-    u8 matCount = 0;
-    bool threatened = (!diagonalMaterial.empty() || !orthogonalMaterial.empty());
-    const bool threatenedReset = threatened;
+    Bitboard kingRays = attacks::getRookAttacks(*kingSquare, opMaterial.read());
+    Bitboard potentialPinsAndCheckers = kingRays & orthogonalMaterial;
 
-    for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-        matCount = 0;
-        threatened = threatenedReset;
+    while (potentialPinsAndCheckers.empty() == false) {
+        u32 potentialChecker = potentialPinsAndCheckers.popLsb();
 
-        byte curSqr = *kingSquare;
-        signed short dir = ChessPieceDef::Moves0x88(kingId, moveIndx);
+        Bitboard ray = ray::getRay(*kingSquare, potentialChecker);
+        if (ray.empty())
+            continue;
 
-        m_threatenedAngles[moveIndx] = ~universe;
+        int pinCount = (ray & usMaterial).count();
 
-        bool diagonal = ChessPieceDef::IsDiagonalMove(dir);
-        Bitboard slideMat = slideMatCache[diagonal];
 
-        Bitboard mvMask = 0;
-        do {
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-                break;
+        if (pinCount == 0) {
+            m_threatenedAngles[threatIndex] = ray;
+            m_checkedAngles[threatIndex] = true;
+            threatIndex++;
+        }
+        else if (pinCount == 1) {
+            m_threatenedAngles[threatIndex] = ray;
+            threatIndex++;
+        }
+    }
 
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
+    kingRays = attacks::getBishopAttacks(*kingSquare, opMaterial.read());
+    potentialPinsAndCheckers = kingRays & diagonalMaterial;
+    while (potentialPinsAndCheckers.empty() == false) {
+        u32 potentialChecker = potentialPinsAndCheckers.popLsb();
 
-            mvMask |= sqrMask;
+        Bitboard ray = ray::getRay(*kingSquare, potentialChecker);
+        if (ray.empty())
+            continue;
 
-            if (allMaterial & sqrMask)
-                matCount++;  // increment mat count since we found a piece on this square.
-            if (slideMat & sqrMask)
-                break; // (mvMask & slideMat).count() == 0 
+        int pinCount = (ray & usMaterial).count();
 
-        } while (matCount < 2);
-
-        // comparing against two here since we'll find the sliding piece causing the pin
-        // and at least one piece in between our king and this piece. This found piece isn't
-        // necessarily pinned, unless there are no more pieces between king and sliding piece,
-        // in that case they are pinned.
-        if (mvMask & slideMat && matCount <= 2) {
-            m_threatenedAngles[moveIndx] |= mvMask;
-            if (matCount == 1) {
-                m_checkedAngles[moveIndx] = true;
-            }
+        if (pinCount == 0) {
+            m_threatenedAngles[threatIndex] = ray;
+            m_checkedAngles[threatIndex] = true;
+            threatIndex++;
+        }
+        else if (pinCount == 1) {
+            m_threatenedAngles[threatIndex] = ray;
+            threatIndex++;
         }
     }
 
@@ -229,33 +222,13 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position,
     m_knightsAndPawns = ~universe;
     if (knightMat > 0) {
         // figure out if we're checked by a knight
-        moveCount = ChessPieceDef::MoveCount(knightId);
+        Bitboard knightAttacks = attacks::getKnightAttacks(*kingSquare);
+        Bitboard knights = position.readMaterial().knights<op>();
+        Bitboard mvMask = knightAttacks & knights;
 
-        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-            byte curSqr = *kingSquare;
-            signed short dir = ChessPieceDef::Moves0x88(knightId, moveIndx);
-
-            u64 mvMask = 0;
-
-            // build a 0x88 square out of current square.
-            signed char sq0x88 = to0x88(curSqr);
-            // do move
-            sq0x88 += dir;
-            if (sq0x88 & 0x88)  // validate move, are we still on the board?
-            {
-                continue;
-            }
-
-            // convert our sqr0x88 back to a square index
-            curSqr = fr0x88(sq0x88);
-            // build a square mask from current square
-            u64 sqrMask = squareMaskTable[curSqr];
-            mvMask |= sqrMask;
-
-            if (mvMask & knightMat) {
-                m_knightsAndPawns |= mvMask;
-                m_knightOrPawnCheck = true;
-            }
+        if (mvMask.empty() == false) {
+            m_knightsAndPawns = mvMask;
+            m_knightOrPawnCheck = true;
         }
     }
 
@@ -288,8 +261,8 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position,
     calculateEnPassantPinThreat<us>(kingSquare, position);
 }
 
-template void KingPinThreats::evaluate<Set::WHITE>(Square, const Position&, const SlidingMaterialMasks&);
-template void KingPinThreats::evaluate<Set::BLACK>(Square, const Position&, const SlidingMaterialMasks&);
+template void KingPinThreats::evaluate<Set::WHITE>(Square, const Position&);
+template void KingPinThreats::evaluate<Set::BLACK>(Square, const Position&);
 
 template<Set op>
 void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, const Position& position)

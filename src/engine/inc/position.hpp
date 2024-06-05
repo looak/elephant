@@ -198,9 +198,6 @@ public:
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
 
     template<Set us>
-    SlidingMaterialMasks calcMaterialSlidingMasksBulk() const;
-
-    template<Set us>
     Bitboard calcThreatenedSquaresPawnBulk() const;
     template<Set us>
     Bitboard calcThreatenedSquaresKnightBulk() const;
@@ -344,9 +341,7 @@ Position::internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard ma
 }
 
 template<Set us, bool includeMaterial, bool pierceKing>
-Bitboard
-Position::calcThreatenedSquares() const
-{
+Bitboard Position::calcThreatenedSquares() const {
     Bitboard result = ~universe;
     [[maybe_unused]] constexpr Set op = opposing_set<us>();
     [[maybe_unused]] Bitboard kingMask = 0;
@@ -374,20 +369,6 @@ Position::calcThreatenedSquares() const
         result |= m_materialMask.combine<us>();
 
     return result;
-}
-
-template<Set us>
-SlidingMaterialMasks
-Position::calcMaterialSlidingMasksBulk() const
-{
-    Bitboard orthogonal = calcThreatenedOrthogonals<us>();
-    Bitboard diagonal = calcThreatenedDiagonals<us>();
-
-    // add material
-    diagonal |= m_materialMask.bishops<us>() | m_materialMask.queens<us>();
-    orthogonal |= m_materialMask.rooks<us>() | m_materialMask.queens<us>();
-
-    return { orthogonal, diagonal };
 }
 
 template<Set us, u8 pieceId>

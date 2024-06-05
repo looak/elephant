@@ -9,11 +9,12 @@
 #include "game_context.h"
 #include "log.h"
 
-
 #include <iostream>
 #include <list>
 #include <sstream>
 #include <string>
+
+
 
 Application::Application()
 {

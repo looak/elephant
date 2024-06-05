@@ -32,6 +32,7 @@ ${SRC_DIR}/move_generator_test.cpp
 ${SRC_DIR}/perft_test.cpp
 ${SRC_DIR}/piece_test.cpp
 ${SRC_DIR}/position_test.cpp
+${SRC_DIR}/rays_test.cpp
 ${SRC_DIR}/search_test.cpp
 ${SRC_DIR}/search_cases.hpp
 ${SRC_DIR}/transposition_test.cpp
