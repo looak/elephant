@@ -201,7 +201,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
     }
 
     // initialize the move generator.
-    MoveGenerator generator(context.game, context.game.editTranspositionTable());
+    MoveGenerator generator(context.game, context.game.editTranspositionTable(), *this, ply);
     auto prioratized = generator.generateNextMove();
 
     // if there are no moves to make, we're either in checkmate or stalemate.
@@ -256,6 +256,10 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
 
             if (beta <= alpha) {
                 entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), beta, ply, depth, TTF_CUT_BETA);
+                if (prioratized.move.isCapture() == false)
+                    pushKillerMove(prioratized.move, ply);
+
+                putHistoryHeuristic(static_cast<u8>(chessboard.readToPlay()), prioratized.move.source(), prioratized.move.target(), depth);
                 break;
             }
         }
@@ -269,7 +273,6 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
 }
 
 i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
-
     MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
     generator.generate();
 
@@ -314,12 +317,8 @@ bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 dept
     // should return false if we want to abort our search.
     // how do we manage time?
     // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = timeInc + (timeleft / 24);  // at 5min this is 12 seconds.
+    const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
     if (elapsedTime > c_maxTimeAllowed) {
-        // if score is negative we continue looking one more depth.
-        // if (score < 0 && timeleft > (c_maxTimeAllowed * 6))
-        //     return true;
-        // else
         return false;
     }
     else {
@@ -376,11 +375,43 @@ i32 Search::Extension(const Chessboard&, const PrioratizedMove& prioratized, u32
     return 0;
 }
 
+void Search::clear() {
+    for (u32 i = 0; i < 2; ++i) {
+        for (u32 j = 0; j < 64; ++j) {
+            for (u32 k = 0; k < 64; ++k) {
+                m_historyHeuristic[i][j][k] = 0;
+            }
+        }
+    }
+    for (u32 i = 0; i < 4; ++i) {
+        for (u32 j = 0; j < 64; ++j) {
+            m_killerMoves[i][j] = PackedMove::NullMove();
+        }
+    }
+}
+
+bool Search::isKillerMove(PackedMove move, u32 ply) const {
+    const PackedMove* movesAtPly = &m_killerMoves[0][ply];
+    return movesAtPly[0] == move || movesAtPly[1] == move || movesAtPly[2] == move || movesAtPly[3] == move;
+}
+
+u32 Search::getHistoryHeuristic(u8 set, u8 src, u8 dst) const {
+    return m_historyHeuristic[set][src][dst];
+}
+
 void Search::pushKillerMove(PackedMove mv, u32 ply) {
     PackedMove* movesAtPly = &m_killerMoves[0][ply];
+
+    // don't fill the killer move list with the same move.
+    if (movesAtPly[0] == mv || movesAtPly[1] == mv || movesAtPly[2] == mv || movesAtPly[3] == mv)
+        return;
 
     movesAtPly[3] = movesAtPly[2];
     movesAtPly[2] = movesAtPly[1];
     movesAtPly[1] = movesAtPly[0];
     movesAtPly[0] = mv;
+}
+
+void Search::putHistoryHeuristic(u8 set, u8 src, u8 dst, u32 depth) {
+    m_historyHeuristic[set][src][dst] += depth * depth;
 }

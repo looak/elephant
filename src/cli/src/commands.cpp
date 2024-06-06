@@ -324,7 +324,7 @@ AvailableMovesCommand(std::list<std::string>&, GameContext& context)
     Search search;
     SearchParameters params;
     params.SearchDepth = 1;
-    params.QuiescenceDepth = 2;
+    //params.QuiescenceDepth = 2;
     Evaluator evaluator;
 
     moveGen.forEachMove([&](const PrioratizedMove& pm) {

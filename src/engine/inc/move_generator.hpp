@@ -23,6 +23,7 @@
 #include "position.hpp"
 
 class GameContext;
+class Search;
 
 enum class MoveTypes {
     ALL,
@@ -35,14 +36,15 @@ namespace move_generator_constants {
 // higher value means higher priority
 constexpr u16 capturePriority = 1000;
 constexpr u16 promotionPriority = 2000;
-constexpr u16 checkPriority = 500;
+constexpr u16 checkPriority = 900;
 constexpr u16 pvMovePriority = 5000;
+constexpr u16 killerMovePriority = 800;
 } // namespace move_generator_constants
 
 class MoveGenerator {
 public:
     MoveGenerator(const GameContext& context);
-    MoveGenerator(const GameContext& context, const TranspositionTable& tt);
+    MoveGenerator(const GameContext& context, const TranspositionTable& tt, const Search& search, u32 ply);
     MoveGenerator(const Position& pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
     ~MoveGenerator() = default;
 
@@ -87,13 +89,15 @@ private:
     template<Set set>
     void internalGenerateKingMoves();
 
-    void genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
+    void genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
 
     void sortMoves();
 
     Set m_toMove;
     const Position& m_position;
     const TranspositionTable* m_tt;
+    const Search* m_search;
+    const u32 m_ply;
     u64 m_hashKey;
 
     bool m_movesGenerated;

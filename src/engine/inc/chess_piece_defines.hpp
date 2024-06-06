@@ -55,6 +55,11 @@ opposing_set()
     return Set::WHITE;
 }
 
+constexpr u8
+opposing_set(u8 set) {
+    return set ^ 1;
+}
+
 template<Set s>
 constexpr i8 pawn_modifier()
 {

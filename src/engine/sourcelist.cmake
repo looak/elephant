@@ -45,7 +45,7 @@ ${ENGINE_INC_DIR}/uci.hpp
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ${ENGINE_SRC_DIR}/elephant_gambit.cpp
 
-${ENGINE_INC_DIR}/attacks/attacks.cpp
+${ENGINE_SRC_DIR}/attacks.cpp
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp
 ${ENGINE_SRC_DIR}/chess_piece.cpp
@@ -62,7 +62,7 @@ ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
 ${ENGINE_SRC_DIR}/position.cpp
-${ENGINE_INC_DIR}/rays/rays.cpp 
+${ENGINE_SRC_DIR}/rays.cpp 
 ${ENGINE_SRC_DIR}/search.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 )
