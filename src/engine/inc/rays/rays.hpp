@@ -9,7 +9,7 @@ namespace internals {
 void initialize();
 
 constexpr std::array<std::array<u64, 64>, 64> computeRays() {
-    std::array<std::array<u64, 64>, 64> raysTable;
+    std::array<std::array<u64, 64>, 64> raysTable{};
 
     for (u8 from = 0; from < 64; ++from) {
         for (u8 to = 0; to < 64; ++to) {

@@ -103,7 +103,7 @@ namespace internals {
     }
 
     constexpr std::array<u64, 64> generateKnightAttackTable() {
-        std::array<u64, 64> knightAttacks;
+        std::array<u64, 64> knightAttacks{};
         for (u8 sqr = 0; sqr < 64; ++sqr)
             knightAttacks[sqr] = generateKnightAttackMask(sqr);
 
@@ -111,7 +111,7 @@ namespace internals {
     }
 
     constexpr std::array<u64, 64> generateRookAttackTable() {
-        std::array<u64, 64> rookAttacks;
+        std::array<u64, 64> rookAttacks{};
         for (u8 sqr = 0; sqr < 64; ++sqr)
             rookAttacks[sqr] = generateRookAttackMask(sqr, 0);
 
@@ -119,7 +119,7 @@ namespace internals {
     }
 
     constexpr std::array<u64, 64> generateBishopAttackTable() {
-        std::array<u64, 64> bishopAttacks;
+        std::array<u64, 64> bishopAttacks{};
         for (u8 sqr = 0; sqr < 64; ++sqr)
             bishopAttacks[sqr] = generateBishopAttackMask(sqr, 0);
 

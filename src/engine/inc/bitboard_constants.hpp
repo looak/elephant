@@ -102,7 +102,7 @@ static constexpr u64 queenSideCastleMask = board_constants::filecMask;
 static constexpr u64 kingSideCastleMask = board_constants::filegMask;
 }  // namespace king_constants
 
-consteval std::array<u64, 64>
+constexpr std::array<u64, 64>
 generateSquareLookupTable()
 {
     std::array<u64, 64> result{};
