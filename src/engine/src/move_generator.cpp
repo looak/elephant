@@ -44,15 +44,14 @@ MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTabl
     initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
 }
 
-PackedMove
-MoveGenerator::generateNextMove()
-{
+PrioratizedMove
+MoveGenerator::generateNextMove() {
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++].move;
+        return m_movesBuffer[m_currentMoveIndx++];
     }
 
     if (m_movesGenerated)
-        return PackedMove::NullMove();
+        return { PackedMove::NullMove(), 0 };
 
     if (m_toMove == Set::WHITE) {
         return generateNextMove<Set::WHITE>();
@@ -60,7 +59,7 @@ MoveGenerator::generateNextMove()
     else {
         return generateNextMove<Set::BLACK>();
     }
-    return PackedMove::NullMove();
+    return { PackedMove::NullMove(), 0 };
 }
 
 void
@@ -73,13 +72,11 @@ MoveGenerator::generate()
 }
 
 template<Set set>
-PackedMove
-MoveGenerator::generateNextMove()
-{
+PrioratizedMove MoveGenerator::generateNextMove() {
     const size_t setIndx = static_cast<size_t>(set);
     if (m_moveMasks[setIndx].combine().empty()) {
         m_movesGenerated = true;
-        return PackedMove::NullMove();
+        return { PackedMove::NullMove(), 0 };
     }
 
     if (m_movesGenerated == false) {
@@ -101,10 +98,10 @@ MoveGenerator::generateNextMove()
 
     m_movesGenerated = true;
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++].move;
+        return m_movesBuffer[m_currentMoveIndx++];
     }
 
-    return PackedMove::NullMove();
+    return { PackedMove::NullMove(), 0 };
 }
 
 template<Set set>

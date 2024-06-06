@@ -85,7 +85,20 @@ generateManhattanDistances() {
     return result;
 }
 
+constexpr std::array<u64, 64> generateManhattanDistanceFromCenter() {
+    std::array<u64, 64> result{};
+    for (int i = 0; i < 64; ++i)
+    {
+        int rankDiff = (i / 8) - 3;
+        int fileDiff = (i % 8) - 3;
+        result[i] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+    }
+
+    return result;
+}
+
 static constexpr auto manhattanDistances = generateManhattanDistances();
+static constexpr auto manhattanDistanceFromCenter = generateManhattanDistanceFromCenter();
 
 }  // namespace board_constants
 

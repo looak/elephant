@@ -34,7 +34,7 @@ public:
     std::vector<PackedMove> buildMoveVector(MoveGenerator& gen, MovePredicate pred = nullptr) const
     {
         std::vector<PackedMove> result;
-        while (auto mv = gen.generateNextMove()) {
+        while (auto mv = gen.generateNextMove().move) {
             if (pred && !pred(mv))
                 continue;
 
@@ -53,7 +53,7 @@ public:
 TEST_F(MoveGeneratorFixture, Empty)
 {
     MoveGenerator gen(testContext);
-    PackedMove move = gen.generateNextMove();
+    PackedMove move = gen.generateNextMove().move;
     EXPECT_EQ(0, move.read());
     EXPECT_EQ(PackedMove::NullMove(), move);
 }

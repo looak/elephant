@@ -1,7 +1,7 @@
-option(DEBUG_TRANSITION_TABLE "Enable debug output for transition table" OFF)
-option(DEBUG_LOGGING_ENABLED "Enable debug logging" OFF)
-option(LOGGING_ENABLED "Enable logging" ON)
-option(FATAL_ASSERTS_ENABLED "Enable fatal assert" OFF)
+set(DEBUG_TRANSITION_TABLE OFF CACHE STRING "Enable debug output for transition table" FORCE)
+set(DEBUG_LOGGING_ENABLED OFF CACHE STRING "Enable debug logging" FORCE)
+set(LOGGING_ENABLED ON CACHE STRING "Enable logging" FORCE)
+set(FATAL_ASSERTS_ENABLED OFF CACHE STRING "Enable fatal assert" FORCE)
 
 
 set(PRECOMPILE_OPTIONS

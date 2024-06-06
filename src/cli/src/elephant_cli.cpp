@@ -29,7 +29,7 @@ Application::Application()
     MESSAGE() << "                         88";
     MESSAGE() << "                         88                                               *j*m";
     MESSAGE() << "\n                                                            a uci chess engine";
-    MESSAGE() << "                                                                      v: " << ELEPHANT_CLI_VERSION_STR;
+    MESSAGE() << "                                                                      v: " << ELEPHANT_GAMBIT_VERSION_STR;
 
 #ifdef EG_DEBUGGING
     MESSAGE() << "\nEG_DEBUGGING\n v: ";

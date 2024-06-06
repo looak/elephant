@@ -18,21 +18,17 @@ public:
 
 private:
     i32 EvaluateMaterial(const Chessboard& board) const;
-    i32 EvaluateMove(Move move) const;
     i32 EvalutePiecePositions(const Chessboard& board) const;
     i32 EvaluatePawnStructure(const Chessboard& board) const;
     i32 EvaluatePawnManhattanDistance(const Chessboard& board) const;
     i32 EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const;
 
+    i32 MopUpValue(const Chessboard& board, i32 materialScore) const;
 
     template<Set us>
     i32 EvaluatePassedPawn(const Chessboard& board) const;
 
-    struct PawnStructureHashEntry
-    {
-        i32 score;
-        bool passedPawn[8];
-    };
+    template<Set us>
+    i32 MopUpValue(const Chessboard& board, i32 materialScore) const;
 
-    std::unordered_map<u64, PawnStructureHashEntry> m_pawnStructureTable; 
 };

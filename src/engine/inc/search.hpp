@@ -128,6 +128,8 @@ private:
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
 
+
+    i32 Extension(const Chessboard& board, const PrioratizedMove& prioratized, u32 ply) const;
     void pushKillerMove(PackedMove mv, u32 ply);
 
 

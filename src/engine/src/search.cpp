@@ -196,16 +196,16 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
     if (context.cancel() == true || depth <= 0) {
         // at depth zero we start the quiet search to get a better evaluation.
         // this search will try to go as deep as possible until it finds a quiet position.
-        i32 score = QuiescenceNegamax(context, 6, alpha, beta, maximizingPlayer, 1);
+        i32 score = QuiescenceNegamax(context, 4, alpha, beta, maximizingPlayer, 1);
         return { .score = score, .move = PackedMove::NullMove() };
     }
 
     // initialize the move generator.
     MoveGenerator generator(context.game, context.game.editTranspositionTable());
-    auto move = generator.generateNextMove();
+    auto prioratized = generator.generateNextMove();
 
     // if there are no moves to make, we're either in checkmate or stalemate.
-    if (move.isNull()) {
+    if (prioratized.move.isNull()) {
         if (generator.isChecked())
             return { -c_checkmateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
         return { .score = -c_drawConstant, .move = PackedMove::NullMove() };  // we're in stalemate
@@ -223,12 +223,23 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
 
     auto flag = TranspositionFlag::TTF_CUT_EXACT;
 
+    static const i8 depthReductionThreshold = 21;
+    i8 depthReductionCounter = 0;
     do {
-        context.game.MakeMove(move);
-        auto result = AlphaBetaNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
+        u32 extendedDepth = depth; // + Extension(chessboard, prioratized, ply);
+
+        // should implement research on beta cutoffs.
+        if (depthReductionCounter >= depthReductionThreshold && depth > 1)
+            extendedDepth--;
+
+
+        depthReductionCounter++;
+        context.game.MakeMove(prioratized.move);
+        auto result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
         auto eval = -result.score;
         context.nodes++;
         context.game.UnmakeMove();
+
 
         if (context.cancel() == true)
             return { .score = 0, .move = PackedMove::NullMove() };
@@ -236,7 +247,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         if (eval > bestEval)
         {
             bestEval = eval;
-            bestMove = move;
+            bestMove = prioratized.move;
 
             if (eval > alpha) {
                 alpha = eval;
@@ -249,8 +260,8 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
             }
         }
 
-        move = generator.generateNextMove();
-    } while (move.isNull() == false);
+        prioratized = generator.generateNextMove();
+    } while (prioratized.move.isNull() == false);
 
     entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), bestEval, ply, depth, flag);
 
@@ -270,10 +281,10 @@ i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 
     if (eval > alpha)
         alpha = eval;
 
-    auto move = generator.generateNextMove();
+    auto prioratized = generator.generateNextMove();
 
     if (context.cancel() == true
-        || move.isNull()
+        || prioratized.move.isNull()
         || ply >= c_maxSearchDepth
         || (depth <= 0 && generator.isChecked() == false)) {
 
@@ -282,7 +293,7 @@ i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 
 
     i32 maxEval = -c_maxScore;
     do {
-        context.game.MakeMove(move);
+        context.game.MakeMove(prioratized.move);
         i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
         context.nodes++;
         context.game.UnmakeMove();
@@ -293,8 +304,8 @@ i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 
         if (beta <= alpha)
             return beta;
 
-        move = generator.generateNextMove();
-    } while (move.isNull() == false);
+        prioratized = generator.generateNextMove();
+    } while (prioratized.move.isNull() == false);
 
     return maxEval;
 }
@@ -352,6 +363,17 @@ CancelSearchCondition Search::buildCancellationFunction(Set perspective, const S
     return [&]() {
         return true;
         };
+}
+
+i32 Search::Extension(const Chessboard&, const PrioratizedMove& prioratized, u32 ply) const {
+    if (ply >= c_maxSearchDepth)
+        return 0;
+    //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
+    if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
+        return 1;
+    }
+
+    return 0;
 }
 
 void Search::pushKillerMove(PackedMove mv, u32 ply) {

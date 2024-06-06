@@ -86,16 +86,16 @@ constexpr i32 rookPositionTable[64] = {
     -5,   0,   5,  10,  10,   5,   0,  -5,
     -5,   0,   5,  10,  10,   5,   0,  -5,
     -5,   0,   5,  10,  10,   5,   0,  -5,
+    15,  20,  20,  25,  25,  20,  20,  15,
     20,  25,  25,  35,  35,  25,  25,  20,
-     0,   0,   0,  10,  10,   0,   0,   0
 };
 
 constexpr i32 queenPositionTable[64] = {
    -20, -10, -10, -5, -5, -10, -10, -20,
    -10,   0,   0,  0,  0,  0,  0, -10,
    -10,   0,   5,  5,  5,  5,  0, -10,
-    -5,   0,   5,  5,  5,  5,  0,  -5,
-     0,   0,   5,  5,  5,  5,  0,  -5,
+    -5,   0,   5, 10, 10,  5,  0,  -5,
+     0,   0,   5, 10, 10,  5,  0,  -5,
    -10,   5,   5,  5,  5,  5,  0, -10,
    -10,   0,   5,  0,  0,  0,  0, -10
 };
@@ -154,5 +154,16 @@ static constexpr TaperedScore isolatedPawnScore{-25, -50};
 /**
  * Passed pawns are a strong factor in the endgame and something to strive for. */
 static constexpr TaperedScore passedPawnScore{ 25, 100 };
+
+constexpr i32 center_bias[64] = {
+      2,   2,   2,   2,   2,   2,   2,  2,
+      2,   4,   4,   4,   4,   4,   4,  2,
+      2,   4,   8,   8,   8,   8,   4,  2,
+      2,   4,   8,  16,  16,   8,   4,  2,
+      2,   4,   8,  16,  16,   8,   4,  2,
+      2,   4,   8,   8,   8,   8,   4,  2,
+      2,   4,   4,   4,   4,   4,   4,  2,
+      2,   2,   2,   2,   2,   2,   2,  2,
+};
 
 } // namespace evaluator_data

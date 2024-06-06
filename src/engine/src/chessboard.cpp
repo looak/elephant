@@ -557,13 +557,19 @@ Chessboard::end() const
 }
 
 float Chessboard::calculateEndGameCoeficient() const {
+    if (m_moveCount > 64) // if we're past 64 moves, treat the game as end game.
+        return 1.f;
+
+    if (m_position.readMaterial().combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
+        return 1.f;
+
     if (m_endGameCoeficient > 0.1f)
         return m_endGameCoeficient;
 
     static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
         + ChessPieceDef::Value(1) * 4   // knight
         + ChessPieceDef::Value(2) * 4   // bishop
-        + ChessPieceDef::Value(3) * 4   // rook
+        + ChessPieceDef::Value(3) * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
         + ChessPieceDef::Value(4) * 2;  // queens
 
     // check if we have promoted a pawn because that will screw with this endgame coeficient

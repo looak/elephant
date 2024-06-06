@@ -46,7 +46,7 @@ public:
     MoveGenerator(const Position& pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
     ~MoveGenerator() = default;
 
-    PackedMove generateNextMove();
+    PrioratizedMove generateNextMove();
     void forEachMove(std::function<void(const PrioratizedMove&)> func) const;
     void generate();
 
@@ -62,7 +62,7 @@ private:
     void initializeMoveMasks(MaterialMask& target, PieceType ptype);
 
     template<Set set>
-    PackedMove generateNextMove();
+    PrioratizedMove generateNextMove();
 
     template<Set set>
     void generateAllMoves();
