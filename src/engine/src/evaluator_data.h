@@ -153,6 +153,6 @@ static constexpr TaperedScore isolatedPawnScore{-25, -50};
 
 /**
  * Passed pawns are a strong factor in the endgame and something to strive for. */
-static constexpr TaperedScore passedPawnScore{50, 200};
+static constexpr TaperedScore passedPawnScore{ 25, 100 };
 
 } // namespace evaluator_data

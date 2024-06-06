@@ -36,7 +36,8 @@ struct MoveUndoUnit {
         capturedPiece(),
         castlingState(),
         enPassantState(),
-        hash(0)
+        hash(0),
+        plyCount(0)
     {
     }
     PackedMove move;
@@ -45,6 +46,7 @@ struct MoveUndoUnit {
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
     u64 hash;
+    short plyCount;
 };
 
 /**
@@ -162,6 +164,7 @@ public:
     }
     Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
     void setToPlay(Set set);
+    short readAge() const { return m_age; }
 
     std::string toString() const;
 
@@ -202,6 +205,8 @@ private:
     bool m_isWhiteTurn;
     short m_moveCount;
     short m_plyCount;
+    short m_age;
+    mutable float m_endGameCoeficient;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];

@@ -114,5 +114,3 @@ generateSquareLookupTable()
 /**
  * Lookup table for per-square 64bit masks. Will match the Square class enum     */
 static constexpr auto squareMaskTable = generateSquareLookupTable();
-
-

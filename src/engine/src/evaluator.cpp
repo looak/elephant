@@ -155,9 +155,76 @@ Evaluator::EvalutePiecePositions(const Chessboard& board) const
     return score;
 }
 
-i32
-Evaluator::EvaluatePawnStructure(const Chessboard& board)
-{
+// idea is that keeping the pawns closer together is better.
+i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
+    i32 result = 0;
+    const auto& material = board.readPosition().readMaterial();
+    Bitboard whitePawns = material.whitePawns();
+
+    i32 distance = 0;
+    while (whitePawns.empty() == false) {
+        i32 whitePawnSqr = whitePawns.popLsb();
+        Bitboard otherPawns = material.whitePawns();
+        while (otherPawns.empty() == false) {
+            i32 otherPawn = otherPawns.popLsb();
+            distance += board_constants::manhattanDistances[whitePawnSqr][otherPawn];
+        }
+    }
+
+    result -= distance;
+    distance = 0;
+    Bitboard blackPawns = material.blackPawns();
+    while (blackPawns.empty() == false) {
+        i32 blackPawnSqr = blackPawns.popLsb();
+        Bitboard otherPawns = material.blackPawns();
+        while (otherPawns.empty() == false) {
+            i32 otherPawn = otherPawns.popLsb();
+            distance += board_constants::manhattanDistances[blackPawnSqr][otherPawn];
+        }
+    }
+
+    result += distance;
+    return result;
+}
+
+template<Set us>
+i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
+    i32 result = 0;
+    Bitboard usPawns = board.readPosition().readMaterial().pawns<us>();
+    Bitboard opPawns = board.readPosition().readMaterial().pawns<opposing_set<us>()>();
+    const size_t usIndx = static_cast<size_t>(us);
+
+    while (usPawns.empty() == false) {
+        i32 pawnSqr = usPawns.popLsb();
+        Bitboard pawnMask = squareMaskTable[pawnSqr];
+
+        pawnMask = pawnMask.shiftNorthRelative<us>();
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+            pawnMask |= pawnMask.shiftWestRelative<us>();
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+            pawnMask |= pawnMask.shiftEastRelative<us>();
+
+        while ((pawnMask & board_constants::boundsRelativeMasks[usIndx][north]).empty()) {
+            pawnMask |= pawnMask.shiftNorthRelative<us>();
+        }
+
+        if ((pawnMask & opPawns).empty()) {
+            result += evaluator_data::passedPawnScore * board.calculateEndGameCoeficient();
+        }
+    }
+
+    if constexpr (us == Set::WHITE) {
+        return result;
+    }
+    else {
+        return -result;
+    }
+}
+
+template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&) const;
+template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&) const;
+
+i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
     i32 result = 0;
     float egCoeficient = board.calculateEndGameCoeficient();
 
@@ -171,79 +238,10 @@ Evaluator::EvaluatePawnStructure(const Chessboard& board)
             (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
         result -= (evaluator_data::doubledPawnScore * egCoeficient) *
             (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
-
-    //     // build neighbour files mask
-    //     u64 neighbourMask = 0;
-    //     if (idx > 0)
-    //         neighbourMask |= board_constants::fileMasks[idx - 1];
-    //     if (idx < 7)
-    //         neighbourMask |= board_constants::fileMasks[idx + 1];
-
-    //     if (whitePawns & board_constants::fileMasks[idx]) {
-    //         // figure out if pawn is isolated
-    //         if ((whitePawns & neighbourMask) == 0) {
-    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
-    //         }
-
-    //         // figure out if pawn is passed
-    //         if ((blackPawns & board_constants::fileMasks[idx]) == 0) {
-    //             u64 opposingNeighbours = blackPawns.read() & neighbourMask;
-    //             if (opposingNeighbours == 0) {
-    //                 result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //             else {
-    //                 i32 pawnSqr = intrinsics::msbIndex(whitePawns.read() & board_constants::fileMasks[idx]);
-    //                 if (EvaluatePassedPawn<std::less<i32>>(board, pawnSqr, opposingNeighbours))
-    //                     result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //         }
-    //     }
-
-    //     if (blackPawns & board_constants::fileMasks[idx]) {
-    //         // figure out if pawn is isolated
-    //         if (blackPawns & neighbourMask) {
-    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
-    //         }
-
-    //         // figure out if pawn is passed
-    //         if ((whitePawns & board_constants::fileMasks[idx]) == 0) {
-    //             u64 opposingNeighbours = whitePawns.read() & neighbourMask;
-    //             if (opposingNeighbours == 0) {
-    //                 result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //             else {
-    //                 i32 pawnSqr = intrinsics::lsbIndex(blackPawns.read() & board_constants::fileMasks[idx]);
-    //                 if (EvaluatePassedPawn<std::greater<i32>>(board, pawnSqr, opposingNeighbours))
-    //                     result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //         }
-    //     }
     }
 
+    result += EvaluatePawnManhattanDistance(board);
+    result += EvaluatePassedPawn<Set::WHITE>(board);
+    result += EvaluatePassedPawn<Set::BLACK>(board);
     return result;
 }
-
-// template<Set set>
-// i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) {
-//     int perspective = 0;
-//     if constexpr (set == Set::WHITE) {
-//         perspective = 1;
-//     }
-//     else {
-//         perspective = -1;
-//     }
-
-//     Bitboard pawns = board.readPosition().readMaterial().pawns<us>();
-
-//     while (pawns.empty() == false) {
-//         i32 pawnSqr = pawns.popLsb();
-//         Bitboard pawnMask = squareMaskTable[pawnSqr];
-
-//         pawnMask = pawnMask.shiftNorthRelative<set>();
-//     }
-
-
-// }
-
-// template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&);
-// template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&);

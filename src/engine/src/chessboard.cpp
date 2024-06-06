@@ -15,7 +15,9 @@ Chessboard::Chessboard() :
     m_hash(0),
     m_isWhiteTurn(true),
     m_moveCount(1),
-    m_plyCount(0)
+    m_plyCount(0),
+    m_age(0),
+    m_endGameCoeficient(0.f)
 {
     m_kings[0].first = ChessPiece::None();
     m_kings[0].second = Notation();
@@ -27,7 +29,9 @@ Chessboard::Chessboard(const Chessboard& other) :
     m_hash(other.readHash()),
     m_isWhiteTurn(other.m_isWhiteTurn),
     m_moveCount(other.m_moveCount),
-    m_plyCount(other.m_plyCount)
+    m_plyCount(other.m_plyCount),
+    m_age(other.m_age),
+    m_endGameCoeficient(other.m_endGameCoeficient)
 {
     m_kings[0].first = other.m_kings[0].first;
     m_kings[0].second = Notation(other.m_kings[0].second);
@@ -117,6 +121,8 @@ Chessboard::MakeMove(const PackedMove move)
     MoveUndoUnit undoState;
     undoState.move = move;
     undoState.hash = m_hash;
+    undoState.plyCount = m_plyCount;
+    m_endGameCoeficient = 0.f;
 
     auto piece = m_position.readPieceAt(move.sourceSqr());
     undoState.movedPiece = piece;
@@ -156,6 +162,7 @@ Chessboard::MakeMove(const PackedMove move)
 
     // since capture will reset this to 0, we need to increment it here.
     m_plyCount++;
+    m_age++;
 
     if (move.isCapture())
         InternalHandleCapture(move, captureTarget, undoState);
@@ -232,6 +239,8 @@ Chessboard::UnmakeMove(const MoveUndoUnit& undoState)
     m_hash = undoState.hash;  // this should be calculated and not just overwritten?
     m_moveCount -= (short)m_isWhiteTurn;
     m_isWhiteTurn = !m_isWhiteTurn;
+    m_plyCount = undoState.plyCount;
+    m_age--;
 
     return true;
 }
@@ -547,9 +556,10 @@ Chessboard::end() const
     return Chessboard::ConstIterator(*this, Notation(s_endPos));
 }
 
-float
-Chessboard::calculateEndGameCoeficient() const
-{
+float Chessboard::calculateEndGameCoeficient() const {
+    if (m_endGameCoeficient > 0.1f)
+        return m_endGameCoeficient;
+
     static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
         + ChessPieceDef::Value(1) * 4   // knight
         + ChessPieceDef::Value(2) * 4   // bishop
@@ -577,5 +587,6 @@ Chessboard::calculateEndGameCoeficient() const
 
     float coeficient = 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
     coeficient += countCoeficient;
-    return std::min(coeficient, 1.f);
+    m_endGameCoeficient = std::min(coeficient, 1.f);
+    return m_endGameCoeficient;
 }

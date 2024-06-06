@@ -155,6 +155,11 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
         auto itrResult = CalculateBestMoveIterration(searchContext, itrDepth);
         clock.Stop();
 
+        bool cancelled = cancellationFunc();
+        if (cancelled) {
+            itrResult = result;
+        }
+
         ReportSearchResult(searchContext, itrResult, params.SearchDepth, itrDepth, nodeCount, clock);
         if (itrResult.ForcedMate) {
 #ifdef DEBUG_TRANSITION_TABLE
@@ -163,7 +168,7 @@ SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters pa
             return itrResult;
         }
 
-        if (cancellationFunc() == true)
+        if (cancelled == true)
             break;
 
         result = itrResult;
@@ -239,7 +244,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
             }
 
             if (beta <= alpha) {
-                entry.update(chessboard.readHash(), bestMove, 0, beta, ply, depth, TTF_CUT_BETA);
+                entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), beta, ply, depth, TTF_CUT_BETA);
                 break;
             }
         }
@@ -247,7 +252,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         move = generator.generateNextMove();
     } while (move.isNull() == false);
 
-    entry.update(chessboard.readHash(), bestMove, 0, bestEval, ply, depth, flag);
+    entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), bestEval, ply, depth, flag);
 
     return { .score = bestEval, .move = bestMove };
 }
@@ -320,7 +325,6 @@ bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 dept
 }
 
 CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
-
     if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {
         // we will never cancel a search based on time.
         return [&]() {

@@ -64,7 +64,6 @@ ${ENGINE_SRC_DIR}/move_generator.cpp
 ${ENGINE_SRC_DIR}/position.cpp
 ${ENGINE_INC_DIR}/rays/rays.cpp 
 ${ENGINE_SRC_DIR}/search.cpp
-${ENGINE_SRC_DIR}/transposition_table.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 )
 

@@ -66,6 +66,9 @@ struct TranspositionEntry
         else
             s_overwrites++;
 #endif
+        if (this->depth > depth || this->age > age)
+            return;
+
         this->hash = hash;
         this->move = move;
         this->age = age;
@@ -183,9 +186,9 @@ void TranspositionTableImpl<T>::clear()
 
 template<class T>
 PackedMove TranspositionTableImpl<T>::probe(u64 boardHash) const {
-    u64 index = entryIndex(boardHash);
-    if (boardHash == m_table[index].hash)
-        return m_table[index].move;
+    auto entry = m_table[entryIndex(boardHash)];
+    if (boardHash == entry.hash && entry.exact())
+        return entry.move;
 
     return PackedMove::NullMove();
 }
