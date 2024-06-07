@@ -2,6 +2,7 @@
 #include "game_context.h"
 #include "move.h"
 #include "transposition_table.hpp"
+#include "search.hpp"
 
 #include <algorithm>
 
@@ -9,6 +10,8 @@ MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, M
     m_toMove(toMove),
     m_position(pos),
     m_tt(nullptr),
+    m_search(nullptr),
+    m_ply(0),
     m_hashKey(0),
     m_movesGenerated(false),
     m_moveCount(0),
@@ -22,6 +25,8 @@ MoveGenerator::MoveGenerator(const GameContext& context) :
     m_toMove(context.readToPlay()),
     m_position(context.readChessboard().readPosition()),
     m_tt(nullptr),
+    m_search(nullptr),
+    m_ply(0),
     m_hashKey(0),
     m_movesGenerated(false),
     m_moveCount(0),
@@ -31,10 +36,12 @@ MoveGenerator::MoveGenerator(const GameContext& context) :
     initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
 }
 
-MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTable& tt) :
+MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTable& tt, const Search& search, u32 ply) :
     m_toMove(context.readToPlay()),
     m_position(context.readChessboard().readPosition()),
     m_tt(&tt),
+    m_search(&search),
+    m_ply(ply),
     m_hashKey(context.readChessboard().readHash()),
     m_movesGenerated(false),
     m_moveCount(0),
@@ -44,15 +51,14 @@ MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTabl
     initializeMoveGenerator(PieceType::NONE, MoveTypes::ALL);
 }
 
-PackedMove
-MoveGenerator::generateNextMove()
-{
+PrioratizedMove
+MoveGenerator::generateNextMove() {
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++].move;
+        return m_movesBuffer[m_currentMoveIndx++];
     }
 
     if (m_movesGenerated)
-        return PackedMove::NullMove();
+        return { PackedMove::NullMove(), 0 };
 
     if (m_toMove == Set::WHITE) {
         return generateNextMove<Set::WHITE>();
@@ -60,7 +66,7 @@ MoveGenerator::generateNextMove()
     else {
         return generateNextMove<Set::BLACK>();
     }
-    return PackedMove::NullMove();
+    return { PackedMove::NullMove(), 0 };
 }
 
 void
@@ -73,13 +79,11 @@ MoveGenerator::generate()
 }
 
 template<Set set>
-PackedMove
-MoveGenerator::generateNextMove()
-{
+PrioratizedMove MoveGenerator::generateNextMove() {
     const size_t setIndx = static_cast<size_t>(set);
     if (m_moveMasks[setIndx].combine().empty()) {
         m_movesGenerated = true;
-        return PackedMove::NullMove();
+        return { PackedMove::NullMove(), 0 };
     }
 
     if (m_movesGenerated == false) {
@@ -101,10 +105,10 @@ MoveGenerator::generateNextMove()
 
     m_movesGenerated = true;
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++].move;
+        return m_movesBuffer[m_currentMoveIndx++];
     }
 
-    return PackedMove::NullMove();
+    return { PackedMove::NullMove(), 0 };
 }
 
 template<Set set>
@@ -140,6 +144,16 @@ void MoveGenerator::sortMoves() {
 
             if (itrMv != m_movesBuffer.end()) {
                 itrMv->priority += move_generator_constants::pvMovePriority;
+            }
+        }
+    }
+
+    if (m_search != nullptr) {
+        for (u32 i = 0; i < m_moveCount; ++i) {
+            auto& move = m_movesBuffer[i];
+            if (m_search->isKillerMove(move.move, m_ply)) {
+                move.priority += move_generator_constants::killerMovePriority;
+                move.priority += m_search->getHistoryHeuristic(static_cast<u8>(m_toMove), move.move.source(), move.move.target());
             }
         }
     }
@@ -276,6 +290,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
         }
     }
 }
+
 template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingPinThreats& pinThreats);
 template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingPinThreats& pinThreats);
 
@@ -297,8 +312,8 @@ MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreat
         const Notation srcNotation(srcSqr);
 
         auto [isolatedMoves, isolatedCaptures] = bb.isolatePiece<set>(pieceId, srcNotation, movesbb, pinThreats);
-        genPackedMovesFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, pinThreats);
-        genPackedMovesFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false, pinThreats);
+        genPackedMovesFromBitboard(static_cast<u8>(set), pieceId, isolatedCaptures, srcSqr, /*are captures*/ true, pinThreats);
+        genPackedMovesFromBitboard(static_cast<u8>(set), pieceId, isolatedMoves, srcSqr, /*are captures*/ false, pinThreats);
     }
 }
 
@@ -399,22 +414,23 @@ template void MoveGenerator::internalGenerateKingMoves<Set::WHITE>();
 template void MoveGenerator::internalGenerateKingMoves<Set::BLACK>();
 
 void
-MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype)
-{
+MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype) {
     bool captures = mtype == MoveTypes::CAPTURES_ONLY;
+    const auto& bb = m_position;
+    if (bb.empty())
+        return;
 
-    if (m_toMove == Set::WHITE)
-    {
-        if (captures)
-            initializeMoveMasks<Set::WHITE, true>(m_moveMasks[0], ptype);
-        else
-            initializeMoveMasks<Set::WHITE, false>(m_moveMasks[0], ptype);
+    m_pinThreats[0] = bb.calcKingMask<Set::WHITE>();
+    m_pinThreats[1] = bb.calcKingMask<Set::BLACK>();
+
+    if (captures) {
+        initializeMoveMasks<Set::WHITE, true>(m_moveMasks[0], ptype);
+        initializeMoveMasks<Set::BLACK, true>(m_moveMasks[1], ptype);
     }
-    else
-        if (captures)
-            initializeMoveMasks<Set::BLACK, true>(m_moveMasks[1], ptype);
-        else
-            initializeMoveMasks<Set::BLACK, false>(m_moveMasks[1], ptype);
+    else {
+        initializeMoveMasks<Set::WHITE, false>(m_moveMasks[0], ptype);
+        initializeMoveMasks<Set::BLACK, false>(m_moveMasks[1], ptype);
+    }
 }
 
 template<Set set, bool captures>
@@ -423,9 +439,6 @@ void MoveGenerator::initializeMoveMasks(MaterialMask& target, PieceType ptype) {
     if (bb.empty())
         return;
     const size_t setIndx = static_cast<size_t>(set);
-    //m_pinThreats[setIndx] = bb.calcKingMask<set>();
-    m_pinThreats[0] = bb.calcKingMask<Set::WHITE>();
-    m_pinThreats[1] = bb.calcKingMask<Set::BLACK>();
 
     if (ptype == PieceType::NONE) {
         target.material[pawnId] = bb.calcAvailableMovesPawnBulk<set, captures>(m_pinThreats[setIndx]);
@@ -468,7 +481,7 @@ template void MoveGenerator::initializeMoveMasks<Set::WHITE, false>(MaterialMask
 template void MoveGenerator::initializeMoveMasks<Set::BLACK, false>(MaterialMask& target, PieceType ptype);
 
 void
-MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats)
+MoveGenerator::genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats)
 {
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -478,8 +491,13 @@ MoveGenerator::genPackedMovesFromBitboard(u8 pieceId, Bitboard movesbb, i32 srcS
         move.setSource(static_cast<Square>(srcSqr));
         move.setTarget(static_cast<Square>(dstSqr));
         move.setCapture(capture);
+        prioratizedMove.priority = 0;
 
-        prioratizedMove.priority = move_generator_constants::capturePriority * u8(capture);
+        if (capture) {
+            const u8 opId = opposing_set(setId);
+            u8 recaptureBonus = ((m_moveMasks[opId].combine() & squareMaskTable[dstSqr]).empty() == false) ? 2 : 1;
+            prioratizedMove.priority = move_generator_constants::capturePriority * u8(capture) * recaptureBonus;
+        }
 
         // figure out if we're checking the king.
         if (pieceId == rookId || pieceId == queenId) {

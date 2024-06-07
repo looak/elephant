@@ -19,7 +19,7 @@
 #include <optional>
 #include <vector>
 
-#include "defines.h"
+#include "defines.hpp"
 #include "evaluation_table.hpp"
 #include "move.h"
 #include "transposition_table.hpp"
@@ -48,8 +48,8 @@ struct PieceKey {
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
-    u32 SearchDepth = 8;
-    u32 QuiescenceDepth = 2;
+    u32 SearchDepth = 64;
+    // u32 QuiescenceDepth = 2;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
@@ -107,15 +107,17 @@ struct PerftResult {
 
 class Search {
 public:
+    Search() { clear(); }
     PerftResult Perft(GameContext& context, int depth);
     PerftResult PerftDivide(GameContext& context, int depth);
     u64 Bench(GameContext& context, u32 depth);
 
-    /*
-    *
-    */
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
+
+    void clear();
+    bool isKillerMove(PackedMove move, u32 ply) const;
+    u32 getHistoryHeuristic(u8 set, u8 src, u8 dst) const;
 
 private:
     void ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const;
@@ -128,12 +130,15 @@ private:
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
 
+
+    i32 Extension(const Chessboard& board, const PrioratizedMove& prioratized, u32 ply) const;
     void pushKillerMove(PackedMove mv, u32 ply);
-
-
+    void putHistoryHeuristic(u8 set, u8 src, u8 dst, u32 depth);
 
     EvaluationTable m_evaluationTable;
     // TranspositionTable m_transpositionTable;
 
-    PackedMove m_killerMoves[4][32];
+    PackedMove m_killerMoves[4][64];
+    u32 m_historyHeuristic[2][64][64];
+
 };

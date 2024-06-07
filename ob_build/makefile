@@ -12,6 +12,8 @@ CSRC_DIR := ../src/cli/src
 ESRC_DIR := ../src/engine/src
 INC_DIR := ../src/engine/inc 
 
+
+
 # Compiler and flags
 CXX := g++
 CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP -I$(INC_DIR)

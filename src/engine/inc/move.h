@@ -18,7 +18,7 @@
 
 #include <vector>
 #include "chess_piece.h"
-#include "defines.h"
+#include "defines.hpp"
 #include "notation.h"
 
 enum MoveFlag : byte {

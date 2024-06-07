@@ -1,5 +1,6 @@
 #pragma once
-#include "defines.h"
+#include "defines.hpp"
+#include "chess_piece_defines.hpp"
 
 #include <unordered_map>
 
@@ -17,19 +18,17 @@ public:
 
 private:
     i32 EvaluateMaterial(const Chessboard& board) const;
-    i32 EvaluateMove(Move move) const;
     i32 EvalutePiecePositions(const Chessboard& board) const;
-    i32 EvaluatePawnStructure(const Chessboard& board);
+    i32 EvaluatePawnStructure(const Chessboard& board) const;
+    i32 EvaluatePawnManhattanDistance(const Chessboard& board) const;
     i32 EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const;
 
-    // template<Set us>
-    // i32 EvaluatePassedPawn(const Chessboard& board);
+    i32 MopUpValue(const Chessboard& board, i32 materialScore) const;
 
-    struct PawnStructureHashEntry
-    {
-        i32 score;
-        bool passedPawn[8];
-    };
+    template<Set us>
+    i32 EvaluatePassedPawn(const Chessboard& board) const;
 
-    std::unordered_map<u64, PawnStructureHashEntry> m_pawnStructureTable; 
+    template<Set us>
+    i32 MopUpValue(const Chessboard& board, i32 materialScore) const;
+
 };

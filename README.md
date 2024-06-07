@@ -29,17 +29,26 @@ a work in progress uci chess engine.
 ---
 I got frustrated about how bad I was at playing chess, so I decided to write myself a chess engine and let the computer do it for me! Not intending to use it against unaware non engine players. This whole project initially started with my old engine [Gambit](https://github.com/looak/Gambit).
 
+Has become more of a obsession lately, and a play ground to try out some C++ I wouldn't write at work.
+
 First commit of Gambit was done on [September the 13th, 2017](https://github.com/looak/Gambit/commit/73ed8535876da5e2de65c7e9c1351b21b536912e). Since then I retired that engine and all my effort is going into elephant.
 
 Taking a test driven approach and implemented compatibilty with OpenBench, of which I have a instance running locally.
 
-Reading a lot on https://talkchess.com and the endless resource https://chessprogramming.org. Most recently, been very inspired by Ciekce's [Polaris](https://github.com/Ciekce/Polaris).
+Reading a lot on https://talkchess.com and the endless resource https://chessprogramming.org amongst other resources on the internet.
+Community on Engine Programmer discord & OpenBench Discord have been very great and helpful.
+
+ Been very inspired by Ciekce's [Polaris](https://github.com/Ciekce/Polaris)
+ zzzzz151's [Starzix](https://github.com/zzzzz151/Starzix)
+ Analog Hors' [blog](https://analog-hors.github.io/site/home/)
+ Sebastian Lague's [Coding Adventures](https://www.youtube.com/@SebastianLague)
 
 ## Performance
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
 |:-------:|:---:|:---:|:---:|:---:|
-|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | testing |
+|[future]([future-link])|~19.5 million| N/A | ~1.65 million | +~150elo/testing |
+|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | ~1500 elo |
 |[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | N/A |
 |v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
 |[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
@@ -58,10 +67,17 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
     * alpha beta neg max
     * quiescence search
     * transposition table
+    * pv priority
+    * killer heuristic
+    * late move reduction
 
 * Evaluation:
     * material
     * position tables
+    * tapered position evaluation
+    * king safety
+    * passed pawn
+    * mop-up
 
 * API:
     * "user friendly" cli interface
@@ -70,7 +86,6 @@ Reading a lot on https://talkchess.com and the endless resource https://chesspro
 
 ## Goals & todo
 
-* tapered position evaluation
 * null move pruning
 * multi threaded search
 * reach elo 2000
@@ -149,6 +164,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
+[future-link]           https://github.com/looak/elephant/tree/future
 [v0.6.5-link]:          https://github.com/looak/elephant/releases/tag/0.6.5
 [v0.6.0-link]:          https://github.com/looak/elephant/releases/tag/0.6.1
 [v0.4.0-link]:          https://github.com/looak/elephant/releases/tag/0.4.0

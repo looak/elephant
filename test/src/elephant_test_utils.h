@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "defines.h"
+#include "defines.hpp"
 
 class Chessboard;
 struct Notation;

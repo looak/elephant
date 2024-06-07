@@ -21,29 +21,29 @@
 namespace platform {
 constexpr bool is_win64 =
 #ifdef _WIN64
-    true;
+true;
 #else
-    false;
+false;
 #endif
 
 constexpr bool is_amd64_x86 =
 #ifdef __x86_64__
-    true;
+true;
 #else
-    false;
+false;
 #endif
 }  // namespace platform
 
-typedef std::uint8_t byte;
-typedef std::uint8_t u8;
-typedef std::uint16_t u16;
-typedef unsigned int u32;
-typedef std::uint64_t u64;
+using byte = std::uint8_t;
+using u8 = std::uint8_t;
+using u16 = std::uint16_t;
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
 // typedef __m128 i128;
-typedef std::int8_t i8;
-typedef signed short i16;
-typedef signed long long i64;
-typedef signed int i32;
+using i8 = std::int8_t;
+using i16 = std::int16_t;
+using i64 = std::int64_t;
+using i32 = std::int32_t;
 
 const u64 universe = 0xffffffffffffffffULL;
 
@@ -110,7 +110,7 @@ constexpr byte operator*(Square sqr)
 }
 
 template<typename T>
-T&
+constexpr T&
 increment(T& value)
 {
     static_assert(std::is_integral<std::underlying_type_t<T>>::value, "Can't increment value");

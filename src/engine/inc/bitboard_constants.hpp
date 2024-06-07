@@ -1,14 +1,25 @@
 #pragma once
 #include <array>
-#include "defines.h"
+#include "defines.hpp"
 
 namespace shifts {
-static constexpr u64 horizontal = 1;
-static constexpr u64 vertical = 8;
+static constexpr i8 horizontal = 1;
+static constexpr i8 vertical = 8;
 /**
  * Naming comes from forward slash and backslash relative to the set */
-static constexpr u64 forward_diagonal = 9;
-static constexpr u64 backward_diagonal = 7;
+static constexpr i8 forward_diagonal = 9;
+static constexpr i8 backward_diagonal = 7;
+
+constexpr std::array<i8, 8> shifts = {
+    vertical,           // lsh - north
+    horizontal,         // lsh - east
+    -vertical,           // rsh - south
+    -horizontal,         // rsh - west
+    forward_diagonal,   // lsh - northeast
+    -backward_diagonal,  // rsh - southeast
+    -forward_diagonal,   // rsh - southwest
+    backward_diagonal   // lsh - northwest
+};
 }  // namespace shifts
 
 namespace board_constants {
@@ -74,7 +85,20 @@ generateManhattanDistances() {
     return result;
 }
 
+constexpr std::array<u64, 64> generateManhattanDistanceFromCenter() {
+    std::array<u64, 64> result{};
+    for (int i = 0; i < 64; ++i)
+    {
+        int rankDiff = (i / 8) - 3;
+        int fileDiff = (i % 8) - 3;
+        result[i] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+    }
+
+    return result;
+}
+
 static constexpr auto manhattanDistances = generateManhattanDistances();
+static constexpr auto manhattanDistanceFromCenter = generateManhattanDistanceFromCenter();
 
 }  // namespace board_constants
 
@@ -103,5 +127,3 @@ generateSquareLookupTable()
 /**
  * Lookup table for per-square 64bit masks. Will match the Square class enum     */
 static constexpr auto squareMaskTable = generateSquareLookupTable();
-
-

@@ -15,21 +15,30 @@ i32
 Evaluator::Evaluate(const Chessboard& board, const MoveGenerator& movegen)
 {
     i32 score = 0;
-    score += EvaluateMaterial(board);
+    i32 materialScore = EvaluateMaterial(board);
+    score += materialScore;
     LOG_DEBUG() << "Material score: " << score;
+
     i32 tmp = EvalutePiecePositions(board);
     score += tmp;
     LOG_DEBUG() << "Piece position score: " << tmp;
+
     tmp = EvaluatePawnStructure(board);
     score += tmp;
     LOG_DEBUG() << "Pawn structure score: " << tmp;
 
+    tmp = MopUpValue(board, materialScore);
+    score += tmp;
+    LOG_DEBUG() << "Mop up value: " << tmp;
+
     tmp = EvaluateKingSafety(board, movegen);
     score += tmp;
     LOG_DEBUG() << "King safety score: " << tmp;
+
     LOG_DEBUG() << "Total score: " << score;
     LOG_DEBUG() << "Endgame Coeficient: " << board.calculateEndGameCoeficient();
     LOG_DEBUG() << "---------------------------------";
+
     return score;
 }
 
@@ -52,53 +61,6 @@ Evaluator::EvaluateMaterial(const Chessboard& board) const
         score += pieceValue * whiteCount;
         score -= pieceValue * blackCount;
     }
-
-    return score;
-}
-
-i32
-Evaluator::EvaluateMove(Move) const {
-    i32 score = 0;
-
-    // if (move.isCheck())
-    //     score += 200;  // arbitrary check value;
-    // if (move.isPromotion())
-    //     score += 400;  // arbitrary promotion value;
-
-    return score;
-}
-
-i32
-Evaluator::EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const {
-    const auto& material = board.readPosition().readMaterial();
-    i32 score = 0;
-    // evaluate pawn wall around king
-    Bitboard whiteKing = material.whiteKing();
-    Bitboard whitePawns = material.whitePawns();
-    Bitboard whitePawnWallMask = whiteKing.shiftNorthRelative<Set::WHITE>();
-    whitePawnWallMask |= whitePawnWallMask.shiftEastRelative<Set::WHITE>();
-    whitePawnWallMask |= whitePawnWallMask.shiftWestRelative<Set::WHITE>();
-
-    Bitboard whitePawnWall = whitePawns & whitePawnWallMask;
-    score += whitePawnWall.count() * 25;
-
-    Bitboard blackKing = material.blackKing();
-    Bitboard blackPawns = material.blackPawns();
-    Bitboard blackPawnWallMask = blackKing.shiftSouthRelative<Set::BLACK>();
-    blackPawnWallMask |= blackPawnWallMask.shiftEastRelative<Set::BLACK>();
-    blackPawnWallMask |= blackPawnWallMask.shiftWestRelative<Set::BLACK>();
-
-    Bitboard blackPawnWall = blackPawns & blackPawnWallMask;
-    score -= blackPawnWall.count() * 25;
-
-    // evaluate pins and checks
-    const auto& whiteThreats = movegen.readKingPinThreats<Set::WHITE>();
-    Bitboard whitePins = whiteThreats.pins() & material.black();
-    score -= whitePins.count() * 50;
-
-    const auto& blackThreats = movegen.readKingPinThreats<Set::BLACK>();
-    Bitboard blackPins = blackThreats.pins() & material.white();
-    score += blackPins.count() * 50;
 
     return score;
 }
@@ -155,9 +117,7 @@ Evaluator::EvalutePiecePositions(const Chessboard& board) const
     return score;
 }
 
-i32
-Evaluator::EvaluatePawnStructure(const Chessboard& board)
-{
+i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
     i32 result = 0;
     float egCoeficient = board.calculateEndGameCoeficient();
 
@@ -171,79 +131,139 @@ Evaluator::EvaluatePawnStructure(const Chessboard& board)
             (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
         result -= (evaluator_data::doubledPawnScore * egCoeficient) *
             (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
+    }
 
-    //     // build neighbour files mask
-    //     u64 neighbourMask = 0;
-    //     if (idx > 0)
-    //         neighbourMask |= board_constants::fileMasks[idx - 1];
-    //     if (idx < 7)
-    //         neighbourMask |= board_constants::fileMasks[idx + 1];
+    //result += EvaluatePawnManhattanDistance(board);
+    result += EvaluatePassedPawn<Set::WHITE>(board);
+    result -= EvaluatePassedPawn<Set::BLACK>(board);
+    return result;
+}
 
-    //     if (whitePawns & board_constants::fileMasks[idx]) {
-    //         // figure out if pawn is isolated
-    //         if ((whitePawns & neighbourMask) == 0) {
-    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
-    //         }
+// idea is that keeping the pawns closer together is better.
+i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
+    i32 result = 0;
+    const auto& material = board.readPosition().readMaterial();
+    Bitboard whitePawns = material.whitePawns();
 
-    //         // figure out if pawn is passed
-    //         if ((blackPawns & board_constants::fileMasks[idx]) == 0) {
-    //             u64 opposingNeighbours = blackPawns.read() & neighbourMask;
-    //             if (opposingNeighbours == 0) {
-    //                 result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //             else {
-    //                 i32 pawnSqr = intrinsics::msbIndex(whitePawns.read() & board_constants::fileMasks[idx]);
-    //                 if (EvaluatePassedPawn<std::less<i32>>(board, pawnSqr, opposingNeighbours))
-    //                     result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //         }
-    //     }
+    i32 distance = 0;
+    while (whitePawns.empty() == false) {
+        i32 whitePawnSqr = whitePawns.popLsb();
+        Bitboard otherPawns = material.whitePawns();
+        while (otherPawns.empty() == false) {
+            i32 otherPawn = otherPawns.popLsb();
+            distance += board_constants::manhattanDistances[whitePawnSqr][otherPawn];
+        }
+    }
 
-    //     if (blackPawns & board_constants::fileMasks[idx]) {
-    //         // figure out if pawn is isolated
-    //         if (blackPawns & neighbourMask) {
-    //             result += evaluator_data::isolatedPawnScore * egCoeficient;
-    //         }
+    result -= distance;
+    distance = 0;
+    Bitboard blackPawns = material.blackPawns();
+    while (blackPawns.empty() == false) {
+        i32 blackPawnSqr = blackPawns.popLsb();
+        Bitboard otherPawns = material.blackPawns();
+        while (otherPawns.empty() == false) {
+            i32 otherPawn = otherPawns.popLsb();
+            distance += board_constants::manhattanDistances[blackPawnSqr][otherPawn];
+        }
+    }
 
-    //         // figure out if pawn is passed
-    //         if ((whitePawns & board_constants::fileMasks[idx]) == 0) {
-    //             u64 opposingNeighbours = whitePawns.read() & neighbourMask;
-    //             if (opposingNeighbours == 0) {
-    //                 result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //             else {
-    //                 i32 pawnSqr = intrinsics::lsbIndex(blackPawns.read() & board_constants::fileMasks[idx]);
-    //                 if (EvaluatePassedPawn<std::greater<i32>>(board, pawnSqr, opposingNeighbours))
-    //                     result += evaluator_data::passedPawnScore * egCoeficient;
-    //             }
-    //         }
-    //     }
+    result += distance;
+    return result;
+}
+
+i32 Evaluator::EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const {
+    static const i32 pawnWallFactor = 8;
+    static const i32 pinFactor = 12;
+    const auto& material = board.readPosition().readMaterial();
+    i32 score = 0;
+    // evaluate pawn wall around king
+    Bitboard whiteKing = material.whiteKing();
+    Bitboard whitePawns = material.whitePawns();
+    Bitboard whitePawnWallMask = whiteKing.shiftNorthRelative<Set::WHITE>();
+    whitePawnWallMask |= whitePawnWallMask.shiftEastRelative<Set::WHITE>();
+    whitePawnWallMask |= whitePawnWallMask.shiftWestRelative<Set::WHITE>();
+
+    Bitboard whitePawnWall = whitePawns & whitePawnWallMask;
+    score += whitePawnWall.count() * pawnWallFactor;
+
+    Bitboard blackKing = material.blackKing();
+    Bitboard blackPawns = material.blackPawns();
+    Bitboard blackPawnWallMask = blackKing.shiftSouthRelative<Set::BLACK>();
+    blackPawnWallMask |= blackPawnWallMask.shiftEastRelative<Set::BLACK>();
+    blackPawnWallMask |= blackPawnWallMask.shiftWestRelative<Set::BLACK>();
+
+    Bitboard blackPawnWall = blackPawns & blackPawnWallMask;
+    score -= blackPawnWall.count() * pawnWallFactor;
+
+    // evaluate pins and checks
+    const auto& whiteThreats = movegen.readKingPinThreats<Set::WHITE>();
+    Bitboard whitePins = whiteThreats.pins() & material.black();
+    score -= whitePins.count() * pinFactor;
+
+    const auto& blackThreats = movegen.readKingPinThreats<Set::BLACK>();
+    Bitboard blackPins = blackThreats.pins() & material.white();
+    score += blackPins.count() * pinFactor;
+
+    return score;
+}
+
+i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
+    i32 result = 0;
+    result += MopUpValue<Set::WHITE>(board, materialScore);
+    result -= MopUpValue<Set::BLACK>(board, -materialScore);
+    return result;
+}
+
+
+template<Set us>
+i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
+    i32 result = 0;
+    Bitboard usPawns = board.readPosition().readMaterial().pawns<us>();
+    Bitboard opPawns = board.readPosition().readMaterial().pawns<opposing_set<us>()>();
+    const size_t usIndx = static_cast<size_t>(us);
+
+    while (usPawns.empty() == false) {
+        i32 pawnSqr = usPawns.popLsb();
+        Bitboard pawnMask = squareMaskTable[pawnSqr];
+
+        pawnMask = pawnMask.shiftNorthRelative<us>();
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+            pawnMask |= pawnMask.shiftWestRelative<us>();
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+            pawnMask |= pawnMask.shiftEastRelative<us>();
+
+        while ((pawnMask & board_constants::boundsRelativeMasks[usIndx][north]).empty()) {
+            pawnMask |= pawnMask.shiftNorthRelative<us>();
+        }
+
+        if ((pawnMask & opPawns).empty()) {
+            result += evaluator_data::passedPawnScore * board.calculateEndGameCoeficient();
+        }
     }
 
     return result;
 }
 
-// template<Set set>
-// i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) {
-//     int perspective = 0;
-//     if constexpr (set == Set::WHITE) {
-//         perspective = 1;
-//     }
-//     else {
-//         perspective = -1;
-//     }
+template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&) const;
+template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&) const;
 
-//     Bitboard pawns = board.readPosition().readMaterial().pawns<us>();
+template<Set us>
+i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
+    i32 result = 0;
+    const auto& material = board.readPosition().readMaterial();
 
-//     while (pawns.empty() == false) {
-//         i32 pawnSqr = pawns.popLsb();
-//         Bitboard pawnMask = squareMaskTable[pawnSqr];
+    if (materialScore > 2 * ChessPieceDef::Value(pawnId) && board.calculateEndGameCoeficient() > 0.5f)
+    {
+        u32 usKingSqr = material.kings<us>().lsbIndex();
+        u32 opKingSqr = material.kings<opposing_set<us>()>().lsbIndex();
 
-//         pawnMask = pawnMask.shiftNorthRelative<set>();
-//     }
+        result += (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * 8;
+        auto tmp = evaluator_data::center_bias[usKingSqr];
+        result += tmp;
+    }
 
+    return result;
+}
 
-// }
-
-// template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&);
-// template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&);
+template i32 Evaluator::MopUpValue<Set::WHITE>(const Chessboard&, i32) const;
+template i32 Evaluator::MopUpValue<Set::BLACK>(const Chessboard&, i32) const;

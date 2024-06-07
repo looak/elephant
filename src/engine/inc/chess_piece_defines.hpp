@@ -16,7 +16,7 @@
 #ifndef CHESS_PIECE_DEFINES_HEADER
 #define CHESS_PIECE_DEFINES_HEADER
 
-#include "defines.h"
+#include "defines.hpp"
 
 #define pieceIndexMax 6
 
@@ -53,6 +53,11 @@ opposing_set()
         return Set::BLACK;
 
     return Set::WHITE;
+}
+
+constexpr u8
+opposing_set(u8 set) {
+    return set ^ 1;
 }
 
 template<Set s>

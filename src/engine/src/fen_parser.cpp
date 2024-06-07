@@ -7,7 +7,7 @@
 #include <string>
 
 #include "chessboard.h"
-#include "defines.h"
+#include "defines.hpp"
 #include "game_context.h"
 
 bool

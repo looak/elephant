@@ -36,7 +36,8 @@ struct MoveUndoUnit {
         capturedPiece(),
         castlingState(),
         enPassantState(),
-        hash(0)
+        hash(0),
+        plyCount(0)
     {
     }
     PackedMove move;
@@ -45,6 +46,7 @@ struct MoveUndoUnit {
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
     u64 hash;
+    short plyCount;
 };
 
 /**
@@ -152,20 +154,6 @@ public:
     Position& editPosition() { return m_position; }
     ChessPiece readPieceAt(Square sqr) const { return m_position.readPieceAt(sqr); }
 
-    /**
-     * @brief the sliding material of given set represented ini a bitboard.
-     *
-     * Computes and returns two bitboards that represent all the squares that are threatened by the
-     * sliding pieces (rooks, bishops, and queens) of a specified set (black or white) on the
-     * current board, taking into account the current material on the board. The first bitboard
-     * represents squares that are threatened by sliding pieces moving orthogonally, and the second
-     * represents squares that are threatened by sliding pieces moving diagonally.
-     *
-     * @param set The set of pieces (black or white) to consider.
-     * @return A pair of bitboards representing the squares that are threatened by sliding pieces
-     * moving orthogonally and diagonally, respectively.     */
-    SlidingMaterialMasks readSlidingMaterialMask(Set set) const;
-
     u64 readHash() const { return m_hash; }
     short readMoveCount() const { return m_moveCount; }
     short readPlyCount() const { return m_plyCount; }
@@ -176,6 +164,7 @@ public:
     }
     Set readToPlay() const { return m_isWhiteTurn ? Set::WHITE : Set::BLACK; }
     void setToPlay(Set set);
+    short readAge() const { return m_age; }
 
     std::string toString() const;
 
@@ -216,6 +205,8 @@ private:
     bool m_isWhiteTurn;
     short m_moveCount;
     short m_plyCount;
+    short m_age;
+    mutable float m_endGameCoeficient;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];

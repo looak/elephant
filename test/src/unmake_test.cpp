@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <stack>
+
 #include "chess_piece.h"
 #include "chessboard.h"
 #include "elephant_test_utils.h"
@@ -201,25 +203,25 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
 
     // do
     MoveGenerator whiteMoves(context);
-    PackedMove wMove = whiteMoves.generateNextMove();
+    PackedMove wMove = whiteMoves.generateNextMove().move;
     while (wMove != PackedMove::NullMove()) {
         if (board.readPieceAt(wMove.sourceSqr()).isPawn() == false) {
-            wMove = whiteMoves.generateNextMove();
+            wMove = whiteMoves.generateNextMove().move;
             continue;
         }
 
         auto whiteUndo = board.MakeMove<false>(wMove);
         context.editChessboard().setToPlay(Set::BLACK);
         MoveGenerator blackMoves(context);
-        PackedMove bMove = blackMoves.generateNextMove();
+        PackedMove bMove = blackMoves.generateNextMove().move;
         while (bMove != PackedMove::NullMove()) {
             auto blackUndo = board.MakeMove<false>(bMove);
             board.UnmakeMove(blackUndo);
-            bMove = blackMoves.generateNextMove();
+            bMove = blackMoves.generateNextMove().move;
         }
 
         board.UnmakeMove(whiteUndo);
-        wMove = whiteMoves.generateNextMove();
+        wMove = whiteMoves.generateNextMove().move;
     }
     // validate
     auto whitePawns = material.whitePawns();

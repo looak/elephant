@@ -12,9 +12,10 @@ configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/e
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ${ENGINE_INC_DIR}/elephant_gambit.h
 ${ENGINE_INC_DIR}/elephant_gambit_config.h
-${ENGINE_INC_DIR}/defines.h
+${ENGINE_INC_DIR}/defines.hpp
 ${ENGINE_INC_DIR}/libpopcnt.h
-
+${ENGINE_INC_DIR}/attacks/attacks.hpp
+${ENGINE_INC_DIR}/attacks/magic_constants.hpp
 ${ENGINE_INC_DIR}/bitboard.hpp
 ${ENGINE_INC_DIR}/bitboard_constants.hpp
 ${ENGINE_INC_DIR}/chessboard.h
@@ -33,8 +34,10 @@ ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/material_mask.hpp
 ${ENGINE_INC_DIR}/move_generator.hpp
 ${ENGINE_INC_DIR}/position.hpp
+${ENGINE_INC_DIR}/rays/rays.hpp
 ${ENGINE_INC_DIR}/search.hpp
 ${ENGINE_INC_DIR}/search_constants.hpp
+${ENGINE_INC_DIR}/static_initializer.hpp
 ${ENGINE_INC_DIR}/transposition_table.hpp
 ${ENGINE_INC_DIR}/uci.hpp
 )
@@ -42,6 +45,7 @@ ${ENGINE_INC_DIR}/uci.hpp
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ${ENGINE_SRC_DIR}/elephant_gambit.cpp
 
+${ENGINE_SRC_DIR}/attacks.cpp
 ${ENGINE_SRC_DIR}/bitboard.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp
 ${ENGINE_SRC_DIR}/chess_piece.cpp
@@ -58,8 +62,8 @@ ${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/move_generator.cpp
 ${ENGINE_SRC_DIR}/position.cpp
+${ENGINE_SRC_DIR}/rays.cpp 
 ${ENGINE_SRC_DIR}/search.cpp
-${ENGINE_SRC_DIR}/transposition_table.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 )
 

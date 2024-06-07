@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include "defines.h"
+#include "defines.hpp"
 
-static constexpr u32 c_maxSearchDepth = 8;
+static constexpr u32 c_maxSearchDepth = 16;
 static constexpr i32 c_maxScore = 32000;
 static constexpr i32 c_checkmateConstant = 24000;
 static constexpr i32 c_checkmateMaxDistance = 256;

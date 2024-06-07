@@ -6,6 +6,9 @@
 #include "game_context.h"
 #include "fen_parser.h"
 #include "search.hpp"
+#include "static_initializer.hpp"
+
+bool g_initialized = static_initializer::initialize();
 
 constexpr u32 depth = 7;
 static const std::vector<std::string> fens = {
@@ -84,6 +87,8 @@ void bench() {
 
 
 int main(int argc, char* argv[]) {
+    assert(g_initialized);
+
     if (argc > 1) {
         if (std::string(argv[1]) == "bench") {
             bench();
