@@ -140,4 +140,5 @@ private:
 
     PackedMove m_killerMoves[4][64];
     u32 m_historyHeuristic[2][64][64];
+
 };

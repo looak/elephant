@@ -14,23 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include <stack>
+#include <vector>
 #include "chessboard.h"
 #include "transposition_table.hpp"
 
 struct SearchResult;
 struct SearchParameters;
-
-struct MoveHistory {
-    // Move move;
-    // Chessboard board;
-    u64 HashKey;
-    u32 PlyCount;
-    u32 MoveCount;
-    u32 FiftyMoveRule;
-    // Short Algebraic Notation
-    std::string SAN;
-};
 
 class GameContext {
 public:
@@ -60,6 +49,7 @@ public:
     SearchResult CalculateBestMove(SearchParameters params);
 
     bool GameOver() const;
+    bool IsRepetition(u64 hashKey) const;
 
     /**
      * @brief Checks if the game is over.    */
@@ -80,6 +70,5 @@ private:
     Chessboard m_board;
     TranspositionTable m_transpositionTable;
 
-    std::stack<MoveUndoUnit> m_undoUnits;
-    std::vector<MoveHistory> m_moveHistory;
+    std::vector<MoveUndoUnit> m_undoUnits;
 };

@@ -217,35 +217,51 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
     // probe transposition table.
     auto& chessboard = context.game.readChessboard();
     auto& entry = context.game.editTranspositionTable().editEntry(chessboard.readHash());
+#if defined(ENABLE_TRANSPOSITION_TABLE)
     if (auto result = entry.evaluate(chessboard.readHash(), depth, alpha, beta); result.has_value()) {
-        return { .score = entry.score, .move = entry.move };
+        return { .score = entry.adjustedScore(ply), .move = entry.move };
     }
+#endif
 
     auto flag = TranspositionFlag::TTF_CUT_EXACT;
 
-    static const i8 depthReductionThreshold = 21;
+#if defined(ENABLE_LATE_MOVE_REDUCTION)
+    static const i8 depthReductionThreshold = 4;
     i8 depthReductionCounter = 0;
+#endif
     do {
         u32 extendedDepth = depth; // + Extension(chessboard, prioratized, ply);
+        SearchResult result;
+        bool doFullSearch = true;
 
+#if defined(ENABLE_LATE_MOVE_REDUCTION)
         // should implement research on beta cutoffs.
-        if (depthReductionCounter >= depthReductionThreshold && depth > 1)
-            extendedDepth--;
-
+        if (depth > 3 && depthReductionCounter >= depthReductionThreshold && extendedDepth == 0 && prioratized.move.isCapture() == false) {
+            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
+            doFullSearch = result.score > alpha;
+        }
 
         depthReductionCounter++;
+#endif
         context.game.MakeMove(prioratized.move);
-        auto result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-        auto eval = -result.score;
-        context.nodes++;
-        context.game.UnmakeMove();
 
+        i32 eval = 0;
+        if (context.game.IsRepetition(context.game.readChessboard().readHash())) {
+            eval = -c_drawConstant;
+            result = { .score = eval, .move = prioratized.move };
+        }
+        else if (doFullSearch) {
+            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
+            eval = -result.score;
+        }
+
+        context.game.UnmakeMove();
+        context.nodes++;
 
         if (context.cancel() == true)
             return { .score = 0, .move = PackedMove::NullMove() };
 
-        if (eval > bestEval)
-        {
+        if (eval > bestEval) {
             bestEval = eval;
             bestMove = prioratized.move;
 
@@ -260,7 +276,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
                     pushKillerMove(prioratized.move, ply);
 
                 putHistoryHeuristic(static_cast<u8>(chessboard.readToPlay()), prioratized.move.source(), prioratized.move.target(), depth);
-                break;
+                return { .score = bestEval, .move = bestMove };
             }
         }
 

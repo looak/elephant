@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <stack>
+
 #include "chess_piece.h"
 #include "chessboard.h"
 #include "elephant_test_utils.h"

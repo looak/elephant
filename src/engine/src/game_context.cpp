@@ -32,8 +32,7 @@ void
 GameContext::Reset()
 {
     m_board.Clear();
-    m_moveHistory.clear();
-
+    m_undoUnits.clear();
     // keeping transposition table
 }
 
@@ -67,7 +66,7 @@ bool
 GameContext::MakeMove(const PackedMove move)
 {
     auto undoUnit = m_board.MakeMove<false>(move);
-    m_undoUnits.push(undoUnit);
+    m_undoUnits.push_back(undoUnit);
     return true;
 }
 
@@ -106,9 +105,9 @@ GameContext::UnmakeMove()
     if (m_undoUnits.empty())
         return false;
 
-    auto undoUnit = m_undoUnits.top();
-    m_undoUnits.pop();
+    auto undoUnit = m_undoUnits.back();
     m_board.UnmakeMove(undoUnit);
+    m_undoUnits.pop_back();
 
     return true;
 }
@@ -124,4 +123,20 @@ bool
 GameContext::isGameOver() const
 {
     return false;
+}
+
+bool GameContext::IsRepetition(u64 hashKey) const {
+
+    if (m_undoUnits.size() < 4)
+        return false;
+
+    int count = 0;
+
+    auto itr = m_undoUnits.rbegin() + 1;
+    while (itr != m_undoUnits.rend()) {
+        if (itr->hash == hashKey)
+            count++;
+        itr++;
+    }
+    return count >= 2;
 }

@@ -2,6 +2,7 @@
 #include "defines.hpp"
 #include "log.h"
 #include "move.h"
+#include "search_constants.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -43,30 +44,30 @@ struct TranspositionEntry
     PackedMove move;
     i16 score;
     u8 depth;
-    byte flag : 2;
-    byte age : 6;
+    byte flag;
+    u16 age;
 
     inline bool exact() const { return flag == TranspositionFlag::TTF_CUT_EXACT; }
     inline bool beta() const { return flag == TranspositionFlag::TTF_CUT_BETA; }
     inline bool alpha() const { return flag == TranspositionFlag::TTF_CUT_ALPHA; }
     inline bool valid() const { return flag != TranspositionFlag::TTF_NONE; }
 
+    inline i16 adjustedScore(i32 ply) const {
+        if (score >= c_checkmateMinScore)
+            return score - ply;
+        if (score <= -c_checkmateMinScore)
+            return score + ply;
+        return score;
+    }
 
-    // inline void setScore(i32 score) {
-    //     // if (score > c_checkmateMinScore)
-    //     //     score = score + (score % c_checkmateConstant);
-
-    //     //adjustScore();
-    // }
-
-    inline void update(u64 hash, PackedMove move, u32 age, i16 score, i32, u8 depth, TranspositionFlag flag) {
+    inline void update(u64 hash, PackedMove move, u32 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag) {
 #ifdef DEBUG_TRANSITION_TABLE
         if (this->hash == 0)
             s_writes++;
         else
             s_overwrites++;
 #endif
-        if (this->depth > depth || this->age > age)
+        if (this->depth > depth && this->age > age)
             return;
 
         this->hash = hash;
@@ -74,7 +75,7 @@ struct TranspositionEntry
         this->age = age;
         this->depth = depth;
         this->flag = flag;
-        this->score = score;
+        this->score = score >= c_checkmateMinScore ? score + ply : score <= -c_checkmateMinScore ? score - ply : score;
     }
 
     /* @brief evaluate if this node is useful for the current search, i.e. a cut node or not.

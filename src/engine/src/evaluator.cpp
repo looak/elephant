@@ -12,25 +12,29 @@
 Evaluator::Evaluator() {}
 
 i32
-Evaluator::Evaluate(const Chessboard& board, const MoveGenerator&)
+Evaluator::Evaluate(const Chessboard& board, const MoveGenerator& movegen)
 {
     i32 score = 0;
     i32 materialScore = EvaluateMaterial(board);
     score += materialScore;
     LOG_DEBUG() << "Material score: " << score;
+
     i32 tmp = EvalutePiecePositions(board);
     score += tmp;
     LOG_DEBUG() << "Piece position score: " << tmp;
-    // tmp = EvaluatePawnStructure(board);
-    // score += tmp;
+
+    tmp = EvaluatePawnStructure(board);
+    score += tmp;
     LOG_DEBUG() << "Pawn structure score: " << tmp;
+
     tmp = MopUpValue(board, materialScore);
     score += tmp;
     LOG_DEBUG() << "Mop up value: " << tmp;
 
-    //tmp = EvaluateKingSafety(board, movegen);
-    //score += tmp;
+    tmp = EvaluateKingSafety(board, movegen);
+    score += tmp;
     LOG_DEBUG() << "King safety score: " << tmp;
+
     LOG_DEBUG() << "Total score: " << score;
     LOG_DEBUG() << "Endgame Coeficient: " << board.calculateEndGameCoeficient();
     LOG_DEBUG() << "---------------------------------";
@@ -129,9 +133,9 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
             (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
     }
 
-    // result += EvaluatePawnManhattanDistance(board);
-    // result += EvaluatePassedPawn<Set::WHITE>(board);
-    // result -= EvaluatePassedPawn<Set::BLACK>(board);
+    //result += EvaluatePawnManhattanDistance(board);
+    result += EvaluatePassedPawn<Set::WHITE>(board);
+    result -= EvaluatePassedPawn<Set::BLACK>(board);
     return result;
 }
 
@@ -168,8 +172,8 @@ i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
 }
 
 i32 Evaluator::EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const {
-    static const i32 pawnWallFactor = 16;
-    static const i32 pinFactor = 8;
+    static const i32 pawnWallFactor = 8;
+    static const i32 pinFactor = 12;
     const auto& material = board.readPosition().readMaterial();
     i32 score = 0;
     // evaluate pawn wall around king
@@ -253,8 +257,8 @@ i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
         u32 usKingSqr = material.kings<us>().lsbIndex();
         u32 opKingSqr = material.kings<opposing_set<us>()>().lsbIndex();
 
-        result += (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * 4;
-        auto tmp = evaluator_data::center_bias[usKingSqr] * 2;
+        result += (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * 8;
+        auto tmp = evaluator_data::center_bias[usKingSqr];
         result += tmp;
     }
 
