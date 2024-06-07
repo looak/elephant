@@ -1,4 +1,4 @@
-# Elephant Gambit Chess Engine - a Chess AI
+﻿# Elephant Gambit Chess Engine - a Chess AI
 # Copyright (C) 2021-2023  Alexander Loodin Ek
 
 # This program is free software: you can redistribute it and/or modify
@@ -17,9 +17,11 @@
 # CMakeList.txt : Top-level CMake project file
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-project(ElephantGambit VERSION 0.6.5 LANGUAGES CXX)
-set(ElephantGambit_VERSION_PRERELEASE "-dev")
-set(ElephantGambit_VERSION_SUFFIX "")
+include(cmake/version.cmake)
+project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)
+set(ElephantGambit_VERSION_PRERELEASE "")
+set(ElephantGambit_VERSION_SUFFIX $(VAR_ELEPHANT_VERSION_SUFFIX))
+message(STATUS "## Elephant Gambit version: ${ElephantGambit_VERSION}")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)

@@ -130,7 +130,7 @@ namespace internals {
     void generateBishopTable(std::array<std::array<u64, 1024>, 64>& result);
     void initialize();
 
-}; // namespace internals
+} // namespace internals
 
 inline u64 getKnightAttacks(u8 sqr) {
     return tables::getKnightAttacks()[sqr];
