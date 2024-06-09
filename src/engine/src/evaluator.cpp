@@ -136,6 +136,10 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
     //result += EvaluatePawnManhattanDistance(board);
     result += EvaluatePassedPawn<Set::WHITE>(board);
     result -= EvaluatePassedPawn<Set::BLACK>(board);
+
+    result += EvaluatePawnProtection<Set::WHITE>(board, whitePawns);
+    result -= EvaluatePawnProtection<Set::BLACK>(board, blackPawns);
+
     return result;
 }
 
@@ -238,6 +242,7 @@ i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
 
         if ((pawnMask & opPawns).empty()) {
             result += evaluator_data::passedPawnScore * board.calculateEndGameCoeficient();
+            result += EvaluatePawnProtection<us>(board, squareMaskTable[pawnSqr]) * evaluator_data::guardedPassedPawnBonus;
         }
     }
 
@@ -246,6 +251,13 @@ i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
 
 template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&) const;
 template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&) const;
+
+template<Set us>
+i32 Evaluator::EvaluatePawnProtection(const Chessboard& board, Bitboard pawns) const {
+    auto guardedSquares = board.readPosition().calcThreatenedSquaresPawnBulk<us>();
+    guardedSquares &= pawns; // guarded pawns
+    return guardedSquares.count() * evaluator_data::guardedPawnScore;
+}
 
 template<Set us>
 i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {

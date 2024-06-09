@@ -154,6 +154,12 @@ static constexpr TaperedScore isolatedPawnScore{-25, -50};
 /**
  * Passed pawns are a strong factor in the endgame and something to strive for. */
 static constexpr TaperedScore passedPawnScore{ 25, 100 };
+// if the passed pawn is guarded, this will be multiplied with the passedPawnScore
+static constexpr i32 guardedPassedPawnBonus = 2;
+
+/*
+* Idea here is that pawns that ar guarded by other pawns are more stronger and hence, more valuable.*/
+static constexpr i32 guardedPawnScore = 8;
 
 constexpr i32 center_bias[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,
