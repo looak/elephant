@@ -57,6 +57,9 @@ public:
     template<Set us>
     const KingPinThreats& readKingPinThreats() const;
 
+    template<Set set>
+    const MaterialMask& readMoveMasks() const { return m_moveMasks[static_cast<u8>(set)]; }
+
 private:
     void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
 

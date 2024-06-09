@@ -38,22 +38,23 @@ Taking a test driven approach and implemented compatibilty with OpenBench, of wh
 Reading a lot on https://talkchess.com and the endless resource https://chessprogramming.org amongst other resources on the internet.
 Community on Engine Programmer discord & OpenBench Discord have been very great and helpful.
 
- Been very inspired by Ciekce's [Polaris](https://github.com/Ciekce/Polaris)
- zzzzz151's [Starzix](https://github.com/zzzzz151/Starzix)
- Analog Hors' [blog](https://analog-hors.github.io/site/home/)
- Sebastian Lague's [Coding Adventures](https://www.youtube.com/@SebastianLague)
+ Been very inspired by, in no particular order;
+- Ciekce's [Polaris](https://github.com/Ciekce/Polaris)
+- zzzzz151's [Starzix](https://github.com/zzzzz151/Starzix)
+- Analog Hors' [blog](https://analog-hors.github.io/site/home/)
+- Sebastian Lague's [Coding Adventures](https://www.youtube.com/@SebastianLague)
 
 ## Performance
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
 |:-------:|:---:|:---:|:---:|:---:|
-|[future]([future-link])|~19.5 million| N/A | ~1.65 million | +~150elo/testing |
+|[future]([future-link])|~19.5 million| N/A | ~1.65 million | testing |
+|[v0.7.0]([v0.7.0-link])|~19.5 million| N/A | ~1.65 million | ~1600 elo |
 |[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | ~1500 elo |
 |[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | N/A |
 |v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
 |[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
 |[v0.2.0-alpha.1]([v0.2.0-alpha.1-link])| ~4 million | ~35 million best case | ~250k | ~1350 elo |
-|[v0.1.0-alpha.1]([v0.1.0-alpha.1-link])| ~2.5 million | N/A | N/A | N/A |
 
 *all performance numbers are from running on my local machine, AMD Ryzen 9 5950x*
 
@@ -165,6 +166,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 [head-link]:            https://github.com/looak/elephant/
 [future-link]           https://github.com/looak/elephant/tree/future
+[v0.7.0-link]:          https://github.com/looak/elephant/releases/tag/0.7.0
 [v0.6.5-link]:          https://github.com/looak/elephant/releases/tag/0.6.5
 [v0.6.0-link]:          https://github.com/looak/elephant/releases/tag/0.6.1
 [v0.4.0-link]:          https://github.com/looak/elephant/releases/tag/0.4.0

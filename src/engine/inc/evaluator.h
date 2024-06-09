@@ -1,4 +1,5 @@
 #pragma once
+#include "bitboard.hpp"
 #include "defines.hpp"
 #include "chess_piece_defines.hpp"
 
@@ -27,6 +28,8 @@ private:
 
     template<Set us>
     i32 EvaluatePassedPawn(const Chessboard& board) const;
+    template<Set us>
+    i32 EvaluatePawnProtection(const Chessboard& board, Bitboard pawns) const;
 
     template<Set us>
     i32 MopUpValue(const Chessboard& board, i32 materialScore) const;
