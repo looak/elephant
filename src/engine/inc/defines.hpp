@@ -68,13 +68,6 @@ const u64 universe = 0xffffffffffffffffULL;
 #define rank_7 6
 #define rank_8 7
 
-#define pawnId 0
-#define knightId 1
-#define bishopId 2
-#define rookId 3
-#define queenId 4
-#define kingId 5
-
 #define north 0
 #define east 1
 #define south 2

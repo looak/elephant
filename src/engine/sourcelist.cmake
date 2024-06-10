@@ -40,6 +40,7 @@ ${ENGINE_INC_DIR}/search_constants.hpp
 ${ENGINE_INC_DIR}/static_initializer.hpp
 ${ENGINE_INC_DIR}/transposition_table.hpp
 ${ENGINE_INC_DIR}/uci.hpp
+${ENGINE_INC_DIR}/utils/weight_store.hpp
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -65,6 +66,8 @@ ${ENGINE_SRC_DIR}/position.cpp
 ${ENGINE_SRC_DIR}/rays.cpp 
 ${ENGINE_SRC_DIR}/search.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
+${ENGINE_SRC_DIR}/utils/weight_store.cpp
+
 )
 
 set(ENGINE_SOURCE_ALL ${ENGINE_SOURCE} ${ENGINE_SOURCE_INCLUDE})

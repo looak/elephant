@@ -18,6 +18,12 @@
 
 #include "defines.hpp"
 
+#define pawnId 0
+#define knightId 1
+#define bishopId 2
+#define rookId 3
+#define queenId 4
+#define kingId 5
 #define pieceIndexMax 6
 
 enum class PieceType : byte {
