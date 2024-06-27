@@ -1,9 +1,10 @@
 #include "defines.hpp"
+#include "utils/weight_store.hpp"
 
 struct TaperedScore
 {
     i32 midgame;
-    i32 endgame;    
+    i32 endgame;
 };
 
 i32 operator*(const TaperedScore& lhs, const float& rhs)
@@ -145,7 +146,8 @@ const i32* pestoTables[6] = {
 /**
  * Idea here is that doubling pawns early or midgame will hurt your structure,
  * later in the game it's not as important where there are less pawns on the board.  */
-static constexpr TaperedScore doubledPawnScore{-50, -25};
+ //static constexpr TaperedScore doubledPawnScore{-50, -25};
+TAPERED_WEIGHT(doubledPawnScore, i32, -50, -25);
 
 /**
  * Idea here is that isolated pawns are bad but will be worse in the endgame.  */
@@ -154,12 +156,14 @@ static constexpr TaperedScore isolatedPawnScore{-25, -50};
 /**
  * Passed pawns are a strong factor in the endgame and something to strive for. */
 static constexpr TaperedScore passedPawnScore{ 25, 100 };
-// if the passed pawn is guarded, this will be multiplied with the passedPawnScore
-static constexpr i32 guardedPassedPawnBonus = 2;
 
 /*
-* Idea here is that pawns that ar guarded by other pawns are more stronger and hence, more valuable.*/
-static constexpr i32 guardedPawnScore = 8;
+* if the passed pawn is guarded, this will be multiplied with the passedPawnScore. */
+WEIGHT(guardedPassedPawnBonus, double, 2);
+
+/*
+* Idea here is that pawns that ar guarded by other pawns are stronger and more valuable.*/
+WEIGHT(guardedPawnScore, i32, 8);
 
 constexpr i32 center_bias[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,
