@@ -38,6 +38,7 @@ ${SRC_DIR}/search_cases.hpp
 ${SRC_DIR}/transposition_test.cpp
 ${SRC_DIR}/unmake_test.cpp
 ${SRC_DIR}/uci_test.cpp
+${SRC_DIR}/weight_store_test.cpp
 
 # Utility files
 ${SRC_DIR}/elephant_test_util_funcs.cpp 
