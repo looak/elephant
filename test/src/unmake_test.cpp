@@ -7,7 +7,7 @@
 #include "game_context.h"
 #include "log.h"
 #include "move.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

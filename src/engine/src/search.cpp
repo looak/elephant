@@ -6,7 +6,7 @@
 #include "evaluator.h"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 
 #include <future>
 #include <limits>

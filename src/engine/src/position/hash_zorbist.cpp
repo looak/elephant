@@ -1,4 +1,4 @@
-#include "hash_zorbist.h"
+#include <position/hash_zorbist.hpp>
 #include "chessboard.h"
 
 // https://stackoverflow.com/questions/33010010/how-to-generate-random-64-bit-unsigned-integer-in-c

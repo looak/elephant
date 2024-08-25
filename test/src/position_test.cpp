@@ -1,4 +1,4 @@
-#include "position.hpp"
+#include <position/position.hpp>
 #include <gtest/gtest.h>
 #include <array>
 #include "chess_piece.h"

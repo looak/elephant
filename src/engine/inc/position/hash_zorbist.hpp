@@ -22,7 +22,7 @@ struct ChessPiece;
 struct Notation;
 
 struct ZorbistHash
-{ 
+{
     static const ZorbistHash& Instance();
 
     u64 HashBoard(const Chessboard& board) const;
@@ -30,7 +30,7 @@ struct ZorbistHash
     u64 HashEnPassant(const u64& oldHash, Notation position) const;
     u64 HashCastling(const u64& oldHash, const u8 castlingState) const;
     u64 HashBlackToMove(const u64& oldHash) const;
-    
+
 private:
 
     void GenerateZorbistTable();

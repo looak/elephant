@@ -1,9 +1,9 @@
 #include "game_context.h"
 #include "evaluator.h"
 #include "fen_parser.h"
-#include "hash_zorbist.h"
+#include <position/hash_zorbist.hpp>
 #include "move.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 #include "search.hpp"
 
 #include <algorithm>

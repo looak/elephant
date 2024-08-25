@@ -1,4 +1,4 @@
-#include "position.hpp"
+#include "position/position.hpp"
 #include <array>
 #include "attacks/attacks.hpp"
 #include "bitboard.hpp"
@@ -133,7 +133,7 @@ KingPinThreats Position::calcKingMask() const {
     //auto slidingMask = calcMaterialSlidingMasksBulk<op>();    
     Square kingSqr = static_cast<Square>(m_materialMask.kings<us>().lsbIndex());
     Square opKingSqr = static_cast<Square>(m_materialMask.kings<op>().lsbIndex());
-    
+
     KingPinThreats ret;
     ret.evaluate<us>(kingSqr, *this);
     ret.calculateOpponentOpenAngles<op>(opKingSqr, *this);

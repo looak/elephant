@@ -23,7 +23,7 @@
 #include "chess_piece.h"
 #include "move.h"
 #include "notation.h"
-#include "position.hpp"
+#include <position/position.hpp>
 
 struct Move;
 struct PrioratizedMove;
