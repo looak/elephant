@@ -1,11 +1,11 @@
 ﻿#include "chessboard.h"
 #include "bitboard_constants.hpp"
 #include "defines.hpp"
-#include "hash_zorbist.h"
+#include <position/hash_zorbist.hpp>
 #include "intrinsics.hpp"
 #include "log.h"
 #include "move.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 
 #include <future>
 #include <thread>

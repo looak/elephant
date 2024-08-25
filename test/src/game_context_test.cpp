@@ -2,7 +2,7 @@
 #include "game_context.h"
 #include "move.h"
 #include "elephant_test_utils.h"
-#include "hash_zorbist.h"
+#include <position/hash_zorbist.hpp>
 
 
 namespace ElephantTest

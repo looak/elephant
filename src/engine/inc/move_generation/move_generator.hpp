@@ -20,7 +20,7 @@
 #include "king_pin_threats.hpp"
 #include "transposition_table.hpp"
 #include "move.h"
-#include "position.hpp"
+#include <position/position.hpp>
 
 class GameContext;
 class Search;
@@ -118,27 +118,27 @@ void
 MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
 {
     switch (pieceId) {
-        case pawnId:
-            internalGeneratePawnMoves<set>(pinThreats);
-            break;
-        case knightId:
-            internalGenerateKnightMoves<set>(pinThreats);
-            break;
-        case bishopId:
-            internalGenerateBishopMoves<set>(pinThreats);
-            break;
-        case rookId:
-            internalGenerateRookMoves<set>(pinThreats);
-            break;
-        case queenId:
-            internalGenerateQueenMoves<set>(pinThreats);
-            break;
-        case kingId:
-            internalGenerateKingMoves<set>();
-            break;
+    case pawnId:
+        internalGeneratePawnMoves<set>(pinThreats);
+        break;
+    case knightId:
+        internalGenerateKnightMoves<set>(pinThreats);
+        break;
+    case bishopId:
+        internalGenerateBishopMoves<set>(pinThreats);
+        break;
+    case rookId:
+        internalGenerateRookMoves<set>(pinThreats);
+        break;
+    case queenId:
+        internalGenerateQueenMoves<set>(pinThreats);
+        break;
+    case kingId:
+        internalGenerateKingMoves<set>();
+        break;
 
-        default:
-            FATAL_ASSERT(false) << "Invalid piece id";
+    default:
+        FATAL_ASSERT(false) << "Invalid piece id";
     }
 }
 

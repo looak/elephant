@@ -3,7 +3,7 @@
 #include "elephant_test_utils.h"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 #include "search.hpp"
 
 namespace ElephantTest {
@@ -1957,5 +1957,18 @@ TEST_F(MoveGeneratorFixture, PerftTestPositionTwo_CaptureMoves_ShouldHaveEightCa
     auto result = buildMoveVector(gen);
     EXPECT_EQ(8, result.size());
 }
+
+TEST_F(MoveGeneratorFixture, NewApiTest)
+{
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    FENParser::deserialize(inputFen, testContext);
+
+    // do
+    MoveGenerator gen(testContext.readChessboard().readPosition(), Set::WHITE, PieceType::NONE, MoveTypes::CAPTURES_ONLY);
+
+    // verify
+    auto result = buildMoveVector(gen);
+    EXPECT_EQ(8, result.size());
 
 }  // namespace ElephantTest

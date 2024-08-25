@@ -7,7 +7,7 @@
 #include "fen_parser.h"
 #include "intrinsics.hpp"
 #include "move.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 
 Evaluator::Evaluator() {}
 

@@ -13,7 +13,7 @@
 #include "fen_parser.h"
 #include "game_context.h"
 #include "move.h"
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 #include "search.hpp"
 
 namespace CliCommands {

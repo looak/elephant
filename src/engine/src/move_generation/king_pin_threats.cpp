@@ -1,6 +1,6 @@
-#include "king_pin_threats.hpp"
+#include <move_generation/king_pin_threats.hpp>
 #include "attacks/attacks.hpp"
-#include "position.hpp"
+#include <position/position.hpp>
 #include "rays/rays.hpp"
 
 KingPinThreats::KingPinThreats() :

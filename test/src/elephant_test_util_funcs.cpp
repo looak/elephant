@@ -6,7 +6,7 @@
 #include "game_context.h"
 #include "log.h"
 #include "move.h"
-#include "position.hpp"
+#include <position/position.hpp>
 
 namespace ElephantTest {
 

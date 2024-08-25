@@ -1,4 +1,4 @@
-#include "move_generator.hpp"
+#include <move_generation/move_generator.hpp>
 #include "game_context.h"
 #include "move.h"
 #include "transposition_table.hpp"

@@ -5,7 +5,7 @@
 #include "elephant_test_utils.h"
 #include "fen_parser.h"
 #include "game_context.h"
-#include "hash_zorbist.h"
+#include <position/hash_zorbist.hpp>
 #include "move.h"
 
 namespace ElephantTest {

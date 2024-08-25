@@ -29,13 +29,11 @@
 #include "chess_piece.h"
 #include "defines.hpp"
 #include "intrinsics.hpp"
-#include "king_pin_threats.hpp"
+#include <move_generation/king_pin_threats.hpp>
 #include "notation.h"
 #include "material_mask.hpp"
 
 struct Notation;
-
-
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState {
@@ -156,6 +154,7 @@ private:
  * 1 bit determining active set
  * 2 bytes for fullmoves  (max number 65,535) */
 class Position {
+    friend class PositionEditor;
 public:
     static bool IsValidSquare(signed short currSqr);
     static bool IsValidSquare(Notation source);
