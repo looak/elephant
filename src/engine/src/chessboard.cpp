@@ -484,19 +484,6 @@ Chessboard::InternalHandleCapture(const PackedMove move, const Square pieceTarge
     FATAL_ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
 }
 
-u64
-Chessboard::calculateThreatenedMask(Set set) const
-{
-    u64 mask = ~universe;
-
-    if (set == Set::WHITE)
-        mask = m_position.calcThreatenedSquares<Set::WHITE, true>().read();
-    else
-        mask = m_position.calcThreatenedSquares<Set::BLACK, true>().read();
-
-    return mask;
-}
-
 bool
 Chessboard::setEnPassant(Notation notation)
 {

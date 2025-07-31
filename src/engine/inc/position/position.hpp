@@ -32,118 +32,12 @@
 #include <move_generation/king_pin_threats.hpp>
 #include "notation.h"
 #include "material_mask.hpp"
+#include "position/castling_state_info.hpp"
+#include "position/en_passant_state_info.hpp"
+#include "position/position_accessors.hpp"
 
 struct Notation;
 
-// 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-enum CastlingState {
-    NONE = 0x00,
-    WHITE_KINGSIDE = 0x01,
-    WHITE_QUEENSIDE = 0x02,
-    WHITE_ALL = WHITE_KINGSIDE | WHITE_QUEENSIDE,
-    BLACK_KINGSIDE = 0x04,
-    BLACK_QUEENSIDE = 0x08,
-    BLACK_ALL = BLACK_KINGSIDE | BLACK_QUEENSIDE,
-    ALL = WHITE_ALL | BLACK_ALL
-};
-
-struct CastlingStateInfo {
-public:
-    CastlingStateInfo() = default;
-
-    bool hasAll() const { return m_innerState == ALL; }
-    bool hasAny() const { return m_innerState != NONE; }
-    bool hasNone() const { return m_innerState == NONE; }
-    bool hasWhite() const { return m_innerState & WHITE_ALL; }
-    bool hasBlack() const { return m_innerState & BLACK_ALL; }
-    bool hasWhiteKingSide() const { return m_innerState & WHITE_KINGSIDE; }
-    bool hasWhiteQueenSide() const { return m_innerState & WHITE_QUEENSIDE; }
-    bool hasBlackKingSide() const { return m_innerState & BLACK_KINGSIDE; }
-    bool hasBlackQueenSide() const { return m_innerState & BLACK_QUEENSIDE; }
-
-    void clear() { m_innerState = NONE; }
-    void unsetWhite() { m_innerState &= ~WHITE_ALL; }
-    void unsetBlack() { m_innerState &= ~BLACK_ALL; }
-    void unsetWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
-    void unsetWhiteQueenSide() { m_innerState &= ~WHITE_QUEENSIDE; }
-    void unsetBlackKingSide() { m_innerState &= ~BLACK_KINGSIDE; }
-    void unsetBlackQueenSide() { m_innerState &= ~BLACK_QUEENSIDE; }
-
-    void setAll() { m_innerState = ALL; }
-    void setWhite() { m_innerState |= WHITE_ALL; }
-    void setBlack() { m_innerState |= BLACK_ALL; }
-    void setWhiteKingSide() { m_innerState |= WHITE_KINGSIDE; }
-    void setWhiteQueenSide() { m_innerState |= WHITE_QUEENSIDE; }
-    void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
-    void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
-
-    byte read() const { return m_innerState; }
-    void write(byte state) { m_innerState = state; }
-
-    std::string toString() const;
-
-    bool operator==(const CastlingStateInfo& rhs) const { return m_innerState == rhs.m_innerState; }
-
-private:
-    byte m_innerState = 0;
-};
-
-struct EnPassantStateInfo {
-public:
-    EnPassantStateInfo() = default;
-    operator bool() const { return m_innerState != 0; }
-    void clear() { m_innerState = 0; }
-
-    void writeSquare(Square sq)
-    {
-        m_innerState = static_cast<byte>(sq);
-        m_innerState = m_innerState << 2;
-        m_innerState += 1;
-        // m_innerState += ((byte)set << 1);
-    }
-
-    Square readSquare() const
-    {
-        if (*this)
-            return static_cast<Square>(m_innerState >> 2);
-        else
-            return Square::NullSQ;
-    }
-
-    Square readTarget() const
-    {
-        byte sq = m_innerState >> 2;
-        // Set set = static_cast<Set>(m_innerState & 2);
-        if (sq < 31) {
-            return static_cast<Square>(sq + 8);
-        }
-        return static_cast<Square>(sq - 8);
-    }
-    Bitboard readBitboard() const
-    {
-        if (*this == true) {
-            Square sq = readSquare();
-            return squareMaskTable[(size_t)sq];
-        }
-        return 0;
-    }
-
-    std::string toString() const
-    {
-        if (*this == true) {
-            return Notation::toString(readSquare());
-        }
-        return "-";
-    }
-
-    // read & write will mainly be used by make / unmake to track state.
-    byte read() const { return m_innerState; }
-    void write(byte state) { m_innerState = state; }
-
-private:
-    // [sqr] [sqr] [sqr] [sqr] [sqr] [sqr] [set] [hasEnPassant]
-    byte m_innerState;
-};
 
 /**
  * A chess position, represented as a set of bitboards and some bytes of additional state.
@@ -154,7 +48,8 @@ private:
  * 1 bit determining active set
  * 2 bytes for fullmoves  (max number 65,535) */
 class Position {
-    friend class PositionEditor;
+    friend class PositionProxy<PositionEditPolicy>;
+    friend class PositionProxy<PositionReadOnlyPolicy>;
 public:
     static bool IsValidSquare(signed short currSqr);
     static bool IsValidSquare(Notation source);
@@ -164,7 +59,6 @@ public:
     Position& operator=(const Position& other);
 
     /* Material Manpulators and readers */
-
     void Clear();
     bool empty() const;
 
@@ -182,6 +76,9 @@ public:
     CastlingStateInfo& editCastling() { return m_castlingState; }
     CastlingStateInfo readCastling() const { return m_castlingState; }
     const CastlingStateInfo& refCastling() const { return m_castlingState; }
+
+    PositionEditor edit() { return PositionEditor(*this); }
+    PositionReader read() const { return PositionReader(*this); }   
 
     template<Set us, bool captures = false>
     Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
@@ -228,7 +125,17 @@ public:
     template<Set us>
     KingPinThreats calcKingMask() const;
 
+protected:
+    u64 readHash() const { return m_hash; }
+    void setHash(u64 hash) { m_hash = hash; }
+
+    MaterialPositionMask& editMaterialMask() { return m_materialMask; }
+
+    void internalPlacePiece(ChessPiece piece, Square target);
+    void internalClearPiece(ChessPiece piece, Square target);
+
 private:
+
     template<Set us, u8 direction, u8 pieceId>
     Bitboard internalCalculateThreat(Bitboard bounds) const;
 
@@ -267,6 +174,7 @@ private:
     mutable MaterialPositionMask m_materialMask;
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
+    u64 m_hash = 0;
 };
 
 template<Set us, u8 direction>

@@ -20,6 +20,8 @@
 #include "chess_piece.h"
 #include "defines.hpp"
 #include "notation.h"
+#include <position/en_passant_state_info.hpp>
+#include <position/castling_state_info.hpp>
 
 enum MoveFlag : byte {
     Zero = 0,
@@ -404,6 +406,26 @@ struct MoveResult {
     Move* PrevMove;
     unsigned short NextMoveCount;
     Move* NextMove;
+};
+
+struct MoveUndoUnit {
+    MoveUndoUnit() :
+        move(),
+        movedPiece(),
+        capturedPiece(),
+        castlingState(),
+        enPassantState(),
+        hash(0),
+        plyCount(0)
+    {
+    }
+    PackedMove move;
+    ChessPiece movedPiece;
+    ChessPiece capturedPiece;
+    CastlingStateInfo castlingState;
+    EnPassantStateInfo enPassantState;
+    u64 hash;
+    short plyCount;
 };
 
 #endif  // MOVE_HEADER

@@ -1970,5 +1970,6 @@ TEST_F(MoveGeneratorFixture, NewApiTest)
     // verify
     auto result = buildMoveVector(gen);
     EXPECT_EQ(8, result.size());
+}
 
 }  // namespace ElephantTest

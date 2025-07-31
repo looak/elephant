@@ -5,6 +5,7 @@
 #include "chess_piece.h"
 #include "log.h"
 #include "notation.h"
+#include <position/hash_zorbist.hpp>
 
 std::string
 CastlingStateInfo::toString() const
@@ -78,20 +79,33 @@ Position::empty() const
 bool
 Position::ClearPiece(ChessPiece piece, Square target)
 {
-    Bitboard pieceMask;
-    pieceMask[target] = true;
-    m_materialMask.clear(pieceMask, piece.getSet(), piece.index());
+    internalClearPiece(piece, target);
     return true;
 }
 
 bool
 Position::PlacePiece(ChessPiece piece, Square target)
 {
+    internalPlacePiece(piece, target);
+    return true;
+}
+
+void Position::internalPlacePiece(ChessPiece piece, Square target)
+{
     Bitboard piecebb;
     piecebb[target] = true;
     m_materialMask.write(piecebb, piece.getSet(), piece.index());
 
-    return true;
+    m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
+}
+
+void Position::internalClearPiece(ChessPiece piece, Square target)
+{
+    Bitboard piecebb;
+    piecebb[target] = true;
+    m_materialMask.clear(piecebb, piece.getSet(), piece.index());
+    
+    m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
 }
 
 ChessPiece
@@ -119,6 +133,33 @@ Position::readPieceAt(Square sqr) const
     }
     return ChessPiece::None();
 }
+
+// this code is slightly slower than the above version with a for and a bunch of ifs, probably due to the branch prediction.
+// ChessPiece
+// Position::readPieceAt(Square sqr) const
+// {    
+//     // 1. Create a mask for the square.
+//     Bitboard mask(UINT64_C(1) << (u8)sqr);
+
+//     // 2. Handle the most common case first: the square is empty.    
+//     if ((m_materialMask.combine() & mask) == 0) {
+//         return ChessPiece::None();
+//     }
+
+//     // 3. Determine the piece type using branchless arithmetic.    
+//     const int pieceTypeId =
+//         (bool)(m_materialMask.knights() & mask) * knightId +
+//         (bool)(m_materialMask.bishops() & mask) * bishopId +
+//         (bool)(m_materialMask.rooks() & mask) * rookId +
+//         (bool)(m_materialMask.queens() & mask) * queenId +
+//         (bool)(m_materialMask.kings() & mask) * kingId;
+//         // If the result is 0, we know it must be a pawn.
+
+//     // 4. Determine the color with a single bitwise test.    
+//     const int colorIdx = (bool)(m_materialMask.black() & mask); // 1 if white, 0 if black
+
+//     return piece_constants::pieces[colorIdx][pieceTypeId];
+// }
 
 MutableMaterialProxy
 Position::materialEditor(Set set, PieceType pType)

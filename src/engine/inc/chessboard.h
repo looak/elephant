@@ -25,30 +25,6 @@
 #include "notation.h"
 #include <position/position.hpp>
 
-struct Move;
-struct PrioratizedMove;
-struct PrioratizedMoveComparator;
-
-struct MoveUndoUnit {
-    MoveUndoUnit() :
-        move(),
-        movedPiece(),
-        capturedPiece(),
-        castlingState(),
-        enPassantState(),
-        hash(0),
-        plyCount(0)
-    {
-    }
-    PackedMove move;
-    ChessPiece movedPiece;
-    ChessPiece capturedPiece;
-    CastlingStateInfo castlingState;
-    EnPassantStateInfo enPassantState;
-    u64 hash;
-    short plyCount;
-};
-
 /**
  * The Chessboard class represents a chess board and its current state.
  * It provides functions for moving and placing chess pieces, and updates
@@ -80,13 +56,6 @@ public:
      * Used for tapered evaluation.
      * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */
     float calculateEndGameCoeficient() const;
-
-    /**
-     * @brief Calculates a bitboard which shows opponents available moves, i.e.
-     * threatened squares.
-     * @param set The set to calculate the threat against.
-     * Should be removed!*/
-    u64 calculateThreatenedMask(Set set) const;
 
     template<typename T, bool isConst = false>
     class ChessboardIterator {
