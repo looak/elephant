@@ -39,7 +39,7 @@ public:
     char toString() const;
     bool fromString(char piece);
 
-    // todo cleanup typeid, typeindx and typeenum
+    // TODO: cleanup typeid, typeindx and typeenum
 
     bool isPawn() const { return typeId() == 1; }
     bool isKnight() const { return typeId() == 2; }
@@ -89,3 +89,16 @@ constexpr ChessPiece pieces[2][6] = {
 };
 
 } // namespace piece_constants
+
+#define BLACKKING piece_constants::black_king
+#define WHITEKING piece_constants::white_king
+#define BLACKPAWN piece_constants::black_pawn
+#define WHITEPAWN piece_constants::white_pawn
+#define BLACKBISHOP piece_constants::black_bishop
+#define WHITEBISHOP piece_constants::white_bishop
+#define BLACKROOK piece_constants::black_rook
+#define WHITEROOK piece_constants::white_rook
+#define BLACKQUEEN piece_constants::black_queen
+#define WHITEQUEEN piece_constants::white_queen
+#define BLACKKNIGHT piece_constants::black_knight
+#define WHITEKNIGHT piece_constants::white_knight

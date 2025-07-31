@@ -100,12 +100,7 @@ public:
         WeightStore::get()->book(this);
     }
 
-    virtual void accept(WeightStore& store, const std::string& newValue) override {
-        std::stringstream ss(newValue);
-        std::string a, b;
-        ss >> a >> b;
-        store.visit(*this, a, b);
-    }
+    virtual void accept(WeightStore& store, const std::string& newValue) override;
 
     i32 operator*(const float& t) {
         return m_a + (m_b - m_a) * t;
@@ -127,17 +122,12 @@ public:
         WeightStore::get()->book(this);
     }
 
-    virtual void accept(WeightStore& store, const std::string& newValue) override {
-        store.visit(*this, newValue);
-    }
+    virtual void accept(WeightStore& store, const std::string& newValue) override;
 
 private:
     friend class WeightStore;
     T& m_value;
 };
-
-/* @brief Singleton class providing a mechanism for storing and updating weights
- */
 
 class WeightStore {
 public:
@@ -184,6 +174,22 @@ void WeightStore::visit(TaperedWeight<T>& weight, const std::string& a, const st
     catch (const std::exception& e) {
         LOG_ERROR() << "Error updating weight: " << weight.m_name << " - " << e.what() << std::endl;
     }
+}
+
+// implementation
+template<typename T>
+void Weight<T>::accept(WeightStore& store, const std::string& newValue) 
+{
+    store.visit(*this, newValue);
+}
+
+template<typename T>
+void TaperedWeight<T>::accept(WeightStore& store, const std::string& newValue) 
+{    
+    std::stringstream ss(newValue);
+    std::string a, b;
+    ss >> a >> b;
+    store.visit(*this, a, b);
 }
 
 // macros for declaring weights

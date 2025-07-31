@@ -1,0 +1,197 @@
+// Elephant Gambit Chess Engine - a Chess AI
+// Copyright(C) 2021-2023  Alexander Loodin Ek
+
+// This program is free software : you can redistribute it and /or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.If not, see < http://www.gnu.org/licenses/>.
+
+/**
+ * @file position_editor.hpp
+ * @brief class for updating the position of the board. has helpers for placing pieces
+ * and making moves.
+ */
+
+#pragma once
+#include <chess_piece.h>
+#include <position/en_passant_state_info.hpp>
+#include <position/castling_state_info.hpp>
+#include <position/material_mask.hpp>
+#include <move.h>
+#include <vector>
+
+typedef ChessPiece Piece;
+
+class Position;
+struct PositionReadOnlyPolicy;
+struct PositionEditPolicy;
+
+template<typename AccessType>
+class PositionProxy {
+private:
+    typename AccessType::position_t m_position;
+
+public:    
+    PositionProxy(AccessType::position_t& position) : m_position(position) {}
+
+    void clear();
+    bool empty();    
+
+    template<typename... placementpairs>
+    bool placePieces(placementpairs... placements);
+    bool placePiece(Piece piece, Square square);   // we don't need this.
+
+    bool removePiece(Square square);
+
+    ChessPiece operator[](Square sqr) const {
+        return m_position.readPieceAt(sqr);
+    }
+
+    MutableImplicitPieceSquare operator[](Square sqr) 
+    {
+        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+            // NOTE: Might need a safe guard here to ensure that the square is set after returning the proxy.
+            // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
+            auto piece = m_position.readPieceAt(sqr);
+            LOG_WARNING("Overwriting piece at square ", sqr);
+            m_position.ClearPiece(piece, sqr);  // clear the piece at the square            
+            return MutableImplicitPieceSquare(m_position.editMaterialMask(), sqr);            
+        }
+        else {
+            static_assert(false, "Cannot call and modify position with operator[] on a position with a read-only policy.");
+        }
+    }
+
+    class PositionIterator {
+    public:
+        PositionIterator(AccessType::position_t& position, byte index = 0)
+            : m_position(position), m_index(index) {}
+        PositionIterator(const PositionIterator& other)
+            : m_position(other.m_position), m_index(other.m_index) {}
+        PositionIterator& operator=(const PositionIterator& other) {
+            if (this != &other) {
+                m_position = other.m_position;
+                m_index = other.m_index;
+            }
+            return *this;
+        }
+        bool operator==(const PositionIterator& other) const {
+            return m_index == other.m_index && m_position.readHash() == other.m_position.readHash();
+        }
+        bool operator!=(const PositionIterator& other) const {
+            return !(*this == other);
+        }
+
+        bool end() const {
+            return m_index >= 64;  // assuming 64 squares on the board
+        }
+        PositionIterator& operator++() {
+            ++m_index;
+            return *this;
+        }
+        PositionIterator operator++(int) {
+            PositionIterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+        PositionIterator& operator+=(int incre) {
+            m_index += incre;
+            return *this;
+        }
+
+        Square square() const { return static_cast<Square>(m_index); }
+        int file() const { return mod_by_eight(m_index); }
+        int rank() const { return m_index / 8; }
+
+        ChessPiece get() const {
+            return m_position.readPieceAt(static_cast<Square>(m_index));
+        }
+
+        void set(ChessPiece piece) 
+        {
+            if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+                auto currentPiece = get();
+                if (currentPiece.isValid()) {
+                    auto materialEditor = m_position.materialEditor(currentPiece.getSet(), currentPiece.getType());
+                    materialEditor[square()] = false;  // remove the current piece
+                }
+                auto materialEditor = m_position.materialEditor(piece.getSet(), piece.getType());
+                materialEditor[square()] = true;
+            }
+            else {
+                static_assert(false, "Cannot call set() on a position with a read-only policy.");
+            }
+        }
+
+    private:
+        AccessType::position_t& m_position;
+        byte m_index;            
+    };
+
+    PositionIterator begin() {
+        return PositionIterator(m_position, 0);
+    }
+    PositionIterator end() {
+        return PositionIterator(m_position, 64);
+    }
+    PositionIterator begin() const {
+        return PositionIterator(m_position, 0);
+    }
+    PositionIterator end() const {
+        return PositionIterator(m_position, 64);
+    }
+
+private:
+    template<typename piece, typename square, typename... placements>
+    bool internalUnrollPlacementPairs(const piece& p, const square& sqr, const placements&... _placements);
+    bool internalUnrollPlacementPairs() { return true; }
+
+};
+
+template<typename AccessType>
+void PositionProxy<AccessType>::clear() 
+{
+    if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+        m_position.Clear();
+    }
+    else {
+        static_assert(false, "Cannot call clear() on a read-only policy position.");
+    }
+}
+
+template<typename AccessType>
+bool PositionProxy<AccessType>::empty() 
+{
+    return m_position.empty();
+}
+
+template<typename AccessType>
+template<typename piece, typename square, typename... placements>
+bool PositionProxy<AccessType>::internalUnrollPlacementPairs(const piece& p, const square& sqr, const placements&... _placements) 
+{
+    if (m_position.placePiece(p, sqr) == false)
+        return false;
+
+    return internalUnrollPlacementPairs(_placements...);
+}
+
+template<typename AccessType>
+template<typename... placements>
+bool PositionProxy<AccessType>::placePieces(placements... _placement) 
+{
+    if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+        static_assert(sizeof...(_placement) % 2 == 0, "Number of arguments must be even");
+        return internalUnrollPlacementPairs(_placement...);
+    }
+    else {
+        static_assert(false, "Cannot call placePieces() on a read-only policy position.");
+    }
+}

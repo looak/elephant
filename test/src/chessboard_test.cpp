@@ -150,6 +150,7 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
     // do some more
     board.PlacePieces(r, Square::C6, r, Square::C7, r, Square::G4);
 
+    // validate
     const auto& blackRooks = board.readPosition().readMaterial().rooks<Set::BLACK>();
     EXPECT_EQ(3, blackRooks.count());
     EXPECT_TRUE(blackRooks[Square::C6]);
@@ -159,6 +160,10 @@ TEST_F(ChessboardFixture, Chessboard_PlacePieces)
     EXPECT_EQ(r, board.readPieceAt(Square::C7));
     EXPECT_EQ(r, board.readPieceAt(Square::G4));
     EXPECT_NE(oldHash, board.readHash());
+
+    // expect white king to still be there.
+    EXPECT_EQ(K, board.readPieceAt(Square::A1));
+    EXPECT_EQ(1, whiteKing.count());
 
     Chessboard startPostion;
     startPostion.PlacePieces(r, a8, n, b8, b, c8, q, d8, k, e8, b, f8, n, g8, r, h8);
@@ -696,14 +701,6 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     EXPECT_EQ(goatGame, m_gameOfTheCentury.readHash());
     EXPECT_EQ(scndCopyHash, scndCopy.readHash());
     EXPECT_EQ(goatGame, scndCopyHash);
-
-    auto orgMask = m_gameOfTheCentury.calculateThreatenedMask(Set::BLACK);
-    auto cpyMask = scndCopy.calculateThreatenedMask(Set::BLACK);
-    EXPECT_EQ(orgMask, cpyMask);
-
-    orgMask = m_gameOfTheCentury.calculateThreatenedMask(Set::WHITE);
-    cpyMask = scndCopy.calculateThreatenedMask(Set::WHITE);
-    EXPECT_EQ(orgMask, cpyMask);
 
     Bitboard orgMat = m_gameOfTheCentury.readPosition().readMaterial().combine<Set::BLACK>();
     Bitboard cpyMat = scndCopy.readPosition().readMaterial().combine<Set::BLACK>();

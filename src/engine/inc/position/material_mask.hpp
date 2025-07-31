@@ -1,6 +1,7 @@
+#pragma once
 #include "bitboard.hpp"
+#include "chess_piece.h"
 
-class Position;
 
 struct MaterialMask {
     Bitboard material[6]{};
@@ -21,8 +22,6 @@ struct MaterialMask {
     [[nodiscard]] constexpr const Bitboard& knights() const { return material[knightId]; }
     [[nodiscard]] constexpr const Bitboard& pawns() const { return material[pawnId]; }
 };
-
-struct MutableMaterialProxy;
 
 struct MutableMaterialProxySquare {
 public:
@@ -70,8 +69,6 @@ private:
     Bitboard* m_material;
 };
 
-// this would be 8 x 64bits, i.e. 64 bytes per position rather than the currently used
-// 12 x 64bits, i.e. 96 bytes per position.
 struct MaterialPositionMask {
     friend class Position;
 private:
@@ -128,6 +125,25 @@ public:
 
     [[nodiscard]] constexpr Bitboard white() const { return m_set[0]; }
     [[nodiscard]] constexpr Bitboard black() const { return m_set[1]; }
+
+    [[nodiscard]] Bitboard& editSet(byte set) { return m_set[set]; }
+    [[nodiscard]] Bitboard& editMaterial(byte pieceId) { return m_material[pieceId]; }
+    
+};
+
+struct MutableImplicitPieceSquare {
+    MutableImplicitPieceSquare(MaterialPositionMask& material, Square sqr) : m_material(material), m_sqr(sqr) {}
+
+    void operator=(ChessPiece piece)
+    {
+        if (piece.isValid()) {
+            m_material.write(squareMaskTable[static_cast<u8>(m_sqr)], piece.getSet(), piece.index());
+        }
+    }
+
+private:
+    MaterialPositionMask& m_material;
+    Square m_sqr;
 };
 
 template<Set us>

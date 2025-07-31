@@ -42,7 +42,10 @@ ${ENGINE_INC_DIR}/move_generation/move_generator.hpp
 ${ENGINE_INC_DIR}/position/hash_zorbist.hpp
 ${ENGINE_INC_DIR}/position/material_mask.hpp
 ${ENGINE_INC_DIR}/position/position.hpp
-${ENGINE_INC_DIR}/position/position_editor.hpp
+${ENGINE_INC_DIR}/position/position_proxy.hpp
+${ENGINE_INC_DIR}/position/position_accessors.hpp
+${ENGINE_INC_DIR}/position/en_passant_state_info.hpp
+${ENGINE_INC_DIR}/position/castling_state_info.hpp
 
 ${ENGINE_INC_DIR}/rays/rays.hpp
 
@@ -73,7 +76,7 @@ ${ENGINE_SRC_DIR}/move_generation/move_generator.cpp
 ${ENGINE_SRC_DIR}/position/hash_zorbist.cpp
 ${ENGINE_SRC_DIR}/position/material_mask.cpp
 ${ENGINE_SRC_DIR}/position/position.cpp
-${ENGINE_SRC_DIR}/position/position_editor.cpp
+${ENGINE_SRC_DIR}/position/position_proxy.cpp
 
 ${ENGINE_SRC_DIR}/utils/weight_store.cpp
 
