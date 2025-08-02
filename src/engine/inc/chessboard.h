@@ -45,9 +45,6 @@ public:
 
     bool UnmakeMove(const MoveUndoUnit& undoState);
 
-    template<typename... placementpairs>
-    bool PlacePieces(placementpairs... placements);
-
     template<typename... moves>
     std::vector<MoveUndoUnit> MakeMoves(const moves&... _moves);
 
@@ -138,10 +135,6 @@ public:
     std::string toString() const;
 
 private:
-    template<typename piece, typename square, typename... placements>
-    bool InternalProcessEvenPlacementPairs(const piece& p, const square& sqr, const placements&... _placements);
-    bool InternalProcessEvenPlacementPairs() { return true; }
-
     template<typename move, typename... moves>
     std::vector<MoveUndoUnit> InternalUnrollMoves(const move& m, const moves&... _moves);
     std::vector<MoveUndoUnit> InternalUnrollMoves() { return {}; }
@@ -234,24 +227,6 @@ Chessboard::ChessboardIterator<T, isConst>::operator+=(int incre)
     m_index = static_cast<unsigned char>(result);
     m_position = Notation(m_index);
     return *this;
-}
-
-template<typename piece, typename square, typename... placements>
-bool
-Chessboard::InternalProcessEvenPlacementPairs(const piece& p, const square& sqr, const placements&... _placements)
-{
-    if (PlacePiece(p, sqr) == false)
-        return false;
-
-    return InternalProcessEvenPlacementPairs(_placements...);
-}
-
-template<typename... placements>
-bool
-Chessboard::PlacePieces(placements... _placement)
-{
-    static_assert(sizeof...(_placement) % 2 == 0, "Number of arguments must be even");
-    return InternalProcessEvenPlacementPairs(_placement...);
 }
 
 template<typename... moves>
