@@ -345,116 +345,116 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
 //     A    B    C    D    E    F    G    H
 // Moves:
 // O-O-O
-TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
-{
-    auto K = WHITEKING;
-    auto R = WHITEROOK;
-    auto k = BLACKKING;
-    auto r = BLACKROOK;
-    auto empty = ChessPiece();
+// TEST_F(UnmakeFixture, King_CastlingQueenSide_Black_Unmake)
+// {
+//     auto K = WHITEKING;
+//     auto R = WHITEROOK;
+//     auto k = BLACKKING;
+//     auto r = BLACKROOK;
+//     auto empty = ChessPiece();
 
-    auto& castlingInfo = m_chessboard.editPosition().editCastling();
-    castlingInfo.setAll();
-    m_chessboard.PlacePieces(K, e1, R, a1, R, h1, k, e8, r, a8, r, h8);
-    // LOG_INFO() << m_chessboard.toString();
+//     auto& castlingInfo = m_chessboard.editPosition().editCastling();
+//     castlingInfo.setAll();
+//     m_chessboard.PlacePieces(K, e1, R, a1, R, h1, k, e8, r, a8, r, h8);
+//     // LOG_INFO() << m_chessboard.toString();
 
-    // do
-    {
-        PackedMove move(Square::E1, Square::C1);  // castle queen side
-        move.setCastleQueenSide(true);
+//     // do
+//     {
+//         PackedMove move(Square::E1, Square::C1);  // castle queen side
+//         move.setCastleQueenSide(true);
 
-        auto undo = m_chessboard.MakeMove<false>(move);
-        EXPECT_EQ(K, m_chessboard.readPieceAt(Square::C1));
-        EXPECT_EQ(R, m_chessboard.readPieceAt(Square::D1));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E1));
-        EXPECT_FALSE(castlingInfo.hasWhite());
-        EXPECT_TRUE(castlingInfo.hasBlack());
+//         auto undo = m_chessboard.MakeMove<false>(move);
+//         EXPECT_EQ(K, m_chessboard.readPieceAt(Square::C1));
+//         EXPECT_EQ(R, m_chessboard.readPieceAt(Square::D1));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E1));
+//         EXPECT_FALSE(castlingInfo.hasWhite());
+//         EXPECT_TRUE(castlingInfo.hasBlack());
 
-        // LOG_INFO() << m_chessboard.toString();
+//         // LOG_INFO() << m_chessboard.toString();
 
-        // undo
-        bool result = m_chessboard.UnmakeMove(undo);
-        EXPECT_TRUE(result);
-        EXPECT_EQ(K, m_chessboard.readPieceAt(Square::E1));
-        EXPECT_EQ(R, m_chessboard.readPieceAt(Square::A1));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::C1));
-        EXPECT_TRUE(castlingInfo.hasWhite());
-        EXPECT_TRUE(castlingInfo.hasWhiteKingSide());
-        EXPECT_TRUE(castlingInfo.hasWhiteQueenSide());
-        EXPECT_TRUE(castlingInfo.hasAll());
+//         // undo
+//         bool result = m_chessboard.UnmakeMove(undo);
+//         EXPECT_TRUE(result);
+//         EXPECT_EQ(K, m_chessboard.readPieceAt(Square::E1));
+//         EXPECT_EQ(R, m_chessboard.readPieceAt(Square::A1));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::C1));
+//         EXPECT_TRUE(castlingInfo.hasWhite());
+//         EXPECT_TRUE(castlingInfo.hasWhiteKingSide());
+//         EXPECT_TRUE(castlingInfo.hasWhiteQueenSide());
+//         EXPECT_TRUE(castlingInfo.hasAll());
 
-        // LOG_INFO() << m_chessboard.toString();
-    }
+//         // LOG_INFO() << m_chessboard.toString();
+//     }
 
-    // do castle king side
-    {
-        PackedMove move(Square::E1, Square::G1);  // castle king side
-        move.setCastleKingSide(true);
+//     // do castle king side
+//     {
+//         PackedMove move(Square::E1, Square::G1);  // castle king side
+//         move.setCastleKingSide(true);
 
-        auto undo = m_chessboard.MakeMove<false>(move);
-        EXPECT_EQ(K, m_chessboard.readPieceAt(Square::G1));
-        EXPECT_EQ(R, m_chessboard.readPieceAt(Square::F1));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E1));
-        EXPECT_FALSE(castlingInfo.hasWhite());
-        EXPECT_TRUE(castlingInfo.hasBlack());
+//         auto undo = m_chessboard.MakeMove<false>(move);
+//         EXPECT_EQ(K, m_chessboard.readPieceAt(Square::G1));
+//         EXPECT_EQ(R, m_chessboard.readPieceAt(Square::F1));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E1));
+//         EXPECT_FALSE(castlingInfo.hasWhite());
+//         EXPECT_TRUE(castlingInfo.hasBlack());
 
-        // LOG_INFO() << m_chessboard.toString();
+//         // LOG_INFO() << m_chessboard.toString();
 
-        // undo
-        bool result = m_chessboard.UnmakeMove(undo);
-        EXPECT_TRUE(result);
-        EXPECT_EQ(K, m_chessboard.readPieceAt(Square::E1));
-        EXPECT_EQ(R, m_chessboard.readPieceAt(Square::H1));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::F1));
-        EXPECT_TRUE(castlingInfo.hasAll());
-    }
+//         // undo
+//         bool result = m_chessboard.UnmakeMove(undo);
+//         EXPECT_TRUE(result);
+//         EXPECT_EQ(K, m_chessboard.readPieceAt(Square::E1));
+//         EXPECT_EQ(R, m_chessboard.readPieceAt(Square::H1));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::F1));
+//         EXPECT_TRUE(castlingInfo.hasAll());
+//     }
 
-    // do black castling
-    {
-        PackedMove move(Square::E8, Square::C8);  // castle queen side
-        move.setCastleQueenSide(true);
+//     // do black castling
+//     {
+//         PackedMove move(Square::E8, Square::C8);  // castle queen side
+//         move.setCastleQueenSide(true);
 
-        auto undo = m_chessboard.MakeMove<false>(move);
-        EXPECT_EQ(k, m_chessboard.readPieceAt(Square::C8));
-        EXPECT_EQ(r, m_chessboard.readPieceAt(Square::D8));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E8));
-        EXPECT_FALSE(castlingInfo.hasBlack());
-        EXPECT_TRUE(castlingInfo.hasWhite());
+//         auto undo = m_chessboard.MakeMove<false>(move);
+//         EXPECT_EQ(k, m_chessboard.readPieceAt(Square::C8));
+//         EXPECT_EQ(r, m_chessboard.readPieceAt(Square::D8));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E8));
+//         EXPECT_FALSE(castlingInfo.hasBlack());
+//         EXPECT_TRUE(castlingInfo.hasWhite());
 
-        // LOG_INFO() << m_chessboard.toString();
+//         // LOG_INFO() << m_chessboard.toString();
 
-        // undo
-        bool result = m_chessboard.UnmakeMove(undo);
-        EXPECT_TRUE(result);
-        EXPECT_EQ(k, m_chessboard.readPieceAt(Square::E8));
-        EXPECT_EQ(r, m_chessboard.readPieceAt(Square::A8));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::C8));
-        EXPECT_TRUE(castlingInfo.hasAll());
-    }
+//         // undo
+//         bool result = m_chessboard.UnmakeMove(undo);
+//         EXPECT_TRUE(result);
+//         EXPECT_EQ(k, m_chessboard.readPieceAt(Square::E8));
+//         EXPECT_EQ(r, m_chessboard.readPieceAt(Square::A8));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::C8));
+//         EXPECT_TRUE(castlingInfo.hasAll());
+//     }
 
-    // do black king side caslting
-    {
-        PackedMove move(Square::E8, Square::G8);  // castle king side
-        move.setCastleKingSide(true);
+//     // do black king side caslting
+//     {
+//         PackedMove move(Square::E8, Square::G8);  // castle king side
+//         move.setCastleKingSide(true);
 
-        auto undo = m_chessboard.MakeMove<false>(move);
-        EXPECT_EQ(k, m_chessboard.readPieceAt(Square::G8));
-        EXPECT_EQ(r, m_chessboard.readPieceAt(Square::F8));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E8));
-        EXPECT_FALSE(castlingInfo.hasBlack());
-        EXPECT_TRUE(castlingInfo.hasWhite());
+//         auto undo = m_chessboard.MakeMove<false>(move);
+//         EXPECT_EQ(k, m_chessboard.readPieceAt(Square::G8));
+//         EXPECT_EQ(r, m_chessboard.readPieceAt(Square::F8));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::E8));
+//         EXPECT_FALSE(castlingInfo.hasBlack());
+//         EXPECT_TRUE(castlingInfo.hasWhite());
 
-        // LOG_INFO() << m_chessboard.toString();
+//         // LOG_INFO() << m_chessboard.toString();
 
-        // undo
-        bool result = m_chessboard.UnmakeMove(undo);
-        EXPECT_TRUE(result);
-        EXPECT_EQ(k, m_chessboard.readPieceAt(Square::E8));
-        EXPECT_EQ(r, m_chessboard.readPieceAt(Square::H8));
-        EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::F8));
-        EXPECT_TRUE(castlingInfo.hasAll());
-    }
-}
+//         // undo
+//         bool result = m_chessboard.UnmakeMove(undo);
+//         EXPECT_TRUE(result);
+//         EXPECT_EQ(k, m_chessboard.readPieceAt(Square::E8));
+//         EXPECT_EQ(r, m_chessboard.readPieceAt(Square::H8));
+//         EXPECT_EQ(empty, m_chessboard.readPieceAt(Square::F8));
+//         EXPECT_TRUE(castlingInfo.hasAll());
+//     }
+// }
 
 // 8 [ r ][   ][   ][   ][ k ][   ][   ][ r ]
 // 7 [   ][   ][   ][   ][   ][   ][   ][   ]

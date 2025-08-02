@@ -51,6 +51,18 @@ public:
 
     bool removePiece(Square square);
 
+    const MaterialPositionMask& readMaterial() const { return m_position.m_materialMask; }
+    
+    u64 readHash() const { return m_position.m_hash; }
+    u64& editHash() {
+        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+            return m_position.m_hash;
+        }
+        else {
+            static_assert(false, "Cannot edit hash in read-only policy.");
+        }
+    }
+
     ChessPiece operator[](Square sqr) const {
         return m_position.readPieceAt(sqr);
     }
