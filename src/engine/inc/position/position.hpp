@@ -83,31 +83,14 @@ protected:
     Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us, bool captures = false, Set op = opposing_set<us>()>
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
-
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb,
-        const KingPinThreats& kingPinThreats) const;
-
-    template<Set us, u8 pieceId>
-    std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
+    
 private:
 
     /**
      * @brief Isolate a given pawn from the moves bitboard.
      * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
      * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square. */
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolatePawn(Notation source, Bitboard movesbb,
-        const KingPinThreats& kingPinThreats) const;
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb,
-        const KingPinThreats& kingPinThreats) const;
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb,
-        const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats,
-        i8 pieceIndex = rookId) const;
+    
 
     u64 Castling(byte set, byte castling, u64 threatenedMask) const;
 
@@ -116,10 +99,3 @@ private:
     EnPassantStateInfo m_enpassantState;
     u64 m_hash = 0;
 };
-
-template<Set us, u8 pieceId>
-std::tuple<Bitboard, Bitboard>
-Position::isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
-{
-    return isolatePiece<us>(pieceId, source, movesbb, kingMask);
-}
