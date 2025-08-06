@@ -24,7 +24,7 @@
 #include <chess_piece.h>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
-#include <position/material_mask.hpp>
+#include <material/material_mask.hpp>
 #include <move.h>
 #include <vector>
 
@@ -41,30 +41,29 @@ private:
 
 public:    
     PositionProxy(AccessType::position_t& position) : m_position(position) {}
+    PositionProxy(const PositionProxy& other) : m_position(other.m_position) {}
 
     void clear();
-    bool empty();    
+    bool empty() const { return m_position.empty(); }
 
     template<typename... placementpairs>
     bool placePieces(placementpairs... placements);
-    bool placePiece(Piece piece, Square square);   // we don't need this.
 
-    bool removePiece(Square square);
-
-    const MaterialPositionMask& readMaterial() const { return m_position.m_materialMask; }
+    template<bool validation = false>
+    bool placePiece(Piece piece, Square square); 
     
-    u64 readHash() const { return m_position.m_hash; }
-    u64& editHash() {
-        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
-            return m_position.m_hash;
-        }
-        else {
-            static_assert(false, "Cannot edit hash in read-only policy.");
-        }
-    }
+    template<bool validation = false>
+    bool clearPiece(Square square);
+
+    AccessType::chess_piece_t pieceAt(Square square) const;
+
+    AccessType::material_t material() const { return m_position.m_materialMask; }
+    AccessType::en_passant_t enPassant() const { return m_position.m_enpassantState; }
+    AccessType::castling_t castling() const { return m_position.m_castlingState; }
+    AccessType::hash_t hash() const { return m_position.m_hash; }
 
     ChessPiece operator[](Square sqr) const {
-        return m_position.readPieceAt(sqr);
+        return pieceAt(sqr);
     }
 
     MutableImplicitPieceSquare operator[](Square sqr) 
@@ -72,8 +71,8 @@ public:
         if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
             // NOTE: Might need a safe guard here to ensure that the square is set after returning the proxy.
             // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
-            auto piece = m_position.readPieceAt(sqr);
-            LOG_WARNING("Overwriting piece at square ", sqr);
+            auto piece = pieceAt(sqr);
+            LOG_WARNING() << "Overwriting piece at square " << sqr;
             m_position.ClearPiece(piece, sqr);  // clear the piece at the square            
             return MutableImplicitPieceSquare(m_position.editMaterialMask(), sqr);            
         }
@@ -120,8 +119,8 @@ public:
         }
 
         Square square() const { return static_cast<Square>(m_index); }
-        int file() const { return mod_by_eight(m_index); }
-        int rank() const { return m_index / 8; }
+        byte file() const { return mod_by_eight(m_index); }
+        byte rank() const { return m_index / 8; }
 
         ChessPiece get() const {
             return m_position.readPieceAt(static_cast<Square>(m_index));
@@ -177,12 +176,6 @@ void PositionProxy<AccessType>::clear()
     else {
         static_assert(false, "Cannot call clear() on a read-only policy position.");
     }
-}
-
-template<typename AccessType>
-bool PositionProxy<AccessType>::empty() 
-{
-    return m_position.empty();
 }
 
 template<typename AccessType>

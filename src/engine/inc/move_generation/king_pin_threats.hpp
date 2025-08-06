@@ -1,10 +1,8 @@
-#ifndef KING_PIN_THREATS_HEADER
-#define KING_PIN_THREATS_HEADER
+#pragma once
+
 #include "bitboard.hpp"
 #include "chess_piece_defines.hpp"
-#include "notation.h"
-
-class Position;
+#include <position/position_accessors.hpp>
 
 struct SlidingMaterialMasks {
     Bitboard orthogonal;
@@ -27,14 +25,14 @@ struct KingPinThreats {
     // [[nodiscard]] const Bitboard* readThreatenedAngles() const { return &m_threatenedAngles[0]; }
 
     template<Set us>
-    void evaluate(Square kingSquare, const Position& position);
+    void evaluate(Square kingSquare, PositionReader position);
 
     template<Set op>
-    void calculateOpponentOpenAngles(const Square kingSquare, const Position& position);
+    void calculateOpponentOpenAngles(const Square kingSquare, PositionReader position);
 
 private:
     template<Set us>
-    void calculateEnPassantPinThreat(Square kingSquare, const Position& position);
+    void calculateEnPassantPinThreat(Square kingSquare, PositionReader position);
 
     Bitboard m_threatenedAngles[8];
     Bitboard m_specialEnPassantMask;
@@ -43,5 +41,3 @@ private:
     bool m_checkedAngles[8];
     bool m_knightOrPawnCheck;
 };
-
-#endif  // KING_PIN_THREATS_HEADER

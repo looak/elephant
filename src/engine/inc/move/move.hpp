@@ -23,6 +23,12 @@
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
 
+enum class MoveTypes {
+    ALL,
+    CAPTURES_ONLY,
+    QUIET_ONLY,
+};
+
 enum MoveFlag : byte {
     Zero = 0,
     Capture = 1,
@@ -389,24 +395,6 @@ operator==(const Move& lhs, const Move& rhs)
     return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
         lhs.PromoteToPiece == rhs.PromoteToPiece;
 }
-
-struct MoveResult {
-    Notation SourceSquare;
-    Notation TargetSquare;
-
-    byte PrevCastlingState;
-
-    Notation EnPassantTargetSquare;
-    ChessPiece Piece;
-    ChessPiece PromoteToPiece;
-    ChessPiece CapturedPiece;
-
-    MoveFlag Flags;
-
-    Move* PrevMove;
-    unsigned short NextMoveCount;
-    Move* NextMove;
-};
 
 struct MoveUndoUnit {
     MoveUndoUnit() :

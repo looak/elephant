@@ -48,66 +48,7 @@ public:
     template<typename... moves>
     std::vector<MoveUndoUnit> MakeMoves(const moves&... _moves);
 
-    /**
-     * @brief Calculates the end game coeficient.
-     * Used for tapered evaluation.
-     * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */
-    float calculateEndGameCoeficient() const;
-
-    template<typename T, bool isConst = false>
-    class ChessboardIterator {
-        friend class Chessboard;
-
-    public:
-        ChessboardIterator(const ChessboardIterator& other) :
-            m_chessboard(other.m_chessboard),
-            m_index(other.m_index),
-            m_position(other.m_position)
-        {
-        }
-
-        ChessboardIterator(T& board) :
-            m_chessboard(board),
-            m_index(0)
-        {
-        }
-
-        ChessboardIterator(T& board, Notation pos) :
-            m_chessboard(board),
-            m_index(0),
-            m_position(std::move(pos))
-        {
-        }
-
-        bool operator==(const ChessboardIterator& rhs) const;
-        bool operator!=(const ChessboardIterator& rhs) const;
-        const ChessboardIterator& operator*() const { return *this; }
-
-        ChessboardIterator& operator++();
-        ChessboardIterator operator++(int);
-        ChessboardIterator& operator+=(int incre);
-
-        bool end() const;
-        byte file() const { return m_position.file; }
-        byte rank() const { return m_position.rank; }
-        byte index() const { return m_index; }
-        Square square() const { return m_position.toSquare(); }
-        ChessPiece get() const { return m_chessboard.readPieceAt(m_position.toSquare()); }
-
-    private:
-        T& m_chessboard;
-        mutable byte m_index;
-        mutable Notation m_position;
-    };
-
-    using Iterator = ChessboardIterator<Chessboard, false>;
-    using ConstIterator = ChessboardIterator<const Chessboard, true>;
-
-    Iterator begin();
-    Iterator end();
-    ConstIterator begin() const;
-    ConstIterator end() const;
-
+    
     /**
      * @brief Sets the en passant square.
      * Sets the en passant square, updates hash and calculates the en passant target square.
@@ -115,12 +56,11 @@ public:
      * @return true if the en passant square was set */
     bool setEnPassant(Notation notation);
     bool setCastlingState(u8 castlingState);
-    CastlingStateInfo readCastlingState() const { return m_position.readCastling(); }
-    const Position& readPosition() const { return m_position; }
-    Position& editPosition() { return m_position; }
-    ChessPiece readPieceAt(Square sqr) const { return m_position.readPieceAt(sqr); }
+    
+    PositionReader readPosition() const { return m_position.read(); }
+    PositionEditor editPosition() { return m_position.edit(); }
 
-    u64 readHash() const { return m_hash; }
+    
     short readMoveCount() const { return m_moveCount; }
     short readPlyCount() const { return m_plyCount; }
     void setPlyAndMoveCount(short ply, short moveCount)
@@ -160,74 +100,17 @@ private:
 
     bool InternalUpdateEnPassant(Notation source, Notation target);
     void InternalMakeMove(ChessPiece piece, Square source, Square target, MutableMaterialProxy materialEditor);
-
-    u64 m_hash;
+    
     Position m_position;
 
     bool m_isWhiteTurn;
     short m_moveCount;
     short m_plyCount;
     short m_age;
-    mutable float m_endGameCoeficient;
 
     // caching kings and their locations
     std::pair<ChessPiece, Notation> m_kings[2];
 };
-
-template<typename T, bool isConst>
-bool
-Chessboard::ChessboardIterator<T, isConst>::operator==(const ChessboardIterator<T, isConst>& rhs) const
-{
-    return &m_chessboard == &rhs.m_chessboard && m_position == rhs.m_position;
-}
-
-template<typename T, bool isConst>
-bool
-Chessboard::ChessboardIterator<T, isConst>::operator!=(const ChessboardIterator<T, isConst>& rhs) const
-{
-    return !(*this == rhs);
-}
-
-template<typename T, bool isConst>
-bool
-Chessboard::ChessboardIterator<T, isConst>::end() const
-{
-    return m_index >= 64;
-}
-
-template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>&
-Chessboard::ChessboardIterator<T, isConst>::operator++()
-{
-    if (end())
-        return *this;
-    ++m_index;
-    m_position = Notation(m_index);
-    return *this;
-}
-
-template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>
-Chessboard::ChessboardIterator<T, isConst>::operator++(int)
-{
-    ChessboardIterator itr(*this);
-    ++(*this);
-    return itr;
-}
-
-template<typename T, bool isConst>
-Chessboard::ChessboardIterator<T, isConst>&
-Chessboard::ChessboardIterator<T, isConst>::operator+=(int incre)
-{
-    int temp_index = static_cast<int>(m_index);
-    int result = temp_index + incre;
-    if (result < 0 || result > 63)
-        result = 64;
-
-    m_index = static_cast<unsigned char>(result);
-    m_position = Notation(m_index);
-    return *this;
-}
 
 template<typename... moves>
 std::vector<MoveUndoUnit>

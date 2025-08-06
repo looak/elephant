@@ -17,19 +17,14 @@
 #define MOVE_GENERATOR_HEADER
 
 #include <queue>
+#include <functional>
 #include "king_pin_threats.hpp"
 #include "transposition_table.hpp"
 #include "move.h"
-#include <position/position.hpp>
+#include <position/position_accessors.hpp>
 
 class GameContext;
 class Search;
-
-enum class MoveTypes {
-    ALL,
-    CAPTURES_ONLY,
-    QUIET_ONLY,
-};
 
 namespace move_generator_constants {
 // priority values for move generator
@@ -45,7 +40,7 @@ class MoveGenerator {
 public:
     MoveGenerator(const GameContext& context);
     MoveGenerator(const GameContext& context, const TranspositionTable& tt, const Search& search, u32 ply);
-    MoveGenerator(const Position& pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
+    MoveGenerator(PositionReader pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
     ~MoveGenerator() = default;
 
     PrioratizedMove generateNextMove();
@@ -65,6 +60,9 @@ private:
 
     template<Set set, bool captures>
     void initializeMoveMasks(MaterialMask& target, PieceType ptype);
+
+    template<Set set>
+    KingPinThreats computeKingPinThreats();
 
     template<Set set>
     PrioratizedMove generateNextMove();
@@ -97,7 +95,7 @@ private:
     void sortMoves();
 
     Set m_toMove;
-    const Position& m_position;
+    PositionProxy<PositionReadOnlyPolicy> m_position;
     const TranspositionTable* m_tt;
     const Search* m_search;
     const u32 m_ply;
@@ -147,6 +145,19 @@ template<Set us>
 const KingPinThreats& MoveGenerator::readKingPinThreats() const
 {
     return m_pinThreats[static_cast<u8>(us)];
+}
+
+template<Set us>
+KingPinThreats MoveGenerator::computeKingPinThreats()
+{
+    constexpr Set op = opposing_set<us>();  
+    Square kingSqr = static_cast<Square>(m_position.material().king<us>().lsbIndex());
+    Square opKingSqr = static_cast<Square>(m_position.material().king<op>().lsbIndex());
+
+    KingPinThreats ret;
+    ret.evaluate<us>(kingSqr, *this);
+    ret.calculateOpponentOpenAngles<op>(opKingSqr, *this);
+    return ret; 
 }
 
 #endif  // MOVE_GENERATOR_HEADER

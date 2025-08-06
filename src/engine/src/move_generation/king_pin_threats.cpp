@@ -92,33 +92,35 @@ KingPinThreats::checks() const
 }
 
 template<Set us>
-void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, const Position& position)
+void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, PositionReader position)
 {
-    if (position.readEnPassant() == false) {
+    if (position.enPassant() == false) {
         return;
     }
+
+    const auto material = position.material();
 
     constexpr Set op = opposing_set<us>();
     constexpr size_t opIndx = static_cast<size_t>(op);
     Bitboard kingSquareMask = squareMaskTable[*kingSquare];
 
     if (kingSquareMask & board_constants::enPassantRankRelative[opIndx]) {
-        const Bitboard usMaterial = position.readMaterial().combine<us>();
-        const Bitboard opMaterial = position.readMaterial().combine<op>();
+        const Bitboard usMaterial = material.combine<us>();
+        const Bitboard opMaterial = material.combine<op>();
         const Bitboard allMaterial = usMaterial | opMaterial;
-        const Bitboard orthogonalMaterial = position.readMaterial().rooks<op>() | position.readMaterial().queens<op>();
+        const Bitboard orthogonalMaterial = material.rooks<op>() | material.queens<op>();
 
         Bitboard riskOfPin = allMaterial & board_constants::enPassantRankRelative[opIndx];
 
         if ((riskOfPin & orthogonalMaterial).empty())
             return;  // no one to pin us on this rank.
 
-        const Bitboard usPawns = position.readMaterial().pawns<us>();
+        const Bitboard usPawns = material.pawns<us>();
 
         if ((usPawns & board_constants::enPassantRankRelative[opIndx]).empty())
             return;  // no pawns on this rank to pin.
 
-        Square epTargetSquare = position.readEnPassant().readTarget();
+        Square epTargetSquare = position.enPassant().readTarget();
         Notation epTarget(epTargetSquare);
 
         Bitboard resultMask;
@@ -152,17 +154,17 @@ void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, const Positi
     }
 }
 
-template void KingPinThreats::calculateEnPassantPinThreat<Set::WHITE>(Square, const Position&);
-template void KingPinThreats::calculateEnPassantPinThreat<Set::BLACK>(Square, const Position&);
+template void KingPinThreats::calculateEnPassantPinThreat<Set::WHITE>(Square, PositionReader);
+template void KingPinThreats::calculateEnPassantPinThreat<Set::BLACK>(Square, PositionReader);
 
 template<Set us>
-void KingPinThreats::evaluate(Square kingSquare, const Position& position)
+void KingPinThreats::evaluate(Square kingSquare, PositionReader position)
 {
     constexpr Set op = opposing_set<us>();
-    const Bitboard diagonalMaterial = position.readMaterial().bishops<op>() | position.readMaterial().queens<op>();
-    const Bitboard orthogonalMaterial = position.readMaterial().rooks<op>() | position.readMaterial().queens<op>();
-    const Bitboard usMaterial = position.readMaterial().combine<us>();
-    const Bitboard opMaterial = position.readMaterial().combine<op>();
+    const Bitboard diagonalMaterial = position.material().bishops<op>() | position.material().queens<op>();
+    const Bitboard orthogonalMaterial = position.material().rooks<op>() | position.material().queens<op>();
+    const Bitboard usMaterial = position.material().combine<us>();
+    const Bitboard opMaterial = position.material().combine<op>();
 
     // clear threatened angles
     for (u8 i = 0; i < 8; ++i) {
@@ -217,13 +219,13 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position)
         }
     }
 
-    const u64 knightMat = position.readMaterial().knights<op>().read();
+    const u64 knightMat = position.material().knights<op>().read();
 
     m_knightsAndPawns = ~universe;
     if (knightMat > 0) {
         // figure out if we're checked by a knight
         Bitboard knightAttacks = attacks::getKnightAttacks(*kingSquare);
-        Bitboard knights = position.readMaterial().knights<op>();
+        Bitboard knights = position.material().knights<op>();
         Bitboard mvMask = knightAttacks & knights;
 
         if (mvMask.empty() == false) {
@@ -232,9 +234,9 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position)
         }
     }
 
-    if (position.readMaterial().pawns<op>().empty() == false) {
-        Bitboard kingMask = position.readMaterial().kings<us>();
-        Bitboard pawnsMask = position.readMaterial().pawns<op>();
+    if (position.material().pawns<op>().empty() == false) {
+        Bitboard kingMask = position.material().king<us>();
+        Bitboard pawnsMask = position.material().pawns<op>();
         u8 usIndx = static_cast<u8>(us);
         // special case for a file & h file, removing pawns from a & h file respectively
         // so we don't shift them "off" the board and we shift them only in one direction.
@@ -261,15 +263,15 @@ void KingPinThreats::evaluate(Square kingSquare, const Position& position)
     calculateEnPassantPinThreat<us>(kingSquare, position);
 }
 
-template void KingPinThreats::evaluate<Set::WHITE>(Square, const Position&);
-template void KingPinThreats::evaluate<Set::BLACK>(Square, const Position&);
+template void KingPinThreats::evaluate<Set::WHITE>(Square, PositionReader);
+template void KingPinThreats::evaluate<Set::BLACK>(Square, PositionReader);
 
 template<Set op>
-void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, const Position& position)
+void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, PositionReader position)
 {
-    const Bitboard opMaterial = position.readMaterial().combine<op>();
+    const Bitboard opMaterial = position.material().combine<op>();
     constexpr Set us = opposing_set<op>();
-    const Bitboard usMaterial = position.readMaterial().combine<us>();
+    const Bitboard usMaterial = position.material().combine<us>();
     const Bitboard allMaterial = usMaterial | opMaterial;
 
     u64 diagonals = attacks::getBishopAttacks(*kingSquare, allMaterial.read());
@@ -281,5 +283,5 @@ void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, const 
     m_opponentOpenAngles[0] = orthogonals;
 }
 
-template void KingPinThreats::calculateOpponentOpenAngles<Set::WHITE>(Square, const Position&);
-template void KingPinThreats::calculateOpponentOpenAngles<Set::BLACK>(Square, const Position&);
+template void KingPinThreats::calculateOpponentOpenAngles<Set::WHITE>(Square, PositionReader);
+template void KingPinThreats::calculateOpponentOpenAngles<Set::BLACK>(Square, PositionReader);

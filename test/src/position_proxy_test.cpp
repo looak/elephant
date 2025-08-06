@@ -244,7 +244,7 @@ TEST_F(PositionProxyFixture, PositionEditPolicy_placePiecesAndHashing)
     auto reader = position.read();
     auto editor = position.edit();
 
-    auto whiteKing = reader.readMaterial().kings<Set::WHITE>();
+    auto whiteKing = reader.readMaterial().king<Set::WHITE>();
     u64 oldHash = reader.readHash();
 
     // validate emptiness
@@ -253,7 +253,7 @@ TEST_F(PositionProxyFixture, PositionEditPolicy_placePiecesAndHashing)
 
     // do
     editor.placePieces(K, a1);
-    whiteKing = reader.readMaterial().kings<Set::WHITE>();
+    whiteKing = reader.readMaterial().king<Set::WHITE>();
 
     // validate
     EXPECT_EQ(K, reader[Square::A1]);

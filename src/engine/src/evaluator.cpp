@@ -9,34 +9,32 @@
 #include "move.h"
 #include <move_generation/move_generator.hpp>
 
-Evaluator::Evaluator() {}
-
 i32
-Evaluator::Evaluate(const Chessboard& board, const MoveGenerator& movegen)
+Evaluator::Evaluate(const MoveGenerator& movegen)
 {
     i32 score = 0;
-    i32 materialScore = EvaluateMaterial(board);
+    i32 materialScore = EvaluateMaterial();
     score += materialScore;
     LOG_DEBUG() << "Material score: " << score;
 
-    i32 tmp = EvalutePiecePositions(board);
+    i32 tmp = EvalutePiecePositions();
     score += tmp;
     LOG_DEBUG() << "Piece position score: " << tmp;
 
-    tmp = EvaluatePawnStructure(board);
+    tmp = EvaluatePawnStructure();
     score += tmp;
     LOG_DEBUG() << "Pawn structure score: " << tmp;
 
-    tmp = MopUpValue(board, materialScore);
+    tmp = MopUpValue(materialScore);
     score += tmp;
     LOG_DEBUG() << "Mop up value: " << tmp;
 
-    tmp = EvaluateKingSafety(board, movegen);
+    tmp = EvaluateKingSafety(movegen);
     score += tmp;
     LOG_DEBUG() << "King safety score: " << tmp;
 
     LOG_DEBUG() << "Total score: " << score;
-    LOG_DEBUG() << "Endgame Coeficient: " << board.calculateEndGameCoeficient();
+    LOG_DEBUG() << "Endgame Coeficient: " << calculateEndGameCoeficient();
     LOG_DEBUG() << "---------------------------------";
 
     return score;
@@ -48,9 +46,9 @@ i32 EvaluEvaluatePlus(const Chessboard&, const MoveGenerator&, PackedMove)
 }
 
 i32
-Evaluator::EvaluateMaterial(const Chessboard& board) const
+Evaluator::EvaluateMaterial() const
 {
-    const auto& material = board.readPosition().readMaterial();
+    const auto& material = m_position.material();
     i32 score = 0;
 
     for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
@@ -66,11 +64,11 @@ Evaluator::EvaluateMaterial(const Chessboard& board) const
 }
 
 i32
-Evaluator::EvalutePiecePositions(const Chessboard& board) const
+Evaluator::EvalutePiecePositions() const
 {
-    const auto& material = board.readPosition().readMaterial();
+    const auto& material = m_position.material();
     i32 score = 0;
-    float endgameCoeficient = board.calculateEndGameCoeficient();
+    float endgameCoeficient = calculateEndGameCoeficient();
 
     Bitboard whitePawns = material.read(Set::WHITE, pawnId);
     while (whitePawns.empty() == false) {
@@ -117,12 +115,12 @@ Evaluator::EvalutePiecePositions(const Chessboard& board) const
     return score;
 }
 
-i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
+i32 Evaluator::EvaluatePawnStructure() const {
     i32 result = 0;
-    float egCoeficient = board.calculateEndGameCoeficient();
+    float egCoeficient = calculateEndGameCoeficient();
 
-    Bitboard whitePawns = board.readPosition().readMaterial().whitePawns();
-    Bitboard blackPawns = board.readPosition().readMaterial().blackPawns();
+    Bitboard whitePawns = m_position.material().whitePawns();
+    Bitboard blackPawns = m_position.material().blackPawns();
 
     for (i8 idx = 0; idx < 8; ++idx) {
         // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
@@ -134,19 +132,19 @@ i32 Evaluator::EvaluatePawnStructure(const Chessboard& board) const {
     }
 
     //result += EvaluatePawnManhattanDistance(board);
-    result += EvaluatePassedPawn<Set::WHITE>(board);
-    result -= EvaluatePassedPawn<Set::BLACK>(board);
+    result += EvaluatePassedPawn<Set::WHITE>();
+    result -= EvaluatePassedPawn<Set::BLACK>();
 
-    result += EvaluatePawnProtection<Set::WHITE>(board, whitePawns);
-    result -= EvaluatePawnProtection<Set::BLACK>(board, blackPawns);
+    result += EvaluatePawnProtection<Set::WHITE>(whitePawns);
+    result -= EvaluatePawnProtection<Set::BLACK>(blackPawns);
 
     return result;
 }
 
 // idea is that keeping the pawns closer together is better.
-i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
+i32 Evaluator::EvaluatePawnManhattanDistance() const {
     i32 result = 0;
-    const auto& material = board.readPosition().readMaterial();
+    const auto& material = m_position.material();
     Bitboard whitePawns = material.whitePawns();
 
     i32 distance = 0;
@@ -155,7 +153,7 @@ i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
         Bitboard otherPawns = material.whitePawns();
         while (otherPawns.empty() == false) {
             i32 otherPawn = otherPawns.popLsb();
-            distance += board_constants::manhattanDistances[whitePawnSqr][otherPawn];
+            distance += board_constants::manhattanDistances[whitePawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
 
@@ -167,7 +165,7 @@ i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
         Bitboard otherPawns = material.blackPawns();
         while (otherPawns.empty() == false) {
             i32 otherPawn = otherPawns.popLsb();
-            distance += board_constants::manhattanDistances[blackPawnSqr][otherPawn];
+            distance += board_constants::manhattanDistances[blackPawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
 
@@ -175,10 +173,10 @@ i32 Evaluator::EvaluatePawnManhattanDistance(const Chessboard& board) const {
     return result;
 }
 
-i32 Evaluator::EvaluateKingSafety(const Chessboard& board, const MoveGenerator& movegen) const {
+i32 Evaluator::EvaluateKingSafety(const MoveGenerator& movegen) const {
     static const i32 pawnWallFactor = 8;
     static const i32 pinFactor = 12;
-    const auto& material = board.readPosition().readMaterial();
+    const auto& material = m_position.material();
     i32 score = 0;
     // evaluate pawn wall around king
     Bitboard whiteKing = material.whiteKing();
@@ -211,19 +209,19 @@ i32 Evaluator::EvaluateKingSafety(const Chessboard& board, const MoveGenerator& 
     return score;
 }
 
-i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
+i32 Evaluator::MopUpValue(i32 materialScore) const {
     i32 result = 0;
-    result += MopUpValue<Set::WHITE>(board, materialScore);
-    result -= MopUpValue<Set::BLACK>(board, -materialScore);
+    result += MopUpValue<Set::WHITE>(materialScore);
+    result -= MopUpValue<Set::BLACK>(-materialScore);
     return result;
 }
 
 
 template<Set us>
-i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
+i32 Evaluator::EvaluatePassedPawn() const {
     i32 result = 0;
-    Bitboard usPawns = board.readPosition().readMaterial().pawns<us>();
-    Bitboard opPawns = board.readPosition().readMaterial().pawns<opposing_set<us>()>();
+    Bitboard usPawns = m_position.material().pawns<us>();
+    Bitboard opPawns = m_position.material().pawns<opposing_set<us>()>();
     const size_t usIndx = static_cast<size_t>(us);
 
     while (usPawns.empty() == false) {
@@ -241,33 +239,33 @@ i32 Evaluator::EvaluatePassedPawn(const Chessboard& board) const {
         }
 
         if ((pawnMask & opPawns).empty()) {
-            result += evaluator_data::passedPawnScore * board.calculateEndGameCoeficient();
-            result += EvaluatePawnProtection<us>(board, squareMaskTable[pawnSqr]) * evaluator_data::guardedPassedPawnBonus;
+            result += evaluator_data::passedPawnScore * calculateEndGameCoeficient();
+            result += EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]) * evaluator_data::guardedPassedPawnBonus;
         }
     }
 
     return result;
 }
 
-template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>(const Chessboard&) const;
-template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>(const Chessboard&) const;
+template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>() const;
+template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>() const;
 
 template<Set us>
-i32 Evaluator::EvaluatePawnProtection(const Chessboard& board, Bitboard pawns) const {
-    auto guardedSquares = board.readPosition().calcThreatenedSquaresPawnBulk<us>();
+i32 Evaluator::EvaluatePawnProtection(Bitboard pawns) const {
+    auto guardedSquares = m_position.material().topology<us>().computeThreatenedSquaresPawnBulk();
     guardedSquares &= pawns; // guarded pawns
     return guardedSquares.count() * evaluator_data::guardedPawnScore;
 }
 
 template<Set us>
-i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
+i32 Evaluator::MopUpValue(i32 materialScore) const {
     i32 result = 0;
-    const auto& material = board.readPosition().readMaterial();
+    const auto& material = m_position.material();
 
-    if (materialScore > 2 * ChessPieceDef::Value(pawnId) && board.calculateEndGameCoeficient() > 0.5f)
+    if (materialScore > 2 * ChessPieceDef::Value(pawnId) && calculateEndGameCoeficient() > 0.5f)
     {
-        u32 usKingSqr = material.kings<us>().lsbIndex();
-        u32 opKingSqr = material.kings<opposing_set<us>()>().lsbIndex();
+        u32 usKingSqr = material.king<us>().lsbIndex();
+        u32 opKingSqr = material.king<opposing_set<us>()>().lsbIndex();
 
         result += (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * 8;
         auto tmp = evaluator_data::center_bias[usKingSqr];
@@ -277,5 +275,37 @@ i32 Evaluator::MopUpValue(const Chessboard& board, i32 materialScore) const {
     return result;
 }
 
-template i32 Evaluator::MopUpValue<Set::WHITE>(const Chessboard&, i32) const;
-template i32 Evaluator::MopUpValue<Set::BLACK>(const Chessboard&, i32) const;
+template i32 Evaluator::MopUpValue<Set::WHITE>(i32) const;
+template i32 Evaluator::MopUpValue<Set::BLACK>(i32) const;
+
+
+float Evaluator::calculateEndGameCoeficient() const {
+    // if (m_moveCount > 64) // if we're past 64 moves, treat the game as end game.
+    //     return 1.f;
+
+    auto material = m_position.material();
+
+    if (material.combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
+        return 1.f;
+
+    static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
+        + ChessPieceDef::Value(1) * 4   // knight
+        + ChessPieceDef::Value(2) * 4   // bishop
+        + ChessPieceDef::Value(3) * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
+        + ChessPieceDef::Value(4) * 2;  // queens
+
+    // check if we have promoted a pawn because that will screw with this endgame coeficient
+    // calculation. and probably, at the point we're looking for promotions, we're most likely in a
+    // endgame already should just return 1.f
+
+    i32 boardMaterialCombinedValue = 0;
+    for (u8 index = 0; index < 5; ++index) {
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * material.read<Set::WHITE>(index).count();
+        boardMaterialCombinedValue += ChessPieceDef::Value(index) * material.read<Set::BLACK>(index).count();
+    }
+
+    // removed move count influence on endgame coeficient, because I don't think it's needed. This note is here
+    // for future reference if we want to add it back.   
+    
+    return 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
+}

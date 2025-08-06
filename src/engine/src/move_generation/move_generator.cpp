@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-MoveGenerator::MoveGenerator(const Position& pos, Set toMove, PieceType ptype, MoveTypes mtype) :
+MoveGenerator::MoveGenerator(PositionReader pos, Set toMove, PieceType ptype, MoveTypes mtype) :
     m_toMove(toMove),
     m_position(pos),
     m_tt(nullptr),
@@ -42,7 +42,7 @@ MoveGenerator::MoveGenerator(const GameContext& context, const TranspositionTabl
     m_tt(&tt),
     m_search(&search),
     m_ply(ply),
-    m_hashKey(context.readChessboard().readHash()),
+    m_hashKey(context.readChessboard().readPosition().hash()),
     m_movesGenerated(false),
     m_moveCount(0),
     m_currentMoveIndx(0),
@@ -253,7 +253,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
                 Position checkedPos;
                 checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial().kings<opposing_set<set>()>()) {
+                if (threat & pos.readMaterial().king<opposing_set<set>()>()) {
                     prioratizedMove.setCheck(true);
                     prioratizedMove.priority += move_generator_constants::checkPriority;
                 }
@@ -279,7 +279,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
                 Position checkedPos;
                 checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
                 auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial().kings<opposing_set<set>()>()) {
+                if (threat & pos.readMaterial().king<opposing_set<set>()>()) {
                     prioratizedMove.setCheck(true);
                     prioratizedMove.priority += move_generator_constants::checkPriority;
                 }
@@ -375,7 +375,7 @@ MoveGenerator::internalGenerateKingMoves()
         return;
 #endif
 
-    u32 srcSqr = bb.readMaterial().kings<set>().lsbIndex();
+    u32 srcSqr = bb.readMaterial().king<set>().lsbIndex();
     u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
 
     while (movesbb.empty() == false) {
@@ -420,8 +420,8 @@ MoveGenerator::initializeMoveGenerator(PieceType ptype, MoveTypes mtype) {
     if (bb.empty())
         return;
 
-    m_pinThreats[0] = bb.calcKingMask<Set::WHITE>();
-    m_pinThreats[1] = bb.calcKingMask<Set::BLACK>();
+    m_pinThreats[0] = computeKingPinThreats<Set::WHITE>();
+    m_pinThreats[1] = computeKingPinThreats<Set::BLACK>();
 
     if (captures) {
         initializeMoveMasks<Set::WHITE, true>(m_moveMasks[0], ptype);

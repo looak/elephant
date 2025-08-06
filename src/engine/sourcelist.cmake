@@ -25,7 +25,6 @@ ${ENGINE_INC_DIR}/fen_parser.h
 ${ENGINE_INC_DIR}/game_context.h
 ${ENGINE_INC_DIR}/intrinsics.hpp
 ${ENGINE_INC_DIR}/log.h
-${ENGINE_INC_DIR}/move.h
 ${ENGINE_INC_DIR}/notation.h
 ${ENGINE_INC_DIR}/search.hpp
 ${ENGINE_INC_DIR}/search_constants.hpp
@@ -36,11 +35,16 @@ ${ENGINE_INC_DIR}/uci.hpp
 ${ENGINE_INC_DIR}/attacks/attacks.hpp
 ${ENGINE_INC_DIR}/attacks/magic_constants.hpp
 
+${ENGINE_INC_DIR}/material/material_topology.hpp
+${ENGINE_INC_DIR}/material/material_mask.hpp
+
+${ENGINE_INC_DIR}/move/move.hpp
+${ENGINE_INC_DIR}/move/move_executor.hpp
+
 ${ENGINE_INC_DIR}/move_generation/king_pin_threats.hpp
 ${ENGINE_INC_DIR}/move_generation/move_generator.hpp
 
 ${ENGINE_INC_DIR}/position/hash_zorbist.hpp
-${ENGINE_INC_DIR}/position/material_mask.hpp
 ${ENGINE_INC_DIR}/position/position.hpp
 ${ENGINE_INC_DIR}/position/position_proxy.hpp
 ${ENGINE_INC_DIR}/position/position_accessors.hpp
@@ -64,17 +68,21 @@ ${ENGINE_SRC_DIR}/evaluator_data.h
 ${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/log.cpp
-${ENGINE_SRC_DIR}/move.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
 ${ENGINE_SRC_DIR}/rays.cpp 
 ${ENGINE_SRC_DIR}/search.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 
+${ENGINE_SRC_DIR}/material/material_topology.cpp
+${ENGINE_SRC_DIR}/material/material_mask.cpp
+
+${ENGINE_SRC_DIR}/move/move.cpp
+${ENGINE_SRC_DIR}/move/move_executor.cpp
+
 ${ENGINE_SRC_DIR}/move_generation/king_pin_threats.cpp
 ${ENGINE_SRC_DIR}/move_generation/move_generator.cpp
 
 ${ENGINE_SRC_DIR}/position/hash_zorbist.cpp
-${ENGINE_SRC_DIR}/position/material_mask.cpp
 ${ENGINE_SRC_DIR}/position/position.cpp
 ${ENGINE_SRC_DIR}/position/position_proxy.cpp
 

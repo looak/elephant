@@ -1,4 +1,4 @@
-#include <position/material_mask.hpp>
+#include <material/material_mask.hpp>
 
 bool MaterialPositionMask::empty() const
 {
