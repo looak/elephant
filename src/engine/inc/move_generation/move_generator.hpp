@@ -77,7 +77,7 @@ private:
     void internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats);
 
     template<Set set>
-    void internalGeneratePawnMoves(const KingPinThreats& pinThreats);
+    void internalGeneratePawnMoves();
     void internalBuildPawnPromotionMoves(PackedMove move, const KingPinThreats& pinThreats, i32 dstSqr);
     template<Set set>
     void internalGenerateKnightMoves(const KingPinThreats& pinThreats);
@@ -93,6 +93,18 @@ private:
     void genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
 
     void sortMoves();
+
+    template<Set us>
+    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
+
+    template<Set us>
+    std::tuple<Bitboard, Bitboard> isolatePawn(Square source, Bitboard movesbb) const;
+    template<Set us>
+    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
+    template<Set us>
+    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
+    template<Set us>
+    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats, i8 pieceIndex = rookId) const;
 
     Set m_toMove;
     PositionProxy<PositionReadOnlyPolicy> m_position;
@@ -117,7 +129,7 @@ MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
 {
     switch (pieceId) {
     case pawnId:
-        internalGeneratePawnMoves<set>(pinThreats);
+        internalGeneratePawnMoves<set>();
         break;
     case knightId:
         internalGenerateKnightMoves<set>(pinThreats);

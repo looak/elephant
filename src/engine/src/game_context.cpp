@@ -6,6 +6,7 @@
 #include <position/hash_zorbist.hpp>
 #include <move/move.hpp>
 #include <move_generation/move_generator.hpp>
+#include <move/move_executor.hpp>
 #include "search.hpp"
 
 #include <algorithm>
@@ -50,8 +51,8 @@ GameContext::GameOver() const
 bool
 GameContext::MakeMove(const PackedMove move)
 {
-    auto undoUnit = m_board.MakeMove<false>(move);
-    m_undoUnits.push_back(undoUnit);
+    MoveExecutor executor(m_board.editPosition());
+    executor.makeMove<false>(move, m_board.editState(), m_history);
     return true;
 }
 
@@ -77,7 +78,7 @@ GameContext::TryMakeMove(Move move)
     }
     else {
         // set capture if the target square is occupied.
-        ChessPiece piece = position.readPieceAt(move.TargetSquare.toSquare());
+        ChessPiece piece = position.pieceAt(move.TargetSquare.toSquare());
         if (piece.isValid()) {
             move.setCapture(true);
         }
@@ -90,12 +91,12 @@ GameContext::TryMakeMove(Move move)
 bool
 GameContext::UnmakeMove()
 {
-    if (m_undoUnits.empty())
-        return false;
+    // if (m_undoUnits.empty())
+    //     return false;
 
-    auto undoUnit = m_undoUnits.back();
-    m_board.UnmakeMove(undoUnit);
-    m_undoUnits.pop_back();
+    // auto undoUnit = m_undoUnits.back();
+    // m_board.UnmakeMove(undoUnit);
+    // m_undoUnits.pop_back();
 
     return true;
 }
@@ -115,13 +116,13 @@ GameContext::isGameOver() const
 
 bool GameContext::IsRepetition(u64 hashKey) const {
 
-    if (m_undoUnits.size() < 4)
+    if (m_history.moveUndoUnits.size() < 4)
         return false;
 
     int count = 0;
 
-    auto itr = m_undoUnits.rbegin() + 1;
-    while (itr != m_undoUnits.rend()) {
+    auto itr = m_history.moveUndoUnits.rbegin() + 1;
+    while (itr != m_history.moveUndoUnits.rend()) {
         if (itr->hash == hashKey)
             count++;
         itr++;

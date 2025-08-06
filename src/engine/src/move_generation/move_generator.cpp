@@ -1,5 +1,6 @@
 #include <move_generation/move_generator.hpp>
 #include "game_context.h"
+#include <material/material_topology.hpp>
 #include <move/move.hpp>
 #include "transposition_table.hpp"
 #include "search.hpp"
@@ -209,17 +210,16 @@ void MoveGenerator::internalBuildPawnPromotionMoves(PackedMove move, const KingP
 }
 
 template<Set set>
-void
-MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
-{
-    const auto& pos = m_position;
-
+void MoveGenerator::internalGeneratePawnMoves()
+{   
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pawnId];
     if (movesbb.empty())
         return;
 
+    const KingPinThreats& pinThreats = m_pinThreats[static_cast<size_t>(set)];
+
     // cache pawns in local variable which we'll use to iterate over all pawns.
-    Bitboard pawns = pos.readMaterial().pawns<set>();
+    Bitboard pawns = m_position.material().pawns<set>();
 
     while (pawns.empty() == false) {
         // build source square and remove pawn from pawns bitboard.
@@ -228,7 +228,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
 
         const u64 promotionMask = pawn_constants::promotionRank[(size_t)set];
 
-        auto [isolatedPawnMoves, isolatedPawnAttacks] = pos.isolatePiece<set, pawnId>(srcNotation, movesbb, pinThreats);
+        auto [isolatedPawnMoves, isolatedPawnAttacks] = internalIsolatePawn<set>(srcNotation, movesbb);
         while (isolatedPawnAttacks.empty() == false) {
             i32 dstSqr = isolatedPawnAttacks.popLsb();
 
@@ -240,7 +240,7 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
             prioratizedMove.priority = move_generator_constants::capturePriority;
 
             // if we're capturing enpassant set the enpassant flag.
-            if (pos.readEnPassant().readSquare() == static_cast<Square>(dstSqr))
+            if (m_position.enPassant().readSquare() == static_cast<Square>(dstSqr))
                 move.setEnPassant(true);  // sets both capture & enpassant
             else
                 move.setCapture(true);
@@ -251,9 +251,9 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
             }
             else {
                 Position checkedPos;
-                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
-                auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial().king<opposing_set<set>()>()) {
+                checkedPos.edit().placePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
+                Bitboard threat = checkedPos.read().material().topology<set>().computeThreatenedSquaresPawnBulk();
+                if (threat & m_position.material().king<opposing_set<set>()>()) {
                     prioratizedMove.setCheck(true);
                     prioratizedMove.priority += move_generator_constants::checkPriority;
                 }
@@ -277,9 +277,9 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
             }
             else {
                 Position checkedPos;
-                checkedPos.PlacePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
-                auto threat = checkedPos.calcThreatenedSquaresPawnBulk<set>();
-                if (threat & pos.readMaterial().king<opposing_set<set>()>()) {
+                checkedPos.edit().placePiece(ChessPiece(set, PieceType::PAWN), static_cast<Square>(dstSqr));
+                Bitboard threat = checkedPos.read().material().topology<set>().computeThreatenedSquaresPawnBulk();
+                if (threat & m_position.material().king<opposing_set<set>()>()) {
                     prioratizedMove.setCheck(true);
                     prioratizedMove.priority += move_generator_constants::checkPriority;
                 }
@@ -291,20 +291,17 @@ MoveGenerator::internalGeneratePawnMoves(const KingPinThreats& pinThreats)
     }
 }
 
-template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>(const KingPinThreats& pinThreats);
-template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>(const KingPinThreats& pinThreats);
+template void MoveGenerator::internalGeneratePawnMoves<Set::WHITE>();
+template void MoveGenerator::internalGeneratePawnMoves<Set::BLACK>();
 
 template<Set set>
-void
-MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats)
-{
-    const auto& bb = m_position;
-
+void MoveGenerator::internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats)
+{   
     const Bitboard movesbb = m_moveMasks[(size_t)set].material[pieceId];
     if (movesbb.empty())
         return;
 
-    Bitboard pieces = bb.readMaterial().read<set>(pieceId);
+    Bitboard pieces = m_position.material().read<set>(pieceId);
 
     while (pieces.empty() == false) {
         // build source square and remove knight from cached material bitboard.
@@ -363,9 +360,8 @@ template void MoveGenerator::internalGenerateQueenMoves<Set::BLACK>(const KingPi
 template<Set set>
 void
 MoveGenerator::internalGenerateKingMoves()
-{
-    const auto& bb = m_position;
-    const Bitboard opMaterial = bb.readMaterial().combine<opposing_set<set>()>();
+{    
+    const Bitboard opMaterial = m_position.material().combine<opposing_set<set>()>();
     const u8 setId = static_cast<u8>(set);
 
     Bitboard movesbb = m_moveMasks[setId].material[kingId];
@@ -375,8 +371,8 @@ MoveGenerator::internalGenerateKingMoves()
         return;
 #endif
 
-    u32 srcSqr = bb.readMaterial().king<set>().lsbIndex();
-    u8 castlingRaw = bb.readCastling().read() >> (setId * 2);
+    u32 srcSqr = m_position.material().king<set>().lsbIndex();
+    u8 castlingRaw = m_position.castling().read() >> (setId * 2);
 
     while (movesbb.empty() == false) {
         i32 dstSqr = movesbb.popLsb();
@@ -525,3 +521,141 @@ MoveGenerator::isChecked() const
     else
         return m_pinThreats[1].isCheckedCount() > 0;
 }
+
+template<Set us>
+std::tuple<Bitboard, Bitboard>
+MoveGenerator::isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
+{
+    switch (pieceId) {
+    case pawnId:
+        return internalIsolatePawn<us>(source, movesbb, kingMask);
+    case bishopId:
+        return internalIsolateBishop<us>(source, movesbb, kingMask);
+    case rookId:
+        return internalIsolateRook<us>(source, movesbb, kingMask);
+    case knightId:
+        return internalIsolateKnightMoves<us>(source, movesbb, kingMask);
+    case queenId: {
+        auto [diags, diagCaptures] = internalIsolateBishop<us>(source, movesbb, kingMask, queenId);
+        auto [orthos, orthoCaptures] = internalIsolateRook<us>(source, movesbb, kingMask, queenId);
+        return { diags | orthos, diagCaptures | orthoCaptures };
+    }
+    default:
+        FATAL_ASSERT(false) << "Not implemented";
+    }
+
+    return { 0, 0 };
+}
+
+template std::tuple<Bitboard, Bitboard> MoveGenerator::isolatePiece<Set::WHITE>(u8, Notation, Bitboard, const KingPinThreats&) const;
+template std::tuple<Bitboard, Bitboard> MoveGenerator::isolatePiece<Set::BLACK>(u8, Notation, Bitboard, const KingPinThreats&) const;
+
+template<Set us>
+std::tuple<Bitboard, Bitboard> MoveGenerator::isolatePawn(Square source, Bitboard movesbb) const
+{
+    const size_t usIndx = static_cast<size_t>(us);
+    const KingPinThreats& pinThreats = m_pinThreats[usIndx];
+
+    Bitboard opMatCombined = m_position.material().combine<opposing_set<us>()>() | m_position.enPassant().readBitboard();
+    Bitboard srcMask = Bitboard(squareMaskTable[*source]);
+
+    const Bitboard pinned = pinThreats.pinned(srcMask);
+
+    // special case for when there is a enpassant available.
+    if (m_position.enPassant()) {
+        // Bitboard enPassantTarget(squareMaskTable[(int)m_enpassantState.readTarget()]);
+        Bitboard potentialPin(pinThreats.readEnPassantMask() & srcMask);
+        if (potentialPin) {
+            opMatCombined ^= m_position.enPassant().readBitboard();
+        }
+    }
+
+    Bitboard threatns;
+    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+        threatns |= srcMask.shiftNorthWestRelative<us>();
+    if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+        threatns |= srcMask.shiftNorthEastRelative<us>();
+
+    Bitboard isolatedbb = srcMask.shiftNorthRelative<us>();
+    Bitboard unoccupied = ~(m_position.material().combine<us>() | opMatCombined);
+    Bitboard doublePush = isolatedbb & pawn_constants::baseRank[usIndx] & unoccupied;
+    isolatedbb |= doublePush.shiftNorthRelative<us>();
+    isolatedbb &= unoccupied;
+    if (srcMask & pinned) {
+        isolatedbb &= pinned;
+        threatns &= pinned;
+    }
+    return { movesbb & isolatedbb, movesbb & opMatCombined & threatns };
+}
+
+template std::tuple<Bitboard, Bitboard> MoveGenerator::isolatePawn<Set::WHITE>(Square, Bitboard) const;
+template std::tuple<Bitboard, Bitboard> MoveGenerator::isolatePawn<Set::BLACK>(Square, Bitboard) const;
+
+template<Set us>
+std::tuple<Bitboard, Bitboard>
+MoveGenerator::internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingPinThreats& kingMask) const
+{
+    Bitboard opMatCombined = m_position.material().combine<opposing_set<us>()>();
+
+    // figure out if piece is pinned
+    u64 srcMask = squareMaskTable[source.index()];
+    const Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
+    }
+
+    movesbb &= attacks::getKnightAttacks(source.index());
+    movesbb &= ~m_position.material().combine<us>();
+
+    return { movesbb & ~opMatCombined, movesbb & opMatCombined };
+}
+
+template<Set us>
+std::tuple<Bitboard, Bitboard>
+MoveGenerator::internalIsolateBishop(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8) const
+{
+    const Bitboard opMatCombined = m_position.material().combine<opposing_set<us>()>();
+    const Bitboard allMaterial = m_position.material().combine();
+    const Bitboard usMaterial = opMatCombined ^ allMaterial;
+
+    // figure out if piece is pinned
+    u64 srcMask = squareMaskTable[source.index()];
+    const Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
+    }
+
+    movesbb &= attacks::getBishopAttacks(source.index(), allMaterial.read());
+    movesbb &= ~usMaterial;
+
+    return { movesbb & ~opMatCombined, movesbb & opMatCombined };
+}
+
+template std::tuple<Bitboard, Bitboard> MoveGenerator::internalIsolateBishop<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
+    i8) const;
+template std::tuple<Bitboard, Bitboard> MoveGenerator::internalIsolateBishop<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
+    i8) const;
+
+template<Set us>
+std::tuple<Bitboard, Bitboard>
+MoveGenerator::internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingMask, i8) const {
+    const Bitboard opMatCombined = m_position.material().combine<opposing_set<us>()>();
+    const Bitboard allMaterial = m_position.material().combine();
+    const Bitboard usMaterial = opMatCombined ^ allMaterial;
+
+    u64 srcMask = squareMaskTable[source.index()];
+    Bitboard pinned = kingMask.pinned(srcMask);
+    if (pinned.empty() == false) {
+        movesbb &= pinned;
+    }
+
+    movesbb &= attacks::getRookAttacks(source.index(), allMaterial.read());
+    movesbb &= ~usMaterial;
+
+    return { movesbb & ~opMatCombined, movesbb & opMatCombined };
+}
+
+template std::tuple<Bitboard, Bitboard> MoveGenerator::internalIsolateRook<Set::WHITE>(Notation, Bitboard, const KingPinThreats&,
+    i8) const;
+template std::tuple<Bitboard, Bitboard> MoveGenerator::internalIsolateRook<Set::BLACK>(Notation, Bitboard, const KingPinThreats&,
+    i8) const;
