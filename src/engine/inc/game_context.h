@@ -21,6 +21,14 @@
 struct SearchResult;
 struct SearchParameters;
 
+struct GameHistory {
+    GameHistory() = default;
+    GameHistory(const GameHistory& rhs);
+
+    u32 age = 0;
+    std::vector<MoveUndoUnit> moveUndoUnits;
+};
+
 class GameContext {
 public:
     GameContext() {
@@ -70,5 +78,5 @@ private:
     Chessboard m_board;
     TranspositionTable m_transpositionTable;
 
-    std::vector<MoveUndoUnit> m_undoUnits;
+    GameHistory m_history;
 };

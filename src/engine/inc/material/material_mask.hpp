@@ -1,6 +1,6 @@
 #pragma once
 #include "bitboard.hpp"
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include <material/material_topology.hpp>
 
 
@@ -39,6 +39,11 @@ private:
     Square m_sqr;
 };
 
+
+/**
+ * @brief A proxy for material that allows editing of the material bitboards.
+ * Because the material bitboards are split into two parts (set and material), this is a helper to allow easy access to
+ * the material and read or edit both bitboards with a single operation. */
 struct MutableMaterialProxy {
 public:
     MutableMaterialProxy(Bitboard* set, Bitboard* material) : m_set(set), m_material(material) {}

@@ -3,7 +3,7 @@
 #include <array>
 
 #include "bitboard_constants.hpp"
-#include "chess_piece_defines.hpp"
+#include <material/chess_piece_defines.hpp>
 #include "defines.hpp"
 #include "intrinsics.hpp"
 #include "magic_constants.hpp"
@@ -51,11 +51,11 @@ namespace internals {
 
     constexpr u64 generateKnightAttackMask(u8 sqr) {
         u64 attkMask = 0;
-        u8 moveCount = ChessPieceDef::MoveCount(knightId);
+        u8 moveCount = piece_constants::move_count[knightId];
 
         for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
             byte curSqr = sqr;
-            signed short dir = ChessPieceDef::Moves0x88(knightId, moveIndx);
+            signed short dir = piece_constants::moves0x88[knightId][moveIndx];
 
             // build a 0x88 square out of current square.
             signed char sq0x88 = to0x88(curSqr);

@@ -1,6 +1,6 @@
 #include "commands_uci.h"
 #include "commands_utils.h"
-#include "move.h"
+#include <move/move.hpp>
 #include "uci.hpp"
 
 /**

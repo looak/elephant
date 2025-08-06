@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "chessboard.h"
 #include "elephant_test_utils.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
 #include <position/hash_zorbist.hpp>
-#include "move.h"
+#include <move/move.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
@@ -118,7 +118,7 @@ TEST_F(MoveFixture, PackedMoves_FromMove)
     EXPECT_TRUE(pmv.isPromotion());
     EXPECT_EQ(promotion.SourceSquare.index(), pmv.source());
     EXPECT_EQ(promotion.TargetSquare.index(), pmv.target());
-    EXPECT_EQ(promotion.PromoteToPiece.typeId(), pmv.readPromoteToPieceType());
+    EXPECT_EQ(promotion.PromoteToPiece.index(), pmv.readPromoteToPieceType());
     EXPECT_FALSE(pmv.isCapture());
     EXPECT_FALSE(pmv.isQuiet());
     // EXPECT_FALSE(pmv.isPawnDoublePush());

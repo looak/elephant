@@ -1,9 +1,10 @@
 #include "game_context.h"
+#include <elephant_gambit.h>
 #include <position/position_accessors.hpp>
 #include "evaluator.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include <position/hash_zorbist.hpp>
-#include "move.h"
+#include <move/move.hpp>
 #include <move_generation/move_generator.hpp>
 #include "search.hpp"
 
@@ -12,36 +13,19 @@
 #include <iostream>
 #include <sstream>
 
-std::string
-PrintCastlingState(const Chessboard& board)
-{
-    std::string ret = "";
-
-    if (board.readCastlingState().hasWhiteKingSide())
-        ret += "K";
-    if (board.readCastlingState().hasWhiteQueenSide())
-        ret += "Q";
-    if (board.readCastlingState().hasBlackKingSide())
-        ret += "k";
-    if (board.readCastlingState().hasBlackQueenSide())
-        ret += "q";
-
-    return ret;
-}
-
 void
 GameContext::Reset()
 {
-    m_board.Clear();
-    m_undoUnits.clear();
+    chess::ClearBoard(m_board);
+    m_history.moveUndoUnits.clear();
     // keeping transposition table
 }
 
 void
 GameContext::NewGame()
 {
-    Reset();
-    FENParser::deserialize(c_startPositionFen.c_str(), *this);
+    m_history.moveUndoUnits.clear();
+    chess::NewGame(m_board);
 }
 
 bool

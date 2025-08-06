@@ -26,7 +26,7 @@
 #include <functional>
 #include "bitboard.hpp"
 #include "bitboard_constants.hpp"
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "defines.hpp"
 #include "intrinsics.hpp"
 #include <move_generation/king_pin_threats.hpp>
@@ -57,6 +57,7 @@ public:
 
 public:
     Position();
+    Position(const Position& other);
     Position& operator=(const Position& other);
 
     PositionEditor edit() { return PositionEditor(*this); }

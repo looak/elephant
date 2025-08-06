@@ -20,7 +20,7 @@
 #include <functional>
 #include "king_pin_threats.hpp"
 #include "transposition_table.hpp"
-#include "move.h"
+#include <move/move.hpp>
 #include <position/position_accessors.hpp>
 
 class GameContext;

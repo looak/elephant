@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include "chess_piece_defines.hpp"
+#include <material/chess_piece_defines.hpp>
 #include "defines.hpp"
 
 struct ChessPiece {
@@ -32,23 +32,20 @@ public:
     {
         m_internalState |= (byte)_set << 7;
         m_internalState |= (byte)_type;
-    }
-
-    ChessPiece(byte setId, byte typeId);
+    }   
 
     char toString() const;
-    bool fromString(char piece);
+    bool fromString(char piece);   
 
-    // TODO: cleanup typeid, typeindx and typeenum
-
-    bool isPawn() const { return typeId() == 1; }
-    bool isKnight() const { return typeId() == 2; }
-    bool isBishop() const { return typeId() == 3; }
-    bool isRook() const { return typeId() == 4; }
-    bool isQueen() const { return typeId() == 5; }
-    bool isKing() const { return typeId() == 6; }
-    bool isWhite() const { return set() == 0; }
-    bool isBlack() const { return set() == 1; }
+    bool isPawn() const { return getType() == PieceType::PAWN; }
+    bool isKnight() const { return getType() == PieceType::KNIGHT; }
+    bool isBishop() const { return getType() == PieceType::BISHOP; }
+    bool isRook() const { return getType() == PieceType::ROOK; }
+    bool isQueen() const { return getType() == PieceType::QUEEN; }
+    bool isKing() const { return getType() == PieceType::KING; }
+    bool isWhite() const { return getSet() == Set::WHITE; }
+    bool isBlack() const { return getSet() == Set::BLACK; }
+    bool isSliding() const { return piece_constants::slides[index()]; }
 
     bool operator==(const ChessPiece& rhs) const;
     bool operator!=(const ChessPiece& rhs) const;
@@ -56,13 +53,15 @@ public:
 
     PieceType getType() const { return static_cast<PieceType>(m_internalState & 0x07); }
     Set getSet() const { return static_cast<Set>(m_internalState >> 7); }
+
+    /**
+     * @brief Returns the PieceType as a number. Does not correlate to the type index.     */
     inline byte typeId() const { return m_internalState & 0x07; }
     inline byte set() const { return m_internalState >> 7; }
     byte index() const { return typeId() - 1; }
     byte raw() const { return m_internalState; }
 
-    bool isValid() const { return typeId() > 0; }
-    bool isSliding() const { return ChessPieceDef::Slides(index()); }
+    bool isValid() const { return typeId() > 0; }    
 
 private:
     // [set][not used][not used][not used][not used][piece t][piece t][piece t]

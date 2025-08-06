@@ -1,4 +1,4 @@
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include <gtest/gtest.h>
 #include <array>
 #include "elephant_test_utils.h"

@@ -1,7 +1,7 @@
 #pragma once
 #include "defines.hpp"
 #include "log.h"
-#include "move.h"
+#include <move/move.hpp>
 #include "search_constants.hpp"
 
 #include <algorithm>

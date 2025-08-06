@@ -1,5 +1,5 @@
 // Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2023  Alexander Loodin Ek
+// Copyright(C) 2023-2025  Alexander Loodin Ek
 
 // This program is free software : you can redistribute it and /or modify
 // it under the terms of the GNU General Public License as published by
@@ -13,18 +13,37 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
-#ifndef CHESS_PIECE_DEFINES_HEADER
-#define CHESS_PIECE_DEFINES_HEADER
+
+/**
+ * @file chess_piece_defines.hpp
+ * @brief Defines for chess pieces used in the engine.
+ * Contains definitions for piece types, sets, and utility functions.
+ * This file is used to define the chess pieces and their properties.
+ *
+ * @author Alexander Loodin Ek    */
+#pragma once
 
 #include "defines.hpp"
 
-#define pawnId 0
-#define knightId 1
-#define bishopId 2
-#define rookId 3
-#define queenId 4
-#define kingId 5
-#define pieceIndexMax 6
+namespace piece_constants {
+namespace index {
+    constexpr byte pawn = 0;
+    constexpr byte knight = 1;
+    constexpr byte bishop = 2;
+    constexpr byte rook = 3;
+    constexpr byte queen = 4;
+    constexpr byte king = 5;
+    constexpr byte max = 6;
+}; // namespace index
+}; // namespace piece_constants
+
+#define pawnId piece_constants::index::pawn
+#define knightId piece_constants::index::knight
+#define bishopId piece_constants::index::bishop
+#define rookId piece_constants::index::rook
+#define queenId piece_constants::index::queen
+#define kingId piece_constants::index::king
+#define pieceIndexMax piece_constants::index::max
 
 enum class PieceType : byte {
     NONE = 0,
@@ -38,7 +57,7 @@ enum class PieceType : byte {
 };
 
 constexpr u8
-toPieceId(PieceType type)
+toPieceIndex(PieceType type)
 {
     return static_cast<u8>(type) - 1;
 }
@@ -75,8 +94,10 @@ constexpr i8 pawn_modifier()
     return -1;
 }
 
-constexpr signed short pieceValues[6] = { 100, 350, 350, 525, 1000, 10000 };
-constexpr byte moveCount[6] = { 2, 8, 4, 4, 8, 8 };
+namespace piece_constants {
+
+constexpr signed short value[6] = { 100, 350, 350, 525, 1000, 10000 };
+constexpr byte move_count[6] = { 2, 8, 4, 4, 8, 8 };
 
 constexpr bool slides[6] = {
     false, false, true, true, true, false,
@@ -90,19 +111,5 @@ constexpr signed short attacks0x88[6][8] = { {-15, -17, 0, 0, 0, 0, 0, 0},      
                                             {-17, -15, 15, 17, 0, 0, 0, 0},     {-16, -1, 1, 16, 0, 0, 0, 0},
                                             {-17, -16, -15, -1, 1, 15, 16, 17}, {-17, -16, -15, -1, 1, 15, 16, 17} };
 
-constexpr PieceType slidingPieceTypes[3] = { PieceType::BISHOP, PieceType::ROOK, PieceType::QUEEN };
 
-class ChessPieceDef {
-public:
-    static inline constexpr byte MoveCount(byte pIndex) { return moveCount[pIndex]; };
-    static inline constexpr bool Slides(byte pIndex) { return slides[pIndex]; }
-    static inline constexpr signed short Moves0x88(byte pIndex, byte mIndex) { return moves0x88[pIndex][mIndex]; }
-    static inline constexpr signed short Attacks0x88(byte pIndex, byte mIndex) { return attacks0x88[pIndex][mIndex]; }
-    static inline constexpr signed short Value(byte pIndex) { return pieceValues[pIndex]; }
-    static inline constexpr bool IsDiagonalMove(signed short mvValue)
-    {
-        return (mvValue == -17 || mvValue == -15 || mvValue == 15 || mvValue == 17);
-    }
-};
-
-#endif  // CHESS_PIECE_DEFINES_HEADER
+} // namespace piece_constants

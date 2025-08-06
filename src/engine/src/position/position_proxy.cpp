@@ -8,11 +8,11 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
     if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
         if constexpr (validation) {
             if (pieceAt(square).isValid()) {
-                LOG_WARNING() << "Trying to place piece " << piece.toString() << " at square " << square << " but it's already occupied by " << pieceAt(square).toString();
+                LOG_WARNING() << "Trying to place piece " << piece.toString() << " at square " << Notation(square).toString() << " but it's already occupied by " << pieceAt(square).toString();
                 return false;
             }
             if (!piece.isValid()) {
-                LOG_WARNING() << "Trying to place an invalid piece at square " << square;
+                LOG_WARNING() << "Trying to place an invalid piece at square " << Notation(square).toString();
                 return false;
             }
         }
@@ -43,11 +43,11 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
     if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
         if constexpr (validation) {
             if (!pieceAt(square).isValid()) {
-                LOG_WARNING() << "Trying to clear piece at square " << square << " but it's already empty.";
+                LOG_WARNING() << "Trying to clear piece at square " << Notation(square).toString() << " but it's already empty.";
                 return false;
             }
             if (pieceAt(square).isValid() && pieceAt(square).isKing()) {
-                LOG_WARNING() << "Trying to clear king piece at square " << square << ", this is not allowed.";
+                LOG_WARNING() << "Trying to clear king piece at square " << Notation(square).toString() << ", this is not allowed.";
                 return false;
             }
         }
@@ -123,3 +123,20 @@ AccessType::chess_piece_t PositionProxy<AccessType>::pieceAt(Square sqr) const
 
 template PositionEditPolicy::chess_piece_t PositionProxy<PositionEditPolicy>::pieceAt(Square) const;
 template PositionReadOnlyPolicy::chess_piece_t PositionProxy<PositionReadOnlyPolicy>::pieceAt(Square) const;
+
+template<typename AccessType>
+void PositionProxy<AccessType>::clear()
+{
+    if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+        m_position.m_materialMask.clear();
+        m_position.m_castlingState = {};
+        m_position.m_enpassantState = {};
+        m_position.m_hash = 0;
+    }
+    else
+    {
+        static_assert(false, "Cannot call clear() on a read-only policy position.");
+    }
+}
+
+template PositionProxy<PositionEditPolicy>::clear();

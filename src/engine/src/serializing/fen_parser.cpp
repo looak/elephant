@@ -1,4 +1,4 @@
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
@@ -6,12 +6,13 @@
 #include <sstream>
 #include <string>
 
+#include "elephant_gambit.h"
 #include "chessboard.h"
 #include "defines.hpp"
 #include "game_context.h"
 
 bool
-deserializeCastling(const std::string& castlingStr, GameContext& outputContext)
+deserializeCastling(const std::string& castlingStr, Chessboard& outputBoard)
 {
     byte castlingState = 0x00;
     if (castlingStr[0] != '-') {
@@ -35,12 +36,12 @@ deserializeCastling(const std::string& castlingStr, GameContext& outputContext)
         }
     }
 
-    outputContext.editChessboard().setCastlingState(castlingState);
+    outputBoard.editPosition().castling().write(castlingState);
     return true;
 }
 
 bool
-deserializeBoard(const std::string& boardStr, GameContext& outputContext)
+deserializeBoard(const std::string& boardStr, Chessboard& board)
 {
     std::istringstream ssboard(boardStr);
     std::list<std::string> ranks;
@@ -52,8 +53,8 @@ deserializeBoard(const std::string& boardStr, GameContext& outputContext)
     if (ranks.size() != 8)
         return false;
 
-    auto& board = outputContext.editChessboard();
-    auto boardItr = board.begin();
+    PositionEditor position = board.editPosition();
+    auto posItr = position.begin();
     while (!ranks.empty()) {
         const char* rdr = ranks.back().c_str();
         while (*rdr != '\0') {
@@ -67,18 +68,18 @@ deserializeBoard(const std::string& boardStr, GameContext& outputContext)
                 signed short steps = 0;
                 std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
-                boardItr += steps;
+                posItr += steps;
             }
             else if (value == '/') {
-                ++boardItr;
+                ++posItr;
             }
             else {
                 ChessPiece piece;
                 if (!piece.fromString(value))
                     return false;
 
-                board.PlacePiece(piece, boardItr.square());
-                ++boardItr;
+                position.placePiece(piece, posItr.square());
+                ++posItr;
             }
 
             ++rdr;
@@ -91,13 +92,13 @@ deserializeBoard(const std::string& boardStr, GameContext& outputContext)
 }
 
 bool
-deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
+deserializeToPlay(const std::string& toPlayStr, Chessboard& outputBoard)
 {
     char value = std::tolower(toPlayStr[0]);
     if (value == 'w')
-        outputContext.editChessboard().setToPlay(Set::WHITE);
+        outputBoard.editState().whiteToMove = true;
     else if (value == 'b')
-        outputContext.editChessboard().setToPlay(Set::BLACK);
+        outputBoard.editState().whiteToMove = false;
     else
         return false;
 
@@ -105,19 +106,20 @@ deserializeToPlay(const std::string& toPlayStr, GameContext& outputContext)
 }
 
 bool
-deserializeEnPassant(const std::string& enPassantStr, GameContext& outputContext)
+deserializeEnPassant(const std::string& enPassantStr, Chessboard& outputBoard)
 {
-    outputContext.editChessboard().setEnPassant(Notation());
+    PositionEditor position = outputBoard.editPosition();
+    position.enPassant().clear();
     if (enPassantStr.size() > 1) {
-        byte file = enPassantStr[0];
-        byte rank = (byte)std::atoi(&enPassantStr[1]);
-        outputContext.editChessboard().setEnPassant(Notation::BuildPosition(file, rank));
+        byte file = enPassantStr[0] - 'a';
+        byte rank = (byte)std::atoi(&enPassantStr[1]) - 1;
+        position.enPassant().write(static_cast<byte>(toSquare(file, rank)));
     }
     return true;
 }
 
 bool
-FENParser::deserialize(const char* input, GameContext& outputContext)
+FENParser::deserialize(const char* input, Chessboard& outputBoard)
 {
     std::istringstream ssfen(input);
     std::list<std::string> tokens;
@@ -126,27 +128,27 @@ FENParser::deserialize(const char* input, GameContext& outputContext)
         tokens.push_back(token);
     }
 
-    outputContext.Reset();
+    chess::ClearBoard(outputBoard);
 
     if (tokens.size() != 6)
         return false;
 
-    if (!deserializeBoard(tokens.front(), outputContext))
+    if (!deserializeBoard(tokens.front(), outputBoard))
         return false;
 
     tokens.pop_front();
 
-    if (!deserializeToPlay(tokens.front(), outputContext))
+    if (!deserializeToPlay(tokens.front(), outputBoard))
         return false;
 
     tokens.pop_front();
 
-    if (!deserializeCastling(tokens.front(), outputContext))
+    if (!deserializeCastling(tokens.front(), outputBoard))
         return false;
 
     tokens.pop_front();
 
-    if (!deserializeEnPassant(tokens.front(), outputContext))
+    if (!deserializeEnPassant(tokens.front(), outputBoard))
         return false;
 
     tokens.pop_front();
@@ -157,7 +159,8 @@ FENParser::deserialize(const char* input, GameContext& outputContext)
     byte moveCount = std::atoi(&tokens.front()[0]);
     tokens.pop_front();
 
-    outputContext.editChessboard().setPlyAndMoveCount(plyCount, moveCount);
+    outputBoard.editState().plyCount = plyCount;
+    outputBoard.editState().moveCount = moveCount;
 
     if (!tokens.empty())
         return false;

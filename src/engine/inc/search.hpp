@@ -21,7 +21,7 @@
 
 #include "defines.hpp"
 #include "evaluation_table.hpp"
-#include "move.h"
+#include <move/move.hpp>
 #include "transposition_table.hpp"
 
 class Chessboard;

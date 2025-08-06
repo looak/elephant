@@ -1,6 +1,6 @@
 #include <move_generation/move_generator.hpp>
 #include "game_context.h"
-#include "move.h"
+#include <move/move.hpp>
 #include "transposition_table.hpp"
 #include "search.hpp"
 

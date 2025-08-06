@@ -5,7 +5,7 @@
 #include "elephant_test_utils.h"
 #include "game_context.h"
 #include "log.h"
-#include "move.h"
+#include <move/move.hpp>
 #include <position/position.hpp>
 
 namespace ElephantTest {

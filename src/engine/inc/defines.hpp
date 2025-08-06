@@ -102,6 +102,11 @@ constexpr byte operator*(Square sqr)
     return static_cast<byte>(sqr);
 }
 
+constexpr Square toSquare(byte file, byte rank) 
+{
+    return static_cast<Square>((rank * 8) + file);
+}
+
 template<typename T>
 constexpr T&
 increment(T& value)

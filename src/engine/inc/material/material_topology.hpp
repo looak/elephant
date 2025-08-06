@@ -25,7 +25,7 @@
  * @author Alexander Loodin Ek    */
 
 #pragma once
-#include "chess_piece_defines.hpp"
+#include <material/chess_piece_defines.hpp>
 #include <bitboard.hpp>
 
 struct MaterialPositionMask;

@@ -1,9 +1,9 @@
 #include "uci.hpp"
 
 #include "elephant_gambit_config.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
-#include "move.h"
+#include <move/move.hpp>
 #include "search.hpp"
 
 #include <functional>

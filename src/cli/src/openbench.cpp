@@ -4,7 +4,7 @@
 #include "clock.hpp"
 #include "commands_uci.h"
 #include "game_context.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "search.hpp"
 #include "static_initializer.hpp"
 
