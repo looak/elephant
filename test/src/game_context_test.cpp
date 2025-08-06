@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "game_context.h"
-#include "move.h"
+#include <move/move.hpp>
 #include "elephant_test_utils.h"
 #include <position/hash_zorbist.hpp>
 

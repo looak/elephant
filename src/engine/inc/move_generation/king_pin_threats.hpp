@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bitboard.hpp"
-#include "chess_piece_defines.hpp"
+#include <material/chess_piece_defines.hpp>
 #include <position/position_accessors.hpp>
 
 struct SlidingMaterialMasks {

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

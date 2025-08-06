@@ -54,3 +54,21 @@ public:
 private:
     byte m_innerState = 0;
 };
+
+std::string CastlingStateInfo::toString() const
+{
+    std::string result;
+    if (hasWhiteKingSide())
+        result += "K";
+    if (hasWhiteQueenSide())
+        result += "Q";
+    if (hasBlackKingSide())
+        result += "k";
+    if (hasBlackQueenSide())
+        result += "q";
+
+    if (result.empty())
+        result = "-";
+
+    return result;
+}

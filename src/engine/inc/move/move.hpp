@@ -17,7 +17,7 @@
 #define MOVE_HEADER
 
 #include <vector>
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "defines.hpp"
 #include "notation.h"
 #include <position/en_passant_state_info.hpp>

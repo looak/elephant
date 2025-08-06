@@ -21,11 +21,11 @@
  */
 
 #pragma once
-#include <chess_piece.h>
+#include <material/chess_piece.hpp>
+#include <material/material_mask.hpp>
+#include <move/move.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
-#include <material/material_mask.hpp>
-#include <move.h>
 #include <vector>
 
 typedef ChessPiece Piece;
@@ -61,6 +61,16 @@ public:
     AccessType::en_passant_t enPassant() const { return m_position.m_enpassantState; }
     AccessType::castling_t castling() const { return m_position.m_castlingState; }
     AccessType::hash_t hash() const { return m_position.m_hash; }
+
+    MutableMaterialProxy materialEditor(Set set, PieceType type)
+    {
+        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+            return MutableMaterialProxy(material().editSet(set), material().editMaterial(type));
+        }
+        else {
+            static_assert(false, "Cannot call materialEditor() on a position with a read-only policy.");
+        }
+    }
 
     ChessPiece operator[](Square sqr) const {
         return pieceAt(sqr);
@@ -166,17 +176,6 @@ private:
     bool internalUnrollPlacementPairs() { return true; }
 
 };
-
-template<typename AccessType>
-void PositionProxy<AccessType>::clear() 
-{
-    if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
-        m_position.Clear();
-    }
-    else {
-        static_assert(false, "Cannot call clear() on a read-only policy position.");
-    }
-}
 
 template<typename AccessType>
 template<typename piece, typename square, typename... placements>

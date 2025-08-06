@@ -3,7 +3,7 @@
 #include <algorithm>
 #include "chessboard.h"
 #include "elephant_test_utils.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
 #include <position/hash_zorbist.hpp>
 

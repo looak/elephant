@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "elephant_test_utils.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
 #include <move_generation/move_generator.hpp>
 #include "search.hpp"

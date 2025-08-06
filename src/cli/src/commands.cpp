@@ -10,9 +10,9 @@
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
 #include "evaluator.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
-#include "move.h"
+#include <move/move.hpp>
 #include <move_generation/move_generator.hpp>
 #include "search.hpp"
 

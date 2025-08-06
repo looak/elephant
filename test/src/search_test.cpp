@@ -2,7 +2,7 @@
 #include "elephant_test_utils.h"
 
 #include "clock.hpp"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "game_context.h"
 #include "search.hpp"
 #include "search_cases.hpp"

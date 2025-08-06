@@ -1,12 +1,12 @@
 #include "evaluator.h"
 
 #include "bitboard_constants.hpp"
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "chessboard.h"
 #include "evaluator_data.h"
-#include "fen_parser.h"
+#include <serializing/fen_parser.hpp>
 #include "intrinsics.hpp"
-#include "move.h"
+#include <move/move.hpp>
 #include <move_generation/move_generator.hpp>
 
 i32
@@ -52,7 +52,7 @@ Evaluator::EvaluateMaterial() const
     i32 score = 0;
 
     for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-        u32 pieceValue = ChessPieceDef::Value(pieceIndx);
+        u32 pieceValue = piece_constants::value[pieceIndx];
         i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
         i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
 
@@ -244,6 +244,8 @@ i32 Evaluator::EvaluatePassedPawn() const {
         }
     }
 
+
+
     return result;
 }
 
@@ -262,7 +264,7 @@ i32 Evaluator::MopUpValue(i32 materialScore) const {
     i32 result = 0;
     const auto& material = m_position.material();
 
-    if (materialScore > 2 * ChessPieceDef::Value(pawnId) && calculateEndGameCoeficient() > 0.5f)
+    if (materialScore > 2 * piece_constants::value[pawnId] && calculateEndGameCoeficient() > 0.5f)
     {
         u32 usKingSqr = material.king<us>().lsbIndex();
         u32 opKingSqr = material.king<opposing_set<us>()>().lsbIndex();
@@ -288,11 +290,11 @@ float Evaluator::calculateEndGameCoeficient() const {
     if (material.combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
         return 1.f;
 
-    static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
-        + ChessPieceDef::Value(1) * 4   // knight
-        + ChessPieceDef::Value(2) * 4   // bishop
-        + ChessPieceDef::Value(3) * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
-        + ChessPieceDef::Value(4) * 2;  // queens
+    static constexpr i32 defaultPosValueOfMaterial = piece_constants::value[0] * 16    // pawn
+        + piece_constants::value[1] * 4   // knight
+        + piece_constants::value[2] * 4   // bishop
+        + piece_constants::value[3] * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
+        + piece_constants::value[4] * 2;  // queens
 
     // check if we have promoted a pawn because that will screw with this endgame coeficient
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a
@@ -300,8 +302,8 @@ float Evaluator::calculateEndGameCoeficient() const {
 
     i32 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * material.read<Set::WHITE>(index).count();
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * material.read<Set::BLACK>(index).count();
+        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::WHITE>(index).count();
+        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::BLACK>(index).count();
     }
 
     // removed move count influence on endgame coeficient, because I don't think it's needed. This note is here

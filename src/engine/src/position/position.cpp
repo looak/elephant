@@ -2,29 +2,10 @@
 #include <array>
 #include "attacks/attacks.hpp"
 #include "bitboard.hpp"
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "log.h"
 #include "notation.h"
 #include <position/hash_zorbist.hpp>
-
-std::string
-CastlingStateInfo::toString() const
-{
-    std::string result;
-    if (hasWhiteKingSide())
-        result += "K";
-    if (hasWhiteQueenSide())
-        result += "Q";
-    if (hasBlackKingSide())
-        result += "k";
-    if (hasBlackQueenSide())
-        result += "q";
-
-    if (result.empty())
-        result = "-";
-
-    return result;
-}
 
 Position::Position() :
     m_castlingState(),
@@ -32,6 +13,12 @@ Position::Position() :
 {
     m_materialMask = {};
 }
+
+Position::Position(const Position& other) :
+    m_materialMask(other.m_materialMask),
+    m_castlingState(other.m_castlingState),
+    m_enpassantState(other.m_enpassantState)
+{}
 
 Position&
 Position::operator=(const Position& other)
@@ -60,26 +47,6 @@ bool
 Position::IsValidSquare(Notation source)
 {
     return Position::IsValidSquare(source.index());
-}
-
-void
-Position::Clear()
-{
-    m_materialMask.clear();
-    m_enpassantState = {};
-    m_castlingState = {};
-}
-
-bool
-Position::empty() const
-{
-    return m_materialMask.empty();
-}
-
-MutableMaterialProxy
-Position::materialEditor(Set set, PieceType pType)
-{
-    return MutableMaterialProxy(&m_materialMask.m_set[static_cast<i8>(set)], &m_materialMask.m_material[toPieceId(pType)]);
 }
 
 u64

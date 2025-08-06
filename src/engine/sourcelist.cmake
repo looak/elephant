@@ -17,11 +17,9 @@ ${ENGINE_INC_DIR}/libpopcnt.h
 ${ENGINE_INC_DIR}/bitboard.hpp
 ${ENGINE_INC_DIR}/bitboard_constants.hpp
 ${ENGINE_INC_DIR}/chessboard.h
-${ENGINE_INC_DIR}/chess_piece.h
 ${ENGINE_INC_DIR}/clock.hpp
 ${ENGINE_INC_DIR}/evaluation_table.hpp
 ${ENGINE_INC_DIR}/evaluator.h
-${ENGINE_INC_DIR}/fen_parser.h
 ${ENGINE_INC_DIR}/game_context.h
 ${ENGINE_INC_DIR}/intrinsics.hpp
 ${ENGINE_INC_DIR}/log.h
@@ -35,6 +33,8 @@ ${ENGINE_INC_DIR}/uci.hpp
 ${ENGINE_INC_DIR}/attacks/attacks.hpp
 ${ENGINE_INC_DIR}/attacks/magic_constants.hpp
 
+${ENGINE_INC_DIR}/material/chess_piece.hpp
+${ENGINE_INC_DIR}/material/chess_piece_defines.hpp
 ${ENGINE_INC_DIR}/material/material_topology.hpp
 ${ENGINE_INC_DIR}/material/material_mask.hpp
 
@@ -53,6 +53,8 @@ ${ENGINE_INC_DIR}/position/castling_state_info.hpp
 
 ${ENGINE_INC_DIR}/rays/rays.hpp
 
+${ENGINE_INC_DIR}/serializing/fen_parser.hpp
+
 ${ENGINE_INC_DIR}/utils/weight_store.hpp
 )
 
@@ -61,11 +63,9 @@ ${ENGINE_SRC_DIR}/elephant_gambit.cpp
 
 ${ENGINE_SRC_DIR}/attacks.cpp
 ${ENGINE_SRC_DIR}/chessboard.cpp
-${ENGINE_SRC_DIR}/chess_piece.cpp
 ${ENGINE_SRC_DIR}/clock.cpp
 ${ENGINE_SRC_DIR}/evaluator.cpp
 ${ENGINE_SRC_DIR}/evaluator_data.h
-${ENGINE_SRC_DIR}/fen_parser.cpp
 ${ENGINE_SRC_DIR}/game_context.cpp
 ${ENGINE_SRC_DIR}/log.cpp
 ${ENGINE_SRC_DIR}/notation.cpp
@@ -73,6 +73,7 @@ ${ENGINE_SRC_DIR}/rays.cpp
 ${ENGINE_SRC_DIR}/search.cpp
 ${ENGINE_SRC_DIR}/uci.cpp
 
+${ENGINE_SRC_DIR}/material/chess_piece.cpp
 ${ENGINE_SRC_DIR}/material/material_topology.cpp
 ${ENGINE_SRC_DIR}/material/material_mask.cpp
 
@@ -85,6 +86,8 @@ ${ENGINE_SRC_DIR}/move_generation/move_generator.cpp
 ${ENGINE_SRC_DIR}/position/hash_zorbist.cpp
 ${ENGINE_SRC_DIR}/position/position.cpp
 ${ENGINE_SRC_DIR}/position/position_proxy.cpp
+
+${ENGINE_SRC_DIR}/serializing/fen_parser.cpp
 
 ${ENGINE_SRC_DIR}/utils/weight_store.cpp
 

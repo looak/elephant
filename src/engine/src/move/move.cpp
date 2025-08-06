@@ -1,4 +1,4 @@
-#include "move.h"
+#include <move/move.hpp>
 
 #include <list>
 #include <sstream>
@@ -70,7 +70,8 @@ Move::readPackedMove() const
     if (isPromotion()) {
         packedMove |= 1 << 15;
 
-        u8 packedPiece = PromoteToPiece.typeId() - 2;
+        // store the piece type as a number, starting from 2, i.e. knight = 0, bishop = 1, rook = 2, queen = 3
+        u8 packedPiece = PromoteToPiece().index() - 1;
         packedMove |= packedPiece << 12;
     }
 
@@ -87,8 +88,8 @@ Move::readPackedMove() const
 i16
 Move::calcCaptureValue() const
 {
-    i16 victim = ChessPieceDef::Value(CapturedPiece.index());
-    i16 attacker = ChessPieceDef::Value(Piece.index());
+    i16 victim = piece_constants::value[CapturedPiece.index()];
+    i16 attacker = piece_constants::value[Piece.index()];
 
     return victim * 10 - attacker;
 }

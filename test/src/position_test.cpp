@@ -1,7 +1,7 @@
 #include <position/position.hpp>
 #include <gtest/gtest.h>
 #include <array>
-#include "chess_piece.h"
+#include <material/chess_piece.hpp>
 #include "elephant_test_utils.h"
 #include "notation.h"
 

@@ -27,8 +27,6 @@ enum class Set : unsigned char;
 class FENParser
 {
 public:
-    static bool deserialize(const char* input, GameContext& outputContext);
-    static bool deserialize(const char* input, Position& outputPosition);
-    static bool serialize(const GameContext& inputContext, std::string& resultFen);
-    static bool serialize(const Chessboard& board, Set toPlay, std::string& resultBoardFen);
+    static bool deserialize(const char* input, Chessboard& outputBoard);
+    static bool serialize(const Chessboard& board, std::string& outputFen);
 };
