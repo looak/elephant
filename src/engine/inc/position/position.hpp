@@ -31,7 +31,8 @@
 #include "intrinsics.hpp"
 #include <move_generation/king_pin_threats.hpp>
 #include "notation.h"
-#include "material_mask.hpp"
+#include <material/material_mask.hpp>
+#include <material/material_topology.hpp>
 #include "position/castling_state_info.hpp"
 #include "position/en_passant_state_info.hpp"
 #include "position/position_accessors.hpp"
@@ -58,28 +59,17 @@ public:
     Position();
     Position& operator=(const Position& other);
 
-    /* Material Manpulators and readers */
-    void Clear();
-    bool empty() const;
-
-    bool PlacePiece(ChessPiece piece, Square target);
-    bool ClearPiece(ChessPiece piece, Square target);
-
-    ChessPiece readPieceAt(Square sqr) const;
-    const MaterialPositionMask& readMaterial() const { return m_materialMask; }
-
-    MutableMaterialProxy materialEditor(Set set, PieceType pType);
-
-    EnPassantStateInfo& editEnPassant() { return m_enpassantState; }
-    EnPassantStateInfo readEnPassant() const { return m_enpassantState; }
-
-    CastlingStateInfo& editCastling() { return m_castlingState; }
-    CastlingStateInfo readCastling() const { return m_castlingState; }
-    const CastlingStateInfo& refCastling() const { return m_castlingState; }
-
     PositionEditor edit() { return PositionEditor(*this); }
-    PositionReader read() const { return PositionReader(*this); }   
+    PositionReader read() const { return PositionReader(*this); }
 
+    ChessPiece readPieceAt(Square square) const;
+
+protected:
+    u64 readHash() const { return m_hash; }
+    void setHash(u64 hash) { m_hash = hash; }
+
+    MaterialPositionMask& editMaterialMask() { return m_materialMask; }
+    
     template<Set us, bool captures = false>
     Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
     template<Set us, bool captures = false>
@@ -94,63 +84,12 @@ public:
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
 
     template<Set us>
-    Bitboard calcThreatenedSquaresPawnBulk() const;
-    template<Set us>
-    Bitboard calcThreatenedSquaresKnightBulk() const;
-    template<Set us, u8 pieceId = bishopId>
-    Bitboard calcThreatenedSquaresBishopBulk() const;
-    template<Set us, u8 pieceId = rookId>
-    Bitboard calcThreatenedSquaresRookBulk() const;
-    template<Set us>
-    Bitboard calcThreatenedSquaresQueenBulk() const;
-    template<Set us>
-    Bitboard calcThreatenedSquaresKing() const;
-    template<Set us>
-    Bitboard calcThreatenedDiagonals() const;
-    template<Set us>
-    Bitboard calcThreatenedOrthogonals() const;
-
-    template<Set us, bool includeMaterial, bool pierceKing = false>
-    Bitboard calcThreatenedSquares() const;
-
-    template<Set us>
     std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb,
         const KingPinThreats& kingPinThreats) const;
 
     template<Set us, u8 pieceId>
     std::tuple<Bitboard, Bitboard> isolatePiece(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
-
-    i32 diffWestEast(Notation a, Notation b) const;
-
-    template<Set us>
-    KingPinThreats calcKingMask() const;
-
-protected:
-    u64 readHash() const { return m_hash; }
-    void setHash(u64 hash) { m_hash = hash; }
-
-    MaterialPositionMask& editMaterialMask() { return m_materialMask; }
-
-    void internalPlacePiece(ChessPiece piece, Square target);
-    void internalClearPiece(ChessPiece piece, Square target);
-
 private:
-
-    template<Set us, u8 direction, u8 pieceId>
-    Bitboard internalCalculateThreat(Bitboard bounds) const;
-
-    /**
-     * @brief Calculate the threats of a given piece type in a given direction.
-     * @tparam us The set of the piece type.
-     * @tparam direction The direction to calculate threats in.
-     * @param bounds The bounds of the board.
-     * @param pieces The bitboard of pieces we're calculating threatened squares from.
-     * Using this function to calculate orthogonal pieces & diagonal pieces at once,
-     * i.e. combinging queen & bishop or queen & rook for when we calculate diagonal piece threat.  */
-    template<Set us, u8 direction>
-    Bitboard internalCalculateThreatBulk(Bitboard bounds, Bitboard pieces) const;
-    template<Set us, u8 direction, u8 pieceId>
-    Bitboard internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard materialbb, Bitboard opMaterial) const;
 
     /**
      * @brief Isolate a given pawn from the moves bitboard.
@@ -176,107 +115,6 @@ private:
     EnPassantStateInfo m_enpassantState;
     u64 m_hash = 0;
 };
-
-template<Set us, u8 direction>
-Bitboard Position::internalCalculateThreatBulk(Bitboard bounds, Bitboard pieces) const
-{
-    const Bitboard piecebb = pieces;
-    const Bitboard materialbb = readMaterial().combine<us>();
-    const Bitboard opMaterial = readMaterial().combine<opposing_set<us>()>();
-
-    bounds |= opMaterial;
-
-    Bitboard bbCopy = piecebb;
-    Bitboard moves = 0;
-    do {
-        Bitboard purge = bbCopy & bounds;
-        bbCopy &= ~purge;
-
-        bbCopy = bbCopy.shiftRelative<us, direction>();
-        moves |= bbCopy;
-        bbCopy ^= (materialbb & bbCopy);
-
-    } while (bbCopy.empty() == false);
-
-    return moves;
-}
-
-template<Set us, u8 direction, u8 pieceId>
-Bitboard
-Position::internalCalculateThreat(Bitboard bounds) const
-{
-    const Bitboard piecebb = m_materialMask.read<us, pieceId>();
-    const Bitboard materialbb = readMaterial().combine<us>();
-    const Bitboard opMaterial = readMaterial().combine<opposing_set<us>()>();
-
-    bounds |= opMaterial;
-
-    Bitboard bbCopy = piecebb;
-    Bitboard moves = 0;
-    do {
-        Bitboard purge = bbCopy & bounds;
-        bbCopy &= ~purge;
-
-        bbCopy = bbCopy.shiftRelative<us, direction>();
-        moves |= bbCopy;
-        bbCopy ^= (materialbb & bbCopy);
-
-    } while (bbCopy.empty() == false);
-
-    return moves;
-}
-
-template<Set us, u8 direction, u8 pieceId>
-Bitboard
-Position::internalCalculateThreat(Bitboard bounds, Bitboard piecebb, Bitboard materialbb, Bitboard opMaterial) const
-{
-    bounds |= opMaterial;
-
-    Bitboard bbCopy = piecebb;
-    Bitboard moves = 0;
-    do {
-        Bitboard purge = bbCopy & bounds;
-        bbCopy &= ~purge;
-
-        bbCopy = bbCopy.shiftRelative<us, direction>();
-        moves |= bbCopy;
-        bbCopy ^= (materialbb & bbCopy);
-
-    } while (bbCopy.empty() == false);
-
-    return moves;
-}
-
-template<Set us, bool includeMaterial, bool pierceKing>
-Bitboard Position::calcThreatenedSquares() const {
-    Bitboard result = ~universe;
-    [[maybe_unused]] constexpr Set op = opposing_set<us>();
-    [[maybe_unused]] Bitboard kingMask = 0;
-
-    // removing king from opmaterial so it doesn't stop our sliding.
-    // needs to be reset later on.
-    if constexpr (pierceKing) {
-        // can we build a scoped struct to make this a bit cleaner?        
-        kingMask = m_materialMask.kings<op>();
-        m_materialMask.clear<op, kingId>(kingMask);
-    }
-
-    result |= calcThreatenedSquaresPawnBulk<us>();
-    result |= calcThreatenedSquaresKnightBulk<us>();
-    result |= calcThreatenedSquaresBishopBulk<us>();
-    result |= calcThreatenedSquaresBishopBulk<us, queenId>();
-    result |= calcThreatenedSquaresRookBulk<us>();
-    result |= calcThreatenedSquaresRookBulk<us, queenId>();
-    result |= calcThreatenedSquaresKing<us>();
-
-    if constexpr (pierceKing)
-        m_materialMask.write<op, kingId>(kingMask);
-
-    if constexpr (includeMaterial)
-        result |= m_materialMask.combine<us>();
-
-    return result;
-}
 
 template<Set us, u8 pieceId>
 std::tuple<Bitboard, Bitboard>

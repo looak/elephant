@@ -1,6 +1,7 @@
 #pragma once
 #include "bitboard.hpp"
 #include "chess_piece.h"
+#include <material/material_topology.hpp>
 
 
 struct MaterialMask {
@@ -96,7 +97,7 @@ public:
     template<Set us> void clear(Bitboard mask, i32 pieceId);
     template<Set us, i32 pieceId> void clear(Bitboard mask);
 
-    template<Set us> [[nodiscard]] constexpr Bitboard kings() const;
+    template<Set us> [[nodiscard]] constexpr Bitboard king() const;
     template<Set us> [[nodiscard]] constexpr Bitboard queens() const;
     template<Set us> [[nodiscard]] constexpr Bitboard rooks() const;
     template<Set us> [[nodiscard]] constexpr Bitboard bishops() const;
@@ -110,8 +111,8 @@ public:
     [[nodiscard]] constexpr Bitboard knights() const { return m_material[knightId]; };
     [[nodiscard]] constexpr Bitboard pawns() const { return m_material[pawnId]; };
 
-    [[nodiscard]] constexpr Bitboard whiteKing() const { return kings<Set::WHITE>(); }
-    [[nodiscard]] constexpr Bitboard blackKing() const { return kings<Set::BLACK>(); }
+    [[nodiscard]] constexpr Bitboard whiteKing() const { return king<Set::WHITE>(); }
+    [[nodiscard]] constexpr Bitboard blackKing() const { return king<Set::BLACK>(); }
     [[nodiscard]] constexpr Bitboard whiteQueens() const { return queens<Set::WHITE>(); }
     [[nodiscard]] constexpr Bitboard blackQueens() const { return queens<Set::BLACK>(); }
     [[nodiscard]] constexpr Bitboard whiteRooks() const { return rooks<Set::WHITE>(); }
@@ -123,12 +124,21 @@ public:
     [[nodiscard]] constexpr Bitboard whitePawns() const { return pawns<Set::WHITE>(); }
     [[nodiscard]] constexpr Bitboard blackPawns() const { return pawns<Set::BLACK>(); }
 
+    [[nodiscard]] constexpr Bitboard set(byte set) const {
+        FATAL_ASSERT(set < 2) << "Invalid set index: " << (int)set;
+        return m_set[set];
+    }
     [[nodiscard]] constexpr Bitboard white() const { return m_set[0]; }
     [[nodiscard]] constexpr Bitboard black() const { return m_set[1]; }
 
     [[nodiscard]] Bitboard& editSet(byte set) { return m_set[set]; }
     [[nodiscard]] Bitboard& editMaterial(byte pieceId) { return m_material[pieceId]; }
-    
+
+    template<Set us>
+    MaterialTopology<us> topology() const {
+        return MaterialTopology<us>(*this);
+    }
+
 };
 
 struct MutableImplicitPieceSquare {
@@ -219,7 +229,7 @@ void MaterialPositionMask::clear(Bitboard mask)
 
 
 template<Set us>
-constexpr Bitboard MaterialPositionMask::kings() const {
+constexpr Bitboard MaterialPositionMask::king() const {
     if constexpr (us == Set::WHITE) {
         return m_set[0] & m_material[kingId];
     }

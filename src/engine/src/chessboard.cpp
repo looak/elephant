@@ -12,39 +12,29 @@
 #include <vector>
 
 Chessboard::Chessboard() :
-    m_hash(0),
     m_isWhiteTurn(true),
     m_moveCount(1),
     m_plyCount(0),
-    m_age(0),
-    m_endGameCoeficient(0.f)
-{
-    m_kings[0].first = ChessPiece::None();
-    m_kings[0].second = Notation();
-    m_kings[1].first = ChessPiece::None();
-    m_kings[1].second = Notation();
-}
+    m_age(0)
+{}
 
 Chessboard::Chessboard(const Chessboard& other) :
-    m_hash(other.readHash()),
     m_isWhiteTurn(other.m_isWhiteTurn),
     m_moveCount(other.m_moveCount),
     m_plyCount(other.m_plyCount),
-    m_age(other.m_age),
-    m_endGameCoeficient(other.m_endGameCoeficient)
-{
-    m_kings[0].first = other.m_kings[0].first;
-    m_kings[0].second = Notation(other.m_kings[0].second);
-    m_kings[1].first = other.m_kings[1].first;
-    m_kings[1].second = Notation(other.m_kings[1].second);
-
+    m_age(other.m_age)
+{ 
     m_position = other.m_position;
 }
 
 std::string
 Chessboard::toString() const
 {
-    auto boardItr = begin();
+    auto positionReader = m_position.read();   
+
+
+    auto boardItr = positionReader.begin();
+    auto endItr = positionReader.end();
     std::array<std::stringstream, 8> ranks;
     byte prevRank = -1;
     do  // build each row
@@ -57,7 +47,7 @@ Chessboard::toString() const
         prevRank = boardItr.rank();
         ++boardItr;
 
-    } while (boardItr != end());
+    } while (boardItr != endItr);
 
     std::stringstream boardstream;
     auto rankItr = ranks.rbegin();
@@ -69,49 +59,20 @@ Chessboard::toString() const
 
     boardstream << "\n    A  B  C  D  E  F  G  H\n";
 
-    boardstream << "castling state: " << m_position.readCastling().toString();
-    boardstream << "\nen passant: " << m_position.readEnPassant().toString();
-    boardstream << "\nhash: 0x" << m_hash << "\n";
+    
+    boardstream << "castling state: " << positionReader.castling().toString();
+    boardstream << "\nen passant: " << positionReader.enPassant().toString();
+    boardstream << "\nhash: 0x" << positionReader.hash() << "\n";
 
     return boardstream.str();
 }
 void
 Chessboard::Clear()
-{
-    m_hash = 0;
-    m_kings[0].first = ChessPiece::None();
-    m_kings[0].second = Notation();
-    m_kings[1].first = ChessPiece::None();
-    m_kings[1].second = Notation();
-    m_position.Clear();
+{    
+    m_position.edit().clear();
     m_plyCount = 0;
     m_isWhiteTurn = true;
     m_moveCount = 1;
-}
-
-bool
-Chessboard::PlacePiece(ChessPiece piece, Notation target, bool overwrite)
-{
-    Square trgSqr = target.toSquare();
-    auto tsqrPiece = m_position.readPieceAt(trgSqr);
-    if (tsqrPiece != ChessPiece::None()) {
-        if (overwrite == true) {
-            m_position.ClearPiece(tsqrPiece, trgSqr);
-            m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, tsqrPiece, target);
-        }
-        else
-            return false;  // already a piece on this square
-    }
-
-    if (piece.getType() == PieceType::KING) {
-        m_kings[piece.set()].first = piece;
-        m_kings[piece.set()].second = Notation(target);
-    }
-
-    m_position.PlacePiece(piece, trgSqr);
-
-    m_hash = ZorbistHash::Instance().HashPiecePlacement(m_hash, piece, target);
-    return true;
 }
 
 template<bool validation>
@@ -516,70 +477,4 @@ void Chessboard::setToPlay(Set set)
     m_isWhiteTurn = set == Set::WHITE;
     if (set == Set::BLACK)
         m_hash = ZorbistHash::Instance().HashBlackToMove(m_hash);
-}
-
-const Notation s_beginPos = Notation::BuildPosition('a', 1);
-const Notation s_endPos = Notation(0, 8);
-
-Chessboard::Iterator
-Chessboard::begin()
-{
-    return Chessboard::Iterator(*this, Notation(s_beginPos));
-}
-
-Chessboard::Iterator
-Chessboard::end()
-{
-    return Chessboard::Iterator(*this, Notation(s_endPos));
-}
-Chessboard::ConstIterator
-Chessboard::begin() const
-{
-    return Chessboard::ConstIterator(*this, Notation(s_beginPos));
-}
-Chessboard::ConstIterator
-Chessboard::end() const
-{
-    return Chessboard::ConstIterator(*this, Notation(s_endPos));
-}
-
-float Chessboard::calculateEndGameCoeficient() const {
-    if (m_moveCount > 64) // if we're past 64 moves, treat the game as end game.
-        return 1.f;
-
-    if (m_position.readMaterial().combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
-        return 1.f;
-
-    if (m_endGameCoeficient > 0.1f)
-        return m_endGameCoeficient;
-
-    static constexpr i32 defaultPosValueOfMaterial = ChessPieceDef::Value(0) * 16    // pawn
-        + ChessPieceDef::Value(1) * 4   // knight
-        + ChessPieceDef::Value(2) * 4   // bishop
-        + ChessPieceDef::Value(3) * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
-        + ChessPieceDef::Value(4) * 2;  // queens
-
-    // check if we have promoted a pawn because that will screw with this endgame coeficient
-    // calculation. and probably, at the point we're looking for promotions, we're most likely in a
-    // endgame already should just return 1.f
-
-    i32 boardMaterialCombinedValue = 0;
-    for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial().read<Set::WHITE>(index).count();
-        boardMaterialCombinedValue += ChessPieceDef::Value(index) * m_position.readMaterial().read<Set::BLACK>(index).count();
-    }
-
-    // reflecting on the move counter, this can at most add .5 to the coeficient since I want piece value to be
-    // the dominating factor in the endgame coeficient.
-    const short maxCount = 100;
-    const float maxCountCoeficient = 0.5f;
-    // 100 moves into the game should give us a coeficient of 0.5
-    // 50 moves into the game should give us a coeficient of 0.25
-    float countCoeficient = ((float)m_moveCount / (float)maxCount) / 2.f;
-    countCoeficient = std::min(countCoeficient, maxCountCoeficient);
-
-    float coeficient = 1.f - ((float)boardMaterialCombinedValue / (float)defaultPosValueOfMaterial);
-    coeficient += countCoeficient;
-    m_endGameCoeficient = std::min(coeficient, 1.f);
-    return m_endGameCoeficient;
 }

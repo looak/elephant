@@ -1,4 +1,5 @@
 #include "game_context.h"
+#include <position/position_accessors.hpp>
 #include "evaluator.h"
 #include "fen_parser.h"
 #include <position/hash_zorbist.hpp>
@@ -74,8 +75,10 @@ bool
 GameContext::TryMakeMove(Move move)
 {
     PackedMove found = PackedMove::NullMove();
+    PositionReader position = m_board.readPosition();
+
     if (move.isAmbiguous()) {
-        MoveGenerator generator(m_board.readPosition(), m_board.readToPlay(), move.Piece.getType());
+        MoveGenerator generator(position, m_board.readToPlay(), move.Piece.getType());
         generator.generate();
 
         generator.forEachMove([&](const PrioratizedMove& pm) {
@@ -90,7 +93,8 @@ GameContext::TryMakeMove(Move move)
     }
     else {
         // set capture if the target square is occupied.
-        if (m_board.readPieceAt(move.TargetSquare.toSquare()).isValid()) {
+        ChessPiece piece = position.readPieceAt(move.TargetSquare.toSquare());
+        if (piece.isValid()) {
             move.setCapture(true);
         }
         found = move.readPackedMove();
