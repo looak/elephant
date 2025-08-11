@@ -19,31 +19,15 @@
 
 class Chessboard;
 struct ChessPiece;
-struct Notation;
 
-struct ZorbistHash
-{
-    static const ZorbistHash& Instance();
-
-    u64 HashBoard(const Chessboard& board) const;
-    u64 HashPiecePlacement(const u64& oldHash, ChessPiece piece, Notation position) const;
-    u64 HashEnPassant(const u64& oldHash, Notation position) const;
-    u64 HashCastling(const u64& oldHash, const u8 castlingState) const;
-    u64 HashBlackToMove(const u64& oldHash) const;
-
-private:
-
-    void GenerateZorbistTable();
-    ZorbistHash()
-        : initialized(false)
-    {
-        GenerateZorbistTable();
-    }
-    static ZorbistHash instance;
-
-    bool initialized;
-    u64 table[64][12];
-    u64 black_to_move;
-    u64 castling[4];
-    u64 enpassant[8];
-};
+namespace zorbist {
+namespace internals {
+    void initialize();
+    bool initialized();
+} // namespace internals
+    u64 computeBoardHash(const Chessboard& board);
+    u64 updatePieceHash(const u64& oldHash, ChessPiece piece, Square position);
+    u64 updateEnPassantHash(const u64& oldHash, Square position);
+    u64 updateCastlingHash(const u64& oldHash, const u8 castlingState);
+    u64 updateBlackToMoveHash(const u64& oldHash);
+} // namespace zorbist

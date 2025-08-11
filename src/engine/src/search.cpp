@@ -95,7 +95,7 @@ void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResu
     u32 madeMoves = 0;
     std::stringstream pvSS;
     for (u32 i = 0; i < searchDepth; ++i) {
-        u64 hash = context.game.readChessboard().readHash();
+        u64 hash = context.game.readChessboard().readPosition().hash();
         auto pvMove = context.game.editTranspositionTable().probe(hash);
         if (pvMove.isNull())
             break;
@@ -216,9 +216,9 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
 
     // probe transposition table.
     auto& chessboard = context.game.readChessboard();
-    auto& entry = context.game.editTranspositionTable().editEntry(chessboard.readHash());
+    auto& entry = context.game.editTranspositionTable().editEntry(chessboard.readPosition().hash());
 #if defined(ENABLE_TRANSPOSITION_TABLE)
-    if (auto result = entry.evaluate(chessboard.readHash(), depth, alpha, beta); result.has_value()) {
+    if (auto result = entry.evaluate(chessboard.readPosition().hash(), depth, alpha, beta); result.has_value()) {
         return { .score = entry.adjustedScore(ply), .move = entry.move };
     }
 #endif
@@ -246,7 +246,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         context.game.MakeMove(prioratized.move);
 
         i32 eval = 0;
-        if (context.game.IsRepetition(context.game.readChessboard().readHash())) {
+        if (context.game.IsRepetition(context.game.readChessboard().readPosition().hash())) {
             eval = -c_drawConstant;
             result = { .score = eval, .move = prioratized.move };
         }
@@ -271,7 +271,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
             }
 
             if (beta <= alpha) {
-                entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), beta, ply, depth, TTF_CUT_BETA);
+                entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, beta, ply, depth, TTF_CUT_BETA);
                 if (prioratized.move.isCapture() == false)
                     pushKillerMove(prioratized.move, ply);
 
@@ -283,7 +283,7 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
         prioratized = generator.generateNextMove();
     } while (prioratized.move.isNull() == false);
 
-    entry.update(chessboard.readHash(), bestMove, chessboard.readAge(), bestEval, ply, depth, flag);
+    entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, bestEval, ply, depth, flag);
 
     return { .score = bestEval, .move = bestMove };
 }
@@ -292,9 +292,9 @@ i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 
     MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
     generator.generate();
 
-    Evaluator evaluator;
+    Evaluator evaluator(context.game.readChessboard().readPosition());
     i32 perspective = maximizingPlayer ? 1 : -1;
-    i32 eval = evaluator.Evaluate(context.game.readChessboard(), generator) * perspective;
+    i32 eval = evaluator.Evaluate(generator) * perspective;
     if (eval >= beta)
         return beta;
     if (eval > alpha)

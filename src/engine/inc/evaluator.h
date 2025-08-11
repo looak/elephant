@@ -12,7 +12,7 @@ class Position;
 class Evaluator
 {
 public:
-    Evaluator(const Position& position) : m_position(position) {}    
+    Evaluator(PositionReader position) : m_position(position) {}    
 
     i32 Evaluate(const MoveGenerator& movegen);
     i32 EvaluatePlus(const MoveGenerator& movegen, PackedMove move);

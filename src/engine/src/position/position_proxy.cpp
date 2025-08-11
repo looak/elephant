@@ -20,7 +20,7 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
         material.editSet(piece.set())[square] = true;
         material.editMaterial(piece.index())[square] = true;
 
-        hash() = ZorbistHash::Instance().HashPiecePlacement(hash(), piece, Notation(square));
+        hash() = zorbist::updatePieceHash(hash(), piece, square);
         
         return true;      
     }
@@ -54,7 +54,7 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
         auto material = m_position.editMaterialMask();
         material.editSet(pieceAt(square).set())[square] = false;
         material.editMaterial(pieceAt(square).index())[square] = false;
-        hash() = ZorbistHash::Instance().HashPiecePlacement(hash(), ChessPiece::None(), Notation(square));
+        hash() = zorbist::updatePieceHash(hash(), ChessPiece::None(), square);
         return true;
     }
     else {
@@ -139,4 +139,4 @@ void PositionProxy<AccessType>::clear()
     }
 }
 
-template PositionProxy<PositionEditPolicy>::clear();
+template void PositionProxy<PositionEditPolicy>::clear();
