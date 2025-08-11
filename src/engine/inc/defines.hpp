@@ -109,6 +109,14 @@ constexpr Square toSquare(i32 index) {
     return static_cast<Square>(index);
 }
 
+constexpr u8 toFile(Square sqr) {
+    return mod_by_eight(static_cast<u8>(sqr));
+}
+
+constexpr u8 toRank(Square sqr) {
+    return static_cast<u8>(sqr) / 8;
+}
+
 template<typename T>
 constexpr T&
 increment(T& value) {

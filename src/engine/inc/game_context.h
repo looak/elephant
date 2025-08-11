@@ -73,6 +73,8 @@ public:
     Set readToPlay() const { return m_board.readToPlay(); }
 
     TranspositionTable& editTranspositionTable() { return m_transpositionTable; }
+    GameHistory& editGameHistory() { return m_history; }
+    const GameHistory& readGameHistory() const { return m_history; }
 
 private:
     Chessboard m_board;

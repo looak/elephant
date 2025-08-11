@@ -85,8 +85,7 @@ protected:
     Bitboard calcAvailableMovesKing(byte castlingRights) const;
     
 private:
-
-    mutable MaterialPositionMask m_materialMask;
+    MaterialPositionMask m_materialMask;
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
     u64 m_hash = 0;

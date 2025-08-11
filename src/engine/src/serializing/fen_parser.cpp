@@ -169,30 +169,16 @@ FENParser::deserialize(const char* input, Chessboard& outputBoard)
 }
 
 bool
-FENParser::serialize(const GameContext& inputContext, std::string& resultFen)
+FENParser::serialize(const Chessboard& board, std::string& resultFen)
 {
-    const auto& board = inputContext.readChessboard();
-
-    serialize(board, inputContext.readToPlay(), resultFen);
-
-    resultFen += ' ';
-
-    resultFen += std::to_string(inputContext.readPly()) + " ";
-    resultFen += std::to_string(inputContext.readMoveCount());
-
-    return true;
-}
-
-bool
-FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen)
-{
-    auto itr = board.begin();
+    auto position = board.readPosition();
+    auto itr = position.begin();
 
     std::vector<std::string> ranks;
     byte rank = itr.rank();
     std::string strngBuilder;
     int emptyFiles = 0;
-    while (itr != board.end()) {
+    while (itr != position.end()) {
         ChessPiece cp = itr.get();
         if (cp.isValid()) {
             if (emptyFiles > 0) {
@@ -235,14 +221,14 @@ FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen
     resultFen = strngBuilder;
 
     // set to move
-    if (toPlay == Set::WHITE)
+    if (board.readState().whiteToMove)
         resultFen += " w";
     else
         resultFen += " b";
 
     resultFen += ' ';
 
-    auto castlingState = board.readCastlingState();
+    auto castlingState = position.castling();
     byte rawCastlingState = castlingState.read();
     if (rawCastlingState > 0) {
         if (rawCastlingState & 1)
@@ -260,10 +246,17 @@ FENParser::serialize(const Chessboard& board, Set toPlay, std::string& resultFen
 
     resultFen += ' ';
 
-    if (board.readPosition().readEnPassant())
-        resultFen += board.readPosition().readEnPassant().toString();
+    if (position.enPassant())
+        resultFen += position.enPassant().toString();
     else
         resultFen += '-';
+
+
+    
+    resultFen += ' ';
+
+    resultFen += std::to_string(board.readState().plyCount) + " ";
+    resultFen += std::to_string(board.readState().moveCount);
 
     return true;
 }

@@ -52,6 +52,7 @@ public:
     PositionReader readPosition() const { return m_position.read(); }
     PositionEditor editPosition() { return m_position.edit(); }
     GameState& editState() { return m_gameState; }
+    const GameState& readState() const { return m_gameState; }
 
     u16 readMoveCount() const { return m_gameState.moveCount; }
     u16 readPlyCount() const { return m_gameState.plyCount; }
