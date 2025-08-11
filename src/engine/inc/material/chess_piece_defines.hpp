@@ -57,8 +57,7 @@ enum class PieceType : byte {
 };
 
 constexpr u8
-toPieceIndex(PieceType type)
-{
+toPieceIndex(PieceType type) {
     return static_cast<u8>(type) - 1;
 }
 

@@ -86,14 +86,6 @@ protected:
     
 private:
 
-    /**
-     * @brief Isolate a given pawn from the moves bitboard.
-     * The following functions all do the same thing, but for different pieces. They take a bitboard representing all
-     * available moves for a given piece type, and isolate the moves that are valid for the given piece at source square. */
-    
-
-    u64 Castling(byte set, byte castling, u64 threatenedMask) const;
-
     mutable MaterialPositionMask m_materialMask;
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
