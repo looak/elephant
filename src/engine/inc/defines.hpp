@@ -97,20 +97,21 @@ enum class Square : uint8_t {
     NullSQ
 };
 
-constexpr byte operator*(Square sqr)
-{
+constexpr byte operator*(Square sqr) {
     return static_cast<byte>(sqr);
 }
 
-constexpr Square toSquare(byte file, byte rank) 
-{
+constexpr Square toSquare(byte file, byte rank)  {
     return static_cast<Square>((rank * 8) + file);
+}
+
+constexpr Square toSquare(i32 index) {
+    return static_cast<Square>(index);
 }
 
 template<typename T>
 constexpr T&
-increment(T& value)
-{
+increment(T& value) {
     static_assert(std::is_integral<std::underlying_type_t<T>>::value, "Can't increment value");
     ((std::underlying_type_t<T>&)value)++;
     return value;

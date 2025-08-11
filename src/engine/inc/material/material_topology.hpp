@@ -40,14 +40,15 @@ public:
 
     [[nodiscard]] Bitboard computeThreatenedSquaresPawnBulk() const;
     [[nodiscard]] Bitboard computeThreatenedSquaresKnightBulk() const;   
-    [[nodiscard]] Bitboard computeThreatenedSquaresQueenBulk() const;
-    [[nodiscard]] Bitboard computeThreatenedSquaresKing() const;
-
+    
     // Bulk threat calculation for bishops and rooks. Template parameter is used by queens to combine the two.
     template<u8 pieceId = bishopId>
-    [[nodiscard]] Bitboard computeThreatenedSquaresBishopBulk() const;
+    [[nodiscard]] Bitboard computeThreatenedSquaresBishopBulk(Bitboard occupancy) const;
     template<u8 pieceId = rookId>
-    [[nodiscard]] Bitboard computeThreatenedSquaresRookBulk() const;
+    [[nodiscard]] Bitboard computeThreatenedSquaresRookBulk(Bitboard occupancy) const;
+    
+    [[nodiscard]] Bitboard computeThreatenedSquaresQueenBulk(Bitboard occupancy) const;
+    [[nodiscard]] Bitboard computeThreatenedSquaresKing() const;
 
     [[nodiscard]] Bitboard computeThreatenedDiagonals() const;
     [[nodiscard]] Bitboard computeThreatenedOrthogonals() const;

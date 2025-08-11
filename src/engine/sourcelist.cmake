@@ -41,6 +41,7 @@ ${ENGINE_INC_DIR}/material/material_mask.hpp
 ${ENGINE_INC_DIR}/move/move.hpp
 ${ENGINE_INC_DIR}/move/move_executor.hpp
 
+${ENGINE_INC_DIR}/move_generation/bulk_move_generator.hpp
 ${ENGINE_INC_DIR}/move_generation/king_pin_threats.hpp
 ${ENGINE_INC_DIR}/move_generation/move_generator.hpp
 
@@ -80,6 +81,7 @@ ${ENGINE_SRC_DIR}/material/material_mask.cpp
 ${ENGINE_SRC_DIR}/move/move.cpp
 ${ENGINE_SRC_DIR}/move/move_executor.cpp
 
+${ENGINE_SRC_DIR}/move_generation/bulk_move_generator.cpp
 ${ENGINE_SRC_DIR}/move_generation/king_pin_threats.cpp
 ${ENGINE_SRC_DIR}/move_generation/move_generator.cpp
 

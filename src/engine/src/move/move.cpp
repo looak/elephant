@@ -71,7 +71,7 @@ Move::readPackedMove() const
         packedMove |= 1 << 15;
 
         // store the piece type as a number, starting from 2, i.e. knight = 0, bishop = 1, rook = 2, queen = 3
-        u8 packedPiece = PromoteToPiece().index() - 1;
+        u8 packedPiece = PromoteToPiece.index() - 1;
         packedMove |= packedPiece << 12;
     }
 

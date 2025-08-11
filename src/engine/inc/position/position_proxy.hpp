@@ -44,7 +44,7 @@ public:
     PositionProxy(const PositionProxy& other) : m_position(other.m_position) {}
 
     void clear();
-    bool empty() const { return m_position.empty(); }
+    bool empty() const { return material().empty(); }
 
     template<typename... placementpairs>
     bool placePieces(placementpairs... placements);
@@ -65,7 +65,8 @@ public:
     MutableMaterialProxy materialEditor(Set set, PieceType type)
     {
         if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
-            return MutableMaterialProxy(material().editSet(set), material().editMaterial(type));
+            return MutableMaterialProxy(&material().editSet(toSetId(set)), 
+                                        &material().editMaterial(toPieceIndex(type)));
         }
         else {
             static_assert(false, "Cannot call materialEditor() on a position with a read-only policy.");

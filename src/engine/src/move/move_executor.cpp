@@ -21,8 +21,8 @@ void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHis
     
     if constexpr (validation) {
         if (!movingPiece.isValid()) {
-            LOG_ERROR() << "Trying to make a move with an invalid piece at square " << Notation(move.sourceSqr()).toString();
-            return undoUnit; // early exit if the piece is invalid
+            LOG_ERROR() << "Trying to make a move with an invalid piece at square " << Notation(move.sourceSqr()).toString();            
+            return;  // early exit if the piece is invalid
         }
     }
 
@@ -78,14 +78,14 @@ void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHis
     gameState.moveCount += (short)gameState.whiteToMove;
 }
 
-template void MoveExecutor::makeMove<true>(const PackedMove move, GameHistory& history);
-template void MoveExecutor::makeMove<false>(const PackedMove move, GameHistory& history);
+template void MoveExecutor::makeMove<true>(const PackedMove, GameState&, GameHistory&);
+template void MoveExecutor::makeMove<false>(const PackedMove, GameState&, GameHistory&);
 
 
 void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)
 {
     // update hash, start by removing old en passant if there was one.
-    if (m_position.enPassant().read() == true)
+    if (m_position.enPassant() == true)
         m_position.hash() = ZorbistHash::Instance().HashEnPassant(m_position.hash(), m_position.enPassant().readSquare());
 
     // reset enpassant cached values before updating en passant

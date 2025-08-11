@@ -17,6 +17,7 @@ enum CastlingState {
 struct CastlingStateInfo {
 public:
     CastlingStateInfo() = default;
+    CastlingStateInfo(const CastlingStateInfo& other) : m_innerState(other.m_innerState) {}
 
     bool hasAll() const { return m_innerState == ALL; }
     bool hasAny() const { return m_innerState != NONE; }
@@ -50,6 +51,12 @@ public:
     std::string toString() const;
 
     bool operator==(const CastlingStateInfo& rhs) const { return m_innerState == rhs.m_innerState; }
+    CastlingStateInfo& operator=(const CastlingStateInfo& other) {
+        if (this != &other) {
+            m_innerState = other.m_innerState;
+        }
+        return *this;
+    }
 
 private:
     byte m_innerState = 0;

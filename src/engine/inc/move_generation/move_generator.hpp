@@ -90,21 +90,21 @@ private:
     template<Set set>
     void internalGenerateKingMoves();
 
-    void genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, i32 srcSqr, bool capture, const KingPinThreats& pinThreats);
+    void genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture, const KingPinThreats& pinThreats);
 
     void sortMoves();
 
     template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
+    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Square source, Bitboard movesbb) const;
 
     template<Set us>
     std::tuple<Bitboard, Bitboard> isolatePawn(Square source, Bitboard movesbb) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateKnightMoves(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats) const;
+    std::tuple<Bitboard, Bitboard> isolateKnightMoves(Square source, Bitboard movesbb) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateBishop(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats, i8 pieceIndex = bishopId) const;
+    std::tuple<Bitboard, Bitboard> isolateBishop(Square source, Bitboard movesbb) const;
     template<Set us>
-    std::tuple<Bitboard, Bitboard> internalIsolateRook(Notation source, Bitboard movesbb, const KingPinThreats& kingPinThreats, i8 pieceIndex = rookId) const;
+    std::tuple<Bitboard, Bitboard> isolateRook(Square source, Bitboard movesbb) const;
 
     Set m_toMove;
     PositionProxy<PositionReadOnlyPolicy> m_position;
@@ -167,8 +167,8 @@ KingPinThreats MoveGenerator::computeKingPinThreats()
     Square opKingSqr = static_cast<Square>(m_position.material().king<op>().lsbIndex());
 
     KingPinThreats ret;
-    ret.evaluate<us>(kingSqr, *this);
-    ret.calculateOpponentOpenAngles<op>(opKingSqr, *this);
+    ret.evaluate<us>(kingSqr, m_position);
+    ret.calculateOpponentOpenAngles<op>(opKingSqr, m_position);
     return ret; 
 }
 

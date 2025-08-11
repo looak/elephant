@@ -51,8 +51,7 @@ template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresKnightBu
 
 template<Set us>
 template<u8 pieceId>
-Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk() const {
-    Bitboard occupancy = m_material.combine();
+Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk(Bitboard occupancy) const {    
     Bitboard pieces = m_material.read<us>(pieceId);
     Bitboard result{};
 
@@ -64,15 +63,14 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk() const {
     return result;
 }
 
-template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresBishopBulk<bishopId>() const;
-template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresBishopBulk<bishopId>() const;
-template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresBishopBulk<queenId>() const;
-template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresBishopBulk<queenId>() const;
+template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresBishopBulk<bishopId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresBishopBulk<bishopId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresBishopBulk<queenId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresBishopBulk<queenId>(Bitboard) const;
 
 template<Set us>
 template<u8 pieceId>
-Bitboard MaterialTopology<us>::computeThreatenedSquaresRookBulk() const {
-    Bitboard occupancy = m_material.combine();
+Bitboard MaterialTopology<us>::computeThreatenedSquaresRookBulk(Bitboard occupancy) const {
     Bitboard pieces = m_material.read<us>(pieceId);
     Bitboard result{};
 
@@ -84,25 +82,25 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresRookBulk() const {
     return result;
 }
 
-template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresRookBulk<rookId>() const;
-template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresRookBulk<rookId>() const;
-template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresRookBulk<queenId>() const;
-template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresRookBulk<queenId>() const;
+template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresRookBulk<rookId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresRookBulk<rookId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresRookBulk<queenId>(Bitboard) const;
+template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresRookBulk<queenId>(Bitboard) const;
 
 template<Set us>
 Bitboard
-MaterialTopology<us>::computeThreatenedSquaresQueenBulk() const
+MaterialTopology<us>::computeThreatenedSquaresQueenBulk(Bitboard occupancy) const
 {
     Bitboard moves = 0;
 
-    moves |= computeThreatenedSquaresRookBulk<queenId>();
-    moves |= computeThreatenedSquaresBishopBulk<queenId>();
+    moves |= computeThreatenedSquaresRookBulk<queenId>(occupancy);
+    moves |= computeThreatenedSquaresBishopBulk<queenId>(occupancy);
 
     return moves;
 }
 
-template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresQueenBulk() const;
-template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresQueenBulk() const;
+template Bitboard MaterialTopology<Set::WHITE>::computeThreatenedSquaresQueenBulk(Bitboard) const;
+template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresQueenBulk(Bitboard) const;
 
 template<Set us>
 Bitboard MaterialTopology<us>::computeThreatenedSquaresKing() const
@@ -176,24 +174,19 @@ Bitboard MaterialTopology<us>::computeThreatenedSquares() const {
     [[maybe_unused]] constexpr Set op = opposing_set<us>();
     [[maybe_unused]] Bitboard kingMask = 0;
 
-    // removing king from opmaterial so it doesn't stop our sliding.
-    // needs to be reset later on.
-    if constexpr (pierceKing) {
-        // can we build a scoped struct to make this a bit cleaner?        
-        kingMask = m_material.king<op>();
-        m_material.clear<op, kingId>(kingMask);
+    Bitboard occupancy = m_material.combine();
+    
+    // removing king from opponent occupancy so it doesn't stop our sliding.    
+    if constexpr (pierceKing) {        
+        occupancy &= ~m_material.king<op>();
     }
 
     result |= computeThreatenedSquaresPawnBulk();
     result |= computeThreatenedSquaresKnightBulk();
-    result |= computeThreatenedSquaresBishopBulk();
-    result |= computeThreatenedSquaresBishopBulk<queenId>();
-    result |= computeThreatenedSquaresRookBulk();
-    result |= computeThreatenedSquaresRookBulk<queenId>();
+    result |= computeThreatenedSquaresBishopBulk(occupancy);
+    result |= computeThreatenedSquaresRookBulk(occupancy);
+    result |= computeThreatenedSquaresQueenBulk(occupancy);
     result |= computeThreatenedSquaresKing();
-
-    if constexpr (pierceKing)
-        m_material.write<op, kingId>(kingMask);
 
     if constexpr (includeMaterial)
         result |= m_material.combine<us>();
