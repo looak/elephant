@@ -36,6 +36,12 @@
         whiteToMove(rhs.whiteToMove)
     {}
 
+    bool operator==(const GameState& other) const {
+        return plyCount == other.plyCount &&
+               moveCount == other.moveCount &&
+               whiteToMove == other.whiteToMove;
+    }
+
     u16 plyCount = 0;  // number of half moves made
     u16 moveCount = 0;  // number of full moves made
     bool whiteToMove = true;  // true if it's white's turn to move
@@ -59,6 +65,8 @@ public:
     Set readToPlay() const { return m_gameState.whiteToMove ? Set::WHITE : Set::BLACK; }    
 
     std::string toString() const;
+
+    bool compare(const Chessboard& other) const;
 
 private:
     GameState m_gameState;

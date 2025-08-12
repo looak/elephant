@@ -8,10 +8,10 @@ struct GameState;
 
 class MoveExecutor {
 public:
-    MoveExecutor(PositionProxy<PositionEditPolicy> position);
+    MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory);
 
     template<bool validation = false>
-    void makeMove(const PackedMove move, GameState& gameState, GameHistory& history);
+    void makeMove(const PackedMove move);
 
 private:
     MoveUndoUnit internalMakeMove(const std::string& moveString);
@@ -37,4 +37,8 @@ private:
     void internalMakeMove(ChessPiece piece, Square source, Square target, MutableMaterialProxy materialEditor);
 
     PositionProxy<PositionEditPolicy> m_position;
+
+
+    GameState& m_gameStateRef;
+    GameHistory& m_gameHistoryRef;
 };

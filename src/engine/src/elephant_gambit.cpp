@@ -12,7 +12,7 @@ namespace chess {
 
     void NewGame(Chessboard& board) {
         ClearBoard(board);
-        FENParser::deserialize(c_startPositionFen.c_str(), board);
+        fen_parser::deserialize(c_startPositionFen.c_str(), board);
     }
 } // namespace chess
 

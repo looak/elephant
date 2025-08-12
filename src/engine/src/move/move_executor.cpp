@@ -4,17 +4,19 @@
 #include <game_context.h>
 #include <chessboard.h>
 
-MoveExecutor::MoveExecutor(PositionProxy<PositionEditPolicy> position) :
-    m_position(position)
+MoveExecutor::MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory) :
+    m_position(position),
+    m_gameStateRef(gameState),
+    m_gameHistoryRef(gameHistory)
 {}
 
 template<bool validation>
-void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHistory& history)
+void MoveExecutor::makeMove(const PackedMove move)
 {
-    MoveUndoUnit& undoUnit = history.moveUndoUnits.emplace_back();
+    MoveUndoUnit& undoUnit = m_gameHistoryRef.moveUndoUnits.emplace_back();
     undoUnit.move = move;
     undoUnit.hash = m_position.hash();
-    undoUnit.plyCount = gameState.plyCount;
+    undoUnit.plyCount = m_gameStateRef.plyCount;
 
     ChessPiece movingPiece = m_position.pieceAt(move.sourceSqr());
     undoUnit.movedPiece = movingPiece;
@@ -41,7 +43,7 @@ void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHis
         // updating pieceTarget since if we're capturing enpassant the target will be on a
         // different square.
         std::tie(captureTarget, movingPiece) = internalHandlePawnMove(move, movingPiece.getSet(), materialEditor, undoUnit);
-        gameState.plyCount = 0;  // reset ply count on pawn move
+        m_gameStateRef.plyCount = 0;  // reset ply count on pawn move
         break;
 
     case PieceType::KING:
@@ -60,8 +62,8 @@ void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHis
     }
 
     // since capture will reset this to 0, we need to increment it here.
-    gameState.plyCount++;
-    history.age++;
+    m_gameStateRef.plyCount++;
+    m_gameHistoryRef.age++;
 
     if (move.isCapture())
         internalHandleCapture(move, captureTarget, undoUnit);
@@ -74,12 +76,12 @@ void MoveExecutor::makeMove(const PackedMove move, GameState& gameState, GameHis
     m_position.hash() = zorbist::updateBlackToMoveHash(m_position.hash());
 
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
-    gameState.whiteToMove = !gameState.whiteToMove;
-    gameState.moveCount += (short)gameState.whiteToMove;
+    m_gameStateRef.whiteToMove = !m_gameStateRef.whiteToMove;
+    m_gameStateRef.moveCount += (short)m_gameStateRef.whiteToMove;
 }
 
-template void MoveExecutor::makeMove<true>(const PackedMove, GameState&, GameHistory&);
-template void MoveExecutor::makeMove<false>(const PackedMove, GameState&, GameHistory&);
+template void MoveExecutor::makeMove<true>(const PackedMove);
+template void MoveExecutor::makeMove<false>(const PackedMove);
 
 
 void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)

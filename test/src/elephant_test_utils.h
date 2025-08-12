@@ -8,8 +8,6 @@ struct KingMask;
 struct Move;
 
 namespace ElephantTest {
-void PrintBoard(const Chessboard& board);
-
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
 // 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
 // 6 [   ][   ][   ][   ][   ][   ][   ][   ]

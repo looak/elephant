@@ -60,29 +60,13 @@ public:
     Position(const Position& other);
     Position& operator=(const Position& other);
 
+    bool operator==(const Position& other) const;
+
     PositionEditor edit() { return PositionEditor(*this); }
     PositionReader read() const { return PositionReader(*this); }
 
-    ChessPiece readPieceAt(Square square) const;
-
 protected:
-    u64 readHash() const { return m_hash; }
-    void setHash(u64 hash) { m_hash = hash; }
-
-    MaterialPositionMask& editMaterialMask() { return m_materialMask; }
-    
-    template<Set us, bool captures = false>
-    Bitboard calcAvailableMovesPawnBulk(const KingPinThreats& kingPinThreats) const;
-    template<Set us, bool captures = false>
-    Bitboard calcAvailableMovesKnightBulk(const KingPinThreats& kingPinThreats) const;
-    template<Set us, bool captures = false, u8 pieceId = rookId>
-    Bitboard calcAvailableMovesRookBulk(const KingPinThreats& kingPinThreats) const;
-    template<Set us, bool captures = false, u8 pieceId = bishopId>
-    Bitboard calcAvailableMovesBishopBulk(const KingPinThreats& kingPinThreats) const;
-    template<Set us, bool captures = false>
-    Bitboard calcAvailableMovesQueenBulk(const KingPinThreats& kingPinThreats) const;
-    template<Set us, bool captures = false, Set op = opposing_set<us>()>
-    Bitboard calcAvailableMovesKing(byte castlingRights) const;
+    MaterialPositionMask& editMaterialMask() { return m_materialMask; }    
     
 private:
     MaterialPositionMask m_materialMask;

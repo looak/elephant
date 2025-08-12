@@ -3,7 +3,7 @@
 #include <defines.hpp>
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-enum CastlingState {
+enum CastlingState : uint8_t {
     NONE = 0x00,
     WHITE_KINGSIDE = 0x01,
     WHITE_QUEENSIDE = 0x02,
@@ -47,6 +47,8 @@ public:
 
     byte read() const { return m_innerState; }
     void write(byte state) { m_innerState = state; }
+
+    CastlingState asFlag() const { return static_cast<CastlingState>(m_innerState); }
 
     std::string toString() const;
 

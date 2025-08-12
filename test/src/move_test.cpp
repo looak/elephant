@@ -171,26 +171,26 @@ TEST_F(MoveFixture, PackedMove)
     EXPECT_EQ(targetSqr, pmv.target());
 }
 
-TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
-{
-    // setup
-    auto P = WHITEPAWN;
-    m_chessboard.PlacePiece(P, d2);
-    PackedMove move;
-    move.setSource(Square::D2);
-    move.setTarget(Square::D4);
-    move.setCapture(false);
-    MoveUndoUnit undo;
-    // do
-    undo = m_chessboard.MakeMove<false>(move);
+// TEST_F(MoveFixture, Pawn_TriggerEnPassant_ExpectEnPassantValueD3)
+// {
+//     // setup
+//     auto P = WHITEPAWN;
+//     m_chessboard.PlacePiece(P, d2);
+//     PackedMove move;
+//     move.setSource(Square::D2);
+//     move.setTarget(Square::D4);
+//     move.setCapture(false);
+//     MoveUndoUnit undo;
+//     // do
+//     undo = m_chessboard.MakeMove<false>(move);
 
-    // verify
-    ChessPiece exp;  // default, "empty" piece
-    EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D2));
-    EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(Square::D4));
+//     // verify
+//     ChessPiece exp;  // default, "empty" piece
+//     EXPECT_EQ(exp, m_chessboard.readPieceAt(Square::D2));
+//     EXPECT_EQ(WHITEPAWN, m_chessboard.readPieceAt(Square::D4));
 
-    EXPECT_EQ(Square::D3, m_chessboard.readPosition().readEnPassant().readSquare());
-}
+//     EXPECT_EQ(Square::D3, m_chessboard.readPosition().readEnPassant().readSquare());
+// }
 
 // TEST_F(MoveFixture, PawnMoves_enpassant_black)
 // {

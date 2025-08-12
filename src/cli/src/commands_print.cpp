@@ -1,4 +1,5 @@
 #include "commands_print.h"
+#include <utils/printer.hpp>
 #include <array>
 #include <iostream>
 #include <sstream>
@@ -10,35 +11,9 @@ namespace CliPrintCommands {
 bool
 Board(const GameContext& context, const std::string&)
 {
-    const auto& board = context.readChessboard();
-    auto boardItr = board.begin();
-    std::array<std::stringstream, 8> ranks;
-
-    byte prevRank = -1;
-    do {
-        if (prevRank != boardItr.rank()) {
-            ranks[boardItr.rank()] << "\n " << (int)(boardItr.rank() + 1) << "  ";
-        }
-
-        ChessPiece cp = boardItr.get();
-        ranks[boardItr.rank()] << '[' << cp.toString() << ']';
-        prevRank = boardItr.rank();
-        ++boardItr;
-
-    } while (boardItr != board.end());
-
-    auto rankItr = ranks.rbegin();
-    while (rankItr != ranks.rend()) {
-        std::cout << (*rankItr).str();
-        rankItr++;
-    }
-
-    auto ep = board.readPosition().readEnPassant();
-    std::cout << "\n\n     A  B  C  D  E  F  G  H\n";
-    std::cout << " move: " << context.readMoveCount()
-              << "\tturn: " << (context.readToPlay() == Set::WHITE ? "White\n" : "Black\n");
-    std::cout << " castling: " << board.readCastlingState().toString() << "\ten passant: " << ep.toString() << "\n\n";
-
+    std::stringstream output;
+    printer::board(output, context.readChessboard());
+    std::cout << output.str();
     return true;
 }
 

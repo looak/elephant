@@ -11,8 +11,10 @@
 #include "defines.hpp"
 #include "game_context.h"
 
+namespace fen_parser {
+
 bool
-deserializeCastling(const std::string& castlingStr, Chessboard& outputBoard)
+deserializeCastling(const std::string& castlingStr, PositionEditor position)
 {
     byte castlingState = 0x00;
     if (castlingStr[0] != '-') {
@@ -36,12 +38,11 @@ deserializeCastling(const std::string& castlingStr, Chessboard& outputBoard)
         }
     }
 
-    outputBoard.editPosition().castling().write(castlingState);
+    position.castling().write(castlingState);
     return true;
 }
 
-bool
-deserializeBoard(const std::string& boardStr, Chessboard& board)
+bool deserializeBoard(const std::string& boardStr, PositionEditor position)
 {
     std::istringstream ssboard(boardStr);
     std::list<std::string> ranks;
@@ -53,7 +54,7 @@ deserializeBoard(const std::string& boardStr, Chessboard& board)
     if (ranks.size() != 8)
         return false;
 
-    PositionEditor position = board.editPosition();
+    
     auto posItr = position.begin();
     while (!ranks.empty()) {
         const char* rdr = ranks.back().c_str();
@@ -106,9 +107,8 @@ deserializeToPlay(const std::string& toPlayStr, Chessboard& outputBoard)
 }
 
 bool
-deserializeEnPassant(const std::string& enPassantStr, Chessboard& outputBoard)
+deserializeEnPassant(const std::string& enPassantStr, PositionEditor position)
 {
-    PositionEditor position = outputBoard.editPosition();
     position.enPassant().clear();
     if (enPassantStr.size() > 1) {
         byte file = enPassantStr[0] - 'a';
@@ -118,8 +118,12 @@ deserializeEnPassant(const std::string& enPassantStr, Chessboard& outputBoard)
     return true;
 }
 
-bool
-FENParser::deserialize(const char* input, Chessboard& outputBoard)
+bool deserialize(const char* input, PositionEditor outPosition)
+{
+    return deserializeBoard(input, outPosition);
+}
+
+bool deserialize(const char* input, Chessboard& outputBoard)
 {
     std::istringstream ssfen(input);
     std::list<std::string> tokens;
@@ -133,7 +137,7 @@ FENParser::deserialize(const char* input, Chessboard& outputBoard)
     if (tokens.size() != 6)
         return false;
 
-    if (!deserializeBoard(tokens.front(), outputBoard))
+    if (!deserializeBoard(tokens.front(), outputBoard.editPosition()))
         return false;
 
     tokens.pop_front();
@@ -143,12 +147,12 @@ FENParser::deserialize(const char* input, Chessboard& outputBoard)
 
     tokens.pop_front();
 
-    if (!deserializeCastling(tokens.front(), outputBoard))
+    if (!deserializeCastling(tokens.front(), outputBoard.editPosition()))
         return false;
 
     tokens.pop_front();
 
-    if (!deserializeEnPassant(tokens.front(), outputBoard))
+    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition()))
         return false;
 
     tokens.pop_front();
@@ -168,8 +172,7 @@ FENParser::deserialize(const char* input, Chessboard& outputBoard)
     return true;
 }
 
-bool
-FENParser::serialize(const Chessboard& board, std::string& resultFen)
+bool serialize(const Chessboard& board, std::string& resultFen)
 {
     auto position = board.readPosition();
     auto itr = position.begin();
@@ -260,3 +263,5 @@ FENParser::serialize(const Chessboard& board, std::string& resultFen)
 
     return true;
 }
+
+} // namespace fen_parser

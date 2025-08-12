@@ -14,19 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
+#include <defines.hpp>
 #include <material/chess_piece_defines.hpp>
-#include "defines.hpp"
 
 struct ChessPiece {
 public:
     static Set FlipSet(Set source);
     static byte FlipSet(byte source);
-    static ChessPiece None() { return s_empty; }
+    static constexpr ChessPiece None() { return ChessPiece(); }
 private:
-    static ChessPiece s_empty;
 
 public:
-    ChessPiece();
+    constexpr ChessPiece() : m_internalState(0x00) {}
     constexpr ChessPiece(Set _set, PieceType _type)
         : m_internalState(0x00)
     {
@@ -86,6 +85,8 @@ constexpr ChessPiece pieces[2][6] = {
     { white_pawn, white_knight, white_bishop, white_rook, white_queen, white_king },
     { black_pawn, black_knight, black_bishop, black_rook, black_queen, black_king }
 };
+
+constexpr ChessPiece null() { return ChessPiece::None();}
 
 } // namespace piece_constants
 
