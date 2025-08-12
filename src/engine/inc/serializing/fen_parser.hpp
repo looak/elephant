@@ -18,15 +18,14 @@
 // board positions. https://en.wikipedia.org/wiki/Forsyth-Edwards_Notation
 #pragma once
 #include <string>
+#include <position/position_accessors.hpp>
 
-class GameContext;
 class Chessboard;
-class Position;
-enum class Set : unsigned char;
 
-class FENParser
-{
-public:
-    static bool deserialize(const char* input, Chessboard& outputBoard);
-    static bool serialize(const Chessboard& board, std::string& outputFen);
-};
+namespace fen_parser {
+
+    bool deserialize(const char* input, PositionEditor outPosition);
+    bool deserialize(const char* input, Chessboard& outputBoard);
+    bool serialize(const Chessboard& board, std::string& outputFen);
+    
+} // namespace fen_parser

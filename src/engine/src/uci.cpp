@@ -105,7 +105,7 @@ UCI::Position(std::list<std::string>& args)
             args.pop_front();
         }
 
-        if (!FENParser::deserialize(fen.c_str(), m_context.editChessboard())) {
+        if (!fen_parser::deserialize(fen.c_str(), m_context.editChessboard())) {
             LOG_ERROR() << "Failed to parse fen: " << fen;
             return false;
         }

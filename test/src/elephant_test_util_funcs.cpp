@@ -40,23 +40,21 @@ CountMoves(const std::vector<Move>& moves, MoveCount::Predicate predicate)
     return result;
 }
 
-void
-PrintBoard(const Chessboard& board)
-{
-    auto boardItr = board.begin();
+void PrintPosition(PositionReader position) {
+    auto posItr = position.begin();
     std::array<std::stringstream, 8> ranks;
 
     byte prevRank = -1;
     do {
-        if (prevRank != boardItr.rank()) {
-            ranks[boardItr.rank()] << (int)(boardItr.rank() + 1) << "  ";
+        if (prevRank != posItr.rank()) {
+            ranks[posItr.rank()] << (int)(posItr.rank() + 1) << "  ";
         }
 
-        ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';
-        prevRank = boardItr.rank();
-        ++boardItr;
+        ranks[posItr.rank()] << '[' << posItr.get().toString() << ']';
+        prevRank = posItr.rank();
+        ++posItr;
 
-    } while (boardItr != board.end());
+    } while (posItr != position.end());
 
     auto rankItr = ranks.rbegin();
     while (rankItr != ranks.rend()) {
@@ -65,62 +63,6 @@ PrintBoard(const Chessboard& board)
     }
 
     LOG_INFO() << "    A  B  C  D  E  F  G  H";
-}
-
-void
-SetupDefaultStartingPosition(Chessboard& board)
-{
-    auto K = WHITEKING;
-    auto Q = WHITEQUEEN;
-    auto B = WHITEBISHOP;
-    auto N = WHITEKNIGHT;
-    auto R = WHITEROOK;
-    auto P = WHITEPAWN;
-
-    auto k = BLACKKING;
-    auto q = BLACKQUEEN;
-    auto b = BLACKBISHOP;
-    auto n = BLACKKNIGHT;
-    auto r = BLACKROOK;
-    auto p = BLACKPAWN;
-
-    board.PlacePiece(R, a1);
-    board.PlacePiece(N, b1);
-    board.PlacePiece(B, c1);
-    board.PlacePiece(Q, d1);
-    board.PlacePiece(K, e1);
-    board.PlacePiece(B, f1);
-    board.PlacePiece(N, g1);
-    board.PlacePiece(R, h1);
-
-    board.PlacePiece(P, a2);
-    board.PlacePiece(P, b2);
-    board.PlacePiece(P, c2);
-    board.PlacePiece(P, d2);
-    board.PlacePiece(P, e2);
-    board.PlacePiece(P, f2);
-    board.PlacePiece(P, g2);
-    board.PlacePiece(P, h2);
-
-    board.PlacePiece(r, a8);
-    board.PlacePiece(n, b8);
-    board.PlacePiece(b, c8);
-    board.PlacePiece(q, d8);
-    board.PlacePiece(k, e8);
-    board.PlacePiece(b, f8);
-    board.PlacePiece(n, g8);
-    board.PlacePiece(r, h8);
-
-    board.PlacePiece(p, a7);
-    board.PlacePiece(p, b7);
-    board.PlacePiece(p, c7);
-    board.PlacePiece(p, d7);
-    board.PlacePiece(p, e7);
-    board.PlacePiece(p, f7);
-    board.PlacePiece(p, g7);
-    board.PlacePiece(p, h7);
-
-    board.setCastlingState(15);
 }
 
 bool

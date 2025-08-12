@@ -144,6 +144,17 @@ public:
         return MaterialTopology<us>(*this);
     }
 
+    [[nodiscard]] constexpr bool operator==(const MaterialPositionMask& other) const {
+        return m_set[0] == other.m_set[0]
+         && m_set[1] == other.m_set[1]
+         && m_material[0] == other.m_material[0]
+         && m_material[1] == other.m_material[1]
+         && m_material[2] == other.m_material[2]
+         && m_material[3] == other.m_material[3]
+         && m_material[4] == other.m_material[4]
+         && m_material[5] == other.m_material[5];
+    }
+
 };
 
 struct MutableImplicitPieceSquare {

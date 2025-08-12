@@ -84,6 +84,7 @@ struct SearchContext {
 
 struct PerftResult {
     u64 Nodes = 0;
+    u64 NPS = 0;
     u64 Captures = 0;
     u64 EnPassants = 0;
     u64 Castles = 0;

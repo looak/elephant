@@ -91,7 +91,7 @@ AccessType::chess_piece_t PositionProxy<AccessType>::pieceAt(Square sqr) const
                 return piece_constants::pieces[set][kingId];
         }
     }
-    return ChessPiece::None();
+    return piece_constants::null();
 }
 
 // this code is slightly slower than the above version with a for and a bunch of ifs, probably due to the branch prediction.

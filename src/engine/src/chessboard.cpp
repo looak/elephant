@@ -20,12 +20,15 @@ Chessboard::Chessboard(const Chessboard& other) :
 {
 }
 
+bool Chessboard::compare(const Chessboard& other) const
+{
+    return m_gameState == other.m_gameState && m_position == other.m_position;
+}
+
 std::string
 Chessboard::toString() const
 {
-    auto positionReader = m_position.read();   
-
-
+    auto positionReader = m_position.read();
     auto boardItr = positionReader.begin();
     auto endItr = positionReader.end();
     std::array<std::stringstream, 8> ranks;

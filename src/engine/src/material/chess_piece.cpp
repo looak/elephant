@@ -2,8 +2,6 @@
 #include <iostream>
 #include "log.h"
 
-ChessPiece ChessPiece::s_empty = ChessPiece();
-
 Set
 ChessPiece::FlipSet(Set source)
 {
@@ -16,11 +14,6 @@ ChessPiece::FlipSet(byte source)
 {
     byte retValue = !source;
     return retValue;
-}
-
-ChessPiece::ChessPiece() :
-    m_internalState(0x00)
-{
 }
 
 char

@@ -1,11 +1,20 @@
-#include <serializing/fen_parser.hpp>
 #include <gtest/gtest.h>
 #include <array>
-#include "elephant_test_utils.h"
-#include "game_context.h"
+
+#include <serializing/fen_parser.hpp>
+#include <chessboard.h>
+#include <utils/printer.hpp>
+
+#include "chess_positions.hpp"
+
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
+
+/**
+ * @file fen_parser_test.cpp
+ * @brief Testing serializing and deserializing functionality of fen parser.
+ * @author Alexander Loodin Ek    */
 class FenParserFixture : public ::testing::Test {
 public:
     virtual void SetUp(){
@@ -13,105 +22,36 @@ public:
     };
     virtual void TearDown(){};
 
-    GameContext testContext;
 };
 ////////////////////////////////////////////////////////////////
 TEST_F(FenParserFixture, Initialize)
 {
+    Chessboard board;
     std::string empty = "";
-    bool result = FENParser::deserialize(empty.c_str(), testContext);
+    bool result = fen_parser::deserialize(empty.c_str(), board);
     EXPECT_FALSE(result);
 }
 
 TEST_F(FenParserFixture, StartingPosition)
 {
     std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    bool result = FENParser::deserialize(startingPositionFen.c_str(), testContext);
+    Chessboard newGameBoard;
+    PositionReader posReader = newGameBoard.readPosition();
+    bool result = fen_parser::deserialize(startingPositionFen.c_str(), newGameBoard);
     EXPECT_TRUE(result);
 
-    EXPECT_EQ(0, testContext.readPly());
-    EXPECT_EQ(1, testContext.readMoveCount());
-    EXPECT_EQ(Set::WHITE, testContext.readToPlay());
-    EXPECT_FALSE(testContext.readChessboard().readPosition().readEnPassant());
-    EXPECT_TRUE(testContext.readChessboard().readCastlingState().hasAll());
+    EXPECT_EQ(0, newGameBoard.readPlyCount());
+    EXPECT_EQ(1, newGameBoard.readMoveCount());
+    EXPECT_EQ(Set::WHITE, newGameBoard.readToPlay());
+    EXPECT_FALSE(posReader.enPassant());
+    EXPECT_TRUE(posReader.castling().hasAll());
 
-    ChessPiece p(Set::BLACK, PieceType::ROOK);
-    Notation n(56);
-    const auto& piece = testContext.readChessboard().readPieceAt(n.toSquare());
-    PrintBoard(testContext.readChessboard());
-    EXPECT_EQ(p, piece);
+    printer::position(std::cout, newGameBoard.readPosition());
 
-    n = Notation(63);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
+    Chessboard expected;
+    chess_positions::defaultStartingPosition(expected.editPosition());
+    EXPECT_TRUE(expected.compare(newGameBoard));
 
-    p = ChessPiece(Set::BLACK, PieceType::KNIGHT);
-    n = Notation(57);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    n = Notation(62);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::BLACK, PieceType::BISHOP);
-    n = Notation(58);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    n = Notation(61);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::BLACK, PieceType::QUEEN);
-    n = Notation(59);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::BLACK, PieceType::KING);
-    n = Notation(60);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::BLACK, PieceType::PAWN);
-    for (byte ind = 48; ind < 56; ++ind) {
-        n = Notation(ind);
-        EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-    }
-
-    p = ChessPiece(Set::WHITE, PieceType::ROOK);
-    n = Notation(0);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    n = Notation(7);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::WHITE, PieceType::KNIGHT);
-    n = Notation(1);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    n = Notation(6);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::WHITE, PieceType::BISHOP);
-    n = Notation(2);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    n = Notation(5);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::WHITE, PieceType::QUEEN);
-    n = Notation(3);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::WHITE, PieceType::KING);
-    n = Notation(4);
-    EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-
-    p = ChessPiece(Set::WHITE, PieceType::PAWN);
-    for (byte ind = 8; ind < 16; ++ind) {
-        n = Notation(ind);
-        EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-    }
-
-    p = ChessPiece();
-    for (byte ind = 16; ind < 48; ++ind) {
-        n = Notation(ind);
-        EXPECT_EQ(p, testContext.readChessboard().readPieceAt(n.toSquare()));
-    }
 }
 
 // The so far longest game in the history of world championship chess.
@@ -120,27 +60,22 @@ TEST_F(FenParserFixture, StartingPosition)
 TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 {
     std::string gameSixFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
-    bool result = FENParser::deserialize(gameSixFen.c_str(), testContext);
+    Chessboard resultBoard;
+    bool result = fen_parser::deserialize(gameSixFen.c_str(), resultBoard);
     EXPECT_TRUE(result);
     // PrintBoard(testContext.readChessboard());
-    EXPECT_EQ(2, testContext.readPly());
-    EXPECT_EQ(136, testContext.readMoveCount());
-    EXPECT_EQ(Set::BLACK, testContext.readToPlay());
-    EXPECT_FALSE(testContext.readChessboard().readPosition().readEnPassant());
-    EXPECT_TRUE(testContext.readChessboard().readCastlingState().hasNone());
+    EXPECT_EQ(2, resultBoard.readPlyCount());
+    EXPECT_EQ(136, resultBoard.readMoveCount());
+    EXPECT_EQ(Set::BLACK, resultBoard.readToPlay());
+    EXPECT_FALSE(resultBoard.readPosition().enPassant());
+    EXPECT_TRUE(resultBoard.readPosition().castling().hasNone());
 
     Chessboard expected;
-    expected.PlacePiece(BLACKQUEEN, g1);
-    expected.PlacePiece(BLACKKING, d8);
-    expected.PlacePiece(WHITEPAWN, e6);
-    expected.PlacePiece(WHITEPAWN, f5);
-    expected.PlacePiece(WHITEKNIGHT, g7);
-    expected.PlacePiece(WHITEROOK, f7);
-    expected.PlacePiece(WHITEKING, h4);
+    chess_positions::nepomniachtchiResignsGameSix(expected.editPosition());
 
-    auto&& expitr = expected.begin();
-    auto&& resitr = testContext.readChessboard().begin();
-    while (expitr != expected.end()) {
+    auto&& expitr = expected.readPosition().begin();
+    auto&& resitr = resultBoard.readPosition().begin();
+    while (expitr != expected.readPosition().end()) {
         auto expectedPiece = expitr.get();
         auto actualPiece = resitr.get();
         EXPECT_EQ(expectedPiece, actualPiece);
@@ -148,33 +83,37 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
         ++resitr;
     }
 
+    // adding this for sanity sake, making sure all our compares are actually agreeing on the result.
+    EXPECT_TRUE(expected.compare(resultBoard)) << "This should essentially do the same thing as the while loop above.";
+
     // round trip
     std::string output;
-    FENParser::serialize(testContext, output);
+    fen_parser::serialize(resultBoard, output);
     EXPECT_TRUE(result);
     EXPECT_EQ(gameSixFen, output);
 }
 
 TEST_F(FenParserFixture, PerftPositionThree)
 {
+    Chessboard testBoard;
     std::string fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-    bool result = FENParser::deserialize(fen.c_str(), testContext);
+    bool result = fen_parser::deserialize(fen.c_str(), testBoard);
 
     EXPECT_TRUE(result);
-    // PrintBoard(testContext.readChessboard());
-    EXPECT_EQ(0, testContext.readPly());
-    EXPECT_EQ(1, testContext.readMoveCount());
-    EXPECT_EQ(Set::WHITE, testContext.readToPlay());
-    EXPECT_FALSE(testContext.readChessboard().readPosition().readEnPassant());
-    EXPECT_TRUE(testContext.readChessboard().readCastlingState().hasNone());
+    
+    EXPECT_EQ(0, testBoard.readPlyCount());
+    EXPECT_EQ(1, testBoard.readMoveCount());
+    EXPECT_EQ(Set::WHITE, testBoard.readToPlay());
+    EXPECT_FALSE(testBoard.readPosition().enPassant());
+    EXPECT_TRUE(testBoard.readPosition().castling().hasNone());
 }
 
 TEST_F(FenParserFixture, SerializeDefaultPosition)
 {
-    GameContext context;
-    SetupDefaultStartingPosition(context.editChessboard());
+    Chessboard testingBoard;
+    chess_positions::defaultStartingPosition(testingBoard.editPosition());
     std::string output;
-    bool result = FENParser::serialize(context, output);
+    bool result = fen_parser::serialize(testingBoard, output);
 
     const std::string expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     EXPECT_TRUE(result);
@@ -183,18 +122,18 @@ TEST_F(FenParserFixture, SerializeDefaultPosition)
 
 TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
 {
-    GameContext context;
+    Chessboard testingBoard;
     std::string fen("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 5 19");
-    FENParser::deserialize(fen.c_str(), context);
+    fen_parser::deserialize(fen.c_str(), testingBoard);
 
-    EXPECT_EQ(5, context.readPly());
-    EXPECT_EQ(19, context.readMoveCount());
-    EXPECT_EQ(Set::BLACK, context.readToPlay());
-    auto sqr = context.readChessboard().readPosition().readEnPassant().readSquare();
+    EXPECT_EQ(5, testingBoard.readPlyCount());
+    EXPECT_EQ(19, testingBoard.readMoveCount());
+    EXPECT_EQ(Set::BLACK, testingBoard.readToPlay());
+    auto sqr = testingBoard.readPosition().enPassant().readSquare();
     EXPECT_EQ(Square::D3, sqr);
 
     std::string output;
-    bool result = FENParser::serialize(context, output);
+    bool result = fen_parser::serialize(testingBoard, output);
     EXPECT_EQ(fen, output);
     EXPECT_TRUE(result);
 }

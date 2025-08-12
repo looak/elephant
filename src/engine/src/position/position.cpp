@@ -29,6 +29,13 @@ Position::operator=(const Position& other)
     return *this;
 }
 
+bool Position::operator==(const Position& other) const
+{
+    return m_materialMask == other.m_materialMask &&
+           m_castlingState == other.m_castlingState &&
+           m_enpassantState == other.m_enpassantState;
+}
+
 bool
 Position::IsValidSquare(signed short currSqr)
 {

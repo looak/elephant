@@ -14,33 +14,39 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(SRC_DIR "src")
-set(INC_DIR "src/inc")
+set(TEST_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(TEST_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
+
 
 set(TEST_SOURCE ${TEST_SOURCE}
 # Main/Entry test file
-${SRC_DIR}/elephant_test.cpp 
+${TEST_SRC_DIR}/elephant_test.cpp 
 
 # Test files
-${SRC_DIR}/bitboard_test.cpp
-${SRC_DIR}/checkmate_test.cpp
-${SRC_DIR}/chessboard_test.cpp
-${SRC_DIR}/fen_parser_test.cpp
-${SRC_DIR}/game_context_test.cpp
-${SRC_DIR}/move_test.cpp
-${SRC_DIR}/move_generator_test.cpp
-${SRC_DIR}/perft_test.cpp
-${SRC_DIR}/piece_test.cpp
-${SRC_DIR}/position_test.cpp
-${SRC_DIR}/position_proxy_test.cpp
-${SRC_DIR}/rays_test.cpp
-${SRC_DIR}/search_test.cpp
-${SRC_DIR}/search_cases.hpp
-${SRC_DIR}/transposition_test.cpp
-${SRC_DIR}/unmake_test.cpp
-${SRC_DIR}/uci_test.cpp
-${SRC_DIR}/weight_store_test.cpp
+${TEST_SRC_DIR}/bitboard_test.cpp
+${TEST_SRC_DIR}/castling_enpassant_test.cpp
+${TEST_SRC_DIR}/checkmate_test.cpp
+${TEST_SRC_DIR}/chessboard_test.cpp
+${TEST_SRC_DIR}/fen_parser_test.cpp
+${TEST_SRC_DIR}/game_context_test.cpp
+${TEST_SRC_DIR}/notation_test.cpp
+${TEST_SRC_DIR}/move_test.cpp
+${TEST_SRC_DIR}/move_generator_test.cpp
+${TEST_SRC_DIR}/perft_test.cpp
+${TEST_SRC_DIR}/piece_test.cpp
+${TEST_SRC_DIR}/position_test.cpp
+${TEST_SRC_DIR}/position_proxy_test.cpp
+${TEST_SRC_DIR}/rays_test.cpp
+${TEST_SRC_DIR}/search_test.cpp
+${TEST_SRC_DIR}/search_cases.hpp
+${TEST_SRC_DIR}/transposition_test.cpp
+${TEST_SRC_DIR}/unmake_test.cpp
+${TEST_SRC_DIR}/uci_test.cpp
+${TEST_SRC_DIR}/weight_store_test.cpp
 
 # Utility files
-${SRC_DIR}/elephant_test_util_funcs.cpp 
-${SRC_DIR}/elephant_test_utils.h)
+${TEST_SRC_DIR}/elephant_test_util_funcs.cpp
+${TEST_SRC_DIR}/elephant_test_utils.h
+
+${TEST_SRC_DIR}/chess_positions.hpp
+)
