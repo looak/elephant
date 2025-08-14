@@ -142,10 +142,10 @@ UCI::Position(std::list<std::string>& args)
                 }
             }
 
-            if (!m_context.MakeMove(move.readPackedMove())) {
-                LOG_ERROR() << "Failed to make move: " << move.toString();
-                return false;
-            }
+            // if (!m_context.MakeMove(move.readPackedMove())) {
+            //     LOG_ERROR() << "Failed to make move: " << move.toString();
+            //     return false;
+            // }
         }
     }
 
@@ -320,8 +320,8 @@ UCI::Go(std::list<std::string>& args)
         }
     }
 
-    SearchResult result = m_context.CalculateBestMove(searchParams);
-    m_stream << "bestmove " << result.move.toString();
+    // SearchResult result = m_context.CalculateBestMove(searchParams);
+    // m_stream << "bestmove " << result.move.toString();
     m_stream << "\n";
     return true;
 }

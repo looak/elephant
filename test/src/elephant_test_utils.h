@@ -1,70 +1,8 @@
 #pragma once
-#include <vector>
 #include "defines.hpp"
 
-class Chessboard;
-struct Notation;
-struct KingMask;
-struct Move;
-
 namespace ElephantTest {
-// 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
-// 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
-// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-// 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
-// 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
-//     A    B    C    D    E    F    G    H
-// fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-void SetupDefaultStartingPosition(Chessboard& board);
-
-bool NotationCompare(Notation lhs, Notation rhs);
-
-bool VerifyListsContainSameNotations(std::vector<Notation> listOne, std::vector<Notation> listTwo);
-
-u64 CombineKingMask(KingMask mask);
-
-struct MoveCount {
-    typedef std::function<bool(const Move&)> Predicate;
-    void operator+=(const MoveCount& rhs)
-    {
-        this->Captures += rhs.Captures;
-        this->Promotions += rhs.Promotions;
-        this->EnPassants += rhs.EnPassants;
-        this->Castles += rhs.Castles;
-        this->Checks += rhs.Checks;
-        this->Checkmates += rhs.Checkmates;
-        this->Moves += rhs.Moves;
-    }
-    u32 Captures = 0;
-    u32 Promotions = 0;
-    u32 EnPassants = 0;
-    u32 Castles = 0;
-    u32 Checks = 0;
-    u32 Checkmates = 0;
-    u32 Moves = 0;
-};
-
-MoveCount CountMoves(
-    const std::vector<Move>& moves, MoveCount::Predicate predicate = [](const Move&) -> bool { return true; });
-
-
-#define BLACKPAWN piece_constants::black_pawn
-#define BLACKKNIGHT piece_constants::black_knight
-#define BLACKBISHOP piece_constants::black_bishop
-#define BLACKROOK piece_constants::black_rook
-#define BLACKQUEEN piece_constants::black_queen
-#define BLACKKING piece_constants::black_king
-
-#define WHITEPAWN piece_constants::white_pawn
-#define WHITEKNIGHT piece_constants::white_knight
-#define WHITEBISHOP piece_constants::white_bishop
-#define WHITEROOK piece_constants::white_rook
-#define WHITEQUEEN piece_constants::white_queen
-#define WHITEKING piece_constants::white_king
-
+// TODO: Move to a more appropriate location and don't make them defines, make them constexpr vars.
 #define a1 Notation::BuildPosition('a', 1)
 #define a2 Notation::BuildPosition('a', 2)
 #define a3 Notation::BuildPosition('a', 3)
