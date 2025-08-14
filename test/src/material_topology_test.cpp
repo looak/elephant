@@ -1,0 +1,157 @@
+#include <gtest/gtest.h>
+#include "bitboard_test_helpers.hpp"
+#include <material/material_topology.hpp>
+#include <position/position.hpp>
+#include <position/position_accessors.hpp>
+
+namespace ElephantTest
+{
+////////////////////////////////////////////////////////////////
+
+/**
+ * @file material_topology_test.cpp
+ * @brief 
+ * Naming convention: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
+ * @author Alexander Loodin Ek */
+class MaterialTopologyTestFixture : public ::testing::Test
+{
+public:   
+    Position testingPosition;
+};
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ x ][ x ][ x ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ x ][ K ][ x ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialTopologyTestFixture, King_OnlyWhiteKingOnBoardAtE1)
+{
+    // setup
+    using enum Square;
+    PositionEditor editor(testingPosition);
+    editor.placePiece(piece_constants::white_king, E1);
+
+    // expected
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(D1, F1, D2, E2, F2);
+
+    // do
+    Bitboard result = editor.material().topology<Set::WHITE>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+
+    // result shouldn't change since we're isolating the colors
+    editor.placePiece(piece_constants::black_king, E8);
+    Bitboard resultWithBlack = editor.material().topology<Set::WHITE>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, resultWithBlack);
+}
+
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ x ][ x ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ x ][ K ][ x ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ x ][ x ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialTopologyTestFixture, King_WhiteKingOnD4)
+{
+    // setup
+    using enum Square;
+    PositionEditor editor(testingPosition);
+    editor.placePiece(piece_constants::white_king, D4);
+
+    // setup
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(C5, D5, E5, C4, E4, C3, D3, E3);
+
+    Bitboard result = editor.material().topology<Set::WHITE>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ x ][ k ][ x ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ x ][ x ][ x ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialTopologyTestFixture, King_BlackKingOnE8)
+{
+    // setup
+    using enum Square;
+    PositionEditor editor(testingPosition);
+    editor.placePiece(piece_constants::black_king, E8);
+
+    // setup expected result
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(D8, D7, E7, F8, F7);
+
+    Bitboard result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+}
+
+// 8 [ k ][ x ][ . ][ . ][ . ][ . ][ x ][ k ]
+// 7 [ x ][ x ][ . ][ . ][ . ][ . ][ x ][ x ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ x ][ x ][ . ][ . ][ . ][ . ][ x ][ x ]
+// 1 [ k ][ x ][ . ][ . ][ . ][ . ][ x ][ k ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialTopologyTestFixture, King_EachCorner_NoWrapAroundOfMovesOnBoard)
+{
+    // each corner but one corner at a time.
+    // setup
+    using enum Square;
+    PositionEditor editor(testingPosition);
+    editor.placePiece(piece_constants::black_king, A1);
+
+    // build expected result
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(A2, B1, B2);
+
+    // do and verify
+    Bitboard result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result); 
+    
+    // setup a8 corner
+    editor.clear();
+    editor.placePiece(piece_constants::black_king, A8);
+    
+    // build expected result
+    expected = BitboardResultFactory::buildExpectedBoard(B8, B7, A7);
+
+    // do and verify
+    result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+
+    // setup h8 corner
+    editor.clear();
+    editor.placePiece(piece_constants::black_king, H8);
+
+    // build expected result
+    expected = BitboardResultFactory::buildExpectedBoard(H7, G8, G7);
+
+    // do and verify
+    result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+
+    // setup h1 corner
+    editor.clear();
+    editor.placePiece(piece_constants::black_king, H1);
+
+    // build expected result
+    expected = BitboardResultFactory::buildExpectedBoard(H2, G1, G2);
+
+    // do and verify
+    result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
+    EXPECT_EQ(expected, result);
+}
+
+
+} // namespace ElephantTest

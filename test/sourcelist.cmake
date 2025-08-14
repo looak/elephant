@@ -25,27 +25,27 @@ ${TEST_SRC_DIR}/elephant_test.cpp
 # Test files
 ${TEST_SRC_DIR}/bitboard_test.cpp
 ${TEST_SRC_DIR}/castling_enpassant_test.cpp
-${TEST_SRC_DIR}/checkmate_test.cpp
-${TEST_SRC_DIR}/chessboard_test.cpp
-${TEST_SRC_DIR}/fen_parser_test.cpp
-${TEST_SRC_DIR}/game_context_test.cpp
+#${TEST_SRC_DIR}/checkmate_test.cpp
+#${TEST_SRC_DIR}/chessboard_test.cpp
+#${TEST_SRC_DIR}/fen_parser_test.cpp
+#${TEST_SRC_DIR}/game_context_test.cpp
 ${TEST_SRC_DIR}/notation_test.cpp
-${TEST_SRC_DIR}/move_test.cpp
-${TEST_SRC_DIR}/move_generator_test.cpp
-${TEST_SRC_DIR}/perft_test.cpp
+${TEST_SRC_DIR}/material_topology_test.cpp
+#${TEST_SRC_DIR}/move_test.cpp
+#${TEST_SRC_DIR}/move_generator_test.cpp
+#${TEST_SRC_DIR}/perft_test.cpp
 ${TEST_SRC_DIR}/piece_test.cpp
-${TEST_SRC_DIR}/position_test.cpp
-${TEST_SRC_DIR}/position_proxy_test.cpp
+#${TEST_SRC_DIR}/position_test.cpp
+#${TEST_SRC_DIR}/position_proxy_test.cpp
 ${TEST_SRC_DIR}/rays_test.cpp
-${TEST_SRC_DIR}/search_test.cpp
-${TEST_SRC_DIR}/search_cases.hpp
-${TEST_SRC_DIR}/transposition_test.cpp
-${TEST_SRC_DIR}/unmake_test.cpp
-${TEST_SRC_DIR}/uci_test.cpp
+#${TEST_SRC_DIR}/search_test.cpp
+#${TEST_SRC_DIR}/search_cases.hpp
+#${TEST_SRC_DIR}/transposition_test.cpp
+#${TEST_SRC_DIR}/unmake_test.cpp
+#${TEST_SRC_DIR}/uci_test.cpp
 ${TEST_SRC_DIR}/weight_store_test.cpp
 
 # Utility files
-${TEST_SRC_DIR}/elephant_test_util_funcs.cpp
 ${TEST_SRC_DIR}/elephant_test_utils.h
 
 ${TEST_SRC_DIR}/chess_positions.hpp

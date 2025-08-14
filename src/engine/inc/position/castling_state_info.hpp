@@ -50,7 +50,23 @@ public:
 
     CastlingState asFlag() const { return static_cast<CastlingState>(m_innerState); }
 
-    std::string toString() const;
+    std::string toString() const
+    {
+        std::string result;
+        if (hasWhiteKingSide())
+            result += "K";
+        if (hasWhiteQueenSide())
+            result += "Q";
+        if (hasBlackKingSide())
+            result += "k";
+        if (hasBlackQueenSide())
+            result += "q";
+
+        if (result.empty())
+            result = "-";
+
+        return result;
+    }
 
     bool operator==(const CastlingStateInfo& rhs) const { return m_innerState == rhs.m_innerState; }
     CastlingStateInfo& operator=(const CastlingStateInfo& other) {
@@ -63,21 +79,3 @@ public:
 private:
     byte m_innerState = 0;
 };
-
-std::string CastlingStateInfo::toString() const
-{
-    std::string result;
-    if (hasWhiteKingSide())
-        result += "K";
-    if (hasWhiteQueenSide())
-        result += "Q";
-    if (hasBlackKingSide())
-        result += "k";
-    if (hasBlackQueenSide())
-        result += "q";
-
-    if (result.empty())
-        result = "-";
-
-    return result;
-}
