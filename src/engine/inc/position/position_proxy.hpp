@@ -46,6 +46,9 @@ public:
     void clear();
     bool empty() const { return material().empty(); }
 
+    /**
+     * @brief Places multiple pieces on the board, pairs of <ChessPiece>, <Square>
+     * @param placements: ChessPiece, Square      */
     template<typename... placementpairs>
     bool placePieces(placementpairs... placements);
 
@@ -182,7 +185,7 @@ template<typename AccessType>
 template<typename piece, typename square, typename... placements>
 bool PositionProxy<AccessType>::internalUnrollPlacementPairs(const piece& p, const square& sqr, const placements&... _placements) 
 {
-    if (m_position.placePiece(p, sqr) == false)
+    if (placePiece(p, sqr) == false)
         return false;
 
     return internalUnrollPlacementPairs(_placements...);
