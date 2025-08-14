@@ -140,7 +140,7 @@ Chessboard::toString() const
 //         {
 //             MoveGenerator moveGen(m_position, toMove, parsedMove.Piece.getType());
 //             moveGen.generate();
-//             moveGen.forEachMove([&](const PrioratizedMove& move) {
+//             moveGen.forEachMove([&](const PrioritizedMove& move) {
 //                 // this might be good enough for now, but if we have multiple pieces that can move to the
 //                 // same square, there is unambiguious information in the parsed move which we need to use.
 //                 if (move.move.target() == parsedMove.TargetSquare.index()) {

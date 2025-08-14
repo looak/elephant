@@ -5,17 +5,16 @@
 #include <unordered_map>
 
 class Chessboard;
-class MoveGenerator;
 struct PackedMove;
 class Position;
 
 class Evaluator
 {
 public:
-    Evaluator(PositionReader position) : m_position(position) {}    
+    Evaluator(PositionReader position) : m_position(position) {}
 
-    i32 Evaluate(const MoveGenerator& movegen);
-    i32 EvaluatePlus(const MoveGenerator& movegen, PackedMove move);
+    i32 Evaluate();
+    i32 EvaluatePlus(PackedMove move);
 
     /**
      * @brief Calculates the end game coeficient.
@@ -25,10 +24,10 @@ public:
 
 private:
     i32 EvaluateMaterial() const;
-    i32 EvalutePiecePositions() const;
+    i32 EvaluatePiecePositions() const;
     i32 EvaluatePawnStructure() const;
     i32 EvaluatePawnManhattanDistance() const;
-    i32 EvaluateKingSafety(const MoveGenerator& movegen) const;
+    i32 EvaluateKingSafety() const;
 
     i32 MopUpValue(i32 materialScore) const;
 

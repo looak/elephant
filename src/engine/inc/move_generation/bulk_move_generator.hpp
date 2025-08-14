@@ -24,52 +24,48 @@
 #include <bitboard.hpp>
 #include <move/move.hpp>
 #include <move_generation/king_pin_threats.hpp>
-#include <move_generation/move_generator.hpp>
 #include <position/position_accessors.hpp>
 
-
-template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
 class BulkMoveGenerator {
 public:
-    BulkMoveGenerator(PositionReader position, const MoveGenerator& moveGen) :
-        m_position(position),
-        m_moveGen(moveGen)
+    BulkMoveGenerator(PositionReader position) :
+        m_position(position)
     {}
 
-    void compute();
-    void compute(PieceType ptype);
+    // void compute();
+    // void compute(PieceType ptype);
 
+    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
     Bitboard computeBulkPawnMoves() const;
-    Bitboard computeBulkKnightMoves() const;
-    template<u8 pieceId = rookId>
-    Bitboard computeBulkRookMoves(Bitboard occupancy) const;
-    template<u8 pieceId = bishopId>
-    Bitboard computeBulkBishopMoves(Bitboard occupancy) const;
-    Bitboard computeBulkQueenMoves(Bitboard occupancy) const;
-    
-    template<Set op = opposing_set<set>()>
-    Bitboard computeKingMoves(CastlingStateInfo castlingRights) const;
 
+    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeBulkKnightMoves() const;
+
+    template<Set set, u8 pieceId = rookId, MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeBulkRookMoves() const;
+
+    template<Set set, u8 pieceId = bishopId, MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeBulkBishopMoves() const;
+
+    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeBulkQueenMoves() const;
+    
+    template<Set set, Set op = opposing_set<set>(), MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeKingMoves() const;
+
+    template<Set us>
     Bitboard computeCastlingMoves(CastlingStateInfo castling, Bitboard threatenedMask) const;
 
+    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    Bitboard computeBulkMovesGeneric(u8 pieceId) const;
+
 private:
-    const MoveGenerator& m_moveGen;
     PositionReader m_position;
-    Bitboard moves[2][6];    
+    // Bitboard moves[2][6];    
 };
 
 template<Set us, MoveTypes moveFilter>
-void BulkMoveGenerator<us, moveFilter>::compute() {
-    // Generate all moves for the given set and move filter
-    if (m_position.empty()) return;
-
-    const size_t usIndx = static_cast<size_t>(us);
-
-    m_moveGen.readKingPinThreats<us>();
-}
-
-template<Set us, MoveTypes moveFilter>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkPawnMoves() const {
+Bitboard BulkMoveGenerator::computeBulkPawnMoves() const {
     const MaterialPositionMask& material = m_position.material();
     const size_t usIndx = static_cast<size_t>(us);
     const Bitboard usMat = material.combine<us>();
@@ -87,17 +83,17 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkPawnMoves() const {
     const Bitboard threatenedSquares = material.topology<us>().computeThreatenedSquaresPawnBulk();
     movesMask |= (opMat | m_position.enPassant().readBitboard()) & threatenedSquares;
 
-    // TODO: I think by moving this kingPinThreats to the individual move generation portion we could remove this code.
-    auto kingMask = m_moveGen.readKingPinThreats<us>();
+    // moved this code to MoveGenerator
+    // auto kingMask = m_moveGen.readKingPinThreats<us>();
 
-    if (kingMask.isChecked()) {
-        Bitboard checksMask(kingMask.checks());
-        auto otherMask = squareMaskTable[(u32)m_position.enPassant().readTarget()];
-        if (checksMask & otherMask) {
-            checksMask |= m_position.enPassant().readBitboard();
-        }
-        movesMask &= checksMask;
-    }
+    // if (kingMask.isChecked()) {
+    //     Bitboard checksMask(kingMask.checks());
+    //     auto otherMask = squareMaskTable[(u32)m_position.enPassant().readTarget()];
+    //     if (checksMask & otherMask) {
+    //         checksMask |= m_position.enPassant().readBitboard();
+    //     }
+    //     movesMask &= checksMask;
+    // }
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         movesMask &= opMat;
@@ -106,16 +102,16 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkPawnMoves() const {
 }
 
 template<Set us, MoveTypes moveFilter>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkKnightMoves() const {
+Bitboard BulkMoveGenerator::computeBulkKnightMoves() const {
     const MaterialPositionMask& material = m_position.material();
     const Bitboard ourMaterial = material.combine<us>();
     Bitboard moves = material.topology<us>().computeThreatenedSquaresKnightBulk();
 
     moves &= ~ourMaterial;
-    auto kingMask = m_moveGen.readKingPinThreats<us>();
-
-    if (kingMask.isChecked())
-        return moves & kingMask.checks();
+    
+    // auto kingMask = m_moveGen.readKingPinThreats<us>();
+    // if (kingMask.isChecked())
+    //     return moves & kingMask.checks();
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         return moves & material.combine<opposing_set<us>()>();
@@ -124,9 +120,8 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkKnightMoves() const {
 }
 
 
-template<Set us, MoveTypes moveFilter>
-template<Set op>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeKingMoves(CastlingStateInfo castlingRights) const
+template<Set us, Set op, MoveTypes moveFilter>
+Bitboard BulkMoveGenerator::computeKingMoves() const
 {
     bool constexpr includeMaterial = false;
     bool constexpr pierceKing = true;
@@ -139,25 +134,26 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeKingMoves(CastlingStateInfo c
     moves &= ~material.combine<us>();
     moves &= ~threatened;
     if ((threatened & material.king<us>()).empty()) // we're not in check
-        moves |= computeCastlingMoves(castlingRights, threatened);
+        moves |= computeCastlingMoves<us>(m_position.castling(), threatened);
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         moves &= material.combine<op>();
     return moves;
 }
 
-template<Set us, MoveTypes moveFilter>
-template<u8 pieceId>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkBishopMoves(Bitboard occupancy) const
+template<Set us, u8 pieceId, MoveTypes moveFilter>
+Bitboard BulkMoveGenerator::computeBulkBishopMoves() const
 {
     const MaterialPositionMask& material = m_position.material();
     const Bitboard materialbb = material.combine<us>();
-    const auto& kingMask = m_moveGen.readKingPinThreats<us>();
+    const Bitboard occupancy = material.combine();
+    // const auto& kingMask = m_moveGen.readKingPinThreats<us>();
     Bitboard moves = material.topology<us>().computeThreatenedSquaresBishopBulk(occupancy);
 
-    if (kingMask.isChecked())
-        moves &= kingMask.checks();
-    else
-        moves ^= (materialbb & moves);
+    // if (kingMask.isChecked())
+    //     moves &= kingMask.checks();
+    // else
+    moves ^= (materialbb & moves); // Can't capture our own pieces
+    // moves &= ~ourMaterial; // seems cleaner
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         moves &= material.combine<opposing_set<us>()>();
@@ -165,19 +161,20 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkBishopMoves(Bitboard occu
     return moves;
 }
 
-template<Set us, MoveTypes moveFilter>
-template<u8 pieceId>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkRookMoves(Bitboard occupancy) const
+template<Set us, u8 pieceId, MoveTypes moveFilter>
+Bitboard BulkMoveGenerator::computeBulkRookMoves() const
 {
     const MaterialPositionMask& material = m_position.material();
     const Bitboard materialbb = material.combine<us>();
-    const auto& kingMask = m_moveGen.readKingPinThreats<us>();
+    const Bitboard occupancy = material.combine();
+ //   const auto& kingMask = m_moveGen.readKingPinThreats<us>();
     Bitboard moves = material.topology<us>().computeThreatenedSquaresRookBulk(occupancy);
 
-    if (kingMask.isChecked())
-        moves &= kingMask.checks();
-    else
-        moves ^= (materialbb & moves);
+    // if (kingMask.isChecked())
+    //     moves &= kingMask.checks();
+    // else
+    moves ^= (materialbb & moves); // Can't capture our own pieces
+    // moves &= ~ourMaterial; // seems cleaner
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         moves &= material.combine<opposing_set<us>()>();
@@ -186,22 +183,22 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkRookMoves(Bitboard occupa
 }
 
 template<Set us, MoveTypes moveFilter>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeBulkQueenMoves(Bitboard occupancy) const
+Bitboard BulkMoveGenerator::computeBulkQueenMoves() const
 {
     Bitboard moves = 0;
-    moves |= computeBulkBishopMoves(occupancy);
-    moves |= computeBulkRookMoves(occupancy);
+    moves |= computeBulkBishopMoves<us, queenId, moveFilter>();
+    moves |= computeBulkRookMoves<us, queenId, moveFilter>();
     return moves;
 }
 
-template<Set us, MoveTypes moveFilter>
-Bitboard BulkMoveGenerator<us, moveFilter>::computeCastlingMoves(CastlingStateInfo castlingState, Bitboard threatenedMask) const
+template<Set us>
+Bitboard BulkMoveGenerator::computeCastlingMoves(CastlingStateInfo castlingState, Bitboard threatenedMask) const
 {
     Bitboard retVal = ~universe;
     byte rank = 0;
     u8 castling = castlingState.read();
 
-    if (us == Set::BLACK) {
+    if constexpr (us == Set::BLACK) {
         rank = 7;
         // shift castling right
         // this should make black castling 1 & 2
@@ -245,4 +242,19 @@ Bitboard BulkMoveGenerator<us, moveFilter>::computeCastlingMoves(CastlingStateIn
             retVal |= squareMaskTable[csqr];
     }
     return retVal;
+}
+
+template<Set set, MoveTypes moveFilter>
+Bitboard BulkMoveGenerator::computeBulkMovesGeneric(u8 pieceId) const
+{
+    if (pieceId == bishopId)
+        return computeBulkBishopMoves<set, bishopId, moveFilter>();
+    else if (pieceId == rookId)
+        return computeBulkRookMoves<set, rookId, moveFilter>();
+    else if (pieceId == queenId)
+        return computeBulkQueenMoves<set, moveFilter>();
+    else
+        LOG_ERROR() << "Unsupported piece type for generic move generation: " << pieceId;
+
+    return 0;
 }

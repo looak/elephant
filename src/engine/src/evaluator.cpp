@@ -10,14 +10,14 @@
 #include <move_generation/move_generator.hpp>
 
 i32
-Evaluator::Evaluate(const MoveGenerator& movegen)
+Evaluator::Evaluate()
 {
     i32 score = 0;
     i32 materialScore = EvaluateMaterial();
     score += materialScore;
     LOG_DEBUG() << "Material score: " << score;
 
-    i32 tmp = EvalutePiecePositions();
+    i32 tmp = EvaluatePiecePositions();
     score += tmp;
     LOG_DEBUG() << "Piece position score: " << tmp;
 
@@ -29,7 +29,7 @@ Evaluator::Evaluate(const MoveGenerator& movegen)
     score += tmp;
     LOG_DEBUG() << "Mop up value: " << tmp;
 
-    tmp = EvaluateKingSafety(movegen);
+    tmp = EvaluateKingSafety();
     score += tmp;
     LOG_DEBUG() << "King safety score: " << tmp;
 
@@ -40,7 +40,7 @@ Evaluator::Evaluate(const MoveGenerator& movegen)
     return score;
 }
 
-i32 EvaluEvaluatePlus(const Chessboard&, const MoveGenerator&, PackedMove)
+i32 Evaluator::EvaluatePlus(PackedMove move)
 {
     return 0;
 }
@@ -64,7 +64,7 @@ Evaluator::EvaluateMaterial() const
 }
 
 i32
-Evaluator::EvalutePiecePositions() const
+Evaluator::EvaluatePiecePositions() const
 {
     const auto& material = m_position.material();
     i32 score = 0;
@@ -173,7 +173,7 @@ i32 Evaluator::EvaluatePawnManhattanDistance() const {
     return result;
 }
 
-i32 Evaluator::EvaluateKingSafety(const MoveGenerator& movegen) const {
+i32 Evaluator::EvaluateKingSafety() const {
     static const i32 pawnWallFactor = 8;
     static const i32 pinFactor = 12;
     const auto& material = m_position.material();
@@ -198,13 +198,13 @@ i32 Evaluator::EvaluateKingSafety(const MoveGenerator& movegen) const {
     score -= blackPawnWall.count() * pawnWallFactor;
 
     // evaluate pins and checks
-    const auto& whiteThreats = movegen.readKingPinThreats<Set::WHITE>();
-    Bitboard whitePins = whiteThreats.pins() & material.black();
-    score -= whitePins.count() * pinFactor;
+    // const auto& whiteThreats = movegen.readKingPinThreats<Set::WHITE>();
+    // Bitboard whitePins = whiteThreats.pins() & material.black();
+    // score -= whitePins.count() * pinFactor;
 
-    const auto& blackThreats = movegen.readKingPinThreats<Set::BLACK>();
-    Bitboard blackPins = blackThreats.pins() & material.white();
-    score += blackPins.count() * pinFactor;
+    // const auto& blackThreats = movegen.readKingPinThreats<Set::BLACK>();
+    // Bitboard blackPins = blackThreats.pins() & material.white();
+    // score += blackPins.count() * pinFactor;
 
     return score;
 }

@@ -24,27 +24,27 @@ Search::Perft(GameContext& context, int depth)
     }
 
     PerftResult result;
-    MoveGenerator generator(context);
-    generator.generate();
-    generator.forEachMove([&](const PrioratizedMove& mv) {
-        context.MakeMove(mv.move);
-        result.Nodes++;
-        if (mv.move.isCapture())
-            result.Captures++;
-        if (mv.move.isEnPassant())
-            result.EnPassants++;
-        if (mv.move.isCastling())
-            result.Castles++;
-        if (mv.move.isPromotion())
-            result.Promotions++;
-        if (mv.isCheck())
-            result.Checks++;
-        // if (mv.isCheckmate())
-        //     result.Checkmates++;
+    // MoveGenerator generator(context);
+    // generator.generate();
+    // generator.forEachMove([&](const PrioritizedMove& mv) {
+    //     context.MakeMove(mv.move);
+    //     result.Nodes++;
+    //     if (mv.move.isCapture())
+    //         result.Captures++;
+    //     if (mv.move.isEnPassant())
+    //         result.EnPassants++;
+    //     if (mv.move.isCastling())
+    //         result.Castles++;
+    //     if (mv.move.isPromotion())
+    //         result.Promotions++;
+    //     if (mv.isCheck())
+    //         result.Checks++;
+    //     // if (mv.isCheckmate())
+    //     //     result.Checkmates++;
 
-        result += Perft(context, depth - 1);
-        context.UnmakeMove();
-    });
+    //     result += Perft(context, depth - 1);
+    //     context.UnmakeMove();
+    // });
 
     return result;
 }
@@ -57,29 +57,29 @@ Search::PerftDivide(GameContext& context, int depth)
     }
 
     PerftResult result;
-    MoveGenerator generator(context);
-    generator.generate();
-    generator.forEachMove([&](const PrioratizedMove& mv) {
-        context.MakeMove(mv.move);
-        if (depth == 1) {
-            result.Nodes++;
-            if (mv.move.isCapture())
-                result.Captures++;
-            if (mv.move.isEnPassant())
-                result.EnPassants++;
-            if (mv.move.isCastling())
-                result.Castles++;
-            if (mv.move.isPromotion())
-                result.Promotions++;
-            if (mv.isCheck())
-                result.Checks++;
-            // if (mv.isCheckmate())
-            //     result.Checkmates++;
-        }
+    // MoveGenerator generator(context);
+    // generator.generate();
+    // generator.forEachMove([&](const PrioritizedMove& mv) {
+    //     context.MakeMove(mv.move);
+    //     if (depth == 1) {
+    //         result.Nodes++;
+    //         if (mv.move.isCapture())
+    //             result.Captures++;
+    //         if (mv.move.isEnPassant())
+    //             result.EnPassants++;
+    //         if (mv.move.isCastling())
+    //             result.Castles++;
+    //         if (mv.move.isPromotion())
+    //             result.Promotions++;
+    //         if (mv.isCheck())
+    //             result.Checks++;
+    //         // if (mv.isCheckmate())
+    //         //     result.Checkmates++;
+    //     }
 
-        result += PerftDivide(context, depth - 1);
-        context.UnmakeMove();
-    });
+    //     result += PerftDivide(context, depth - 1);
+    //     context.UnmakeMove();
+    // });
 
     return result;
 }
@@ -201,12 +201,14 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
     }
 
     // initialize the move generator.
-    MoveGenerator generator(context.game, context.game.editTranspositionTable(), *this, ply);
+    MoveGenParams genParams;
+    // genParams.position = context.game.readChessboard().readPosition();
+    MoveGenerator<Set::WHITE> generator(context.game.readChessboard().readPosition(), genParams);
     auto prioratized = generator.generateNextMove();
 
     // if there are no moves to make, we're either in checkmate or stalemate.
     if (prioratized.move.isNull()) {
-        if (generator.isChecked())
+        if (true /*generator.isChecked()*/)
             return { -c_checkmateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
         return { .score = -c_drawConstant, .move = PackedMove::NullMove() };  // we're in stalemate
     }
@@ -289,44 +291,46 @@ SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alp
 }
 
 i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
-    MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
-    generator.generate();
+    // MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
+    // generator.generate();
 
-    Evaluator evaluator(context.game.readChessboard().readPosition());
-    i32 perspective = maximizingPlayer ? 1 : -1;
-    i32 eval = evaluator.Evaluate(generator) * perspective;
-    if (eval >= beta)
-        return beta;
-    if (eval > alpha)
-        alpha = eval;
+    // Evaluator evaluator(context.game.readChessboard().readPosition());
+    // i32 perspective = maximizingPlayer ? 1 : -1;
+    // i32 eval = evaluator.Evaluate(generator) * perspective;
+    // if (eval >= beta)
+    //     return beta;
+    // if (eval > alpha)
+    //     alpha = eval;
 
-    auto prioratized = generator.generateNextMove();
+    // auto prioratized = generator.generateNextMove();
 
-    if (context.cancel() == true
-        || prioratized.move.isNull()
-        || ply >= c_maxSearchDepth
-        || (depth <= 0 && generator.isChecked() == false)) {
+    // if (context.cancel() == true
+    //     || prioratized.move.isNull()
+    //     || ply >= c_maxSearchDepth
+    //     || (depth <= 0 && generator.isChecked() == false)) {
 
-        return eval;
-    }
+    //     return eval;
+    // }
 
-    i32 maxEval = -c_maxScore;
-    do {
-        context.game.MakeMove(prioratized.move);
-        i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-        context.nodes++;
-        context.game.UnmakeMove();
+    // i32 maxEval = -c_maxScore;
+    // do {
+    //     context.game.MakeMove(prioratized.move);
+    //     i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
+    //     context.nodes++;
+    //     context.game.UnmakeMove();
 
-        maxEval = std::max(maxEval, eval);
-        alpha = std::max(alpha, eval);
+    //     maxEval = std::max(maxEval, eval);
+    //     alpha = std::max(alpha, eval);
 
-        if (beta <= alpha)
-            return beta;
+    //     if (beta <= alpha)
+    //         return beta;
 
-        prioratized = generator.generateNextMove();
-    } while (prioratized.move.isNull() == false);
+    //     prioratized = generator.generateNextMove();
+    // } while (prioratized.move.isNull() == false);
 
-    return maxEval;
+    // return maxEval;
+
+    return 0;
 }
 
 bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth) {
@@ -380,7 +384,7 @@ CancelSearchCondition Search::buildCancellationFunction(Set perspective, const S
         };
 }
 
-i32 Search::Extension(const Chessboard&, const PrioratizedMove& prioratized, u32 ply) const {
+i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u32 ply) const {
     if (ply >= c_maxSearchDepth)
         return 0;
     //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();

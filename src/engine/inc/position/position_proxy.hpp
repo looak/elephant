@@ -84,8 +84,8 @@ public:
             // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
             auto piece = pieceAt(sqr);
             LOG_WARNING() << "Overwriting piece at square " << sqr;
-            m_position.ClearPiece(piece, sqr);  // clear the piece at the square            
-            return MutableImplicitPieceSquare(m_position.editMaterialMask(), sqr);            
+            m_position.ClearPiece(piece, sqr);  // clear the piece at the square
+            return MutableImplicitPieceSquare(m_position.m_materialMask, sqr);
         }
         else {
             static_assert(false, "Cannot call and modify position with operator[] on a position with a read-only policy.");
@@ -106,7 +106,7 @@ public:
             return *this;
         }
         bool operator==(const PositionIterator& other) const {
-            return m_index == other.m_index && m_position.readHash() == other.m_position.readHash();
+            return m_index == other.m_index && m_position.read().hash() == other.m_position.read().hash();
         }
         bool operator!=(const PositionIterator& other) const {
             return !(*this == other);
@@ -134,7 +134,7 @@ public:
         byte rank() const { return m_index / 8; }
 
         ChessPiece get() const {
-            return m_position.readPieceAt(static_cast<Square>(m_index));
+            return m_position.read().pieceAt(static_cast<Square>(m_index));
         }
 
         void set(ChessPiece piece) 

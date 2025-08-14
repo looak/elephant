@@ -26,8 +26,7 @@
 #include <position/position.hpp>
 
 /**
- * Represents the state important for some rules of a game such as half move count. 
- */
+ * @brief Represents the state of a game. Important for some rules of such as half move count.  */
  struct GameState {
     GameState() = default;
     GameState(const GameState& rhs) :
@@ -48,7 +47,7 @@
  };
 
 /**
- * The Chessboard class represents a chess board and its current state.  */
+ * @brief The Chessboard class represents a chess board and its current state.  */
 class Chessboard {
 public:
     Chessboard();

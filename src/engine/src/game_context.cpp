@@ -48,64 +48,11 @@ GameContext::GameOver() const
     return false;
 }
 
-bool
+void
 GameContext::MakeMove(const PackedMove move)
 {
     MoveExecutor executor(m_board.editPosition(), m_board.editState(), m_history);
     executor.makeMove<false>(move);
-    return true;
-}
-
-bool
-GameContext::TryMakeMove(Move move)
-{
-    PackedMove found = PackedMove::NullMove();
-    PositionReader position = m_board.readPosition();
-
-    if (move.isAmbiguous()) {
-        MoveGenerator generator(position, m_board.readToPlay(), move.Piece.getType());
-        generator.generate();
-
-        generator.forEachMove([&](const PrioratizedMove& pm) {
-            if (pm.move.targetSqr() == move.TargetSquare.toSquare()) {
-                found = pm.move;
-                return;
-            }
-            });
-
-        if (found == PackedMove::NullMove())
-            return false;
-    }
-    else {
-        // set capture if the target square is occupied.
-        ChessPiece piece = position.pieceAt(move.TargetSquare.toSquare());
-        if (piece.isValid()) {
-            move.setCapture(true);
-        }
-        found = move.readPackedMove();
-    }
-
-    return MakeMove(found);
-}
-
-bool
-GameContext::UnmakeMove()
-{
-    // if (m_undoUnits.empty())
-    //     return false;
-
-    // auto undoUnit = m_undoUnits.back();
-    // m_board.UnmakeMove(undoUnit);
-    // m_undoUnits.pop_back();
-
-    return true;
-}
-
-SearchResult
-GameContext::CalculateBestMove(SearchParameters params)
-{
-    Search search;
-    return search.CalculateBestMove(*this, params);
 }
 
 bool

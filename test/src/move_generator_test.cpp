@@ -44,6 +44,8 @@ public:
         return result;
     }
 
+    Chessboard board;
+
     Search search;
     GameContext testContext;
 };

@@ -3,27 +3,6 @@
 #include <material/chess_piece.hpp>
 #include <material/material_topology.hpp>
 
-
-struct MaterialMask {
-    Bitboard material[6]{};
-
-    inline constexpr Bitboard combine() const
-    {
-        return material[pawnId] | material[knightId] | material[bishopId] | material[rookId] | material[queenId] |
-            material[kingId];
-    }
-
-    // [[nodiscard]] constexpr Bitboard operator[](i32 indx) { return material[indx]; }
-    // [[nodiscard]] constexpr Bitboard operator[](i32 indx) const { return material[indx]; }
-
-    [[nodiscard]] constexpr const Bitboard& kings() const { return material[kingId]; }
-    [[nodiscard]] constexpr const Bitboard& queens() const { return material[queenId]; }
-    [[nodiscard]] constexpr const Bitboard& rooks() const { return material[rookId]; }
-    [[nodiscard]] constexpr const Bitboard& bishops() const { return material[bishopId]; }
-    [[nodiscard]] constexpr const Bitboard& knights() const { return material[knightId]; }
-    [[nodiscard]] constexpr const Bitboard& pawns() const { return material[pawnId]; }
-};
-
 struct MutableMaterialProxySquare {
 public:
     MutableMaterialProxySquare(u64& proxyMaterial, u64& proxySet, Square sqr) : m_setProxy(proxySet), m_matProxy(proxyMaterial), m_sqr(sqr) {}
@@ -38,7 +17,6 @@ private:
     BitboardImpl<u64&> m_matProxy;
     Square m_sqr;
 };
-
 
 /**
  * @brief A proxy for material that allows editing of the material bitboards.
