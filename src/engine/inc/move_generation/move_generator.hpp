@@ -13,18 +13,22 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
-#ifndef MOVE_GENERATOR_HEADER
-#define MOVE_GENERATOR_HEADER
+#pragma once
 
+#include <array>
 #include <queue>
 #include <functional>
-#include "king_pin_threats.hpp"
-#include "transposition_table.hpp"
-#include <move/move.hpp>
+#include <move_generation/bulk_move_generator.hpp>
+#include <move_generation/king_pin_threats.hpp>
+#include <move_generation/move_ordering_view.hpp>
 #include <position/position_accessors.hpp>
 
-class GameContext;
-class Search;
+
+struct MoveGenParams {
+    const MoveOrderingView* ordering = nullptr;
+    MoveTypes moveFilter = MoveTypes::ALL;
+    bool inCheck = false;
+};
 
 namespace move_generator_constants {
 // priority values for move generator
@@ -36,132 +40,60 @@ constexpr u16 pvMovePriority = 5000;
 constexpr u16 killerMovePriority = 800;
 } // namespace move_generator_constants
 
+template<Set _us>
 class MoveGenerator {
 public:
-    MoveGenerator(const GameContext& context);
-    MoveGenerator(const GameContext& context, const TranspositionTable& tt, const Search& search, u32 ply);
-    MoveGenerator(PositionReader pos, Set toMove, PieceType ptype = PieceType::NONE, MoveTypes mtype = MoveTypes::ALL);
-    ~MoveGenerator() = default;
+    explicit MoveGenerator(PositionReader position, const MoveGenParams& params);
 
-    PrioratizedMove generateNextMove();
-    void forEachMove(std::function<void(const PrioratizedMove&)> func) const;
-    void generate();
-
-    bool isChecked() const;
-
-    template<Set us>
-    const KingPinThreats& readKingPinThreats() const;
-
-    template<Set set>
-    const MaterialMask& readMoveMasks() const { return m_moveMasks[static_cast<u8>(set)]; }
+    PrioritizedMove generateNextMove();
 
 private:
-    void initializeMoveGenerator(PieceType ptype, MoveTypes mtype);
+    enum class Stage {
+        PV_MOVE,
+        CAPTURES_GEN,
+        CAPTURES_SORT,
+        KILLERS,
+        QUIETS_GEN,
+        QUIETS_SORT,
+        DONE
+    };
 
-    template<Set set, bool captures>
-    void initializeMoveMasks(MaterialMask& target, PieceType ptype);
-
-    template<Set set>
     KingPinThreats computeKingPinThreats();
+    void internalGenerateMoves();
+   
+    void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
+    void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);    
+    void internalGenerateKnightMoves(BulkMoveGenerator bulkMoveGen);    
+    void internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen, u8 pieceId);
+    // void internalGenerateBishopMoves();    
+    // void internalGenerateRookMoves();    
+    // void internalGenerateQueenMoves();    
+    void internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen);
 
-    template<Set set>
-    PrioratizedMove generateNextMove();
+    void buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture);
 
-    template<Set set>
-    void generateAllMoves();
-
-    template<Set set, u8 pieceId>
-    void generateMoves(const KingPinThreats& pinThreats);
-
-    template<Set set>
-    void internalGenerateMoves(u8 pieceId, const KingPinThreats& pinThreats);
-
-    template<Set set>
-    void internalGeneratePawnMoves();
-    void internalBuildPawnPromotionMoves(PackedMove move, const KingPinThreats& pinThreats, i32 dstSqr);
-    template<Set set>
-    void internalGenerateKnightMoves(const KingPinThreats& pinThreats);
-    template<Set set>
-    void internalGenerateBishopMoves(const KingPinThreats& pinThreats);
-    template<Set set>
-    void internalGenerateRookMoves(const KingPinThreats& pinThreats);
-    template<Set set>
-    void internalGenerateQueenMoves(const KingPinThreats& pinThreats);
-    template<Set set>
-    void internalGenerateKingMoves();
-
-    void genPackedMovesFromBitboard(u8 setId, u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture, const KingPinThreats& pinThreats);
-
-    void sortMoves();
-
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Square source, Bitboard movesbb) const;
-
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> isolatePawn(Square source, Bitboard movesbb) const;
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> isolateKnightMoves(Square source, Bitboard movesbb) const;
-    template<Set us>
-    std::tuple<Bitboard, Bitboard> isolateBishop(Square source, Bitboard movesbb) const;
-    template<Set us>
+    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Square source, Bitboard movesbb) const;    
+    std::tuple<Bitboard, Bitboard> isolatePawn(Square source, Bitboard movesbb) const;    
+    std::tuple<Bitboard, Bitboard> isolateKnight(Square source, Bitboard movesbb) const;    
+    std::tuple<Bitboard, Bitboard> isolateBishop(Square source, Bitboard movesbb) const;    
     std::tuple<Bitboard, Bitboard> isolateRook(Square source, Bitboard movesbb) const;
 
-    Set m_toMove;
+    std::array<PrioritizedMove, 256> m_movesBuffer; // 1kb
+    u32 m_currentMoveIndx;
+    u32 m_moveCount;
+    
     PositionProxy<PositionReadOnlyPolicy> m_position;
-    const TranspositionTable* m_tt;
-    const Search* m_search;
-    const u32 m_ply;
-    u64 m_hashKey;
+    const MoveOrderingView* m_ordering;
+    Stage m_stage;
+    
+    KingPinThreats m_pinThreats[2];
 
     bool m_movesGenerated;
-    uint16_t m_moveCount;
-    uint16_t m_currentMoveIndx;
-    std::array<PrioratizedMove, 256> m_movesBuffer;  // 1kb
-
-    // pseudo legal move masks for each piece type
-    MaterialMask m_moveMasks[2];
-    KingPinThreats m_pinThreats[2];
 };
 
-template<Set set, u8 pieceId>
-void
-MoveGenerator::generateMoves(const KingPinThreats& pinThreats)
-{
-    switch (pieceId) {
-    case pawnId:
-        internalGeneratePawnMoves<set>();
-        break;
-    case knightId:
-        internalGenerateKnightMoves<set>(pinThreats);
-        break;
-    case bishopId:
-        internalGenerateBishopMoves<set>(pinThreats);
-        break;
-    case rookId:
-        internalGenerateRookMoves<set>(pinThreats);
-        break;
-    case queenId:
-        internalGenerateQueenMoves<set>(pinThreats);
-        break;
-    case kingId:
-        internalGenerateKingMoves<set>();
-        break;
-
-    default:
-        FATAL_ASSERT(false) << "Invalid piece id";
-    }
-}
-
 
 template<Set us>
-const KingPinThreats& MoveGenerator::readKingPinThreats() const
-{
-    return m_pinThreats[static_cast<u8>(us)];
-}
-
-template<Set us>
-KingPinThreats MoveGenerator::computeKingPinThreats()
-{
+KingPinThreats MoveGenerator<us>::computeKingPinThreats() {
     constexpr Set op = opposing_set<us>();  
     Square kingSqr = static_cast<Square>(m_position.material().king<us>().lsbIndex());
     Square opKingSqr = static_cast<Square>(m_position.material().king<op>().lsbIndex());
@@ -171,5 +103,3 @@ KingPinThreats MoveGenerator::computeKingPinThreats()
     ret.calculateOpponentOpenAngles<op>(opKingSqr, m_position);
     return ret; 
 }
-
-#endif  // MOVE_GENERATOR_HEADER

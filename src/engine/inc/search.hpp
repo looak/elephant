@@ -132,7 +132,7 @@ private:
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
 
 
-    i32 Extension(const Chessboard& board, const PrioratizedMove& prioratized, u32 ply) const;
+    i32 Extension(const Chessboard& board, const PrioritizedMove& prioratized, u32 ply) const;
     void pushKillerMove(PackedMove mv, u32 ply);
     void putHistoryHeuristic(u8 set, u8 src, u8 dst, u32 depth);
 

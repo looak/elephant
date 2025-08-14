@@ -147,6 +147,11 @@ public:
         setTarget(target);
     }
 
+    PackedMove(const PackedMove& other) :
+        m_internals(other.m_internals)
+    {
+    }
+
     [[nodiscard]] constexpr Square sourceSqr() const { return static_cast<Square>(source()); }
     [[nodiscard]] constexpr Square targetSqr() const { return static_cast<Square>(target()); }
     [[nodiscard]] constexpr i32 source() const { return m_internals & c_sourceSquareConstant; }
@@ -284,13 +289,13 @@ private:
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 
-struct PrioratizedMove {
-    PrioratizedMove() :
+struct PrioritizedMove {
+    PrioritizedMove() :
         move(0),
         priority(0),
         check(0) {};
 
-    PrioratizedMove(PackedMove move, int _priority) :
+    PrioritizedMove(PackedMove move, int _priority) :
         move(move),
         priority(_priority),
         check(0) {};
@@ -302,7 +307,7 @@ struct PrioratizedMove {
     u16 priority : 15;
     u16 check : 1;
 };
-static_assert(sizeof(PrioratizedMove) == 4, "PrioratizedMove is not 4 bytes");
+static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 
 struct ScoredMove {
     ScoredMove() :
@@ -329,7 +334,7 @@ struct ScoredMove {
 };
 
 struct PrioratizedMoveComparator {
-    constexpr bool operator()(const PrioratizedMove& lhs, const PrioratizedMove& rhs) const
+    constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
     {
         return lhs.priority > rhs.priority;
     }

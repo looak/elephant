@@ -148,7 +148,7 @@ DivideDepthCommand(std::list<std::string>& tokens, GameContext& context)
         u64 total = 0;
         u16 moves = 0;
 
-        movGen.forEachMove([&](const PrioratizedMove& pm) {
+        movGen.forEachMove([&](const PrioritizedMove& pm) {
             std::cout << " " << pm.move.toString();
             if (pm.move.isPromotion()) {
                 // using black here since we want to print the type in lowercase.
@@ -327,7 +327,7 @@ AvailableMovesCommand(std::list<std::string>&, GameContext& context)
     //params.QuiescenceDepth = 2;
     Evaluator evaluator;
 
-    moveGen.forEachMove([&](const PrioratizedMove& pm) {
+    moveGen.forEachMove([&](const PrioritizedMove& pm) {
         bool maximizingPlayer = context.readToPlay() == Set::WHITE;
         context.MakeMove(pm.move);
         std::cout << " " << pm.move.toString();

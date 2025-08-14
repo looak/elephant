@@ -16,7 +16,7 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
                 return false;
             }
         }
-        auto material = m_position.editMaterialMask();
+        auto& material = m_position.m_materialMask;
         material.editSet(piece.set())[square] = true;
         material.editMaterial(piece.index())[square] = true;
 
@@ -51,7 +51,7 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
                 return false;
             }
         }
-        auto material = m_position.editMaterialMask();
+        auto& material = m_position.m_materialMask;
         material.editSet(pieceAt(square).set())[square] = false;
         material.editMaterial(pieceAt(square).index())[square] = false;
         hash() = zorbist::updatePieceHash(hash(), ChessPiece::None(), square);

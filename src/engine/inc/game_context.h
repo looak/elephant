@@ -22,11 +22,14 @@ struct SearchResult;
 struct SearchParameters;
 
 struct GameHistory {
-    GameHistory() = default;
-    GameHistory(const GameHistory& rhs);
+    GameHistory() = default;    
 
     u32 age = 0;
     std::vector<MoveUndoUnit> moveUndoUnits;
+
+    private:
+    GameHistory(const GameHistory& rhs) = delete;
+    GameHistory& operator=(const GameHistory& rhs) = delete;
 };
 
 class GameContext {
@@ -34,27 +37,15 @@ public:
     GameContext() {
         m_transpositionTable.resize(64);
         Reset();
-    }
-
-    GameContext(const GameContext& rhs) :
-        m_board(rhs.m_board)
-    {
-    }
+    }    
 
     void Reset();
     void NewGame();
-
-    /**
-     * @brief Tries to make a move on board, returns true if legal succesfull move.
-     * @param move The move which is being asked to make, can be ambigious. */
-    bool TryMakeMove(Move move);
-
+    
     /**
      * @brief Makes a move on the board, assumes move is legal. */
-    bool MakeMove(const PackedMove move);
+    void MakeMove(const PackedMove move);
     bool UnmakeMove();
-
-    SearchResult CalculateBestMove(SearchParameters params);
 
     bool GameOver() const;
     bool IsRepetition(u64 hashKey) const;
@@ -77,6 +68,9 @@ public:
     const GameHistory& readGameHistory() const { return m_history; }
 
 private:
+    GameContext(const GameContext& rhs) = delete;
+    GameContext& operator=(const GameContext& rhs) = delete;
+
     Chessboard m_board;
     TranspositionTable m_transpositionTable;
 
