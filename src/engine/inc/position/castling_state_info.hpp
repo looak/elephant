@@ -30,20 +30,20 @@ public:
     bool hasBlackQueenSide() const { return m_innerState & BLACK_QUEENSIDE; }
 
     void clear() { m_innerState = NONE; }
-    void unsetWhite() { m_innerState &= ~WHITE_ALL; }
-    void unsetBlack() { m_innerState &= ~BLACK_ALL; }
-    void unsetWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
-    void unsetWhiteQueenSide() { m_innerState &= ~WHITE_QUEENSIDE; }
-    void unsetBlackKingSide() { m_innerState &= ~BLACK_KINGSIDE; }
-    void unsetBlackQueenSide() { m_innerState &= ~BLACK_QUEENSIDE; }
+    void revokeAllWhite() { m_innerState &= ~WHITE_ALL; }
+    void revokeAllBlack() { m_innerState &= ~BLACK_ALL; }
+    void revokeWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
+    void revokeWhiteQueenSide() { m_innerState &= ~WHITE_QUEENSIDE; }
+    void revokeBlackKingSide() { m_innerState &= ~BLACK_KINGSIDE; }
+    void revokeBlackQueenSide() { m_innerState &= ~BLACK_QUEENSIDE; }
 
-    void setAll() { m_innerState = ALL; }
-    void setWhite() { m_innerState |= WHITE_ALL; }
-    void setBlack() { m_innerState |= BLACK_ALL; }
-    void setWhiteKingSide() { m_innerState |= WHITE_KINGSIDE; }
-    void setWhiteQueenSide() { m_innerState |= WHITE_QUEENSIDE; }
-    void setBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
-    void setBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
+    void grantAll() { m_innerState = ALL; }
+    void grantAllWhite() { m_innerState |= WHITE_ALL; }
+    void grantAllBlack() { m_innerState |= BLACK_ALL; }
+    void grantWhiteKingSide() { m_innerState |= WHITE_KINGSIDE; }
+    void grantWhiteQueenSide() { m_innerState |= WHITE_QUEENSIDE; }
+    void grantBlackKingSide() { m_innerState |= BLACK_KINGSIDE; }
+    void grantBlackQueenSide() { m_innerState |= BLACK_QUEENSIDE; }
 
     byte read() const { return m_innerState; }
     void write(byte state) { m_innerState = state; }

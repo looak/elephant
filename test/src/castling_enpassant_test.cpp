@@ -206,25 +206,25 @@ TEST_F(CastlingEnPassantFixture, WritingFunctionsOnCastlingStateInfo_ExpectToSet
 {
     CastlingStateInfo castlingStateInfo;
 
-    castlingStateInfo.setAll();
+    castlingStateInfo.grantAll();
     EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, castlingStateInfo.asFlag());
     
     castlingStateInfo.clear();
     EXPECT_EQ(CastlingState::NONE, castlingStateInfo.asFlag());
 
-    castlingStateInfo.setWhite();
+    castlingStateInfo.grantAllWhite();
     EXPECT_EQ(CastlingState::WHITE_ALL, castlingStateInfo.asFlag());
 
-    castlingStateInfo.setBlack();
+    castlingStateInfo.grantAllBlack();
     EXPECT_EQ(CastlingState::WHITE_ALL | CastlingState::BLACK_ALL, castlingStateInfo.asFlag());
 
-    castlingStateInfo.unsetWhite();
+    castlingStateInfo.revokeAllWhite();
     EXPECT_EQ(CastlingState::BLACK_ALL, castlingStateInfo.asFlag());
 
-    castlingStateInfo.unsetBlackKingSide();
+    castlingStateInfo.revokeBlackKingSide();
     EXPECT_EQ(CastlingState::BLACK_QUEENSIDE, castlingStateInfo.asFlag());
 
-    castlingStateInfo.unsetBlackQueenSide();
+    castlingStateInfo.revokeBlackQueenSide();
     EXPECT_EQ(CastlingState::NONE, castlingStateInfo.asFlag());
 }
 

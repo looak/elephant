@@ -81,7 +81,6 @@ ${ENGINE_SRC_DIR}/material/material_mask.cpp
 ${ENGINE_SRC_DIR}/move/move.cpp
 ${ENGINE_SRC_DIR}/move/move_executor.cpp
 
-${ENGINE_SRC_DIR}/move_generation/bulk_move_generator.cpp
 ${ENGINE_SRC_DIR}/move_generation/king_pin_threats.cpp
 ${ENGINE_SRC_DIR}/move_generation/move_generator.cpp
 
