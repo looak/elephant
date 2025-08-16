@@ -3,7 +3,8 @@
 #include <position/position.hpp>
 #include "rays/rays.hpp"
 
-KingPinThreats::KingPinThreats() :
+template<Set us>
+KingPinThreats<us>::KingPinThreats(Square kingSquare, PositionReader position) :
     m_specialEnPassantMask(0),
     m_knightsAndPawns(0),
     m_knightOrPawnCheck(false)
@@ -15,11 +16,15 @@ KingPinThreats::KingPinThreats() :
 
     m_opponentOpenAngles[0] = 0;
     m_opponentOpenAngles[1] = 0;
+
+    compute(kingSquare, position);
 }
 
-bool
-KingPinThreats::isChecked() const
-{
+template KingPinThreats<Set::WHITE>::KingPinThreats(Square, PositionReader);
+template KingPinThreats<Set::BLACK>::KingPinThreats(Square, PositionReader);
+
+template<Set us>
+bool KingPinThreats<us>::isChecked() const {
     for (auto checked : m_checkedAngles) {
         if (checked)
             return true;
@@ -27,8 +32,11 @@ KingPinThreats::isChecked() const
     return m_knightOrPawnCheck;
 }
 
-u32
-KingPinThreats::isCheckedCount() const
+template bool KingPinThreats<Set::WHITE>::isChecked() const;
+template bool KingPinThreats<Set::BLACK>::isChecked() const;
+
+template<Set us>
+u32 KingPinThreats<us>::isCheckedCount() const
 {
     u32 count = 0;
     for (auto checked : m_checkedAngles) {
@@ -42,8 +50,11 @@ KingPinThreats::isCheckedCount() const
     return count;
 }
 
-Bitboard
-KingPinThreats::combined() const
+template u32 KingPinThreats<Set::WHITE>::isCheckedCount() const;
+template u32 KingPinThreats<Set::BLACK>::isCheckedCount() const;
+
+template<Set us>
+Bitboard KingPinThreats<us>::combined() const
 {
     Bitboard combined = 0;
     for (auto threatened : m_threatenedAngles) {
@@ -54,9 +65,11 @@ KingPinThreats::combined() const
     return combined;
 }
 
-Bitboard
-KingPinThreats::pins() const
-{
+template Bitboard KingPinThreats<Set::WHITE>::combined() const;
+template Bitboard KingPinThreats<Set::BLACK>::combined() const;
+
+template<Set us>
+Bitboard KingPinThreats<us>::pins() const {
     Bitboard combined = 0;
     for (u8 i = 0; i < 8; ++i) {
         if (m_checkedAngles[i] == true)
@@ -66,9 +79,11 @@ KingPinThreats::pins() const
     return combined;
 }
 
-Bitboard
-KingPinThreats::pinned(Bitboard mask) const
-{
+template Bitboard KingPinThreats<Set::WHITE>::pins() const;
+template Bitboard KingPinThreats<Set::BLACK>::pins() const;
+
+template<Set us>
+Bitboard KingPinThreats<us>::pinned(Bitboard mask) const {
     for (u8 i = 0; i < 8; ++i) {
         if ((mask & m_threatenedAngles[i]).empty() == false)
             return m_threatenedAngles[i];
@@ -76,9 +91,11 @@ KingPinThreats::pinned(Bitboard mask) const
     return Bitboard(0);
 }
 
-Bitboard
-KingPinThreats::checks() const
-{
+template Bitboard KingPinThreats<Set::WHITE>::pinned(Bitboard) const;
+template Bitboard KingPinThreats<Set::BLACK>::pinned(Bitboard) const;
+
+template<Set us>
+Bitboard KingPinThreats<us>::checks() const {
     Bitboard combined = 0;
     for (u8 i = 0; i < 8; ++i) {
         if (m_checkedAngles[i] == false)
@@ -91,8 +108,11 @@ KingPinThreats::checks() const
     return combined;
 }
 
+template Bitboard KingPinThreats<Set::WHITE>::checks() const;
+template Bitboard KingPinThreats<Set::BLACK>::checks() const;
+
 template<Set us>
-void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, PositionReader position)
+void KingPinThreats<us>::calculateEnPassantPinThreat(Square kingSquare, PositionReader position)
 {
     if (position.enPassant() == false) {
         return;
@@ -154,12 +174,11 @@ void KingPinThreats::calculateEnPassantPinThreat(Square kingSquare, PositionRead
     }
 }
 
-template void KingPinThreats::calculateEnPassantPinThreat<Set::WHITE>(Square, PositionReader);
-template void KingPinThreats::calculateEnPassantPinThreat<Set::BLACK>(Square, PositionReader);
+template void KingPinThreats<Set::WHITE>::calculateEnPassantPinThreat(Square, PositionReader);
+template void KingPinThreats<Set::BLACK>::calculateEnPassantPinThreat(Square, PositionReader);
 
 template<Set us>
-void KingPinThreats::evaluate(Square kingSquare, PositionReader position)
-{
+void KingPinThreats<us>::compute(Square kingSquare, PositionReader position) {
     constexpr Set op = opposing_set<us>();
     const Bitboard diagonalMaterial = position.material().bishops<op>() | position.material().queens<op>();
     const Bitboard orthogonalMaterial = position.material().rooks<op>() | position.material().queens<op>();
@@ -260,17 +279,17 @@ void KingPinThreats::evaluate(Square kingSquare, PositionReader position)
         }
     }
 
-    calculateEnPassantPinThreat<us>(kingSquare, position);
+    calculateEnPassantPinThreat(kingSquare, position);
 }
 
-template void KingPinThreats::evaluate<Set::WHITE>(Square, PositionReader);
-template void KingPinThreats::evaluate<Set::BLACK>(Square, PositionReader);
+template void KingPinThreats<Set::WHITE>::compute(Square, PositionReader);
+template void KingPinThreats<Set::BLACK>::compute(Square, PositionReader);
 
-template<Set op>
-void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, PositionReader position)
+template<Set us>
+void KingPinThreats<us>::calculateOpponentOpenAngles(const Square kingSquare, PositionReader position)
 {
+    constexpr Set op = opposing_set<us>();
     const Bitboard opMaterial = position.material().combine<op>();
-    constexpr Set us = opposing_set<op>();
     const Bitboard usMaterial = position.material().combine<us>();
     const Bitboard allMaterial = usMaterial | opMaterial;
 
@@ -283,5 +302,5 @@ void KingPinThreats::calculateOpponentOpenAngles(const Square kingSquare, Positi
     m_opponentOpenAngles[0] = orthogonals;
 }
 
-template void KingPinThreats::calculateOpponentOpenAngles<Set::WHITE>(Square, PositionReader);
-template void KingPinThreats::calculateOpponentOpenAngles<Set::BLACK>(Square, PositionReader);
+template void KingPinThreats<Set::WHITE>::calculateOpponentOpenAngles(Square, PositionReader);
+template void KingPinThreats<Set::BLACK>::calculateOpponentOpenAngles(Square, PositionReader);

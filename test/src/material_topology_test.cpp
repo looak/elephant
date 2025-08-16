@@ -10,8 +10,8 @@ namespace ElephantTest
 
 /**
  * @file material_topology_test.cpp
- * @brief 
- * Naming convention: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
+ * @brief Material topology is the interaction of pieces on the chessboard. Key role it plays is informing move generation.
+ * Naming convention: <TestedPieceOrPieces>_<TestDescriptionOrFunctionality>_<OptionalResult>
  * @author Alexander Loodin Ek */
 class MaterialTopologyTestFixture : public ::testing::Test
 {
@@ -151,6 +151,38 @@ TEST_F(MaterialTopologyTestFixture, King_EachCorner_NoWrapAroundOfMovesOnBoard)
     // do and verify
     result = editor.material().topology<Set::BLACK>().computeThreatenedSquaresKing();
     EXPECT_EQ(expected, result);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ x ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ P ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialTopologyTestFixture, Pawn_ThreatenedSquares)
+{
+    using enum Square;
+
+    // setup
+    PositionEditor editor(testingPosition);
+    editor.placePieces( piece_constants::white_pawn, B3,
+                        piece_constants::black_pawn, B6);
+    
+
+    // expected
+    Bitboard whiteExpected = BitboardResultFactory::buildExpectedBoard(A4, C4);
+    Bitboard blackExpected = BitboardResultFactory::buildExpectedBoard(A5, C5);
+
+    // do    
+    Bitboard whiteResult = editor.material().topology<Set::WHITE>().computeThreatenedSquaresPawnBulk();
+    Bitboard blackResult = editor.material().topology<Set::BLACK>().computeThreatenedSquaresPawnBulk();
+
+    // validate
+    EXPECT_EQ(whiteExpected, whiteResult);
+    EXPECT_EQ(blackExpected, blackResult);
 }
 
 

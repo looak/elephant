@@ -24,7 +24,8 @@ ${TEST_SRC_DIR}/elephant_test.cpp
 
 # Test files
 ${TEST_SRC_DIR}/bitboard_test.cpp
-${TEST_SRC_DIR}/bulk_move_generator_test.cpp
+${TEST_SRC_DIR}/move_bulk_generator_test.cpp
+${TEST_SRC_DIR}/move_gen_isolation_test.cpp
 ${TEST_SRC_DIR}/castling_enpassant_test.cpp
 #${TEST_SRC_DIR}/checkmate_test.cpp
 #${TEST_SRC_DIR}/chessboard_test.cpp
