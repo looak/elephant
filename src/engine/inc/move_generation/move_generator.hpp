@@ -18,8 +18,9 @@
 #include <array>
 #include <queue>
 #include <functional>
-#include <move_generation/bulk_move_generator.hpp>
 #include <move_generation/king_pin_threats.hpp>
+#include <move_generation/move_bulk_generator.hpp>
+#include <move_generation/move_gen_isolation.hpp>
 #include <move_generation/move_ordering_view.hpp>
 #include <position/position_accessors.hpp>
 
@@ -58,25 +59,16 @@ private:
         DONE
     };
 
-    KingPinThreats computeKingPinThreats();
+    KingPinThreats<_us> computeKingPinThreats();
     void internalGenerateMoves();
    
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
-    void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);    
-    void internalGenerateKnightMoves(BulkMoveGenerator bulkMoveGen);    
-    void internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen, u8 pieceId);
-    // void internalGenerateBishopMoves();    
-    // void internalGenerateRookMoves();    
-    // void internalGenerateQueenMoves();    
+    void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
+    template<u8 pieceId>
+    void internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen);
     void internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen);
 
     void buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture);
-
-    std::tuple<Bitboard, Bitboard> isolatePiece(u8 pieceId, Square source, Bitboard movesbb) const;    
-    std::tuple<Bitboard, Bitboard> isolatePawn(Square source, Bitboard movesbb) const;    
-    std::tuple<Bitboard, Bitboard> isolateKnight(Square source, Bitboard movesbb) const;    
-    std::tuple<Bitboard, Bitboard> isolateBishop(Square source, Bitboard movesbb) const;    
-    std::tuple<Bitboard, Bitboard> isolateRook(Square source, Bitboard movesbb) const;
 
     std::array<PrioritizedMove, 256> m_movesBuffer; // 1kb
     u32 m_currentMoveIndx;
@@ -85,21 +77,41 @@ private:
     PositionProxy<PositionReadOnlyPolicy> m_position;
     const MoveOrderingView* m_ordering;
     Stage m_stage;
-    
-    KingPinThreats m_pinThreats[2];
+
+    KingPinThreats<_us> m_pinThreats;
 
     bool m_movesGenerated;
 };
 
 
 template<Set us>
-KingPinThreats MoveGenerator<us>::computeKingPinThreats() {
+KingPinThreats<us> MoveGenerator<us>::computeKingPinThreats() {
     constexpr Set op = opposing_set<us>();  
     Square kingSqr = static_cast<Square>(m_position.material().king<us>().lsbIndex());
     Square opKingSqr = static_cast<Square>(m_position.material().king<op>().lsbIndex());
 
-    KingPinThreats ret;
-    ret.evaluate<us>(kingSqr, m_position);
-    ret.calculateOpponentOpenAngles<op>(opKingSqr, m_position);
+    KingPinThreats<us> ret;
+    //ret.evaluate(kingSqr, m_position);
+    ret.calculateOpponentOpenAngles(opKingSqr, m_position);
     return ret; 
+}
+
+template<Set us> 
+template<u8 pieceId>
+void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen)
+{
+    const Bitboard movesbb = bulkMoveGen.computeBulkMovesGeneric<us>(pieceId);
+    if (movesbb.empty())
+        return;
+
+    Bitboard pieces = m_position.material().read<us>(pieceId);
+    PieceIsolator<us, pieceId> isolator(m_position, movesbb, m_pinThreats);
+
+    while (pieces.empty() == false) {
+        // build source square and remove knight from cached material bitboard.
+        const Square srcSqr = toSquare(pieces.popLsb());
+        auto [isolatedMoves, isolatedCaptures] = isolator.isolate(srcSqr);
+        buildPackedMoveFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true);
+        buildPackedMoveFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false);
+    }
 }

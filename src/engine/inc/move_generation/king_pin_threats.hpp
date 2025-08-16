@@ -9,8 +9,10 @@ struct SlidingMaterialMasks {
     Bitboard diagonal;
 };
 
-struct KingPinThreats {
-    KingPinThreats();
+template<Set us>
+class KingPinThreats {
+public:
+    KingPinThreats(Square kingSquare, PositionReader position);
 
     [[nodiscard]] u32 isCheckedCount() const;
     [[nodiscard]] bool isChecked() const;
@@ -23,15 +25,11 @@ struct KingPinThreats {
     [[nodiscard]] const Bitboard* readOpponentOpenAngles() const { return &m_opponentOpenAngles[0]; }
     // [[nodiscard]] const Bitboard& readKnightsAndPawns() const { return m_knightsAndPawns; }
     // [[nodiscard]] const Bitboard* readThreatenedAngles() const { return &m_threatenedAngles[0]; }
-
-    template<Set us>
-    void evaluate(Square kingSquare, PositionReader position);
-
-    template<Set op>
+    
     void calculateOpponentOpenAngles(const Square kingSquare, PositionReader position);
-
+    
 private:
-    template<Set us>
+    void compute(Square kingSquare, PositionReader position);
     void calculateEnPassantPinThreat(Square kingSquare, PositionReader position);
 
     Bitboard m_threatenedAngles[8];

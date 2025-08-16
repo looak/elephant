@@ -15,7 +15,7 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 /**
- * @file bulk_move_generator.hpp
+ * @file move_bulk_generator.hpp
  * @brief BulkMoveGenerator class used by move generation to calculate and cache pseudo-legal moves for a given position.
  *
  * @author Alexander Loodin Ek    */
@@ -81,7 +81,8 @@ Bitboard BulkMoveGenerator::computeBulkPawnMoves() const {
     movesMask &= unoccupied;
 
     const Bitboard threatenedSquares = material.topology<us>().computeThreatenedSquaresPawnBulk();
-    movesMask |= (opMat | m_position.enPassant().readBitboard()) & threatenedSquares;
+    const Bitboard enPassantSqr = m_position.enPassant().readBitboard();
+    movesMask |= (opMat | enPassantSqr) & threatenedSquares;
 
     // moved this code to MoveGenerator
     // auto kingMask = m_moveGen.readKingPinThreats<us>();
@@ -95,6 +96,7 @@ Bitboard BulkMoveGenerator::computeBulkPawnMoves() const {
     //     movesMask &= checksMask;
     // }
 
+    // FIX: opMat won't contain en passant so capture move filter will never contain en passant captures.
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         movesMask &= opMat;
 
