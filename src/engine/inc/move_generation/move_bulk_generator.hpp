@@ -247,16 +247,16 @@ Bitboard BulkMoveGenerator::computeCastlingMoves(CastlingStateInfo castlingState
 }
 
 template<Set set, MoveTypes moveFilter>
-Bitboard BulkMoveGenerator::computeBulkMovesGeneric(u8 pieceId) const
-{
-    if (pieceId == bishopId)
-        return computeBulkBishopMoves<set, bishopId, moveFilter>();
-    else if (pieceId == rookId)
-        return computeBulkRookMoves<set, rookId, moveFilter>();
-    else if (pieceId == queenId)
-        return computeBulkQueenMoves<set, moveFilter>();
-    else
-        LOG_ERROR() << "Unsupported piece type for generic move generation: " << pieceId;
-
-    return 0;
+Bitboard BulkMoveGenerator::computeBulkMovesGeneric(u8 pieceId) const { 
+    switch (pieceId) {
+        case pawnId: return computeBulkPawnMoves<set, moveFilter>();
+        case knightId: return computeBulkKnightMoves<set, moveFilter>();
+        case bishopId: return computeBulkBishopMoves<set, bishopId, moveFilter>();
+        case rookId: return computeBulkRookMoves<set, rookId, moveFilter>();
+        case queenId: return computeBulkQueenMoves<set, moveFilter>();
+        case kingId: return computeBulkKingMoves<set, moveFilter>();
+        default:
+            LOG_ERROR() << "Unsupported piece type for generic move generation: " << pieceId;
+            return 0;
+    }
 }

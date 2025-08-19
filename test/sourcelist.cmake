@@ -40,6 +40,7 @@ ${TEST_SRC_DIR}/piece_test.cpp
 #${TEST_SRC_DIR}/position_test.cpp
 #${TEST_SRC_DIR}/position_proxy_test.cpp
 ${TEST_SRC_DIR}/rays_test.cpp
+${TEST_SRC_DIR}/san_parser_test.cpp
 #${TEST_SRC_DIR}/search_test.cpp
 #${TEST_SRC_DIR}/search_cases.hpp
 #${TEST_SRC_DIR}/transposition_test.cpp

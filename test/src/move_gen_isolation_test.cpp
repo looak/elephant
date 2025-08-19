@@ -370,5 +370,166 @@ TEST_F(IsolationFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
     EXPECT_EQ(Bitboard(0x0), capturesC5);
 }
 
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ N ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ N ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(IsolationFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlockingEachOther)
+{
+    // setup
+    PositionEditor editor(testingPosition);
+    editor.placePieces(
+        piece_constants::white_knight, Square::D4,
+        piece_constants::white_knight, Square::E2
+    );
+
+    // expected moves
+    Bitboard expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . x . x . . . ",    // 6
+        " . x . . . x . . ",    // 5
+        " . . . . . x . . ",    // 4
+        " . x x . . x x . ",    // 3
+        " . . x . . . . . ",    // 2 
+        " . . x . . . x . ",    // 1
+     //   A B C D E F G H
+    });
+
+    // generate moves
+    BulkMoveGenerator moveGen(testingPosition);
+    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE>();
+
+    // verify moves
+    EXPECT_EQ(knightMoves, expected);
+
+    // expected isolation
+    Bitboard empty(0x0);
+    expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . x . x . . . ",    // 6
+        " . x . . . x . . ",    // 5
+        " . . . . . . . . ",    // 4
+        " . x . . . x . . ",    // 3
+        " . . x . . . . . ",    // 2 
+        " . . . . . . . . ",    // 1
+     //   A B C D E F G H
+    });
+
+    // do isolation
+    PieceIsolator<Set::WHITE, knightId> isolator(testingPosition, knightMoves, safeWhiteKingPinThreats());
+    auto [quiet, captures] = isolator.isolate(Square::D4);
+
+    // validate
+    EXPECT_EQ(expected, quiet);
+    EXPECT_EQ(empty, captures);
+
+    // expected E2
+    expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . . . . . . . ",    // 6
+        " . . . . . . . . ",    // 5
+        " . . . . . x . . ",    // 4
+        " . . x . . . x . ",    // 3
+        " . . . . . . . . ",    // 2 
+        " . . x . . . x . ",    // 1
+     //   A B C D E F G H
+    });
+
+    // do isolation
+    auto [quietE2, capturesE2] = isolator.isolate(Square::E2);
+
+    // validate
+    EXPECT_EQ(expected, quietE2);
+    EXPECT_EQ(empty, capturesE2);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ N ][ . ][ F ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(IsolationFixture, Knight_IsolatingPiece_SharingTargetSquares)
+{
+    // setup
+    PositionEditor editor(testingPosition);
+    editor.placePieces(
+        piece_constants::white_knight, Square::D4,
+        piece_constants::white_knight, Square::F4
+    );
+
+    // expected moves
+    Bitboard expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . x . x . x . ",    // 6
+        " . x . x . x . x ",    // 5
+        " . . . . . . . . ",    // 4
+        " . x . x . x . x ",    // 3
+        " . . x . x . x . ",    // 2 
+        " . . . . . . . . ",    // 1
+     //   A B C D E F G H
+    });
+
+    // generate moves
+    BulkMoveGenerator moveGen(testingPosition);
+    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE>();
+
+    // validate moves
+    EXPECT_EQ(expected, knightMoves);
+
+    // expected isolated D4
+    expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . x . x . . . ",    // 6
+        " . x . . . x . . ",    // 5
+        " . . . . . . . . ",    // 4
+        " . x . . . x . . ",    // 3
+        " . . x . x . . . ",    // 2 
+        " . . . . . . . . ",    // 1
+     //   A B C D E F G H
+    });
+
+    Bitboard empty{};
+
+    // do isolation
+    PieceIsolator<Set::WHITE, knightId> isolator(testingPosition, knightMoves, safeWhiteKingPinThreats());
+    auto [quiet, captures] = isolator.isolate(Square::D4);
+
+    // verify
+    EXPECT_EQ(expected, quiet);
+    EXPECT_EQ(empty, captures);
+
+    // expected F4
+    expected = BitboardResultFactory::buildBoardFromAscii({
+        " . . . . . . . . ",    // 8
+        " . . . . . . . . ",    // 7
+        " . . . . x . x . ",    // 6
+        " . . . x . . . x ",    // 5
+        " . . . . . . . . ",    // 4
+        " . . . x . . . x ",    // 3
+        " . . . . x . x . ",    // 2 
+        " . . . . . . . . ",    // 1
+     //   A B C D E F G H
+    });
+
+     // isolate F4
+    auto [quietF4, capturesF4] = isolator.isolate(Square::F4);
+    EXPECT_EQ(expected, quietF4);
+    EXPECT_EQ(empty, capturesF4);
+}
+
 
 } // namespace ElephantTest

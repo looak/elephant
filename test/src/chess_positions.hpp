@@ -67,7 +67,7 @@ void defaultStartingPosition(PositionEditor position) {
     position.placePiece(p, Square::G7);
     position.placePiece(p, Square::H7);
 
-    position.castling().setAll();
+    position.castling().grantAll();
     position.enPassant().clear();
 }
 
