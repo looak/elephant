@@ -56,6 +56,7 @@ ${ENGINE_INC_DIR}/position/castling_state_info.hpp
 ${ENGINE_INC_DIR}/rays/rays.hpp
 
 ${ENGINE_INC_DIR}/serializing/fen_parser.hpp
+${ENGINE_INC_DIR}/serializing/san_parser.hpp
 
 ${ENGINE_INC_DIR}/utils/weight_store.hpp
 )
@@ -91,6 +92,7 @@ ${ENGINE_SRC_DIR}/position/position.cpp
 ${ENGINE_SRC_DIR}/position/position_proxy.cpp
 
 ${ENGINE_SRC_DIR}/serializing/fen_parser.cpp
+${ENGINE_SRC_DIR}/serializing/san_parser.cpp
 
 ${ENGINE_SRC_DIR}/utils/weight_store.cpp
 

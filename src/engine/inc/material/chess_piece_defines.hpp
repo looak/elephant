@@ -24,6 +24,7 @@
 #pragma once
 
 #include "defines.hpp"
+#include <map>
 
 namespace piece_constants {
 namespace index {
@@ -94,6 +95,19 @@ constexpr i8 pawn_modifier()
 }
 
 namespace piece_constants {
+namespace notation {
+constexpr PieceType piece_from_char(char c) {
+    switch (c) {
+        case 'K': return PieceType::KING;
+        case 'Q': return PieceType::QUEEN;
+        case 'R': return PieceType::ROOK;
+        case 'B': return PieceType::BISHOP;
+        case 'N': return PieceType::KNIGHT;
+        // pawns have no letter in SAN; return sentinel if needed:
+        default:  return PieceType::NR_OF_PIECES;
+    }
+}
+} // namespace notation
 
 constexpr signed short value[6] = { 100, 350, 350, 525, 1000, 10000 };
 constexpr byte move_count[6] = { 2, 8, 4, 4, 8, 8 };

@@ -102,7 +102,16 @@ constexpr byte operator*(Square sqr) {
 }
 
 constexpr Square toSquare(byte file, byte rank)  {
+#ifdef EG_DEBUGGING
+    if (file > 7 || rank > 7) {
+        LOG_ERROR() << "Invalid square coordinates: " << file << ", " << rank;
+        return Square::NullSQ;
+    }
     return static_cast<Square>((rank * 8) + file);
+
+#else
+    return static_cast<Square>((rank * 8) + file);
+#endif
 }
 
 constexpr Square toSquare(i32 index) {
