@@ -26,6 +26,7 @@
 #include <move/move.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
+#include <position/position_access_policies.hpp>
 #include <vector>
 
 typedef ChessPiece Piece;
@@ -37,14 +38,31 @@ struct PositionEditPolicy;
 template<typename AccessType>
 class PositionProxy {
 private:
+    template<typename> friend class PositionProxy;
     typename AccessType::position_t m_position;
 
 public:    
     PositionProxy(AccessType::position_t& position) : m_position(position) {}
     PositionProxy(const PositionProxy& other) : m_position(other.m_position) {}
 
+    /**
+     * allow a PositionProxy<PositionEditPolicy> to be implicitly converted to a PositionProxy<PositionReadOnlyPolicy>.    */
+    template<typename A = AccessType>
+        requires std::is_same_v<A, PositionReadOnlyPolicy>
+    PositionProxy(const PositionProxy<PositionEditPolicy>& other)
+        : m_position(other.m_position) {}
+
+    /**
+     * allow a PositionProxy<PositionEditPolicy> to be explicity converted to a PositionProxy<PositionReadOnlyPolicy>.     */
+    template<typename A = AccessType>
+        requires std::is_same_v<A, PositionEditPolicy>
+    PositionProxy<PositionReadOnlyPolicy> asReader() const {    
+        return PositionProxy<PositionReadOnlyPolicy>(m_position);
+    }
+
     void clear();
     bool empty() const { return material().empty(); }
+    Position copy() const;
 
     /**
      * @brief Places multiple pieces on the board, pairs of <ChessPiece>, <Square>
