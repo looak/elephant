@@ -1,11 +1,11 @@
 #include "position/position.hpp"
 #include <array>
-#include "attacks/attacks.hpp"
-#include "bitboard.hpp"
+#include <bitboard/attacks/attacks.hpp>
+#include <bitboard/bitboard.hpp>
 #include <material/chess_piece.hpp>
-#include "log.h"
-#include "notation.h"
-#include <position/hash_zorbist.hpp>
+#include <debug/log.hpp>
+#include <core/notation.hpp>
+#include <position/hash_zobrist.hpp>
 
 Position::Position() :
     m_castlingState(),

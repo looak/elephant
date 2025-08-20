@@ -2,12 +2,12 @@
 #include <stack>
 
 #include <material/chess_piece.hpp>
-#include "chessboard.h"
+#include <core/chessboard.hpp>
 #include "elephant_test_utils.h"
-#include "game_context.h"
-#include "log.h"
+#include <core/game_context.hpp>
+#include <debug/log.hpp>
 #include <move/move.hpp>
-#include <move_generation/move_generator.hpp>
+#include <move/generation/move_generator.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

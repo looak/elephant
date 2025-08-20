@@ -1,5 +1,5 @@
 #pragma once
-#include <bitboard.hpp>
+#include <bitboard/bitboard.hpp>
 #include <string_view>
 #include <array>
 #include <string>

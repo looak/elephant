@@ -1,6 +1,6 @@
-﻿#include "elephant_gambit.h"
-#include "chessboard.h"
-#include <serializing/fen_parser.hpp>
+﻿#include <elephant_gambit.hpp>
+#include <core/chessboard.hpp>
+#include <io/fen_parser.hpp>
 
 namespace chess {
     void ClearBoard(Chessboard& board) {

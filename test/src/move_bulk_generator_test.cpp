@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "bitboard_test_helpers.hpp"
-#include <move_generation/move_bulk_generator.hpp>
+#include <move/generation/move_bulk_generator.hpp>
 #include <position/position.hpp>
 #include <position/position_accessors.hpp>
 

@@ -19,6 +19,8 @@ add_subdirectory("cli")
 add_subdirectory("engine")
 
 target_link_libraries(${MAIN_EXE}
+  PUBLIC
+  libpopcnt
   PRIVATE
   ${CLI_LIB}
   ${ENGINE_LIB}

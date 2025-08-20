@@ -65,6 +65,9 @@ foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_BINDIR})
 endforeach()
 
+# third_party libraries
+add_subdirectory(third_party/libpopcnt) # this was used in the intrinsics, maybe we re-enable it in the future
+
 # defines targets and sources
 add_subdirectory(src)
 

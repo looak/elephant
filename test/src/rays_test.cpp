@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "attacks/attacks.hpp"
-#include "rays/rays.hpp"
+#include <bitboard/attacks/attacks.hpp>
+#include <bitboard/rays/rays.hpp>
 
 // class RaysTest : public ::testing::Test {
 // protected:

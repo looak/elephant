@@ -33,6 +33,7 @@ ${TEST_SRC_DIR}/castling_enpassant_test.cpp
 #${TEST_SRC_DIR}/game_context_test.cpp
 ${TEST_SRC_DIR}/notation_test.cpp
 ${TEST_SRC_DIR}/material_topology_test.cpp
+${TEST_SRC_DIR}/move_executor_test.cpp
 #${TEST_SRC_DIR}/move_test.cpp
 #${TEST_SRC_DIR}/move_generator_test.cpp
 #${TEST_SRC_DIR}/perft_test.cpp

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
 #include <material/chess_piece.hpp>
-#include "chessboard.h"
+#include <core/chessboard.hpp>
 #include "elephant_test_utils.h"
-#include <serializing/fen_parser.hpp>
-#include "game_context.h"
-#include <position/hash_zorbist.hpp>
+#include <io/fen_parser.hpp>
+#include <core/game_context.hpp>
+#include <position/hash_zobrist.hpp>
 #include <move/move.hpp>
 
 namespace ElephantTest {

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <notation.h>
+#include <core/notation.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

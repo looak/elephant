@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <array>
 
-#include <serializing/fen_parser.hpp>
-#include <chessboard.h>
-#include <utils/printer.hpp>
+#include <io/fen_parser.hpp>
+#include <core/chessboard.hpp>
+#include <io/printer.hpp>
 
 #include "chess_positions.hpp"
 

@@ -1,8 +1,8 @@
 #include <material/material_topology.hpp>
 
-#include <attacks/attacks.hpp>
-#include <bitboard.hpp>
-#include <bitboard_constants.hpp>
+#include <bitboard/attacks/attacks.hpp>
+#include <bitboard/bitboard.hpp>
+#include <bitboard/bitboard_constants.hpp>
 #include <material/material_mask.hpp>
 
 template<Set us>
@@ -35,11 +35,11 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresKnightBulk() const
 {
     Bitboard result = 0;
     Bitboard knights = m_material.knights<us>();
-    if (knights == 0)
-        return result;  // early out
+    if (knights.empty() == true)
+        return result;  // early out, no knights
 
     while (knights.empty() == false) {
-        auto sqr = knights.popLsb();
+        u32 sqr = knights.popLsb();
         result |= attacks::getKnightAttacks(sqr);
     }
 
@@ -56,7 +56,7 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk(Bitboard occup
     Bitboard result{};
 
     while (pieces.empty() == false) {
-        auto sqr = pieces.popLsb();
+        u32 sqr = pieces.popLsb();
         result |= attacks::getBishopAttacks(sqr, occupancy.read());
     }
 
@@ -75,7 +75,7 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresRookBulk(Bitboard occupan
     Bitboard result{};
 
     while (pieces.empty() == false) {
-        auto sqr = pieces.popLsb();
+        u32 sqr = pieces.popLsb();
         result |= attacks::getRookAttacks(sqr, occupancy.read());
     }
 

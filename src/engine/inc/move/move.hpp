@@ -18,8 +18,8 @@
 
 #include <vector>
 #include <material/chess_piece.hpp>
-#include "defines.hpp"
-#include "notation.h"
+#include <defines.hpp>
+#include <core/notation.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
 

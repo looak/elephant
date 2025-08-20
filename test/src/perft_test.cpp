@@ -2,9 +2,9 @@
 #include "elephant_test_utils.h"
 
 #include "clock.hpp"
-#include <serializing/fen_parser.hpp>
-#include "game_context.h"
-#include <move_generation/move_generator.hpp>
+#include <io/fen_parser.hpp>
+#include <core/game_context.hpp>
+#include <move/generation/move_generator.hpp>
 #include "search.hpp"
 
 #include <future>

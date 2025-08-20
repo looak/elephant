@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <chessboard.h>
-#include <position/hash_zorbist.hpp>
+#include <core/chessboard.hpp>
+#include <position/hash_zobrist.hpp>
 
 #include "chess_positions.hpp"
 
@@ -24,8 +24,8 @@ TEST_F(ChessboardFixture, Constructor_Copy)
 
     Chessboard copy(defaultBoard);
 
-    u64 copyBoardHash = zorbist::computeBoardHash(copy);
-    u64 defaultBoardHash = zorbist::computeBoardHash(defaultBoard);
+    u64 copyBoardHash = zobrist::computeBoardHash(copy);
+    u64 defaultBoardHash = zobrist::computeBoardHash(defaultBoard);
 
     EXPECT_EQ(copyBoardHash, defaultBoardHash);
     EXPECT_EQ(copyBoardHash, copy.readPosition().hash());
@@ -34,8 +34,8 @@ TEST_F(ChessboardFixture, Constructor_Copy)
     Chessboard gameOfCentury;
     chess_positions::windmillPosition(gameOfCentury.editPosition());
     Chessboard scndCopy(gameOfCentury);
-    u64 scndCopyHash = zorbist::computeBoardHash(scndCopy);
-    u64 goatGame = zorbist::computeBoardHash(gameOfCentury);
+    u64 scndCopyHash = zobrist::computeBoardHash(scndCopy);
+    u64 goatGame = zobrist::computeBoardHash(gameOfCentury);
 
     EXPECT_EQ(goatGame, gameOfCentury.readPosition().hash());
     EXPECT_EQ(scndCopyHash, scndCopy.readPosition().hash());
