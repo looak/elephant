@@ -140,3 +140,12 @@ void PositionProxy<AccessType>::clear()
 }
 
 template void PositionProxy<PositionEditPolicy>::clear();
+
+
+template<typename AccessType>
+Position PositionProxy<AccessType>::copy() const {
+    return m_position; 
+}
+
+template Position PositionProxy<PositionReadOnlyPolicy>::copy() const;
+template Position PositionProxy<PositionEditPolicy>::copy() const;

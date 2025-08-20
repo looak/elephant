@@ -18,17 +18,18 @@ class SanParserFixture : public ::testing::Test {
 public:
     Position testingPosition;
 };
-////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////
 
 TEST_F(SanParserFixture, ParseValidSan) {
     // setup
     PositionEditor editor(testingPosition);
     editor.placePiece(piece_constants::white_pawn, Square::E2);
     std::string san = "e4";
+    bool whiteToMove = true;
 
     // do
-    PackedMove move = san_parser::deserialize(testingPosition, san);
+    PackedMove move = san_parser::deserialize(testingPosition, whiteToMove, san);
 
     // verify
     EXPECT_FALSE(move.isNull());

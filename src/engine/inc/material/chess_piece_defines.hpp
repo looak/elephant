@@ -96,7 +96,7 @@ constexpr i8 pawn_modifier()
 
 namespace piece_constants {
 namespace notation {
-constexpr PieceType piece_from_char(char c) {
+constexpr PieceType fromChar(char c) {
     switch (c) {
         case 'K': return PieceType::KING;
         case 'Q': return PieceType::QUEEN;

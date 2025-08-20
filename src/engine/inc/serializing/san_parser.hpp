@@ -27,7 +27,7 @@
 
 namespace san_parser {
     // Parses a move in standard algebraic notation and returns the internal move representation.
-    PackedMove deserialize(PositionReader context, std::string_view san);
+    PackedMove deserialize(PositionReader context, bool whiteToMove, std::string_view san);
 
     
 

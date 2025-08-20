@@ -50,6 +50,7 @@ ${ENGINE_INC_DIR}/position/hash_zorbist.hpp
 ${ENGINE_INC_DIR}/position/position.hpp
 ${ENGINE_INC_DIR}/position/position_proxy.hpp
 ${ENGINE_INC_DIR}/position/position_accessors.hpp
+${ENGINE_INC_DIR}/position/position_access_policies.hpp
 ${ENGINE_INC_DIR}/position/en_passant_state_info.hpp
 ${ENGINE_INC_DIR}/position/castling_state_info.hpp
 

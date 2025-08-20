@@ -254,7 +254,7 @@ Bitboard BulkMoveGenerator::computeBulkMovesGeneric(u8 pieceId) const {
         case bishopId: return computeBulkBishopMoves<set, bishopId, moveFilter>();
         case rookId: return computeBulkRookMoves<set, rookId, moveFilter>();
         case queenId: return computeBulkQueenMoves<set, moveFilter>();
-        case kingId: return computeBulkKingMoves<set, moveFilter>();
+        case kingId: return computeKingMoves<set, opposing_set<set>(), moveFilter>();
         default:
             LOG_ERROR() << "Unsupported piece type for generic move generation: " << pieceId;
             return 0;
