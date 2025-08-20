@@ -1,10 +1,12 @@
 #include <io/printer.hpp>
 #include <core/chessboard.hpp>
 
+
+namespace io {
 namespace printer {
 
 void board(std::ostream& output, const Chessboard& board) {
-    printer::position(output, board.readPosition());
+    io::printer::position(output, board.readPosition());
     auto ep = board.readPosition().enPassant();
     auto castling = board.readPosition().castling();
 
@@ -17,7 +19,7 @@ void position(std::ostream& output, PositionReader reader) {
     auto posItr = reader.begin();
     std::array<std::stringstream, 8> ranks;
 
-    byte prevRank = -1;
+    byte prevRank = 0xFF;
     do {
         if (prevRank != posItr.rank()) {
             ranks[posItr.rank()] << "\n " << (int)(posItr.rank() + 1) << "  ";
@@ -39,3 +41,4 @@ void position(std::ostream& output, PositionReader reader) {
 }
 
 }  // namespace printer
+}  // namespace io

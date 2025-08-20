@@ -4,6 +4,7 @@
 #include <core/game_context.hpp>
 #include <move/move_executor.hpp>
 
+namespace io {
 namespace pgn_parser {
 
     std::string removeComments(std::string_view san) {
@@ -98,3 +99,4 @@ namespace pgn_parser {
     }
 
 } // namespace pgn_parser
+} // namespace io

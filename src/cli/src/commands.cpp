@@ -14,7 +14,7 @@
 #include <core/game_context.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
-#include "search.hpp"
+#include <search/search.hpp>
 
 namespace CliCommands {
 
@@ -189,18 +189,19 @@ MoveCommand(std::list<std::string>& tokens, GameContext& context)
 {
     if (tokens.empty() == false) {
         std::string token = tokens.front();
-        auto move = Move::fromPGN(token, context.readToPlay() == Set::WHITE);
+        io::pgn_parser::deserialize(context, token);
+    //     auto move = Move::fromPGN(token, context.readToPlay() == Set::WHITE);
 
-        if (move.isInvalid()) {
-            std::cout << " Invalid move: " << token << std::endl;
-            return false;
-        }
+    //     if (move.isInvalid()) {
+    //         std::cout << " Invalid move: " << token << std::endl;
+    //         return false;
+    //     }
 
-        if (!context.TryMakeMove(move)) {
-            std::cout << " Invalid move: " << token << std::endl;
-            return false;
-        }
-    }
+    //     if (!context.TryMakeMove(move)) {
+    //         std::cout << " Invalid move: " << token << std::endl;
+    //         return false;
+    //     }
+    // }
 
     return true;
 }

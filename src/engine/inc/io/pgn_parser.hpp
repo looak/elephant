@@ -43,10 +43,12 @@
 
 class GameContext;
 
+namespace io {
 namespace pgn_parser {
     // Parses a move in standard algebraic notation and returns the internal move representation.
     void deserialize(GameContext& game, std::string_view san);
 
     
 
-} // namespace san_parser
+} // namespace pgn_parser
+} // namespace io

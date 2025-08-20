@@ -60,9 +60,9 @@ TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
     GameContext game;
     game.NewGame();
 
-    pgn_parser::deserialize(game, pgn);
+    io::pgn_parser::deserialize(game, pgn);
 
-    printer::board(std::cout, game.readChessboard());
+    io::printer::board(std::cout, game.readChessboard());
 }
 
 // // https://en.wikipedia.org/wiki/Portable_Game_Notation
