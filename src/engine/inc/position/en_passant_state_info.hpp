@@ -1,7 +1,7 @@
 #pragma once
 #include <defines.hpp>
-#include <bitboard.hpp>
-#include <notation.h>
+#include <bitboard/bitboard.hpp>
+#include <core/notation.hpp>
 
 struct EnPassantStateInfo {
 public:

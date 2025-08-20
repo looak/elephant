@@ -1,5 +1,5 @@
 #pragma once
-#include "bitboard.hpp"
+#include <bitboard/bitboard.hpp>
 #include <material/chess_piece.hpp>
 #include <material/material_topology.hpp>
 

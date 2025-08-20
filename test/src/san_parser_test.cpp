@@ -2,9 +2,9 @@
 
 #include <move/move.hpp>
 #include <position/position.hpp>
-#include <serializing/san_parser.hpp>
+#include <io/san_parser.hpp>
 
-#include "chess_positions.hpp"
+
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

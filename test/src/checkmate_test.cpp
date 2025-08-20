@@ -1,9 +1,9 @@
 // #include <gtest/gtest.h>
 
-// #include "chessboard.h"
+// #include <core/chessboard.hpp>
 // #include "elephant_test_utils.h"
-// #include <serializing/fen_parser.hpp>
-// #include "game_context.h"
+// #include <io/fen_parser.hpp>
+// #include <core/game_context.hpp>
 // #include <move/move.hpp>
 
 // namespace ElephantTest

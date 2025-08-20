@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "utils/weight_store.hpp"
+#include <io/weight_store.hpp>
 
 #include <vector>
 #include <string>

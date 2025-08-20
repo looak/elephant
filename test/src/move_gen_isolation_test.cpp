@@ -2,8 +2,8 @@
 #include <position/position.hpp>
 #include <position/position_accessors.hpp>
 
-#include <move_generation/move_bulk_generator.hpp>
-#include <move_generation/move_gen_isolation.hpp>
+#include <move/generation/move_bulk_generator.hpp>
+#include <move/generation/move_gen_isolation.hpp>
 
 #include "bitboard_test_helpers.hpp"
 

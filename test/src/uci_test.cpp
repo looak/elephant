@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "elephant_test_utils.h"
 
-#include <serializing/fen_parser.hpp>
+#include <io/fen_parser.hpp>
 #include "uci.hpp"
 
 namespace ElephantTest {

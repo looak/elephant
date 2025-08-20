@@ -1,11 +1,11 @@
 #include "commands_print.h"
-#include <utils/printer.hpp>
+#include <io/printer.hpp>
 #include <array>
 #include <iostream>
 #include <sstream>
-#include "chessboard.h"
+#include <core/chessboard.hpp>
 #include "commands_utils.h"
-#include "game_context.h"
+#include <core/game_context.hpp>
 
 namespace CliPrintCommands {
 bool

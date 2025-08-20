@@ -1,7 +1,7 @@
 #include <position/position_proxy.hpp>
 #include <position/position.hpp>
 
-#include <position/hash_zorbist.hpp>
+#include <position/hash_zobrist.hpp>
 template<typename AccessType>
 template<bool validation>
 bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
@@ -20,7 +20,7 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
         material.editSet(piece.set())[square] = true;
         material.editMaterial(piece.index())[square] = true;
 
-        hash() = zorbist::updatePieceHash(hash(), piece, square);
+        hash() = zobrist::updatePieceHash(hash(), piece, square);
         
         return true;      
     }
@@ -54,7 +54,7 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
         auto& material = m_position.m_materialMask;
         material.editSet(pieceAt(square).set())[square] = false;
         material.editMaterial(pieceAt(square).index())[square] = false;
-        hash() = zorbist::updatePieceHash(hash(), ChessPiece::None(), square);
+        hash() = zobrist::updatePieceHash(hash(), ChessPiece::None(), square);
         return true;
     }
     else {

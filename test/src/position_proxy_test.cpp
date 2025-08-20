@@ -1,7 +1,7 @@
 #include <position/position_proxy.hpp>
 #include <gtest/gtest.h>
 #include "elephant_test_utils.h"
-#include <chessboard.h>
+#include <core/chessboard.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

@@ -3,17 +3,17 @@
 #include <charconv>
 #include <vector>
 
-#include "chessboard.h"
+#include <core/chessboard.hpp>
 #include "commands_print.h"
 #include "commands_uci.h"
 #include "commands_utils.h"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
-#include "evaluator.h"
-#include <serializing/fen_parser.hpp>
-#include "game_context.h"
+#include <eval/evaluator.hpp>
+#include <io/fen_parser.hpp>
+#include <core/game_context.hpp>
 #include <move/move.hpp>
-#include <move_generation/move_generator.hpp>
+#include <move/generation/move_generator.hpp>
 #include "search.hpp"
 
 namespace CliCommands {

@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
-#include <chessboard.h>
-#include <game_context.h>
+#include <core/chessboard.hpp>
+#include <core/game_context.hpp>
 #include <move/move_executor.hpp>
 #include <position/position.hpp>
+#include <io/pgn_parser.hpp>
+#include <io/printer.hpp>
 
 
 #include "chess_positions.hpp"
@@ -55,9 +57,12 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
 TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
 {
     std::string pgn = "1.d4 d5 2.c4 dxc4";
+    GameContext game;
+    game.NewGame();
 
-    std::vector<Move> moves;
-    Move::ParsePGN(pgn, moves);
+    pgn_parser::deserialize(game, pgn);
+
+    printer::board(std::cout, game.readChessboard());
 }
 
 // // https://en.wikipedia.org/wiki/Portable_Game_Notation
@@ -259,3 +264,5 @@ TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
 //         EXPECT_EQ(e2, mv.TargetSquare);
 //     }
 // }
+
+} // namespace ElephantTest

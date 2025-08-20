@@ -6,8 +6,8 @@
 #include "commands_utils.h"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
-#include "game_context.h"
-#include "log.h"
+#include <core/game_context.hpp>
+#include <debug/log.hpp>
 
 #include <iostream>
 #include <list>

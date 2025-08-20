@@ -1,4 +1,4 @@
-#include "bitboard.hpp"
+#include <bitboard/bitboard.hpp>
 #include <gtest/gtest.h>
 
 namespace ElephantTest {

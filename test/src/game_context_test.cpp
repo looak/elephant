@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-#include "game_context.h"
+#include <core/game_context.hpp>
 #include <move/move.hpp>
 #include "elephant_test_utils.h"
-#include <position/hash_zorbist.hpp>
+#include <position/hash_zobrist.hpp>
 
 
 namespace ElephantTest

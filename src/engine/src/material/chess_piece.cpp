@@ -1,6 +1,6 @@
 ﻿#include <material/chess_piece.hpp>
 #include <iostream>
-#include "log.h"
+#include <debug/log.hpp>
 
 Set
 ChessPiece::FlipSet(Set source)
@@ -47,7 +47,7 @@ ChessPiece::toString() const
     }
 
     if (getSet() == Set::WHITE)
-        retValue = std::toupper(retValue);
+        retValue = std::toupper((int)retValue);
 
     return retValue;
 }

@@ -3,8 +3,8 @@
 
 #include "clock.hpp"
 #include "commands_uci.h"
-#include "game_context.h"
-#include <serializing/fen_parser.hpp>
+#include <core/game_context.hpp>
+#include <io/fen_parser.hpp>
 #include "search.hpp"
 #include "static_initializer.hpp"
 

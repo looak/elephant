@@ -1,8 +1,8 @@
 #include <move/move_executor.hpp>
-#include <position/hash_zorbist.hpp>
+#include <position/hash_zobrist.hpp>
 
-#include <game_context.h>
-#include <chessboard.h>
+#include <core/game_context.hpp>
+#include <core/chessboard.hpp>
 
 MoveExecutor::MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory) :
     m_position(position),
@@ -55,7 +55,7 @@ void MoveExecutor::makeMove(const PackedMove move)
     default:
         // update hash, start by removing old en passant if there was one.
         if (m_position.enPassant() == true)
-            m_position.hash() = zorbist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
+            m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
 
         // reset enpassant cached values
         m_position.enPassant().clear();
@@ -73,7 +73,7 @@ void MoveExecutor::makeMove(const PackedMove move)
 
     // unless something goes wrong, updating the black to move hash should remove it when it's time for white to move,
     // or add it when it's time for black to move.
-    m_position.hash() = zorbist::updateBlackToMoveHash(m_position.hash());
+    m_position.hash() = zobrist::updateBlackToMoveHash(m_position.hash());
 
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
     m_gameStateRef.whiteToMove = !m_gameStateRef.whiteToMove;
@@ -88,7 +88,7 @@ void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)
 {
     // update hash, start by removing old en passant if there was one.
     if (m_position.enPassant() == true)
-        m_position.hash() = zorbist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
+        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
 
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
@@ -99,7 +99,7 @@ void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)
         dif = (signed char)((float)dif * .5f);
         auto sqr = Notation(source.file, source.rank - dif);
         m_position.enPassant().writeSquare(sqr.toSquare());
-        m_position.hash() = zorbist::updateEnPassantHash(m_position.hash(), sqr.toSquare());
+        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), sqr.toSquare());
     }
 }
 
@@ -123,8 +123,8 @@ MoveExecutor::internalHandlePawnMove(const PackedMove move, Set set, MutableMate
         const ChessPiece promote(set, static_cast<PieceType>(move.readPromoteToPieceType()));
         undoState.movedPiece = promote; // store promotion piece in undo state as moved piece
 
-        m_position.hash() = zorbist::updatePieceHash(m_position.hash(), src, move.sourceSqr());
-        m_position.hash() = zorbist::updatePieceHash(m_position.hash(), promote, move.sourceSqr());
+        m_position.hash() = zobrist::updatePieceHash(m_position.hash(), src, move.sourceSqr());
+        m_position.hash() = zobrist::updatePieceHash(m_position.hash(), promote, move.sourceSqr());
 
         // updating the piece on the source tile since we're doing this pre-move.
         // internal move will handle the actual move of the piece, but what piece it is doesn't
@@ -163,7 +163,7 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
     }
 
     // clear castling state from hash
-    m_position.hash() = zorbist::updateCastlingHash(m_position.hash(), castlingState);
+    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
 
     // update castling state
     undoUnit.castlingState.write(castlingState);
@@ -172,7 +172,7 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
     m_position.castling().write(castlingState);
 
     // apply new castling state to hash
-    m_position.hash() = zorbist::updateCastlingHash(m_position.hash(), castlingState);
+    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
     return castling;
 }
 
@@ -189,7 +189,7 @@ void MoveExecutor::internalHandleRookMove(const ChessPiece piece, const PackedMo
 
 void MoveExecutor::internalUpdateCastlingState(byte mask, MoveUndoUnit& undoState) {
     byte castlingState = m_position.castling().read();
-    m_position.hash() = zorbist::updateCastlingHash(m_position.hash(), castlingState);
+    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
     // in a situation where rook captures rook from original positions we don't need to store
     // we don't want to overwrite the original prev written while doing our move castling state.
     // this code has changed slightly since the comment above was written in case we run into a bug.
@@ -197,7 +197,7 @@ void MoveExecutor::internalUpdateCastlingState(byte mask, MoveUndoUnit& undoStat
         undoState.castlingState.write(castlingState);
     mask &= castlingState;
     castlingState ^= mask;
-    m_position.hash() = zorbist::updateCastlingHash(m_position.hash(), castlingState);
+    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
     m_position.castling().write(castlingState);
 }
 
@@ -252,8 +252,8 @@ void MoveExecutor::internalMakeMove(ChessPiece piece, Square source, Square targ
     materialEditor[target] = true;
 
     // update hash
-    m_position.hash() = zorbist::updatePieceHash(m_position.hash(), piece, target);
-    m_position.hash() = zorbist::updatePieceHash(m_position.hash(), piece, source);
+    m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, target);
+    m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, source);
 }
 
 void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState)
@@ -275,7 +275,7 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
         m_position.clearPiece(pieceTarget);
 
         // remove piece from hash
-        m_position.hash() = zorbist::updatePieceHash(m_position.hash(), capturedPiece, pieceTarget);
+        m_position.hash() = zobrist::updatePieceHash(m_position.hash(), capturedPiece, pieceTarget);
         return;
     }
 

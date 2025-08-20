@@ -26,7 +26,7 @@
 
 #pragma once
 #include <material/chess_piece_defines.hpp>
-#include <bitboard.hpp>
+#include <bitboard/bitboard.hpp>
 
 struct MaterialPositionMask;
 
