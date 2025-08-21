@@ -1,7 +1,8 @@
-#include <position/position_proxy.hpp>
+#include <position/position_accessors.hpp>
 #include <gtest/gtest.h>
-#include "elephant_test_utils.h"
 #include <core/chessboard.hpp>
+
+#include "chess_positions.hpp"
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
@@ -21,9 +22,9 @@ public:
 TEST_F(PositionProxyFixture, PositionReader_CreationAndIsEmpty_ShouldBeFalse)
 {
     Chessboard board;
-    SetupDefaultStartingPosition(board);
+    chess_positions::defaultStartingPosition(board.editPosition());
 
-    auto positionReader = board.readPosition().read();
+    auto positionReader = board.readPosition();
     EXPECT_FALSE(positionReader.empty()) << "Position should not be empty.";    
 }
 
@@ -33,7 +34,7 @@ TEST_F(PositionProxyFixture, PositionReader_CreationAndIsEmpty_ShouldBeFalse)
 TEST_F(PositionProxyFixture, PositionIterator_FromA1toH8)
 {
     Chessboard board;
-    const auto positionReader = board.readPosition().read();
+    PositionReader positionReader = board.readPosition();
     auto itr = positionReader.begin();
 
     auto otherItr = positionReader.begin();
@@ -74,7 +75,7 @@ TEST_F(PositionProxyFixture, PositionIterator_MutableIterator)
 TEST_F(PositionProxyFixture, PositionIterator_IterratingExtended_ArbitraryIncrements)
 {
      Chessboard board;
-    auto positionReader = board.readPosition().read();
+    auto positionReader = board.readPosition();
     auto itr = positionReader.begin();
 
     byte expectedIndex = 0;
@@ -172,12 +173,12 @@ TEST_F(PositionProxyFixture, PositionIterator_Equality)
 {
     // implement const vs non-const equality operator
     Chessboard board;
-    auto positionReader = board.readPosition().read();
+    auto positionReader = board.readPosition();
     Chessboard b;
-    auto positionReaderB = b.readPosition().read();
+    auto positionReaderB = b.readPosition();
 
     const Chessboard cb;
-    auto positionReaderC = cb.readPosition().read();
+    auto positionReaderC = cb.readPosition();
 
     auto itrA = positionReaderB.begin();
     auto itrD = positionReaderB.begin();
@@ -241,31 +242,31 @@ TEST_F(PositionProxyFixture, PositionEditPolicy_placePiecesAndHashing)
     auto n = BLACKKNIGHT;
     auto p = BLACKPAWN;
 
-    auto reader = position.read();
+    const auto reader = position.read();
     auto editor = position.edit();
 
-    auto whiteKing = reader.readMaterial().king<Set::WHITE>();
-    u64 oldHash = reader.readHash();
+    auto whiteKing = reader.material().king<Set::WHITE>();
+    u64 oldHash = reader.hash();
 
     // validate emptiness
     EXPECT_EQ(0, whiteKing.count());
     EXPECT_EQ(0, oldHash);
 
     // do
-    editor.placePieces(K, a1);
-    whiteKing = reader.readMaterial().king<Set::WHITE>();
+    editor.placePieces(K, Square::A1);
+    whiteKing = reader.material().king<Set::WHITE>();
 
     // validate
     EXPECT_EQ(K, reader[Square::A1]);
     EXPECT_EQ(1, whiteKing.count());
-    EXPECT_NE(oldHash, reader.readHash());
+    EXPECT_NE(oldHash, reader.hash());
     EXPECT_TRUE(whiteKing[Square::A1]);
 
     // do some more
     editor.placePieces(r, Square::C6, r, Square::C7, r, Square::G4);
 
     // validate
-    const auto& blackRooks = reader.readMaterial().rooks<Set::BLACK>();
+    const auto& blackRooks = reader.material().rooks<Set::BLACK>();
     EXPECT_EQ(3, blackRooks.count());
     EXPECT_TRUE(blackRooks[Square::C6]);
     EXPECT_TRUE(blackRooks[Square::C7]);
@@ -273,24 +274,26 @@ TEST_F(PositionProxyFixture, PositionEditPolicy_placePiecesAndHashing)
     EXPECT_EQ(r, reader[Square::C6]);
     EXPECT_EQ(r, reader[Square::C7]);
     EXPECT_EQ(r, reader[Square::G4]);
-    EXPECT_NE(oldHash, reader.readHash());
+    EXPECT_NE(oldHash, reader.hash());
 
     // expect white king to still be there.
     EXPECT_EQ(K, reader[Square::A1]);
     EXPECT_EQ(1, whiteKing.count());
 
+    using enum Square;
     Position startPostion;    
-    startPostion.edit().placePieces(r, a8, n, b8, b, c8, q, d8, k, e8, b, f8, n, g8, r, h8);
-    startPostion.edit().placePieces(p, a7, p, b7, p, c7, p, d7, p, e7, p, f7, p, g7, p, h7);
-    startPostion.edit().placePieces(P, a2, P, b2, P, c2, P, d2, P, e2, P, f2, P, g2, P, h2);
-    startPostion.edit().placePieces(R, a1, N, b1, B, c1, Q, d1, K, e1, B, f1, N, g1, R, h1);
-    // startPostion.setCastlingState(15);
+    startPostion.edit().placePieces(r, A8, n, B8, b, C8, q, D8, k, E8, b, F8, n, G8, r, H8);
+    startPostion.edit().placePieces(p, A7, p, B7, p, C7, p, D7, p, E7, p, F7, p, G7, p, H7);
+    startPostion.edit().placePieces(P, A2, P, B2, P, C2, P, D2, P, E2, P, F2, P, G2, P, H2);
+    startPostion.edit().placePieces(R, A1, N, B1, B, C1, Q, D1, K, E1, B, F1, N, G1, R, H1);
+    startPostion.edit().castling().grantAll();
 
-    // for (const auto& itr : m_defaultStartingPosition) {
-    //     EXPECT_EQ(itr.get(), startPostion.readPieceAt(itr.square()));
-    // }
+    Position expected;
+    chess_positions::defaultStartingPosition(expected.edit());
 
-    // EXPECT_EQ(startPostion.readHash(), m_defaultStartingPosition.readHash());
+    EXPECT_EQ(startPostion.read().hash(), expected.read().hash());
+    EXPECT_TRUE(expected == startPostion);
+
 }
 
 } // namespace ElephantTest

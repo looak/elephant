@@ -46,7 +46,7 @@ TEST_F(FenParserFixture, StartingPosition)
     EXPECT_FALSE(posReader.enPassant());
     EXPECT_TRUE(posReader.castling().hasAll());
 
-    printer::position(std::cout, newGameBoard.readPosition());
+    io::printer::position(std::cout, newGameBoard.readPosition());
 
     Chessboard expected;
     chess_positions::defaultStartingPosition(expected.editPosition());

@@ -2,7 +2,7 @@
 #include "elephant_test_utils.h"
 
 #include <io/fen_parser.hpp>
-#include "uci.hpp"
+#include <core/uci.hpp>
 
 namespace ElephantTest {
 /**

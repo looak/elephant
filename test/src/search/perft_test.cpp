@@ -339,30 +339,37 @@ Depth	Nodes		Captures	E.p.	Castles		Promotions Checks Checkmates
 // }
 
 struct PerftCaseArgs {
+    bool enabled;
     std::string testId;
     std::string fen;
     u32 expectedNodeCount;
     u8 searchDepth;
 
     // Auto-fill testId from the caller when not provided
-    PerftCaseArgs(std::string fen_,
-                           u32 expectedNodes_,
-                           u8 depth_,
-                           const std::source_location& loc = std::source_location::current())
+    PerftCaseArgs(
+        bool enabled_,
+        std::string fen_,
+        u32 expectedNodes_,
+        u8 depth_,
+        const std::source_location& loc = std::source_location::current())
         : testId(currentCallerName(loc)),
           fen(std::move(fen_)),
           expectedNodeCount(expectedNodes_),
-          searchDepth(depth_) {}
+          searchDepth(depth_),
+          enabled(enabled_) {}
 
     // Explicit testId provided
-    PerftCaseArgs(std::string testId_,
-                  std::string fen_,
-                  u32 expectedNodes_,
-                  u8 depth_)
+    PerftCaseArgs(
+        bool enabled_,
+        std::string testId_,
+        std::string fen_,
+        u32 expectedNodes_,
+        u8 depth_)
         : testId(std::move(testId_)),
           fen(std::move(fen_)),
           expectedNodeCount(expectedNodes_),
-          searchDepth(depth_) {}
+          searchDepth(depth_),
+          enabled(enabled_) {}
 
 private:
     static std::string currentCallerName(const std::source_location& loc) {
