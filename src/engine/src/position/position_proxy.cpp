@@ -41,19 +41,20 @@ template<typename AccessType>
 template<bool validation>
 bool PositionProxy<AccessType>::clearPiece(Square square) {
     if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+        auto pieceToClear = pieceAt(square);
         if constexpr (validation) {
-            if (!pieceAt(square).isValid()) {
+            if (!pieceToClear.isValid()) {
                 LOG_WARNING() << "Trying to clear piece at square " << Notation(square).toString() << " but it's already empty.";
                 return false;
             }
-            if (pieceAt(square).isValid() && pieceAt(square).isKing()) {
+            if (pieceToClear.isValid() && pieceToClear.isKing()) {
                 LOG_WARNING() << "Trying to clear king piece at square " << Notation(square).toString() << ", this is not allowed.";
                 return false;
             }
         }
         auto& material = m_position.m_materialMask;
-        material.editSet(pieceAt(square).set())[square] = false;
-        material.editMaterial(pieceAt(square).index())[square] = false;
+        material.editSet(pieceToClear.set())[square] = false;
+        material.editMaterial(pieceToClear.index())[square] = false;
         hash() = zobrist::updatePieceHash(hash(), ChessPiece::None(), square);
         return true;
     }

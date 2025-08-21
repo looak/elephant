@@ -104,8 +104,8 @@ public:
             // NOTE: Might need a safe guard here to ensure that the square is set after returning the proxy.
             // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
             auto piece = pieceAt(sqr);
-            LOG_WARNING() << "Overwriting piece at square " << sqr;
-            m_position.ClearPiece(piece, sqr);  // clear the piece at the square
+            LOG_WARNING() << "Overwriting piece at square " << Notation(sqr).toString();
+            clearPiece(sqr);  // clear the piece at the square
             return MutableImplicitPieceSquare(m_position.m_materialMask, sqr);
         }
         else {
@@ -162,11 +162,11 @@ public:
         {
             if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
                 auto currentPiece = get();
-                if (currentPiece.isValid()) {
-                    auto materialEditor = m_position.materialEditor(currentPiece.getSet(), currentPiece.getType());
+                if (currentPiece.isValid()) {                    
+                    auto materialEditor = m_position.m_materialMask.edit(currentPiece.getSet(), currentPiece.getType());
                     materialEditor[square()] = false;  // remove the current piece
                 }
-                auto materialEditor = m_position.materialEditor(piece.getSet(), piece.getType());
+                auto materialEditor = m_position.m_materialMask.edit(piece.getSet(), piece.getType());
                 materialEditor[square()] = true;
             }
             else {

@@ -30,7 +30,12 @@ FetchContent_MakeAvailable(googletest)
 
 include(sourcelist.cmake)
 
-add_executable(${PROJECT_NAME} ${TEST_SOURCE})
+add_executable(${PROJECT_NAME} ${TEST_SOURCE_ALL})
+
+target_include_directories(${PROJECT_NAME} 
+  PRIVATE
+    ${TEST_INC_DIR})
+  
 target_link_libraries(${PROJECT_NAME} gtest_main engine)
 
 include(GoogleTest)

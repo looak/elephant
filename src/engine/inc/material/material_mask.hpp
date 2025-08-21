@@ -117,6 +117,15 @@ public:
     [[nodiscard]] Bitboard& editSet(byte set) { return m_set[set]; }
     [[nodiscard]] Bitboard& editMaterial(byte pieceId) { return m_material[pieceId]; }
 
+    template<Set us, u8 pieceId>
+    [[nodiscard]] MutableMaterialProxy edit() {
+        return MutableMaterialProxy(&editSet(static_cast<byte>(us)), &editMaterial(pieceId));
+    }
+
+    [[nodiscard]] MutableMaterialProxy edit(Set set, PieceType type) {
+        return MutableMaterialProxy(&editSet(toSetId(set)), &editMaterial(toPieceIndex(type)));
+    }
+
     template<Set us>
     MaterialTopology<us> topology() const {
         return MaterialTopology<us>(*this);

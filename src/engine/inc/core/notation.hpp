@@ -18,6 +18,9 @@
 #include <string>
 #include <defines.hpp>
 
+// TODO: Make this a helper to enum class Square, so all it does is takes Squares and lets you extract rank/file or convert it
+// to string. We don't want to allow building Squares out of Notations since Notations are unsafe.
+
 struct Notation {
     static Notation BuildPosition(byte file, byte rank);
     static bool Validate(const Notation& notation);

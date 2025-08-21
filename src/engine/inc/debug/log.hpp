@@ -215,12 +215,19 @@ public:
 
     std::string getString() const { return m_stream->str(); }
 
+    // overload for std::stringstream
+    MessageStream& operator<<(const std::stringstream& msg)
+    {
+        *m_stream << msg.str();
+        return *this;
+    }
+
     template<typename T>
     MessageStream& operator<<(const T& t)
     {
         *m_stream << t;
         return *this;
-    }
+    }    
 
     template<typename T>
     inline MessageStream& operator<<(T* const& pointer)
