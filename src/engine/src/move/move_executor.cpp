@@ -1,8 +1,9 @@
 #include <move/move_executor.hpp>
-#include <position/hash_zobrist.hpp>
 
-#include <core/game_context.hpp>
 #include <core/chessboard.hpp>
+#include <core/game_context.hpp>
+#include <core/square_notation.hpp>
+#include <position/hash_zobrist.hpp>
 
 MoveExecutor::MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory) :
     m_position(position),
@@ -23,7 +24,7 @@ void MoveExecutor::makeMove(const PackedMove move)
     
     if constexpr (validation) {
         if (!movingPiece.isValid()) {
-            LOG_ERROR() << "Trying to make a move with an invalid piece at square " << Notation(move.sourceSqr()).toString();            
+            LOG_ERROR() << "Trying to make a move with an invalid piece at square " << SquareNotation(move.sourceSqr()).toString();            
             return;  // early exit if the piece is invalid
         }
     }
@@ -84,7 +85,7 @@ template void MoveExecutor::makeMove<true>(const PackedMove);
 template void MoveExecutor::makeMove<false>(const PackedMove);
 
 
-void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)
+void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
 {
     // update hash, start by removing old en passant if there was one.
     if (m_position.enPassant() == true)
@@ -93,13 +94,12 @@ void MoveExecutor::internalUpdateEnPassant(Notation source, Notation target)
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
 
-    signed char dif = source.rank - target.rank;
-    if (abs(dif) == 2)  // we made a enpassant move
-    {
+    signed char dif = toRank(source) - toRank(target);
+    if (abs(dif) == 2)  { // we made a enpassant move, calculate the enpassant square made available for pawn capture.
         dif = (signed char)((float)dif * .5f);
-        auto sqr = Notation(source.file, source.rank - dif);
-        m_position.enPassant().writeSquare(sqr.toSquare());
-        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), sqr.toSquare());
+        Square sqr = SquareNotation(toFile(source), toRank(source) - dif).toSquare();
+        m_position.enPassant().writeSquare(sqr);
+        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), sqr);
     }
 }
 
@@ -145,19 +145,19 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
     bool castling = false;
     byte casltingMask = 3 << (2 * setIndx);
     byte castlingState = m_position.castling().read();
-    Notation targetSquare(move.targetSqr());
+    SquareNotation targetSquare(move.targetSqr());
     if (castlingState & casltingMask) {
         byte targetRank = 7 * setIndx;
-        if (targetSquare.file == 2)  // we are in c file.
+        if (targetSquare.file() == 2)  // we are in c file.
         {
-            targetRook = Notation(0, targetRank).toSquare();
-            rookMove = Notation(3, targetRank).toSquare();
+            targetRook = SquareNotation(0, targetRank).toSquare();
+            rookMove = SquareNotation(3, targetRank).toSquare();
             castling = true;
         }
-        else if (targetSquare.file == 6)  // we are in g file.
+        else if (targetSquare.file() == 6)  // we are in g file.
         {
-            targetRook = Notation(7, targetRank).toSquare();
-            rookMove = Notation(5, targetRank).toSquare();
+            targetRook = SquareNotation(7, targetRank).toSquare();
+            rookMove = SquareNotation(5, targetRank).toSquare();
             castling = true;
         }
     }
@@ -201,24 +201,24 @@ void MoveExecutor::internalUpdateCastlingState(byte mask, MoveUndoUnit& undoStat
     m_position.castling().write(castlingState);
 }
 
-void MoveExecutor::internalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState)
+void MoveExecutor::internalHandleRookMovedOrCaptured(Square rookSquare, MoveUndoUnit& undoState)
 {
     byte mask = 0;
     // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
-    switch (rookSquare.index()) {
-    case 63:  // H8 Black King Side Rook
+    switch (rookSquare) {
+    case Square::H8:  // H8 Black King Side Rook
         mask |= 0x04;
         internalUpdateCastlingState(mask, undoState);
         break;
-    case 56:  // A8 Black Queen Side Rook
+    case Square::A8:  // A8 Black Queen Side Rook
         mask |= 0x08;
         internalUpdateCastlingState(mask, undoState);
         break;
-    case 7:  // H1 White King Side Rook
+    case Square::H1:  // H1 White King Side Rook
         mask |= 0x01;
         internalUpdateCastlingState(mask, undoState);
         break;
-    case 0:  // A1 White Queen Side Rook
+    case Square::A1:  // A1 White Queen Side Rook
         mask |= 0x02;
         internalUpdateCastlingState(mask, undoState);
         break;

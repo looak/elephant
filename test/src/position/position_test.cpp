@@ -3,7 +3,7 @@
 #include <array>
 #include <material/chess_piece.hpp>
 #include "elephant_test_utils.h"
-#include <core/notation.hpp>
+
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

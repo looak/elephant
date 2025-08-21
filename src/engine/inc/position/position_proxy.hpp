@@ -104,7 +104,7 @@ public:
             // NOTE: Might need a safe guard here to ensure that the square is set after returning the proxy.
             // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
             auto piece = pieceAt(sqr);
-            LOG_WARNING() << "Overwriting piece at square " << Notation(sqr).toString();
+            LOG_WARNING() << "Overwriting piece at square " << SquareNotation(sqr).toString();
             clearPiece(sqr);  // clear the piece at the square
             return MutableImplicitPieceSquare(m_position.m_materialMask, sqr);
         }

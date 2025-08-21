@@ -19,12 +19,12 @@ private:
 
     std::tuple<Square, ChessPiece> internalHandlePawnMove(const PackedMove move, Set set, MutableMaterialProxy& materialEditor, MoveUndoUnit& undoState);
     void internalHandleRookMove(const ChessPiece piece, const PackedMove move, Square targetRook, Square rookMove, MoveUndoUnit& undoState);
-    void internalHandleRookMovedOrCaptured(Notation rookSquare, MoveUndoUnit& undoState);
+    void internalHandleRookMovedOrCaptured(Square rookSquare, MoveUndoUnit& undoState);
     void internalUpdateCastlingState(byte mask, MoveUndoUnit& undoState);    
     bool internalHandleKingMove(const PackedMove move, Set set, Square& targetRook, Square& rookMove, MoveUndoUnit& undoState);
     void internalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState);
     void internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState);
-    void internalUpdateEnPassant(Notation source, Notation target);
+    void internalUpdateEnPassant(Square source, Square target);
 
     PositionProxy<PositionEditPolicy> m_position;
 

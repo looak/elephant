@@ -8,11 +8,11 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
     if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
         if constexpr (validation) {
             if (pieceAt(square).isValid()) {
-                LOG_WARNING() << "Trying to place piece " << piece.toString() << " at square " << Notation(square).toString() << " but it's already occupied by " << pieceAt(square).toString();
+                LOG_WARNING() << "Trying to place piece " << piece.toString() << " at square " << SquareNotation(square).toString() << " but it's already occupied by " << pieceAt(square).toString();
                 return false;
             }
             if (!piece.isValid()) {
-                LOG_WARNING() << "Trying to place an invalid piece at square " << Notation(square).toString();
+                LOG_WARNING() << "Trying to place an invalid piece at square " << SquareNotation(square).toString();
                 return false;
             }
         }
@@ -44,11 +44,11 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
         auto pieceToClear = pieceAt(square);
         if constexpr (validation) {
             if (!pieceToClear.isValid()) {
-                LOG_WARNING() << "Trying to clear piece at square " << Notation(square).toString() << " but it's already empty.";
+                LOG_WARNING() << "Trying to clear piece at square " << SquareNotation(square).toString() << " but it's already empty.";
                 return false;
             }
             if (pieceToClear.isValid() && pieceToClear.isKing()) {
-                LOG_WARNING() << "Trying to clear king piece at square " << Notation(square).toString() << ", this is not allowed.";
+                LOG_WARNING() << "Trying to clear king piece at square " << SquareNotation(square).toString() << ", this is not allowed.";
                 return false;
             }
         }
