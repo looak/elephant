@@ -141,11 +141,11 @@ void KingPinThreats<us>::calculateEnPassantPinThreat(Square kingSquare, Position
             return;  // no pawns on this rank to pin.
 
         Square epTargetSquare = position.enPassant().readTarget();
-        Notation epTarget(epTargetSquare);
+        byte epTargetFile = toFile(epTargetSquare);
 
         Bitboard resultMask;
-        Notation kingNotation(kingSquare);
-        if (epTarget.file > kingNotation.file) {
+        byte kingFile = toFile(kingSquare);
+        if (epTargetFile > kingFile) {
             do {
                 kingSquareMask = kingSquareMask.shiftEast();
                 resultMask |= kingSquareMask;

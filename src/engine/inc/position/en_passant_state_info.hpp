@@ -1,7 +1,7 @@
 #pragma once
 #include <defines.hpp>
 #include <bitboard/bitboard.hpp>
-#include <core/notation.hpp>
+#include <core/square_notation.hpp>
 
 struct EnPassantStateInfo {
 public:
@@ -46,7 +46,7 @@ public:
     std::string toString() const
     {
         if (*this == true) {
-            return Notation::toString(readSquare());
+            return SquareNotation(readSquare()).toString();
         }
         return "-";
     }

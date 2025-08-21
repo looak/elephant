@@ -34,7 +34,7 @@ struct SearchParameters;
 // #endif
 struct PieceKey {
     ChessPiece Piece;
-    Notation SourceSqr;
+    Square SourceSqr;
 
     bool operator<(const PieceKey& rhs) const
     {

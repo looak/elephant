@@ -123,7 +123,7 @@ UCI::Position(std::list<std::string>& args)
             args.pop_front();
 
             Move move = Move::fromString(moveStr);
-            move.Piece = position.pieceAt(move.SourceSquare.toSquare());
+            move.Piece = position.pieceAt(move.SourceSquare);
 
             if (move.Piece == ChessPiece::None())
             {
@@ -131,11 +131,11 @@ UCI::Position(std::list<std::string>& args)
                 return false;
             }
 
-            move.setCapture(position.pieceAt(move.TargetSquare.toSquare()).isValid());
+            move.setCapture(position.pieceAt(move.TargetSquare).isValid());
 
             if (move.Piece.getType() == PieceType::PAWN && position.enPassant())
             {
-                bool enPassant = position.enPassant().readSquare() == move.TargetSquare.toSquare();
+                bool enPassant = position.enPassant().readSquare() == move.TargetSquare;
                 if (enPassant) {
                     move.setEnPassant(enPassant);
                     move.setCapture(enPassant);

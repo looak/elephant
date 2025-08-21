@@ -17,9 +17,10 @@
 #define MOVE_HEADER
 
 #include <vector>
-#include <material/chess_piece.hpp>
+
 #include <defines.hpp>
-#include <core/notation.hpp>
+#include <core/square_notation.hpp>
+#include <material/chess_piece.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
 
@@ -247,8 +248,8 @@ public:
     [[nodiscard]] std::string toString() const
     {
         std::string ret;
-        ret += Notation(sourceSqr()).toString();
-        ret += Notation(targetSqr()).toString();
+        ret += SquareNotation(sourceSqr()).toString();
+        ret += SquareNotation(targetSqr()).toString();
         if (isPromotion())
             ret += ChessPiece(Set::BLACK, static_cast<PieceType>(readPromoteToPieceType())).toString();
         return ret;
@@ -343,7 +344,7 @@ struct PrioratizedMoveComparator {
 struct Move {
 public:
     Move();
-    Move(Notation source, Notation target);
+    Move(Square source, Square target);
     Move(const Move& other);
     Move(Move&& other);
 
@@ -375,10 +376,10 @@ public:
 
     static Move Invalid() { return Move(); }
 
-    Notation TargetSquare;
-    Notation SourceSquare;
+    Square TargetSquare;
+    Square SourceSquare;
 
-    Notation EnPassantTargetSquare;
+    Square EnPassantTargetSquare;
     byte PrevCastlingState;
 
     ChessPiece Piece;

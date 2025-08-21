@@ -97,14 +97,12 @@ enum class Square : uint8_t {
     NullSQ
 };
 
-// inline std::ostream& operator<<(std::ostream& os, const Square& s) {
-//     // This will print the underlying integer value of the enum.
-//     os << static_cast<std::underlying_type_t<Square>>(s);
-//     return os;
-// }
-
 constexpr byte operator*(Square sqr) {
     return static_cast<byte>(sqr);
+}
+
+constexpr bool operator<(Square lhs, Square rhs) {
+    return static_cast<byte>(lhs) < static_cast<byte>(rhs);
 }
 
 constexpr Square toSquare(byte file, byte rank)  {

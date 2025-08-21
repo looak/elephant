@@ -30,7 +30,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /core/...
     ${ENGINE_INC_DIR}/core/chessboard.hpp
     ${ENGINE_INC_DIR}/core/game_context.hpp
-    ${ENGINE_INC_DIR}/core/notation.hpp
+    ${ENGINE_INC_DIR}/core/square_notation.hpp
     ${ENGINE_INC_DIR}/core/uci.hpp
 
 ## /debug/...
@@ -94,8 +94,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 
 ## /core/...
     ${ENGINE_SRC_DIR}/core/chessboard.cpp
-    ${ENGINE_SRC_DIR}/core/game_context.cpp
-    ${ENGINE_SRC_DIR}/core/notation.cpp
+    ${ENGINE_SRC_DIR}/core/game_context.cpp    
     ${ENGINE_SRC_DIR}/core/uci.cpp
 
 ## /debug/...

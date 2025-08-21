@@ -4,7 +4,7 @@
 #include <bitboard/bitboard.hpp>
 #include <material/chess_piece.hpp>
 #include <debug/log.hpp>
-#include <core/notation.hpp>
+
 #include <position/hash_zobrist.hpp>
 
 Position::Position() :
