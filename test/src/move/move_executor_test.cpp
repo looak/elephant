@@ -20,19 +20,17 @@ namespace ElephantTest {
  * @author Alexander Loodin Ek  */
 class MoveExecutorFixture : public ::testing::Test {
 public:
-    Position testingPosition;
-    GameState gameState;
-    GameHistory gameHistory;
+    GameContext m_game;
 };
 ////////////////////////////////////////////////////////////////
 
 
 TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     
-    // set up    
-    chess_positions::defaultStartingPosition(testingPosition);
-    MoveExecutor executor(testingPosition.edit(), gameState, gameHistory);
-    PositionReader positionReader(testingPosition);
+    // set up
+    chess_positions::defaultStartingPosition(m_game.editChessPosition());
+    MoveExecutor executor(m_game);
+    PositionReader positionReader(m_game.readChessPosition());
 
     PackedMove move(Square::E2, Square::E4);
 

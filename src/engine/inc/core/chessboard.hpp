@@ -46,6 +46,8 @@
     bool whiteToMove = true;  // true if it's white's turn to move
  };
 
+
+ // TODO: Probably just remove chessboard entierly.
 /**
  * @brief The Chessboard class represents a chess board and its current state.  */
 class Chessboard {

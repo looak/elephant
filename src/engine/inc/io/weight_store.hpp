@@ -103,7 +103,7 @@ public:
     virtual void accept(WeightStore& store, const std::string& newValue) override;
 
     i32 operator*(const float& t) {
-        return m_a + (m_b - m_a) * t;
+        return static_cast<i32>(m_a + (m_b - m_a) * t);
     }
 
 private:

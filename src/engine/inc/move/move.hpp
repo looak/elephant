@@ -304,11 +304,15 @@ struct PrioritizedMove {
     void setCheck(bool value) { check = value ? 1 : 0; }
     bool isCheck() const { return check == 1; }
 
+    constexpr operator bool() const { return move.isNull() != true; }
+
     PackedMove move;
     u16 priority : 15;
     u16 check : 1;
 };
 static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
+
+
 
 struct ScoredMove {
     ScoredMove() :
@@ -334,7 +338,7 @@ struct ScoredMove {
     i32 score;
 };
 
-struct PrioratizedMoveComparator {
+struct PrioritizedMoveComparator {
     constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
     {
         return lhs.priority > rhs.priority;

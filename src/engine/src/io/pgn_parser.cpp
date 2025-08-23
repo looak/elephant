@@ -37,7 +37,7 @@ namespace pgn_parser {
         std::string whiteMove = move_pair[0];
         std::string blackMove = move_pair[1];
 
-        MoveExecutor moveExecutor(game.editChessboard().editPosition(), game.editChessboard().editState(), game.editGameHistory());
+        MoveExecutor moveExecutor(game);
         bool blackToMove = false;
 
         do {            

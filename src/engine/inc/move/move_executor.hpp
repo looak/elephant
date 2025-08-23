@@ -18,8 +18,8 @@
 
 /**
  * @file move_executor.hpp
- * @brief Implements move execution logic for a chess game, managing game state and history 
- * 
+ * @brief Implements move execution logic for a chess game, updating game state and history, allows implicit unmakeMove which
+ * can be used to revert the last move made, or multiple moves in a row.
  */
 
 #pragma once
@@ -27,15 +27,17 @@
 #include <position/position_accessors.hpp>
 #include <move/move.hpp>
 
+class GameContext;
 struct GameHistory;
 struct GameState;
 
 class MoveExecutor {
 public:
-    MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory);
+    MoveExecutor(GameContext& context);
 
     template<bool validation = false>
     void makeMove(const PackedMove move);
+    bool unmakeMove();
 
 private:
     MoveUndoUnit internalMakeMove(const std::string& moveString);

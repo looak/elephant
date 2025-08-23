@@ -58,6 +58,9 @@ public:
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }
 
+    PositionReader readChessPosition() const { return m_board.readPosition(); }
+    PositionEditor editChessPosition() { return m_board.editPosition(); }
+
     short readPly() const { return m_board.readPlyCount(); }
     short readMoveCount() const { return m_board.readMoveCount(); }
 

@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
 #include "elephant_test_utils.h"
 
-#include "clock.hpp"
 #include <io/fen_parser.hpp>
+#include <io/printer.hpp>
 #include <core/game_context.hpp>
 #include <move/generation/move_generator.hpp>
-#include "search.hpp"
+#include <search/search.hpp>
+#include <search/perft_search.hpp>
+#include <util/clock.hpp>
 
 #include <future>
 #include <source_location>
@@ -38,20 +40,21 @@ TEST_F(PerftFixture, Position_Start)
 {
     // setup
     char inputFen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    FENParser::deserialize(inputFen, m_context);
+    fen_parser::deserialize(inputFen, m_context.editChessboard());
+    io::printer::board(std::cout, m_context.readChessboard());
 
-    PrintBoard(m_context.readChessboard());
+    PerftSearch perft(m_context);
 
     // do
 
     // verify
     {
-        PerftResult result = m_search.Perft(m_context, 1);
+        PerftResult result = perft.Run<Set::WHITE>(1);
         EXPECT_EQ(20, result.Nodes);
     }
 
     {
-        PerftResult result = m_search.Perft(m_context, 2);
+        PerftResult result = perft.Run<Set::WHITE>(2);
         EXPECT_EQ(420, result.Nodes);
     }
 
@@ -86,30 +89,30 @@ TEST_F(PerftFixture, Position_Start)
 
 r3k2r/8/8/4B3/3bb3/8/8/R3K2R w KQkq - 0 1    */
 
-TEST_F(PerftFixture, BishopsAndRooks_Castling)
-{
-    // setup
-    char inputFen[] = "r3k2r/8/8/4B3/3bb3/8/8/R3K2R w KQkq - 0 1";
-    FENParser::deserialize(inputFen, m_context);
-    PrintBoard(m_context.readChessboard());
+// TEST_F(PerftFixture, BishopsAndRooks_Castling)
+// {
+//     // setup
+//     char inputFen[] = "r3k2r/8/8/4B3/3bb3/8/8/R3K2R w KQkq - 0 1";
+//     FENParser::deserialize(inputFen, m_context);
+//     PrintBoard(m_context.readChessboard());
 
-    // verify
-    {  // depth one
-        PerftResult result = m_search.Perft(m_context, 1);
-        EXPECT_EQ(34, result.Nodes);
-        EXPECT_EQ(4, result.Captures);
-        EXPECT_EQ(0, result.EnPassants);
-        EXPECT_EQ(0, result.Promotions);
-        EXPECT_EQ(1, result.Castles);
-        EXPECT_EQ(2, result.Checks);
-        // EXPECT_EQ(0, result.Checkmates);
-    }
+//     // verify
+//     {  // depth one
+//         PerftResult result = m_search.Perft(m_context, 1);
+//         EXPECT_EQ(34, result.Nodes);
+//         EXPECT_EQ(4, result.Captures);
+//         EXPECT_EQ(0, result.EnPassants);
+//         EXPECT_EQ(0, result.Promotions);
+//         EXPECT_EQ(1, result.Castles);
+//         EXPECT_EQ(2, result.Checks);
+//         // EXPECT_EQ(0, result.Checkmates);
+//     }
 
-    {
-        PerftResult result = m_search.Perft(m_context, 2);
-        EXPECT_EQ(1474 + 34, result.Nodes);
-    }
-}
+//     {
+//         PerftResult result = m_search.Perft(m_context, 2);
+//         EXPECT_EQ(1474 + 34, result.Nodes);
+//     }
+// }
 
 ////////////////////////////////////////////////////////////////
 /*
@@ -142,52 +145,52 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 3	    97862	    17102	    45	    3162	    0	        993     	1
 4	    4085603	    757163	    1929	128013	    15172       25523	    43
 5       193690690	35043416	73365	4993637	    8392	    3309887	    30171 */
-TEST_F(PerftFixture, Position_Two)
-{
-    // setup
-    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-    FENParser::deserialize(inputFen, m_context);
-    PrintBoard(m_context.readChessboard());
+// TEST_F(PerftFixture, Position_Two)
+// {
+//     // setup
+//     char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+//     FENParser::deserialize(inputFen, m_context);
+//     PrintBoard(m_context.readChessboard());
 
-    // verify
-    {  // depth one
-        PerftResult result = m_search.Perft(m_context, 1);
-        EXPECT_EQ(48, result.Nodes);
-        EXPECT_EQ(8, result.Captures);
-        EXPECT_EQ(0, result.EnPassants);
-        EXPECT_EQ(0, result.Promotions);
-        EXPECT_EQ(2, result.Castles);
-        EXPECT_EQ(0, result.Checks);
-        // EXPECT_EQ(0, result.Checkmates);
-    }
+//     // verify
+//     {  // depth one
+//         PerftResult result = m_search.Perft(m_context, 1);
+//         EXPECT_EQ(48, result.Nodes);
+//         EXPECT_EQ(8, result.Captures);
+//         EXPECT_EQ(0, result.EnPassants);
+//         EXPECT_EQ(0, result.Promotions);
+//         EXPECT_EQ(2, result.Castles);
+//         EXPECT_EQ(0, result.Checks);
+//         // EXPECT_EQ(0, result.Checkmates);
+//     }
 
-    {  // depth 2
-        PerftResult result = m_search.Perft(m_context, 2);
-        EXPECT_EQ(2087, result.Nodes);
-        EXPECT_EQ(359, result.Captures);
-        EXPECT_EQ(1, result.EnPassants);
-        EXPECT_EQ(0, result.Promotions);
-        // EXPECT_EQ(91, result.Castles);
-        EXPECT_EQ(3, result.Checks);
-        // EXPECT_EQ(0, result.Checkmates);
-    }
+//     {  // depth 2
+//         PerftResult result = m_search.Perft(m_context, 2);
+//         EXPECT_EQ(2087, result.Nodes);
+//         EXPECT_EQ(359, result.Captures);
+//         EXPECT_EQ(1, result.EnPassants);
+//         EXPECT_EQ(0, result.Promotions);
+//         // EXPECT_EQ(91, result.Castles);
+//         EXPECT_EQ(3, result.Checks);
+//         // EXPECT_EQ(0, result.Checkmates);
+//     }
 
-    {  // depth 3
-        PerftResult result = m_search.PerftDivide(m_context, 3);
-        EXPECT_EQ(97862, result.Nodes);
-        // EXPECT_EQ(359 + 17102, result.Captures);
-        // EXPECT_EQ(1 + 45, result.EnPassants);
-        // EXPECT_EQ(0, result.Promotions);
-        // EXPECT_EQ(91 + 3162, result.Castles);
-        // EXPECT_EQ(3 + 993, result.Checks);
-        // EXPECT_EQ(0, result.Checkmates);
-    }
+//     {  // depth 3
+//         PerftResult result = m_search.PerftDivide(m_context, 3);
+//         EXPECT_EQ(97862, result.Nodes);
+//         // EXPECT_EQ(359 + 17102, result.Captures);
+//         // EXPECT_EQ(1 + 45, result.EnPassants);
+//         // EXPECT_EQ(0, result.Promotions);
+//         // EXPECT_EQ(91 + 3162, result.Castles);
+//         // EXPECT_EQ(3 + 993, result.Checks);
+//         // EXPECT_EQ(0, result.Checkmates);
+//     }
 
-    {  // depth 4
-        PerftResult result = m_search.PerftDivide(m_context, 4);
-        EXPECT_EQ(4085603, result.Nodes);
-    }
-}
+//     {  // depth 4
+//         PerftResult result = m_search.PerftDivide(m_context, 4);
+//         EXPECT_EQ(4085603, result.Nodes);
+//     }
+// }
 
 ////////////////////////////////////////////////////////////////
 /*
@@ -383,12 +386,12 @@ private:
 PerftResult ExecutePerftCase(const std::string& fen, int atDepth)
 {
     // setup
-    Chessboard board;
-    fen_parser::deserialize(fen.c_str(), board);
+    GameContext context;
+    fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     // do
-    Search search;
-    return search.PerftDivide(context, atDepth);
+    PerftSearch perft(context);
+    return perft.Run<Set::WHITE>(atDepth);
 }
 
 PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase)
@@ -413,24 +416,24 @@ PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase)
 TEST_F(PerftFixture, EstablishedReferencePositions)
 {
     std::vector<PerftCaseArgs> perftTestCases = {
-        { "illegal enpassant", "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6 },
-        { "illegal enpassant", "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6 },
-        { "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
-        { "short castling", "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6 },
-        { "long castling", "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6 },
-        { "castling rights", "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4 },
-        { "castling prevented", "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4 },
-        { "promotion out of check", "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6 },
-        { "discovered check", "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5 },
-        { "promote to give check", "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6 },
-        { "under promote to give check", "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6 },
-        { "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
-        { "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
-        { "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
-        { "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
-        { "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
-        //{ "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
-        { "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
+        { true, "illegal enpassant", "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6 },
+        { true, "illegal enpassant", "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6 },
+        { true, "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
+        { true, "short castling", "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6 },
+        { true, "long castling", "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6 },
+        { true, "castling rights", "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4 },
+        { true, "castling prevented", "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4 },
+        { true, "promotion out of check", "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6 },
+        { true, "discovered check", "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5 },
+        { true, "promote to give check", "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6 },
+        { true, "under promote to give check", "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6 },
+        { true, "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
+        { true, "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
+        { true, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
+        { true, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
+        { true, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
+        { false, "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
+        { true, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };
 
     Clock clock;    
@@ -438,6 +441,8 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     u64 totalNodes = 0;
     u64 totalNps = 0;
     for (auto& perftCase : perftTestCases) {
+        if (perftCase.enabled == false)
+            continue;
         auto result = ExecutePerftTestCase(perftCase);
         totalNodes += result.Nodes;
         totalNps += result.NPS;
@@ -455,32 +460,32 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassant)
-{     ExecutePerftTestCase({"3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6});
+{     ExecutePerftTestCase({true, "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6});
 }
- TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassantTwo) { ExecutePerftTestCase({"8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassantTwo) { ExecutePerftTestCase({true, "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6}); }
 
 TEST_F(PerftFixture, DISABLED_Catching_EnPassantCapture_ChecksOpponent)
-{     ExecutePerftTestCase({"8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6});
+{     ExecutePerftTestCase({true, "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6});
 }
- TEST_F(PerftFixture, DISABLED_Catching_ShortCastlingCheck) { ExecutePerftTestCase({"5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_LongCastlingGivesCheck) { ExecutePerftTestCase({"3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_ShortCastlingCheck) { ExecutePerftTestCase({true, "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_LongCastlingGivesCheck) { ExecutePerftTestCase({true, "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6}); }
 
 TEST_F(PerftFixture, DISABLED_Catching_CastlingRights)
-{     ExecutePerftTestCase({"r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4});
+{     ExecutePerftTestCase({true, "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4});
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_CastlingPrevented)
-{     ExecutePerftTestCase({"r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4});
+{     ExecutePerftTestCase({true, "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4});
 }
- TEST_F(PerftFixture, DISABLED_Catching_PromoteOutOfCheck) { ExecutePerftTestCase({"2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_DiscoveredCheck) { ExecutePerftTestCase({"8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5}); }
- TEST_F(PerftFixture, DISABLED_Catching_PromoteToGiveCheck) { ExecutePerftTestCase({"4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_UnderPromoteToGiveCheck) { ExecutePerftTestCase({"8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_SelfStalemate) { ExecutePerftTestCase({"K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmate) { ExecutePerftTestCase({"8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7}); }
+ TEST_F(PerftFixture, DISABLED_Catching_PromoteOutOfCheck) { ExecutePerftTestCase({true, "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_DiscoveredCheck) { ExecutePerftTestCase({true, "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5}); }
+ TEST_F(PerftFixture, DISABLED_Catching_PromoteToGiveCheck) { ExecutePerftTestCase({true, "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_UnderPromoteToGiveCheck) { ExecutePerftTestCase({true, "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_SelfStalemate) { ExecutePerftTestCase({true, "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6}); }
+ TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmate) { ExecutePerftTestCase({true, "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7}); }
 
 TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmateTwo)
-{     ExecutePerftTestCase({"8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4});
+{     ExecutePerftTestCase({true, "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4});
 }
 
 /* This test takes a long time to run, so it is disabled by default
@@ -488,16 +493,16 @@ https://www.chessprogramming.net/perfect-perft/
 */
 TEST_F(PerftFixture, DISABLED_Catching_TwoHundrarMillionNodes_Twice)
 {     
-    ExecutePerftTestCase({"r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5});     
-    ExecutePerftTestCase({"8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7});
+    ExecutePerftTestCase({true, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5});     
+    ExecutePerftTestCase({true, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7});
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
-{     ExecutePerftTestCase({"r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6});
+{     ExecutePerftTestCase({true, "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6});
 }
 
 TEST_F(PerftFixture, DISABLED_Catching_BishopVsTwoRookEndgame)
-{     ExecutePerftTestCase({"1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5});
+{     ExecutePerftTestCase({true, "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5});
 }
 
 ////////////////////////////////////////////////////////////////

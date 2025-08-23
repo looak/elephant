@@ -22,6 +22,7 @@
 // to string. We don't want to allow building Squares out of Notations since Notations are unsafe.
 
 struct SquareNotation {
+    SquareNotation() = default;
     constexpr SquareNotation(Square _sqr) :
         m_file(0xF),
         m_rank(0xF),
@@ -44,6 +45,23 @@ struct SquareNotation {
     constexpr byte rank() const { return m_rank; }
     constexpr Square toSquare() const { return m_sqr; }
     constexpr inline byte index() const { return *m_sqr; }
+
+    constexpr inline bool operator==(const SquareNotation& other) const {
+        return m_sqr == other.m_sqr;
+    }
+
+    constexpr inline bool operator==(const Square& other) const {
+        return m_sqr == other;
+    }
+
+    constexpr SquareNotation& operator=(const SquareNotation& other) {
+        if (this != &other) {
+            m_file = other.m_file;
+            m_rank = other.m_rank;
+            m_sqr = other.m_sqr;
+        }
+        return *this;
+    }
 
     std::string toString() const {
         char buffer[4];
