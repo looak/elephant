@@ -5,15 +5,21 @@
 #include <core/square_notation.hpp>
 #include <position/hash_zobrist.hpp>
 
-MoveExecutor::MoveExecutor(PositionProxy<PositionEditPolicy> position, GameState& gameState, GameHistory& gameHistory) :
-    m_position(position),
-    m_gameStateRef(gameState),
-    m_gameHistoryRef(gameHistory)
+MoveExecutor::MoveExecutor(GameContext& context) :
+    m_position(context.editChessboard().editPosition()),
+    m_gameStateRef(context.editChessboard().editState()),
+    m_gameHistoryRef(context.editGameHistory())
 {}
 
 template<bool validation>
 void MoveExecutor::makeMove(const PackedMove move)
 {
+    if constexpr (validation) {
+        if (move.isNull()) {
+            LOG_ERROR() << "Trying to make a null move.";
+            return;  // early exit if the move is null
+        }
+    }
     MoveUndoUnit& undoUnit = m_gameHistoryRef.moveUndoUnits.emplace_back();
     undoUnit.move = move;
     undoUnit.hash = m_position.hash();
@@ -280,4 +286,68 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
     }
 
     FATAL_ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
+}
+
+bool MoveExecutor::unmakeMove()
+{
+    if (m_gameHistoryRef.moveUndoUnits.empty()) return false;
+
+    MoveUndoUnit undoState = m_gameHistoryRef.moveUndoUnits.back();
+    m_gameHistoryRef.moveUndoUnits.pop_back();
+
+    const Square srcSqr = undoState.move.sourceSqr();
+    const Square trgSqr = undoState.move.targetSqr();
+    //const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
+    const ChessPiece movedPiece = undoState.movedPiece;
+
+    // idea here is to store the piece to place back on the board in this variable,
+    // if we're dealing with a promotion this will be a pawn of the correct set.
+    // otherwise it will be the same piece as movedPiece.
+    const ChessPiece promotedPiece =
+        undoState.move.isPromotion() ? ChessPiece(movedPiece.getSet(), PieceType::PAWN) : movedPiece;
+
+    // unmake move
+    m_position.placePiece(promotedPiece, srcSqr);
+    m_position.clearPiece(trgSqr);
+
+    if (undoState.move.isCapture()) {
+        if (undoState.move.isEnPassant()) {
+            m_position.placePiece(undoState.capturedPiece, undoState.enPassantState.readTarget());
+        }
+        else {
+            m_position.placePiece(undoState.capturedPiece, trgSqr);
+        }
+    }
+    else if (undoState.move.isCastling()) {
+        // we're unmaking a castling move, we need to move the rook back to it's original position.
+        // simply done by moving the rook with internal move from notations generated with the king move.
+        // king would have been moved back by regular undo move code.
+        SquareNotation rookSource;
+        SquareNotation rookTarget;
+        SquareNotation target(trgSqr);
+        if (target.file() == file_c)  // queen side
+        {
+            rookSource = SquareNotation(file_a, target.rank());
+            rookTarget = SquareNotation(file_d, target.rank());
+        }
+        else  // king side
+        {
+            rookSource = SquareNotation(file_h, target.rank());
+            rookTarget = SquareNotation(file_f, target.rank());
+        }
+        ChessPiece rook(movedPiece.getSet(), PieceType::ROOK);
+        auto editor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
+        internalMakeMove(rook, rookTarget.toSquare(), rookSource.toSquare(), editor);
+    }
+
+    m_position.enPassant().write(undoState.enPassantState.read());  // restore enpassant state
+    m_position.castling().write(undoState.castlingState.read());    // restore castling state
+
+    m_position.hash() = undoState.hash;  // this should be calculated and not just overwritten?
+    m_gameStateRef.moveCount -= (short)m_gameStateRef.whiteToMove;
+    m_gameStateRef.whiteToMove = !m_gameStateRef.whiteToMove;
+    m_gameStateRef.plyCount = undoState.plyCount;
+    m_gameHistoryRef.age--;
+
+    return true;
 }

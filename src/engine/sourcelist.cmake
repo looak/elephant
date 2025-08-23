@@ -75,6 +75,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/position/position_proxy.hpp
 
 ## /search/...
+    ${ENGINE_INC_DIR}/search/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
     ${ENGINE_INC_DIR}/search/search_constants.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp
@@ -130,6 +131,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/position/position_proxy.cpp
 
 ## /search/...
+    ${ENGINE_SRC_DIR}/search/perft_search.cpp
     ${ENGINE_SRC_DIR}/search/search.cpp
 
 ## /util/...

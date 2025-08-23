@@ -32,16 +32,14 @@ PrioritizedMove MoveGenerator<us>::generateNextMove() {
     if (m_movesGenerated)
         return { PackedMove::NullMove(), 0 };
 
-    // generateNextMove<us>();
-
-    return { PackedMove::NullMove(), 0 };
+    return internalGenerateMoves();
 }
 
 template PrioritizedMove MoveGenerator<Set::WHITE>::generateNextMove();
 template PrioritizedMove MoveGenerator<Set::BLACK>::generateNextMove();
 
 template<Set us>
-void MoveGenerator<us>::internalGenerateMoves() {
+PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
     const size_t usIndx = static_cast<size_t>(us);
     if (m_position.material().combine<us>().empty()) {
         // TODO: This should never happen, there will always be a king?
@@ -64,16 +62,23 @@ void MoveGenerator<us>::internalGenerateMoves() {
             internalGenerateKingMoves(bulkMoveGen);
         }
 
-        // sortMoves();
+        sortMoves();
+        m_movesGenerated = true;
     }
+
+    if (m_currentMoveIndx < m_moveCount) {
+        return m_movesBuffer[m_currentMoveIndx++];
+    }
+
+    return { PackedMove::NullMove(), 0 };
 }
 
-template void MoveGenerator<Set::WHITE>::internalGenerateMoves();
-template void MoveGenerator<Set::BLACK>::internalGenerateMoves();
+template PrioritizedMove MoveGenerator<Set::WHITE>::internalGenerateMoves();
+template PrioritizedMove MoveGenerator<Set::BLACK>::internalGenerateMoves();
 
 
-// template<Set us>
-// void MoveGenerator<us>::sortMoves() {
+template<Set us>
+void MoveGenerator<us>::sortMoves() {
     // if (m_tt != nullptr) {
     //     PackedMove pv = m_tt->probe(m_hashKey);
     //     if (pv != PackedMove::NullMove()) {
@@ -97,18 +102,9 @@ template void MoveGenerator<Set::BLACK>::internalGenerateMoves();
     //     }
     // }
 
-    // PrioratizedMoveComparator comparator;
-    // std::sort(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, comparator);
-//}
-
-// void MoveGenerator<us>::forEachMove(std::function<void(const PrioritizedMove&)> callback) const {
-//     if (m_movesGenerated == false)
-//         LOG_ERROR() << "Moves have not been generated yet.";
-
-//     for (uint16_t i = 0; i < m_moveCount; i++) {
-//         callback(m_movesBuffer[i]);
-//     }
-// }
+    PrioritizedMoveComparator comparator;
+    std::sort(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, comparator);
+}
 
 template<Set us>
 void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr)

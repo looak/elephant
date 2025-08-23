@@ -51,8 +51,15 @@ GameContext::GameOver() const
 void
 GameContext::MakeMove(const PackedMove move)
 {
-    MoveExecutor executor(m_board.editPosition(), m_board.editState(), m_history);
+    MoveExecutor executor(*this);
     executor.makeMove<false>(move);
+}
+
+bool
+GameContext::UnmakeMove()
+{
+
+    return false;    
 }
 
 bool

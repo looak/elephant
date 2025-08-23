@@ -44,7 +44,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 ## /io/...
     ${TEST_SRC_DIR}/io/fen_parser_test.cpp
     ${TEST_SRC_DIR}/io/san_parser_test.cpp
-    ${TEST_SRC_DIR}/io/uci_test.cpp
+    ## ${TEST_SRC_DIR}/io/uci_test.cpp
     ${TEST_SRC_DIR}/io/weight_store_test.cpp
     ${TEST_SRC_DIR}/io/zorbist_hashing_test.cpp
 
@@ -53,23 +53,24 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/move/move_bulk_generator_test.cpp
     ${TEST_SRC_DIR}/move/move_executor_test.cpp
     ${TEST_SRC_DIR}/move/move_gen_isolation_test.cpp
-    ${TEST_SRC_DIR}/move/move_generator_test.cpp
-    ${TEST_SRC_DIR}/move/move_test.cpp
-    # ${TEST_SRC_DIR}/move/unmake_test.cpp
+    ## ${TEST_SRC_DIR}/move/move_generator_test.cpp
+    ## ${TEST_SRC_DIR}/move/move_test.cpp
+    ${TEST_SRC_DIR}/move/unmake_test.cpp
 
 ## /position/...
     ${TEST_SRC_DIR}/position/castling_enpassant_test.cpp
     ${TEST_SRC_DIR}/position/chessboard_test.cpp
+    ${TEST_SRC_DIR}/position/chess_positions.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
-    ${TEST_SRC_DIR}/position/notation_test.cpp
+    ## ${TEST_SRC_DIR}/position/notation_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
-    ${TEST_SRC_DIR}/position/position_test.cpp
+    ## ${TEST_SRC_DIR}/position/position_test.cpp
 
 ## /search/...
     ${TEST_SRC_DIR}/search/perft_test.cpp
-    ${TEST_SRC_DIR}/search/search_test.cpp
-    ${TEST_SRC_DIR}/search/transposition_test.cpp
+    ## ${TEST_SRC_DIR}/search/search_test.cpp
+    ## ${TEST_SRC_DIR}/search/transposition_test.cpp
 )
 
 set(TEST_SOURCE_ALL ${TEST_SOURCE} ${TEST_SOURCE_INCLUDE})

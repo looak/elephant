@@ -13,6 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
+#pragma once
 
 #include <functional>
 #include <map>
@@ -82,35 +83,11 @@ struct SearchContext {
     CancelSearchCondition& cancel;
 };
 
-struct PerftResult {
-    u64 Nodes = 0;
-    u64 NPS = 0;
-    u64 Captures = 0;
-    u64 EnPassants = 0;
-    u64 Castles = 0;
-    u64 Promotions = 0;
-    u64 Checks = 0;
-    u64 Checkmates = 0;
-    u64 Depth = 0;
 
-    void operator+=(const PerftResult& rhs)
-    {
-        this->Nodes += rhs.Nodes;
-        this->Captures += rhs.Captures;
-        this->EnPassants += rhs.EnPassants;
-        this->Castles += rhs.Castles;
-        this->Promotions += rhs.Promotions;
-        this->Checks += rhs.Checks;
-        this->Checkmates += rhs.Checkmates;
-        this->Depth += rhs.Depth;
-    }
-};
 
 class Search {
 public:
     Search() { clear(); }
-    PerftResult Perft(GameContext& context, int depth);
-    PerftResult PerftDivide(GameContext& context, int depth);
     u64 Bench(GameContext& context, u32 depth);
 
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);

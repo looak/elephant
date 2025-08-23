@@ -15,9 +15,6 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
 
-#include <array>
-#include <queue>
-#include <functional>
 #include <move/generation/king_pin_threats.hpp>
 #include <move/generation/move_bulk_generator.hpp>
 #include <move/generation/move_gen_isolation.hpp>
@@ -44,7 +41,7 @@ constexpr u16 killerMovePriority = 800;
 template<Set _us>
 class MoveGenerator {
 public:
-    explicit MoveGenerator(PositionReader position, const MoveGenParams& params);
+    explicit MoveGenerator(PositionReader position, const MoveGenParams& params = {});
 
     PrioritizedMove generateNextMove();
 
@@ -60,7 +57,7 @@ private:
     };
 
     KingPinThreats<_us> computeKingPinThreats();
-    void internalGenerateMoves();
+    PrioritizedMove internalGenerateMoves();
    
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
     void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
@@ -70,16 +67,15 @@ private:
 
     void buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture);
 
+    void sortMoves();
+
     std::array<PrioritizedMove, 256> m_movesBuffer; // 1kb
+    
+    KingPinThreats<_us> m_pinThreats;
+    PositionProxy<PositionReadOnlyPolicy> m_position;
+    
     u32 m_currentMoveIndx;
     u32 m_moveCount;
-    
-    PositionProxy<PositionReadOnlyPolicy> m_position;
-    const MoveOrderingView* m_ordering;
-    Stage m_stage;
-
-    KingPinThreats<_us> m_pinThreats;
-
     bool m_movesGenerated;
 };
 

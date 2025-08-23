@@ -19,7 +19,7 @@
 /**
  * @file king_pin_threats.hpp
  * @brief Implements functionality to assess king pin threats and check conditions in a chess game 
- * 
+ * ~14 bytes
  */
 
 #pragma once
