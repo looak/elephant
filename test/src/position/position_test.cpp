@@ -128,39 +128,6 @@ TEST_F(PositionFixture, Bishop_IsolatingPiece_OnlyOneBishopLeftInTheMask)
     }
 }
 
-// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
-// 7 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
-// 6 [ x ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
-// 5 [ . ][ x ][ . ][ x ][ . ][ . ][ . ][ x ]
-// 4 [ . ][ . ][ b ][ . ][ . ][ . ][ x ][ . ]
-// 3 [ . ][ x ][ . ][ x ][ . ][ x ][ . ][ . ]
-// 2 [ x ][ . ][ . ][ . ][ b ][ . ][ . ][ . ]
-// 1 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ . ]
-//     A    B    C    D    E    F    G    H
-TEST_F(PositionFixture, Bishop_IsolatingPiece_BishopsOnSameDiagonal)
-{
-    Position board;
-    board.PlacePiece(BLACKBISHOP, c4.toSquare());
-    board.PlacePiece(BLACKBISHOP, e2.toSquare());
-
-    u64 expected = 0x4020118a402a0128ull;
-    KingPinThreats empty{};
-    u64 movesbb = board.calcAvailableMovesBishopBulk<Set::BLACK>(empty).read();
-    EXPECT_EQ(expected, movesbb);
-
-    {
-        expected = 0x4020110a000a0100ull;
-        auto [moves, attks] = board.isolatePiece<Set::BLACK, bishopId>(c4, movesbb, empty);
-        EXPECT_EQ(expected, moves.read());
-    }
-
-    {
-        expected = 0x8040280028ull;
-        auto [moves, attks] = board.isolatePiece<Set::BLACK, bishopId>(e2, movesbb, empty);
-        EXPECT_EQ(expected, moves.read());
-    }
-}
-
 // 8 [ R ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
 // 7 [ . ][ b ][ . ][ . ][ . ][ . ][ . ][ . ]
 // 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]

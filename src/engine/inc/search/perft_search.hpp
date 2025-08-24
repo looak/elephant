@@ -44,6 +44,7 @@ struct PerftResult {
     u64 Checks = 0;
     u64 Checkmates = 0;
     u64 Depth = 0;
+    bool Passed = false;
 
     void operator+=(const PerftResult& rhs)
     {
