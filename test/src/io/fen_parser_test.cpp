@@ -72,6 +72,9 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 
     Chessboard expected;
     chess_positions::nepomniachtchiResignsGameSix(expected.editPosition());
+    expected.editState().moveCount = 136;
+    expected.editState().plyCount = 2;
+    expected.editState().whiteToMove = false;
 
     auto&& expitr = expected.readPosition().begin();
     auto&& resitr = resultBoard.readPosition().begin();

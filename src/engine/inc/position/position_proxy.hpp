@@ -101,12 +101,7 @@ public:
     MutableImplicitPieceSquare operator[](Square sqr) 
     {
         if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
-            // NOTE: Might need a safe guard here to ensure that the square is set after returning the proxy.
-            // otherwise we might end up removinga piece and not setting a new one, which I'm not sure is what we want.
-            auto piece = pieceAt(sqr);
-            LOG_WARNING() << "Overwriting piece at square " << SquareNotation(sqr).toString();
-            clearPiece(sqr);  // clear the piece at the square
-            return MutableImplicitPieceSquare(m_position.m_materialMask, sqr);
+            return MutableImplicitPieceSquare(m_position.m_hash, m_position.m_materialMask, sqr);
         }
         else {
             static_assert(false, "Cannot call and modify position with operator[] on a position with a read-only policy.");

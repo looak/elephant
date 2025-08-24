@@ -42,7 +42,7 @@
     }
 
     u16 plyCount = 0;  // number of half moves made
-    u16 moveCount = 0;  // number of full moves made
+    u16 moveCount = 1;  // number of full moves made
     bool whiteToMove = true;  // true if it's white's turn to move
  };
 

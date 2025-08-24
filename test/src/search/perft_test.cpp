@@ -59,8 +59,8 @@ TEST_F(PerftFixture, Position_Start)
     }
 
     {
-        // PerftResult result = m_search.Perft(m_context, 3);
-        // EXPECT_EQ(9322, result.Nodes);
+        PerftResult result = perft.Run<Set::WHITE>(3);
+        EXPECT_EQ(9322, result.Nodes);
     }
 
     // {
@@ -145,52 +145,48 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 3	    97862	    17102	    45	    3162	    0	        993     	1
 4	    4085603	    757163	    1929	128013	    15172       25523	    43
 5       193690690	35043416	73365	4993637	    8392	    3309887	    30171 */
-// TEST_F(PerftFixture, Position_Two)
-// {
-//     // setup
-//     char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-//     FENParser::deserialize(inputFen, m_context);
-//     PrintBoard(m_context.readChessboard());
+TEST_F(PerftFixture, Position_Two)
+{
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    fen_parser::deserialize(inputFen, m_context.editChessboard());
+    io::printer::board(std::cout, m_context.readChessboard());
+    PerftSearch perft(m_context);
 
-//     // verify
-//     {  // depth one
-//         PerftResult result = m_search.Perft(m_context, 1);
-//         EXPECT_EQ(48, result.Nodes);
-//         EXPECT_EQ(8, result.Captures);
-//         EXPECT_EQ(0, result.EnPassants);
-//         EXPECT_EQ(0, result.Promotions);
-//         EXPECT_EQ(2, result.Castles);
-//         EXPECT_EQ(0, result.Checks);
-//         // EXPECT_EQ(0, result.Checkmates);
-//     }
+    // verify
+    {  // depth one
+        PerftResult result = perft.Run<Set::WHITE>(1);
+        EXPECT_EQ(48, result.Nodes);
+        EXPECT_EQ(8, result.Captures);
+        EXPECT_EQ(0, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(2, result.Castles);
+        EXPECT_EQ(0, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
 
-//     {  // depth 2
-//         PerftResult result = m_search.Perft(m_context, 2);
-//         EXPECT_EQ(2087, result.Nodes);
-//         EXPECT_EQ(359, result.Captures);
-//         EXPECT_EQ(1, result.EnPassants);
-//         EXPECT_EQ(0, result.Promotions);
-//         // EXPECT_EQ(91, result.Castles);
-//         EXPECT_EQ(3, result.Checks);
-//         // EXPECT_EQ(0, result.Checkmates);
-//     }
+    {  // depth 2
+        PerftResult result = perft.Run<Set::WHITE>(2);
+        EXPECT_EQ(2087, result.Nodes);
+        EXPECT_EQ(359, result.Captures);
+        EXPECT_EQ(1, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(91, result.Castles);
+        EXPECT_EQ(3, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
 
-//     {  // depth 3
-//         PerftResult result = m_search.PerftDivide(m_context, 3);
-//         EXPECT_EQ(97862, result.Nodes);
-//         // EXPECT_EQ(359 + 17102, result.Captures);
-//         // EXPECT_EQ(1 + 45, result.EnPassants);
-//         // EXPECT_EQ(0, result.Promotions);
-//         // EXPECT_EQ(91 + 3162, result.Castles);
-//         // EXPECT_EQ(3 + 993, result.Checks);
-//         // EXPECT_EQ(0, result.Checkmates);
-//     }
-
-//     {  // depth 4
-//         PerftResult result = m_search.PerftDivide(m_context, 4);
-//         EXPECT_EQ(4085603, result.Nodes);
-//     }
-// }
+    {  // depth 3
+        PerftResult result = perft.Run<Set::WHITE>(3);
+        EXPECT_EQ(97862, result.Nodes);
+        EXPECT_EQ(359 + 17102, result.Captures);
+        EXPECT_EQ(1 + 45, result.EnPassants);
+        EXPECT_EQ(0, result.Promotions);
+        EXPECT_EQ(91 + 3162, result.Castles);
+        EXPECT_EQ(3 + 993, result.Checks);
+        // EXPECT_EQ(0, result.Checkmates);
+    }
+}
 
 ////////////////////////////////////////////////////////////////
 /*
@@ -396,6 +392,12 @@ PerftResult ExecutePerftCase(const std::string& fen, int atDepth)
 
 PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase)
 {
+    if (!perftCase.enabled) {
+        LOG_INFO() << "Test Disabled: " << perftCase.testId;
+        LOG_INFO() << "---------------------------------";
+        return {};
+    }
+
     Clock caseClock;
     caseClock.Start();
 
@@ -407,9 +409,12 @@ PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase)
     LOG_INFO() << " [ RESULTS ] Nodes: - - - - - - - " << result.Nodes << " nodes";
     LOG_INFO() << " [ RESULTS ] Nodes per second: - - " << result.NPS << " nps";
     LOG_INFO() << " [ RESULTS ] Elapsed time: - - - - " << caseClock.getElapsedTime() << " ms";
-    LOG_INFO() << "---------------------------------";
+    if (perftCase.expectedNodeCount == result.Nodes)
+        LOG_INFO() << " [ RESULTS ] Test passed!";
+    else
+        LOG_INFO() << " [ RESULTS ] Test failed! Expected: " << perftCase.expectedNodeCount << ", Got: " << result.Nodes;
 
-    EXPECT_EQ(perftCase.expectedNodeCount, result.Nodes);    
+    LOG_INFO() << "---------------------------------";    
     return result;
 }
 
@@ -430,8 +435,10 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
         { true, "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
         { true, "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
         { true, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
-        { true, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
-        { true, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
+        /*  This test takes a long time to run, so it is disabled by default
+            https://www.chessprogramming.net/perfect-perft/ */
+        { false, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
+        { false, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
         { false, "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
         { true, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };
@@ -440,69 +447,35 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     clock.Start();
     u64 totalNodes = 0;
     u64 totalNps = 0;
+    bool testsPassed = true;
+    std::vector<std::tuple<PerftResult, PerftCaseArgs>> results;
     for (auto& perftCase : perftTestCases) {
-        if (perftCase.enabled == false)
-            continue;
         auto result = ExecutePerftTestCase(perftCase);
         totalNodes += result.Nodes;
         totalNps += result.NPS;
+        results.push_back({ result, perftCase });
+        testsPassed &= result.Passed;
+    }
+    clock.Stop();
+
+    for (const auto& [result, perftCase] : results) {
+        if (result.Passed)
+            LOG_INFO() << " [  PASSED ] Test: " << perftCase.testId << " \tNodes: " << result.Nodes << " / " << perftCase.expectedNodeCount;
+        else
+            LOG_INFO() << " [  FAILED ] Test: " << perftCase.testId << " \tNodes: " << result.Nodes << " / " << perftCase.expectedNodeCount;
     }
 
-    clock.Stop();
     u64 nps = clock.calcNodesPerSecond(totalNodes);
     i64 elapsedTime = clock.getElapsedTime();
+    LOG_INFO() << "---------------------------------";
     LOG_INFO() << " [ AGGREGATE RESULTS ]";
     LOG_INFO() << " [ RESULTS ] Total nodes:  - - - - - - - " << totalNodes << " nodes";
     LOG_INFO() << " [ RESULTS ] Total elapsed time: - - - - " << elapsedTime << " ms";
     LOG_INFO() << " [ RESULTS ] Total nodes per second: - - " << nps << " nps";
     LOG_INFO() << " [ RESULTS ] Average nodes per second: - " << totalNps / perftTestCases.size() << " nps";
     LOG_INFO() << "---------------------------------";
-}
 
-TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassant)
-{     ExecutePerftTestCase({true, "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6});
-}
- TEST_F(PerftFixture, DISABLED_Catching_IllegalEnPassantTwo) { ExecutePerftTestCase({true, "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6}); }
-
-TEST_F(PerftFixture, DISABLED_Catching_EnPassantCapture_ChecksOpponent)
-{     ExecutePerftTestCase({true, "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6});
-}
- TEST_F(PerftFixture, DISABLED_Catching_ShortCastlingCheck) { ExecutePerftTestCase({true, "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_LongCastlingGivesCheck) { ExecutePerftTestCase({true, "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6}); }
-
-TEST_F(PerftFixture, DISABLED_Catching_CastlingRights)
-{     ExecutePerftTestCase({true, "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4});
-}
-
-TEST_F(PerftFixture, DISABLED_Catching_CastlingPrevented)
-{     ExecutePerftTestCase({true, "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4});
-}
- TEST_F(PerftFixture, DISABLED_Catching_PromoteOutOfCheck) { ExecutePerftTestCase({true, "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_DiscoveredCheck) { ExecutePerftTestCase({true, "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5}); }
- TEST_F(PerftFixture, DISABLED_Catching_PromoteToGiveCheck) { ExecutePerftTestCase({true, "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_UnderPromoteToGiveCheck) { ExecutePerftTestCase({true, "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_SelfStalemate) { ExecutePerftTestCase({true, "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6}); }
- TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmate) { ExecutePerftTestCase({true, "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7}); }
-
-TEST_F(PerftFixture, DISABLED_Catching_StalemateAndCheckmateTwo)
-{     ExecutePerftTestCase({true, "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4});
-}
-
-/* This test takes a long time to run, so it is disabled by default
-https://www.chessprogramming.net/perfect-perft/
-*/
-TEST_F(PerftFixture, DISABLED_Catching_TwoHundrarMillionNodes_Twice)
-{     
-    ExecutePerftTestCase({true, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5});     
-    ExecutePerftTestCase({true, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7});
-}
-
-TEST_F(PerftFixture, DISABLED_Catching_SevenHundradMillionNodes)
-{     ExecutePerftTestCase({true, "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6});
-}
-
-TEST_F(PerftFixture, DISABLED_Catching_BishopVsTwoRookEndgame)
-{     ExecutePerftTestCase({true, "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5});
+    EXPECT_TRUE(testsPassed);
 }
 
 ////////////////////////////////////////////////////////////////
