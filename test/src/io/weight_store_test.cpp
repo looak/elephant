@@ -49,7 +49,7 @@ WEIGHT(weight1, i64, 1);
 WEIGHT(weight2, double, 0);
 WEIGHT(w3, i64, 1);
 
-TEST(WeightStoreTest, StoreHasWeight2) {
+TEST_F(WeightFixture, StoreHasWeight2) {
 
     EXPECT_EQ(1, weight1);
     WeightStore::get()->update("weight1", "20");
@@ -65,7 +65,7 @@ TEST_F(WeightFixture, StoreHasWeight1) {
     EXPECT_EQ(3.14, weight2);
 }
 
-TEST(WeightStoreTest, UnknownWeightInFile_ExpectErrorButContinue) {
+TEST_F(WeightFixture, UnknownWeightInFile_ExpectErrorButContinue) {
     MockFileReader reader;
     reader.lines = {
         "unknown 42",
@@ -80,7 +80,7 @@ TEST(WeightStoreTest, UnknownWeightInFile_ExpectErrorButContinue) {
 
 TAPERED_WEIGHT(testTaperedWeight, i64, 1, 10);
 
-TEST(WeightStoreTest, TaperedWeight_UpdatedValues) {
+TEST_F(WeightFixture, TaperedWeight_UpdatedValues) {
     EXPECT_EQ(1, testTaperedWeight * 0.f);
     EXPECT_EQ(10, testTaperedWeight * 1.f);
     WeightStore::get()->update("testTaperedWeight", "5 15");

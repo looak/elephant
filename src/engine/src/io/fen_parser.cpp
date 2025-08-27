@@ -10,6 +10,7 @@
 #include <core/chessboard.hpp>
 #include <defines.hpp>
 #include <core/game_context.hpp>
+#include <position/castling_state_info.hpp>
 
 namespace fen_parser {
 
@@ -113,7 +114,7 @@ deserializeEnPassant(const std::string& enPassantStr, PositionEditor position)
     if (enPassantStr.size() > 1) {
         byte file = enPassantStr[0] - 'a';
         byte rank = (byte)std::atoi(&enPassantStr[1]) - 1;
-        position.enPassant().write(static_cast<byte>(toSquare(file, rank)));
+        position.enPassant().writeSquare(toSquare(file, rank));
     }
     return true;
 }

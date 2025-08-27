@@ -150,7 +150,7 @@ TEST_F(PositionProxyFixture, PositionIterator_IterratingExtended_ArbitraryIncrem
     EXPECT_EQ(expectedRank, itr.rank());
     EXPECT_EQ(expectedFile, itr.file());
 
-    itr += 7;
+    itr += 3;
     expectedIndex = 64;
     expectedRank = 8;
     expectedFile = 0;
