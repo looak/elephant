@@ -18,13 +18,15 @@
 
 /**
  * @file castling_state_info.hpp
- * @brief Defines castling state management for chess pieces in a structured format 
+ * @brief Defines castling state management for chess pieces in a structured format. Also contains a proxy class which helps
+ * updating position hash.
  * 
  */
 
 #pragma once
 #include <string>
 #include <defines.hpp>
+#include <position/hash_zobrist.hpp>
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q
 enum CastlingState : uint8_t {
@@ -54,6 +56,7 @@ public:
     bool hasBlackQueenSide() const { return m_innerState & BLACK_QUEENSIDE; }
 
     void clear() { m_innerState = NONE; }
+    void revokeAll() { clear(); }
     void revokeAllWhite() { m_innerState &= ~WHITE_ALL; }
     void revokeAllBlack() { m_innerState &= ~BLACK_ALL; }
     void revokeWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
@@ -102,4 +105,104 @@ public:
 
 private:
     byte m_innerState = 0;
+};
+
+class CastlingStateProxy {
+public:
+    CastlingStateProxy(CastlingStateInfo& state, u64& hash) : m_state(state), m_hash(hash) {}
+    ~CastlingStateProxy() = default;
+
+
+    bool hasAll() const { return m_state.hasAll(); }
+    bool hasAny() const { return m_state.hasAny(); }
+    bool hasNone() const { return m_state.hasNone(); }
+    bool hasWhite() const { return m_state.hasWhite(); }
+    bool hasBlack() const { return m_state.hasBlack(); }
+    bool hasWhiteKingSide() const { return m_state.hasWhiteKingSide(); }
+    bool hasWhiteQueenSide() const { return m_state.hasWhiteQueenSide(); }
+    bool hasBlackKingSide() const { return m_state.hasBlackKingSide(); }
+    bool hasBlackQueenSide() const { return m_state.hasBlackQueenSide(); }
+
+    void clear() {
+        m_state.clear();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeAll() { clear(); }
+
+    void revokeAllWhite() {
+        m_state.revokeAllWhite();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeAllBlack() {
+        m_state.revokeAllBlack();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeWhiteKingSide() {
+        m_state.revokeWhiteKingSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeWhiteQueenSide() {
+        m_state.revokeWhiteQueenSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeBlackKingSide() {
+        m_state.revokeBlackKingSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void revokeBlackQueenSide() {
+        m_state.revokeBlackQueenSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantAll() {
+        m_state.grantAll();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantAllWhite() {
+        m_state.grantAllWhite();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantAllBlack() {
+        m_state.grantAllBlack();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantWhiteKingSide() {
+        m_state.grantWhiteKingSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantWhiteQueenSide() {
+        m_state.grantWhiteQueenSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantBlackKingSide() {
+        m_state.grantBlackKingSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    void grantBlackQueenSide() {
+        m_state.grantBlackQueenSide();
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+    u8 read() const { return m_state.read(); }
+    void write(u8 state) {
+        m_state.write(state);
+        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+    }
+
+private:
+    CastlingStateInfo& m_state;
+    u64& m_hash;
+
 };

@@ -29,7 +29,7 @@ TEST_F(CastlingEnPassantFixture, AllPermutationsOfCastlingStateInfo_ExpectReadFu
     EXPECT_FALSE(castlingStateInfo.hasWhiteQueenSide());
     EXPECT_FALSE(castlingStateInfo.hasBlackKingSide());
     EXPECT_FALSE(castlingStateInfo.hasBlackQueenSide());
-    EXPECT_EQ("", castlingStateInfo.toString());
+    EXPECT_EQ("-", castlingStateInfo.toString());
 
     castlingStateInfo.write(1);
     EXPECT_EQ(CastlingState::WHITE_KINGSIDE, castlingStateInfo.asFlag());

@@ -28,13 +28,14 @@
 
 class Position;
 struct CastlingStateInfo;
+class CastlingStateProxy;
 struct EnPassantStateInfo;
 struct MaterialPositionMask;
 struct ChessPiece;
 
 struct PositionEditPolicy {
     using position_t = Position&;
-    using castling_t = CastlingStateInfo&;
+    using castling_t = CastlingStateProxy;
     using en_passant_t = EnPassantStateInfo&;
     using material_t = MaterialPositionMask&;
     using hash_t = u64&;

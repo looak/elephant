@@ -80,8 +80,15 @@ public:
 
     AccessType::material_t material() const { return m_position.m_materialMask; }
     AccessType::en_passant_t enPassant() const { return m_position.m_enpassantState; }
-    AccessType::castling_t castling() const { return m_position.m_castlingState; }
     AccessType::hash_t hash() const { return m_position.m_hash; }
+    AccessType::castling_t castling() const { 
+        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+            return CastlingStateProxy(m_position.m_castlingState, m_position.m_hash);
+        }
+        else {
+            return m_position.m_castlingState;
+        }
+    }
 
     MutableMaterialProxy materialEditor(Set set, PieceType type)
     {
@@ -122,7 +129,7 @@ public:
             return *this;
         }
         bool operator==(const PositionIterator& other) const {
-            return m_index == other.m_index && m_position.read().hash() == other.m_position.read().hash();
+            return m_index == other.m_index && &m_position == &other.m_position;
         }
         bool operator!=(const PositionIterator& other) const {
             return !(*this == other);
@@ -145,6 +152,7 @@ public:
             return *this;
         }
 
+        byte index() const { return m_index; }
         Square square() const { return static_cast<Square>(m_index); }
         byte file() const { return mod_by_eight(m_index); }
         byte rank() const { return m_index / 8; }

@@ -52,7 +52,32 @@ bool initialized() {
 } // namespace internals
 
 u64 computeBoardHash(const Chessboard& board) {
-    return 0;
+    u64 hash = 0;
+    PositionReader reader = board.readPosition();
+    auto itr = reader.begin();
+
+    while (itr != reader.end()) {
+        ChessPiece piece = itr.get();
+        if (piece.isValid()) {
+            hash = updatePieceHash(hash, piece, itr.square());
+        }
+
+        itr++;
+    }
+
+    byte castlingState = reader.castling().read();
+
+    hash = updateCastlingHash(hash, reader.castling().read());
+
+
+    if (reader.enPassant()) {
+        hash = updateEnPassantHash(hash, reader.enPassant().readSquare());
+    }
+
+    if (board.readToPlay() == Set::BLACK)
+        hash ^= internals::black_to_move;
+
+    return hash;
 }
 
 u64 updatePieceHash(const u64& oldHash, ChessPiece piece, Square position) {
@@ -82,43 +107,4 @@ u64 updateBlackToMoveHash(const u64& oldHash) {
     return oldHash ^ internals::black_to_move;
 }
 
-} // namespace zorbist
-
-
-// u64
-// ZorbistHash::HashBoard(const Chessboard& board) const
-// {
-//     u64 hash = 0;
-    // auto itr = board.begin();
-
-    // while (itr != board.end()) {
-    //     ChessPiece piece = board.readPieceAt(itr.square());
-    //     if (piece.isValid()) {
-    //         u8 pieceIndx = piece.index() + (piece.set() * 6);
-    //         hash ^= table[itr.index()][pieceIndx];
-    //     }
-
-    //     itr++;
-    // }
-
-    // byte castlingState = board.readCastlingState().read();
-
-    // if ((castlingState & 1) == 1)
-    //     hash ^= castling[0];
-    // if ((castlingState & 2) == 2)
-    //     hash ^= castling[1];
-    // if ((castlingState & 4) == 4)
-    //     hash ^= castling[2];
-    // if ((castlingState & 8) == 8)
-    //     hash ^= castling[3];
-
-    // if (board.readPosition().readEnPassant()) {
-    //     Notation ep(board.readPosition().readEnPassant().readSquare());
-    //     hash ^= enpassant[ep.file];
-    // }
-
-    // if (board.readToPlay() == Set::BLACK)
-    //     hash ^= black_to_move;
-
-//     return hash;
-// }
+} // namespace zobrist
