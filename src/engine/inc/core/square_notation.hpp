@@ -65,7 +65,7 @@ struct SquareNotation {
 
     std::string toString() const {
         char buffer[4];
-        snprintf(buffer, sizeof(buffer), "%c%c\n", 'a' + m_file, '1' + m_rank);
+        snprintf(buffer, sizeof(buffer), "%c%c", 'a' + m_file, '1' + m_rank);
         return std::string(buffer);
     }
 
