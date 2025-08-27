@@ -58,6 +58,7 @@ public:
         }
         return static_cast<Square>(sq - 8);
     }
+    
     Bitboard readBitboard() const
     {
         if (*this == true) {
