@@ -168,17 +168,12 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
         }
     }
 
-    // clear castling state from hash
-    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
-
     // update castling state
     undoUnit.castlingState.write(castlingState);
     casltingMask &= castlingState;
     castlingState ^= casltingMask;
     m_position.castling().write(castlingState);
 
-    // apply new castling state to hash
-    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
     return castling;
 }
 
@@ -195,15 +190,13 @@ void MoveExecutor::internalHandleRookMove(const ChessPiece piece, const PackedMo
 
 void MoveExecutor::internalUpdateCastlingState(byte mask, MoveUndoUnit& undoState) {
     byte castlingState = m_position.castling().read();
-    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
     // in a situation where rook captures rook from original positions we don't need to store
     // we don't want to overwrite the original prev written while doing our move castling state.
     // this code has changed slightly since the comment above was written in case we run into a bug.
     if (undoState.castlingState.hasNone())
         undoState.castlingState.write(castlingState);
     mask &= castlingState;
-    castlingState ^= mask;
-    m_position.hash() = zobrist::updateCastlingHash(m_position.hash(), castlingState);
+    castlingState ^= mask;    
     m_position.castling().write(castlingState);
 }
 

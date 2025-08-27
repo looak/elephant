@@ -15,13 +15,15 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include "defines.hpp"
+#include <defines.hpp>
+#include <functional>
 
 class Chessboard;
 struct ChessPiece;
 
 namespace zobrist {
 namespace internals {
+
     void initialize();
     bool initialized();
 } // namespace internals

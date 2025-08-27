@@ -124,84 +124,98 @@ public:
     bool hasBlackQueenSide() const { return m_state.hasBlackQueenSide(); }
 
     void clear() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.clear();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeAll() { clear(); }
 
     void revokeAllWhite() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeAllWhite();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeAllBlack() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeAllBlack();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeWhiteKingSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeWhiteKingSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeWhiteQueenSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeWhiteQueenSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeBlackKingSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeBlackKingSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void revokeBlackQueenSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.revokeBlackQueenSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantAll() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantAll();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantAllWhite() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantAllWhite();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantAllBlack() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantAllBlack();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantWhiteKingSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantWhiteKingSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantWhiteQueenSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantWhiteQueenSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantBlackKingSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantBlackKingSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     void grantBlackQueenSide() {
+        ScopedHasher hasher(m_hash, m_state);
         m_state.grantBlackQueenSide();
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
     }
 
     u8 read() const { return m_state.read(); }
     void write(u8 state) {
-        m_state.write(state);
-        m_hash = zobrist::updateCastlingHash(m_hash, m_state.read());
+        ScopedHasher hasher(m_hash, m_state);
+        m_state.write(state);        
     }
 
 private:
+    struct ScopedHasher {
+        ScopedHasher(u64& hashRef, CastlingStateInfo& stateRef) : m_hashRef(hashRef), m_stateRef(stateRef) {
+            // clear hash
+            m_hashRef = zobrist::updateCastlingHash(m_hashRef, m_stateRef.read());
+        }
+        ~ScopedHasher(){
+            m_hashRef = zobrist::updateCastlingHash(m_hashRef, m_stateRef.read());
+        }
+
+    private:
+        u64& m_hashRef;
+        CastlingStateInfo& m_stateRef;
+    };
+
     CastlingStateInfo& m_state;
     u64& m_hash;
 
