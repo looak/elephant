@@ -60,10 +60,6 @@ void MoveExecutor::makeMove(const PackedMove move)
         [[fallthrough]];
 
     default:
-        // update hash, start by removing old en passant if there was one.
-        if (m_position.enPassant() == true)
-            m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
-
         // reset enpassant cached values
         m_position.enPassant().clear();
     }
@@ -93,10 +89,6 @@ template void MoveExecutor::makeMove<false>(const PackedMove);
 
 void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
 {
-    // update hash, start by removing old en passant if there was one.
-    if (m_position.enPassant() == true)
-        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), m_position.enPassant().readSquare());
-
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
 
@@ -105,7 +97,6 @@ void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
         dif = (signed char)((float)dif * .5f);
         Square sqr = SquareNotation(toFile(source), toRank(source) - dif).toSquare();
         m_position.enPassant().writeSquare(sqr);
-        m_position.hash() = zobrist::updateEnPassantHash(m_position.hash(), sqr);
     }
 }
 

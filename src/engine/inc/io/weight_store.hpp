@@ -73,17 +73,17 @@ T fromString(const std::string& str) {
     return value;
 }
 
+class WeightStore;
+
 class IWeight {
 public:
     friend class WeightStore;
-    IWeight(std::string name) : m_name(name) {};
+    IWeight(std::string name) :
+        m_name(name) {};
     virtual ~IWeight() = default;
 
     virtual void accept(WeightStore& store, const std::string& newValue) = 0;
-
-    const std::string& readName() const {
-        return m_name;
-    }
+    const std::string& readName() const { return m_name; }
 
 protected:
     std::string m_name;
@@ -92,19 +92,10 @@ protected:
 template<typename T>
 class TaperedWeight : IWeight {
 public:
-    TaperedWeight(std::string name, T& a, T& b)
-        : IWeight(name)
-        , m_a(a)
-        , m_b(b)
-    {
-        WeightStore::get()->book(this);
-    }
+    TaperedWeight(std::string name, T& a, T& b);
 
     virtual void accept(WeightStore& store, const std::string& newValue) override;
-
-    i32 operator*(const float& t) {
-        return static_cast<i32>(m_a + (m_b - m_a) * t);
-    }
+    i32 operator*(const float& t) { return static_cast<i32>(m_a + (m_b - m_a) * t); }
 
 private:
     friend class WeightStore;
@@ -115,12 +106,7 @@ private:
 template<typename T>
 class Weight : IWeight {
 public:
-    Weight(std::string name, T& value)
-        : IWeight(name)
-        , m_value(value)
-    {
-        WeightStore::get()->book(this);
-    }
+    Weight(std::string name, T& value);
 
     virtual void accept(WeightStore& store, const std::string& newValue) override;
 
@@ -178,9 +164,26 @@ void WeightStore::visit(TaperedWeight<T>& weight, const std::string& a, const st
 
 // implementation
 template<typename T>
+Weight<T>::Weight(std::string name, T& value) :
+    IWeight(name),
+    m_value(value)
+{
+    WeightStore::get()->book(this);
+}
+
+template<typename T>
 void Weight<T>::accept(WeightStore& store, const std::string& newValue) 
 {
     store.visit(*this, newValue);
+}
+
+template<typename T>
+TaperedWeight<T>::TaperedWeight(std::string name, T& a, T& b) :
+    IWeight(name),
+    m_a(a),
+    m_b(b)
+{
+    WeightStore::get()->book(this);
 }
 
 template<typename T>

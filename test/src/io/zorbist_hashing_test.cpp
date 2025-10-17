@@ -1,163 +1,148 @@
-TEST_F(ChessboardFixture, ZorbistHashing)
+#include <gtest/gtest.h>
+#include <core/chessboard.hpp>
+#include <core/game_context.hpp>
+#include <move/move_executor.hpp>
+#include <position/hash_zobrist.hpp>
+
+#include "chess_positions.hpp"
+
+namespace ElephantTest {
+
+TEST(ZobristHashing, Initialization)
 {
-    // board should start out empty, so hashing these two boards should result in the same value.
+    zobrist::internals::initialize();
+    bool initialized = zobrist::internals::initialized();
+    EXPECT_TRUE(initialized) << "Zobrist hashing should be initialized after calling initialize().";
+
+    // calling initialize again should not change anything.
+    zobrist::internals::initialize();
+    initialized = zobrist::internals::initialized();
+    EXPECT_TRUE(initialized) << "Zobrist hashing should remain initialized after calling initialize() again.";
+}
+
+
+TEST(ZobristHashing, Hashing)
+{
+    zobrist::internals::initialize();
+
+    Chessboard board;
+    u64 hash = zobrist::computeBoardHash(board);
+    EXPECT_EQ(hash, 0) << "Empty board should have a hash of zero.";
+
+    chess_positions::defaultStartingPosition(board.editPosition());
+    hash = zobrist::computeBoardHash(board);
+    EXPECT_NE(hash, 0) << "Default starting position should not have a hash of zero.";
+    EXPECT_NE(board.readPosition().hash(), 0) << "Default starting position should not have a hash of zero."; 
+    EXPECT_EQ(board.readPosition().hash(), hash) << "Hash from computeBoardHash should match position's stored hash.";
+}
+
+TEST(ZobristHashing, SamePositionSameHash)
+{
+    zobrist::internals::initialize();
+
     Chessboard boardOne;
     Chessboard boardTwo;
 
-    u64 oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    u64 twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
+    u64 hashOne = zobrist::computeBoardHash(boardOne);
+    u64 hashTwo = zobrist::computeBoardHash(boardTwo);
 
-    EXPECT_EQ(oneHash, twoHash);
-
-    auto k = BLACKKING;
-    auto q = BLACKQUEEN;
-    auto b = BLACKBISHOP;
-    auto n = BLACKKNIGHT;
-    auto r = BLACKROOK;
-    auto p = BLACKPAWN;
-    auto R = WHITEROOK;
-
-    // board one
-    boardOne.PlacePiece(r, a8);
-    boardTwo.PlacePiece(R, a8);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_NE(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
-
-    // board one
-    boardOne.PlacePiece(n, b8);
-    EXPECT_EQ(n, boardOne.readPieceAt(Square::B8));
-    boardOne.PlacePiece(b, c8);
-    EXPECT_EQ(b, boardOne.readPieceAt(Square::C8));
-    boardOne.PlacePiece(q, d8);
-    EXPECT_EQ(q, boardOne.readPieceAt(Square::D8));
-    boardOne.PlacePiece(k, e8);
-    EXPECT_EQ(k, boardOne.readPieceAt(Square::E8));
-    boardOne.PlacePiece(b, f8);
-    EXPECT_EQ(b, boardOne.readPieceAt(Square::F8));
-    boardOne.PlacePiece(n, g8);
-    EXPECT_EQ(n, boardOne.readPieceAt(Square::G8));
-
-    boardOne.PlacePiece(p, a7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::A7));
-    boardOne.PlacePiece(p, b7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::B7));
-    boardOne.PlacePiece(p, c7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::C7));
-    boardOne.PlacePiece(p, d7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::D7));
-    boardOne.PlacePiece(p, e7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::E7));
-    boardOne.PlacePiece(p, f7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::F7));
-    boardOne.PlacePiece(p, g7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::G7));
-    boardOne.PlacePiece(p, h7);
-    EXPECT_EQ(p, boardOne.readPieceAt(Square::H7));
-
-    // board Two
-    boardTwo.PlacePiece(r, a8, true);
-    EXPECT_EQ(r, boardTwo.readPieceAt(Square::A8));
-    boardTwo.PlacePiece(n, b8);
-    EXPECT_EQ(n, boardTwo.readPieceAt(Square::B8));
-    boardTwo.PlacePiece(b, c8);
-    EXPECT_EQ(b, boardTwo.readPieceAt(Square::C8));
-    boardTwo.PlacePiece(q, d8);
-    EXPECT_EQ(q, boardTwo.readPieceAt(Square::D8));
-    boardTwo.PlacePiece(k, e8);
-    EXPECT_EQ(k, boardTwo.readPieceAt(Square::E8));
-    boardTwo.PlacePiece(b, f8);
-    EXPECT_EQ(b, boardTwo.readPieceAt(Square::F8));
-    boardTwo.PlacePiece(n, g8);
-    EXPECT_EQ(n, boardTwo.readPieceAt(Square::G8));
-    boardTwo.PlacePiece(r, h8);
-    EXPECT_EQ(r, boardTwo.readPieceAt(Square::H8));
-
-    boardTwo.PlacePiece(p, h7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::H7));
-    boardTwo.PlacePiece(p, g7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::G7));
-    boardTwo.PlacePiece(p, f7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::F7));
-    boardTwo.PlacePiece(p, e7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::E7));
-    boardTwo.PlacePiece(p, d7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::D7));
-    boardTwo.PlacePiece(p, c7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::C7));
-    boardTwo.PlacePiece(p, b7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::B7));
-    boardTwo.PlacePiece(p, a7);
-    EXPECT_EQ(p, boardTwo.readPieceAt(Square::A7));
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_NE(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
-
-    boardOne.PlacePiece(r, h8);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_EQ(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
-
-    boardTwo.setCastlingState(12);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_NE(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
-
-    boardOne.setCastlingState(12);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_EQ(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
-
-    boardOne.setEnPassant(c7);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_NE(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
-
-    boardTwo.setEnPassant(c7);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-    twoHash = ZorbistHash::Instance().HashBoard(boardTwo);
-
-    EXPECT_EQ(oneHash, twoHash);
-    EXPECT_EQ(boardTwo.readHash(), twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_EQ(boardOne.readHash(), boardTwo.readHash());
-
-    boardOne.setEnPassant(e4);
-
-    oneHash = ZorbistHash::Instance().HashBoard(boardOne);
-
-    EXPECT_NE(oneHash, twoHash);
-    EXPECT_EQ(boardOne.readHash(), oneHash);
-    EXPECT_NE(boardOne.readHash(), boardTwo.readHash());
+    EXPECT_EQ(hashOne, hashTwo) << "Two identical empty boards should have the same hash.";
 }
+
+TEST(ZobristHashing, DifferentPositionDifferentHash)
+{
+    zobrist::internals::initialize();
+
+    Chessboard boardOne;
+    Chessboard boardTwo;
+    PositionEditor editorOne = boardOne.editPosition();
+    PositionEditor editorTwo = boardTwo.editPosition();
+
+    editorOne.placePieces(piece_constants::white_pawn, Square::E2);
+    editorTwo.placePieces(piece_constants::black_pawn, Square::E2);
+
+    u64 hashOne = zobrist::computeBoardHash(boardOne);
+    u64 hashTwo = zobrist::computeBoardHash(boardTwo);
+
+    EXPECT_NE(hashOne, hashTwo) << "Two different board positions should have different hashes.";
+}
+
+TEST(ZobristHashing, StartingPosition_EqualHash)
+{
+    zobrist::internals::initialize();
+
+    Chessboard boardOne;
+    Chessboard boardTwo;
+    PositionEditor editorOne = boardOne.editPosition();
+    PositionEditor editorTwo = boardTwo.editPosition();
+
+    chess_positions::defaultStartingPosition(editorOne);
+    chess_positions::defaultStartingPosition(editorTwo);
+
+    u64 hashOne = zobrist::computeBoardHash(boardOne);
+    u64 hashTwo = zobrist::computeBoardHash(boardTwo);
+
+    EXPECT_EQ(hashOne, hashTwo) << "Two identical starting positions should have the same hash.";
+    EXPECT_EQ(editorOne.hash(), editorTwo.hash()) << "Two identical starting positions should have the same hash.";
+    EXPECT_EQ(hashOne, editorOne.hash()) << "Hash and editor hash should match for identical positions.";
+}
+
+TEST(ZobristHashing, PlacingPiecesAndHashingBoard_ShouldResultWithEqualHash)
+{
+    zobrist::internals::initialize();
+
+    Chessboard board;
+    PositionEditor editor = board.editPosition();
+
+    chess_positions::defaultStartingPosition(editor);
+
+    u64 initialHash = zobrist::computeBoardHash(board);
+
+    editor.placePieces(piece_constants::white_pawn, Square::E4);
+    u64 newHash = zobrist::computeBoardHash(board);
+
+    EXPECT_NE(initialHash, newHash) << "Hash should change after placing a piece.";
+    EXPECT_EQ(editor.hash(), newHash) << "Editor hash should match the new board hash.";
+
+    editor.castling().revokeBlackKingSide();
+    u64 boardHash = zobrist::computeBoardHash(board);
+    EXPECT_NE(newHash, boardHash) << "Hash should change after revoking castling rights.";
+    EXPECT_EQ(editor.hash(), boardHash) << "Editor hash should match the final board hash.";
+}
+
+TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
+{
+    zobrist::internals::initialize();
+
+    GameContext game;
+    game.NewGame();
+    MoveExecutor executor(game);
+
+    PositionReader positionReader = game.readChessPosition();
+    u64 initialHash = positionReader.hash();
+
+    PackedMove move(Square::E2, Square::E4);
+    executor.makeMove<true>(move);
+    
+    u64 afterMoveHash = positionReader.hash();
+
+    EXPECT_NE(initialHash, afterMoveHash) << "Hash should change after making a move.";
+    EXPECT_TRUE(positionReader.enPassant()) << "En passant should be available after the move.";
+
+    // test clear and reset enPassant
+    u64 hashWithEnPassant = positionReader.hash();
+    Square epSqr = positionReader.enPassant().readSquare();
+    PositionEditor editor = game.editChessPosition();
+    editor.enPassant().clear();
+    EXPECT_NE(hashWithEnPassant, positionReader.hash()) << "Hash should match after clearing en passant.";
+
+    editor.enPassant().writeSquare(epSqr);
+    EXPECT_EQ(hashWithEnPassant, positionReader.hash()) << "Hash should match after resetting en passant.";
+
+    executor.unmakeMove();
+
+    EXPECT_EQ(initialHash, positionReader.hash()) << "Hash should be restored to initial value after unmaking the move.";
+
+}
+
+} // namespace ElephantTest

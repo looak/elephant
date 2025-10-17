@@ -1,7 +1,7 @@
 #include "commands_uci.h"
 #include "commands_utils.h"
 #include <move/move.hpp>
-#include "uci.hpp"
+#include <core/uci.hpp>
 
 /**
 * Send back what options this engine supports. */

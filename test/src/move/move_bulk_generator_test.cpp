@@ -3,6 +3,7 @@
 #include <move/generation/move_bulk_generator.hpp>
 #include <position/position.hpp>
 #include <position/position_accessors.hpp>
+#include <io/fen_parser.hpp>
 
 namespace ElephantTest
 {
@@ -507,8 +508,9 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_WhiteEnPassant_ShouldBeAbleToCaptureBl
 
     // setup
     PositionEditor editor(testingPosition);
-    editor.placePieces(piece_constants::black_pawn, G4,
-                       piece_constants::white_pawn, F4);
+    editor.placePieces(
+        piece_constants::black_pawn, G4,
+        piece_constants::white_pawn, F4);
     
     editor.enPassant().writeSquare(F3);
 
@@ -746,5 +748,34 @@ TEST_F(BulkMoveGeneratorTestFixture, Bishop_WhiteBulkCalculateAvailableMovePosit
     // verify
     EXPECT_EQ(expected, result);
 }
+
+TEST_F(BulkMoveGeneratorTestFixture, PerftPositionTwo_MissingSomeCaptures)
+{
+    using enum Square;
+
+    // setup
+    char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";    
+    PositionEditor editor(testingPosition);
+    fen_parser::deserialize(inputFen, editor);
+
+    // expected, eight captures in total
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(
+        /*Pawn D5*/ E6, 
+        /*Knight E5*/ D7, F7, G6,
+        /*Queen F3 */ F6, H3,
+        /*Bishop E2*/ A6,
+        /*Pawn G2*/ H3);
+
+    // do
+    BulkMoveGenerator generator(testingPosition);
+    Bitboard pawnsCaptures = generator.computeBulkPawnMoves<Set::WHITE, MoveTypes::CAPTURES_ONLY>();
+    Bitboard knightCaptures = generator.computeBulkKnightMoves<Set::WHITE, MoveTypes::CAPTURES_ONLY>();
+    Bitboard queenCaptures = generator.computeBulkQueenMoves<Set::WHITE, MoveTypes::CAPTURES_ONLY>();
+    Bitboard bishopCaptures = generator.computeBulkBishopMoves<Set::WHITE, bishopId,  MoveTypes::CAPTURES_ONLY>();
+
+    Bitboard result = pawnsCaptures | knightCaptures | queenCaptures | bishopCaptures;
+    EXPECT_EQ(expected, result);
+}
+
 
 } // namespace ElephantTest

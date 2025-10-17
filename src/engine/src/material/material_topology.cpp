@@ -51,7 +51,8 @@ template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresKnightBu
 
 template<Set us>
 template<u8 pieceId>
-Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk(Bitboard occupancy) const {    
+Bitboard MaterialTopology<us>::computeThreatenedSquaresBishopBulk(Bitboard occupancy) const {
+    static_assert(pieceId == bishopId || pieceId == queenId, "pieceId must be bishopId or queenId");
     Bitboard pieces = m_material.read<us>(pieceId);
     Bitboard result{};
 
