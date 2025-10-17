@@ -59,7 +59,8 @@ bool deserializeBoard(const std::string& boardStr, PositionEditor position)
     auto posItr = position.begin();
     while (!ranks.empty()) {
         const char* rdr = ranks.back().c_str();
-        while (*rdr != '\0') {
+        u8 fileIndx = 0;
+        while (*rdr != '\0' && fileIndx < 8) {
             char nullterminated_value[2];
             nullterminated_value[0] = *rdr;
             nullterminated_value[1] = '\0';
@@ -71,9 +72,11 @@ bool deserializeBoard(const std::string& boardStr, PositionEditor position)
                 std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
                 posItr += steps;
+                fileIndx += steps;
             }
             else if (value == '/') {
                 ++posItr;
+
             }
             else {
                 ChessPiece piece;
@@ -82,6 +85,7 @@ bool deserializeBoard(const std::string& boardStr, PositionEditor position)
 
                 position.placePiece(piece, posItr.square());
                 ++posItr;
+                fileIndx++;
             }
 
             ++rdr;

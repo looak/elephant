@@ -1,13 +1,17 @@
 ﻿// ElephantGambit.cpp : Defines the entry point for the application.
 //
 #include "elephant_cli.h"
-#include "commands.h"
-#include "commands_uci.h"
-#include "commands_utils.h"
+// #include "commands.h"
+// #include "commands_uci.h"
+// #include "commands_utils.h"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
 #include <core/game_context.hpp>
 #include <debug/log.hpp>
+
+#include "commands/command_api.hpp"
+#include "command_registry/command_registry.hpp"
+#include "printer/printer.hpp"
 
 #include <iostream>
 #include <list>
@@ -44,7 +48,7 @@ Application::RunUci()
 #ifdef OUTPUT_LOG_TO_FILE
     LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
 #endif
-    UCICommands::UCIEnable();
+    //UCICommands::UCIEnable();
 }
 
 void
@@ -59,32 +63,69 @@ Application::Run()
     while (1) {
         std::cout << " > ";
         std::string buffer = "";
-        std::getline(std::cin, buffer);
-        std::list<std::string> tokens;
-        extractArgsFromCommand(buffer, tokens);
 
-        if (tokens.size() == 0)
+        if (!std::getline(std::cin, buffer))
+            break;
+
+        if (buffer.empty())
             continue;
 
-        auto&& command = CliCommands::options.find(tokens.front());
-        if (tokens.size() > 0 && command != CliCommands::options.end()) {
-            auto token = tokens.front();
-            tokens.pop_front();  // remove command from tokens.
+        // Use a string stream to easily split the line into words
+        std::istringstream iss(buffer);
+        std::string command_name;
+        iss >> command_name;
 
-            bool commandResult = command->second.first(tokens, context);
-            if (commandResult == false) {
-                command->second.second(token);
-                std::cout << std::endl;
-            }
+        // Check for the exit condition
+        if (command_name == "exit" || command_name == "quit") {
+            prnt::out << "Exiting...";
+            break;
         }
-        else if (tokens.size() == 1) {
-            // attempt to make a move with token
-            auto moveCommand = CliCommands::options.find("move");
-            moveCommand->second.first(tokens, context);
+
+        // 2. EVALUATE: Find and execute the command.
+        auto command = CommandRegistry::instance().createCommand(command_name);
+
+        // Security: Handle unrecognized commands gracefully
+        if (!command) {
+            prnt::out << "Error: Unknown command '" << command_name << "'";
+            continue;
         }
-        else {
-            std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-            std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+
+        // Collect the arguments for the command
+        std::vector<std::string> args;
+        std::string arg;
+        while (iss >> arg) {
+            args.push_back(arg);
         }
+
+        // The command is created, used, and then destroyed here.
+        command->setContext(&context);
+        command->run(args);
+
+        //std::list<std::string> tokens;
+        //extractArgsFromCommand(buffer, tokens);
+
+        //if (tokens.size() == 0)
+        //    continue;
+
+        //auto&& command = CliCommands::options.find(tokens.front());
+        //if (tokens.size() > 0 && command != CliCommands::options.end()) {
+        //    auto token = tokens.front();
+        //    tokens.pop_front();  // remove command from tokens.
+
+        //    bool commandResult = command->second.first(tokens, context);
+        //    if (commandResult == false) {
+        //        command->second.second(token);
+        //        std::cout << std::endl;
+        //    }
+        //}
+        //else if (tokens.size() == 1) {
+        //    // attempt to make a move with token
+        //    auto moveCommand = CliCommands::options.find("move");
+        //    moveCommand->second.first(tokens, context);
+        //}
+        //else {
+        //    std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
+        //    std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+        //}
     }
 }

@@ -32,9 +32,6 @@ public:
         m_position(position)
     {}
 
-    // void compute();
-    // void compute(PieceType ptype);
-
     template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
     Bitboard computeBulkPawnMoves() const;
 
@@ -96,7 +93,6 @@ Bitboard BulkMoveGenerator::computeBulkPawnMoves() const {
     //     movesMask &= checksMask;
     // }
 
-    // FIX: opMat won't contain en passant so capture move filter will never contain en passant captures.
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         movesMask &= opMat;
 
@@ -128,9 +124,11 @@ Bitboard BulkMoveGenerator::computeKingMoves() const
     bool constexpr includeMaterial = false;
     bool constexpr pierceKing = true;
     const MaterialPositionMask& material = m_position.material();
+    const MaterialTopology<op> opTopology = material.topology<op>();
+    const MaterialTopology<us> topology = material.topology<us>();
 
-    Bitboard threatened = material.topology<op>().computeThreatenedSquares<includeMaterial, pierceKing>();
-    Bitboard moves = material.topology<us>().computeThreatenedSquaresKing();
+    Bitboard threatened = opTopology.template computeThreatenedSquares<includeMaterial, pierceKing>();
+    Bitboard moves = topology.computeThreatenedSquaresKing();
 
     // remove any squares blocked by our own pieces.
     moves &= ~material.combine<us>();
@@ -149,7 +147,8 @@ Bitboard BulkMoveGenerator::computeBulkBishopMoves() const
     const Bitboard materialbb = material.combine<us>();
     const Bitboard occupancy = material.combine();
     // const auto& kingMask = m_moveGen.readKingPinThreats<us>();
-    Bitboard moves = material.topology<us>().computeThreatenedSquaresBishopBulk(occupancy);
+    const MaterialTopology<us> topology = material.topology<us>();
+    Bitboard moves = topology.template computeThreatenedSquaresBishopBulk<pieceId>(occupancy);
 
     // if (kingMask.isChecked())
     //     moves &= kingMask.checks();
@@ -170,7 +169,8 @@ Bitboard BulkMoveGenerator::computeBulkRookMoves() const
     const Bitboard materialbb = material.combine<us>();
     const Bitboard occupancy = material.combine();
  //   const auto& kingMask = m_moveGen.readKingPinThreats<us>();
-    Bitboard moves = material.topology<us>().computeThreatenedSquaresRookBulk(occupancy);
+    const MaterialTopology<us> topology = material.topology<us>();
+    Bitboard moves = topology.template computeThreatenedSquaresRookBulk<pieceId>(occupancy);
 
     // if (kingMask.isChecked())
     //     moves &= kingMask.checks();

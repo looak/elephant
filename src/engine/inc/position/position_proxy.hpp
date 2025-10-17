@@ -79,8 +79,17 @@ public:
     AccessType::chess_piece_t pieceAt(Square square) const;
 
     AccessType::material_t material() const { return m_position.m_materialMask; }
-    AccessType::en_passant_t enPassant() const { return m_position.m_enpassantState; }
     AccessType::hash_t hash() const { return m_position.m_hash; }
+
+    AccessType::en_passant_t enPassant() const { 
+        if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+            return EnPassantStateProxy(m_position.m_enpassantState, m_position.m_hash);
+        }
+        else {
+            return m_position.m_enpassantState;
+        }
+    }
+
     AccessType::castling_t castling() const { 
         if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
             return CastlingStateProxy(m_position.m_castlingState, m_position.m_hash);

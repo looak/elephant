@@ -1,4 +1,4 @@
-#include "rays/rays.hpp"
+#include "bitboard/rays/rays.hpp"
 
 namespace ray {
 namespace internals {

@@ -194,73 +194,68 @@ private:
 
 class MessageStream {
 public:
-    MessageStream() :
-        m_stream(new ::std::stringstream)
+    MessageStream(std::ostream& stream = std::cout) :
+        m_stream(stream)        
     {
-    }
-
-    MessageStream(const MessageStream& msg) :
-        m_stream(new ::std::stringstream)
-    {
-        *m_stream << msg.getString();
     }
 
     ~MessageStream()
-    {
-        m_stream->flush();
-        std::stringstream* ssptr = m_stream.release();
-        if (ssptr != nullptr)
-            delete ssptr;
-    }
-
-    std::string getString() const { return m_stream->str(); }
-
-    // overload for std::stringstream
-    MessageStream& operator<<(const std::stringstream& msg)
-    {
-        *m_stream << msg.str();
-        return *this;
+    { 
+        if (m_needs_endl)
+            m_stream << std::endl;
     }
 
     template<typename T>
-    MessageStream& operator<<(const T& t)
+    inline MessageStream& operator<<(const T& t)
     {
-        *m_stream << t;
+#ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
+#endif
+        m_stream << t;
         return *this;
     }    
 
     template<typename T>
     inline MessageStream& operator<<(T* const& pointer)
     {
+#ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
+#endif
         if (pointer == nullptr)
-            *m_stream << "(nullptr)";
+            m_stream << "(nullptr)";
         else
-            *m_stream << pointer;
+            m_stream << pointer;
 
         return *this;
     }
 
-    template<typename T>
-    inline MessageStream& operator<<(BasicNarrowIoManip value)
-    {
-        *m_stream << value;
-        return *this;
-    }
-
-    // bool implementation
     inline MessageStream& operator<<(bool value)
     {
-        *m_stream << (value ? "true" : "false");
+#ifdef OUTPUT_LOG_TO_FILE
+        ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
+#endif
+        m_stream << (value ? "true" : "false");
         return *this;
     }
+
+    void deny_endl() { m_needs_endl = false; }
+    std::ostream& stream() { return m_stream; }
 
 private:
     // The type of basic IO manipulators (endl, ends, and flush) for
     // narrow streams.
-    typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
-    std::unique_ptr<::std::stringstream> m_stream;
+    bool m_needs_endl = true;
+    std::ostream& m_stream;
     void operator=(const MessageStream& other);
 };
+
+inline MessageStream& operator<<(MessageStream& out, BasicNarrowIoManip manip)
+{
+    if (static_cast<BasicNarrowIoManip>(std::endl) == manip)
+        out.deny_endl();
+    out.stream() << manip;
+    return out;
+}
 
 class NopMessage {
 public:
@@ -277,37 +272,29 @@ public:
 };
 
 class LogMessage {
-private:
-    void AppendMessage(const MessageStream& message)
-    {
-        if (m_userMessage.get() == nullptr)
-            m_userMessage.reset(new ::std::string);
-
-        m_userMessage->append(message.getString().c_str());
-    }
-
 protected:
+    std::ostream& m_stream;
     std::unique_ptr<std::string> m_message;
     std::unique_ptr<std::string> m_userMessage;
 
     void flush()
     {
         if (m_userMessage.get() != nullptr && !m_userMessage->empty())
-            std::cerr << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
+            m_stream << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
         else if (!m_message->empty())
-            std::cerr << m_message->c_str() << "\n";
-
-        m_userMessage->clear();
-        m_message->clear();
+            m_stream << m_message->c_str() << "\n";
     }
 
 public:
-    LogMessage() :
+    LogMessage(std::ostream& stream = std::cout) :
+        m_stream(stream),
         m_message(new ::std::string)
     {
     }
 
-    LogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line) :
+    LogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line,
+               std::ostream& stream = std::cout) :
+        m_stream(stream),
         m_message(new ::std::string)
     {
         m_message->append(prefix)
@@ -319,7 +306,8 @@ public:
             .append("()");
     }
 
-    LogMessage(const std::string& prefix, const std::string& file, int line) :
+    LogMessage(const std::string& prefix, const std::string& file, int line, std::ostream& stream = std::cout) :
+        m_stream(stream),
         m_message(new ::std::string)
     {
         m_message->append(prefix).append(file).append(":").append(std::to_string(line));
@@ -343,37 +331,31 @@ public:
     }
 
     template<typename T>
-    inline LogMessage& operator<<(const T& value)
+    inline MessageStream operator<<(const T& value)
     {
-        AppendMessage(MessageStream() << value);
-        return *this;
-    }
-
-    typedef std::ostream& (*BasicNarrowIoManip)(std::ostream&);
-    inline LogMessage& operator<<(BasicNarrowIoManip value)
-    {
-        AppendMessage(MessageStream() << value);
-        return *this;
+        MessageStream msg;
+        msg << value;
+        return msg;
     }
 };
 
 class DebugLogMessage : public LogMessage {
 public:
     DebugLogMessage() :
-        LogMessage(),
-        m_redirect(std::cerr, LogHelpers::readOutputFilename())
+        LogMessage(std::cerr),
+        m_redirect(m_stream, LogHelpers::readOutputFilename())
     {
     }
 
     DebugLogMessage(const std::string& prefix, const std::string& file, const std::string& function, int line) :
-        LogMessage(prefix, file, function, line),
-        m_redirect(std::cerr, LogHelpers::readOutputFilename())
+        LogMessage(prefix, file, function, line, std::cerr),
+        m_redirect(m_stream, LogHelpers::readOutputFilename())
     {
     }
 
     DebugLogMessage(const std::string& prefix, const std::string& file, int line) :
-        LogMessage(prefix, file, line),
-        m_redirect(std::cerr, LogHelpers::readOutputFilename())
+        LogMessage(prefix, file, line, std::cerr),
+        m_redirect(m_stream, LogHelpers::readOutputFilename())
     {
     }
 
@@ -385,44 +367,19 @@ private:
 
 class BasicMessage {
 private:
-    void AppendMessage(const MessageStream& message)
-    {
-        if (m_message.get() == nullptr)
-            m_message.reset(new ::std::string);
-
-        m_message->append(message.getString().c_str());
-    }
-
-    std::unique_ptr<std::string> m_message;
+    std::ostream& m_stream;
 
 public:
-    BasicMessage() {}
-
-    ~BasicMessage()
-    {
-#ifdef OUTPUT_LOG_TO_FILE
-        ScopedDualRedirect redirect_cout(std::cout, LogHelpers::readOutputFilename());
-#endif
-
-        if (m_message.get() != nullptr)
-            std::cout << m_message->c_str() << "\n";
-
-        std::string* strPtr = m_message.release();
-        if (strPtr != nullptr)
-            delete strPtr;
-    }
+    BasicMessage(std::ostream& stream = std::cout) :
+        m_stream(stream)
+    {}
 
     template<typename T>
-    inline BasicMessage& operator<<(const T& value)
+    inline MessageStream operator<<(const T& value)
     {
-        AppendMessage(MessageStream() << value);
-        return *this;
-    }
-
-    inline BasicMessage& operator<<(BasicNarrowIoManip value)
-    {
-        AppendMessage(MessageStream() << value);
-        return *this;
+        MessageStream msg(m_stream);
+        msg << value;
+        return msg;
     }
 };
 

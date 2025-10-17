@@ -144,7 +144,7 @@ struct PieceIsoImpl<queenId> {
 
 template<Set us, u8 pieceId>
 MovesMask PieceIsolator<us, pieceId>::isolate(Square src) const {
-    return PieceIsoImpl<pieceId>::apply<us>(m_position, m_movesMask, src, m_pinThreats);
+    return PieceIsoImpl<pieceId>::template apply<us>(m_position, m_movesMask, src, m_pinThreats);
 }
 
 template MovesMask PieceIsolator<Set::WHITE, pawnId>::isolate(Square) const;

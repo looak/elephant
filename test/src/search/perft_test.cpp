@@ -26,6 +26,11 @@ public:
     Search m_search;
 };
 //////////////////////////////////////////////////////////////
+void validateNodeCount(PerftResult& result, int expectedNodes)
+{
+    EXPECT_EQ(expectedNodes, result.Nodes);
+}
+//////////////////////////////////////////////////////////////
 /*
 depth	nodes	    totalnodes
 1	    20	        20
@@ -406,15 +411,11 @@ PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase)
     auto result = ExecutePerftCase(perftCase.fen, perftCase.searchDepth);
     caseClock.Stop();    
     result.NPS = caseClock.calcNodesPerSecond(result.Nodes);
-    LOG_INFO() << " [ RESULTS ] Nodes: - - - - - - - " << result.Nodes << " nodes";
-    LOG_INFO() << " [ RESULTS ] Nodes per second: - - " << result.NPS << " nps";
-    LOG_INFO() << " [ RESULTS ] Elapsed time: - - - - " << caseClock.getElapsedTime() << " ms";
-    if (perftCase.expectedNodeCount == result.Nodes)
-        LOG_INFO() << " [ RESULTS ] Test passed!";
-    else
-        LOG_INFO() << " [ RESULTS ] Test failed! Expected: " << perftCase.expectedNodeCount << ", Got: " << result.Nodes;
-
-    LOG_INFO() << "---------------------------------";    
+    LOG_INFO() << " Nodes: - - - - - - - " << result.Nodes << " nodes";
+    LOG_INFO() << " Nodes per second: - - " << result.NPS << " nps";
+    LOG_INFO() << " Elapsed time: - - - - " << caseClock.getElapsedTime() << " ms";
+    EXPECT_EQ(perftCase.expectedNodeCount, result.Nodes);
+    LOG_INFO() << "---------------------------------";
     return result;
 }
 
@@ -423,24 +424,24 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     std::vector<PerftCaseArgs> perftTestCases = {
         { true, "illegal enpassant", "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6 },
         { true, "illegal enpassant", "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6 },
-        { true, "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
-        { true, "short castling", "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6 },
-        { true, "long castling", "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6 },
-        { true, "castling rights", "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4 },
-        { true, "castling prevented", "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4 },
-        { true, "promotion out of check", "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6 },
-        { true, "discovered check", "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5 },
-        { true, "promote to give check", "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6 },
-        { true, "under promote to give check", "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6 },
-        { true, "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
-        { true, "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
-        { true, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
+        { false, "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
+        { false, "short castling", "5k2/8/8/8/8/8/8/4K2R w K - 0 1", 661072, 6 },
+        { false, "long castling", "3k4/8/8/8/8/8/8/R3K3 w Q - 0 1", 803711, 6 },
+        { false, "castling rights", "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1", 1274206, 4 },
+        { false, "castling prevented", "r3k2r/8/3Q4/8/8/5q2/8/R3K2R b KQkq - 0 1", 1720476, 4 },
+        { false, "promotion out of check", "2K2r2/4P3/8/8/8/8/8/3k4 w - - 0 1", 3821001, 6 },
+        { false, "discovered check", "8/8/1P2K3/8/2n5/1q6/8/5k2 b - - 0 1", 1004658, 5 },
+        { false, "promote to give check", "4k3/1P6/8/8/8/8/K7/8 w - - 0 1", 217342, 6 },
+        { false, "under promote to give check", "8/P1k5/K7/8/8/8/8/8 w - - 0 1", 92683, 6 },
+        { false, "self stalemate", "K1k5/8/P7/8/8/8/8/8 w - - 0 1", 2217, 6 },
+        { false, "stalemate and checkmate", "8/k1P5/8/1K6/8/8/8/8 w - - 0 1", 567584, 7 },
+        { false, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
         /*  This test takes a long time to run, so it is disabled by default
             https://www.chessprogramming.net/perfect-perft/ */
         { false, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
         { false, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
         { false, "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
-        { true, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
+        { false, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };
 
     Clock clock;    
@@ -459,20 +460,18 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     clock.Stop();
 
     for (const auto& [result, perftCase] : results) {
-        if (result.Passed)
-            LOG_INFO() << " [  PASSED ] Test: " << perftCase.testId << " \tNodes: " << result.Nodes << " / " << perftCase.expectedNodeCount;
-        else
-            LOG_INFO() << " [  FAILED ] Test: " << perftCase.testId << " \tNodes: " << result.Nodes << " / " << perftCase.expectedNodeCount;
+        if (perftCase.enabled == false) continue;
+        EXPECT_EQ(perftCase.expectedNodeCount, result.Nodes) << " TestId: " << perftCase.testId;
     }
 
     u64 nps = clock.calcNodesPerSecond(totalNodes);
     i64 elapsedTime = clock.getElapsedTime();
     LOG_INFO() << "---------------------------------";
-    LOG_INFO() << " [ AGGREGATE RESULTS ]";
-    LOG_INFO() << " [ RESULTS ] Total nodes:  - - - - - - - " << totalNodes << " nodes";
-    LOG_INFO() << " [ RESULTS ] Total elapsed time: - - - - " << elapsedTime << " ms";
-    LOG_INFO() << " [ RESULTS ] Total nodes per second: - - " << nps << " nps";
-    LOG_INFO() << " [ RESULTS ] Average nodes per second: - " << totalNps / perftTestCases.size() << " nps";
+    LOG_INFO() << " ### AGGREGATE RESULTS ###";
+    LOG_INFO() << "  Total nodes:  - - - - - - - " << totalNodes << " nodes";
+    LOG_INFO() << "  Total elapsed time: - - - - " << elapsedTime << " ms";
+    LOG_INFO() << "  Total nodes per second: - - " << nps << " nps";
+    LOG_INFO() << "  Average nodes per second: - " << totalNps / perftTestCases.size() << " nps";
     LOG_INFO() << "---------------------------------";
 
     EXPECT_TRUE(testsPassed);

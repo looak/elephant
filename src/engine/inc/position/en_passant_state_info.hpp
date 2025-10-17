@@ -26,10 +26,10 @@
 #include <defines.hpp>
 #include <bitboard/bitboard.hpp>
 #include <core/square_notation.hpp>
+#include <position/hash_zobrist.hpp>
 
 struct EnPassantStateInfo {
 public:
-    EnPassantStateInfo() = default;
     operator bool() const { return m_innerState != 0; }
     void clear() { m_innerState = 0; }
 
@@ -58,7 +58,7 @@ public:
         }
         return static_cast<Square>(sq - 8);
     }
-    
+
     Bitboard readBitboard() const
     {
         if (*this == true) {
@@ -83,4 +83,44 @@ public:
 private:
     // [sqr] [sqr] [sqr] [sqr] [sqr] [sqr] [set] [hasEnPassant]
     byte m_innerState;
+};
+
+class EnPassantStateProxy {
+public:
+    EnPassantStateProxy(EnPassantStateInfo& state, u64& hash) : m_state(state), m_hash(hash) {}
+
+    operator bool() const { return m_state.operator bool(); } 
+    
+    void writeSquare(Square sq)
+    {
+        if (m_state)
+            m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+        
+        m_state.writeSquare(sq);
+        m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+    }
+    
+    Square readSquare() const { return m_state.readSquare(); }
+    Square readTarget() const { return m_state.readTarget(); }
+    Bitboard readBitboard() const { return m_state.readBitboard(); }
+    std::string toString() const { return m_state.toString(); }
+    
+    // read & write will mainly be used by make / unmake to track state.
+    byte read() const { return m_state.read(); }
+    void write(byte state) { 
+        if (m_state)
+            m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+        m_state.write(state);
+        m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+    }
+
+    void clear() { 
+        if (m_state) // expect this to be true, but might not be.
+            m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+        m_state.clear(); 
+    }
+
+private:
+    EnPassantStateInfo& m_state;
+    u64& m_hash;
 };

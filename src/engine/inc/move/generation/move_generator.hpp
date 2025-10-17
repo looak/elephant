@@ -111,3 +111,7 @@ void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveG
         buildPackedMoveFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false);
     }
 }
+
+
+typedef MoveGenerator<Set::WHITE> WhiteMoveGen;
+typedef MoveGenerator<Set::BLACK> BlackMoveGen;
