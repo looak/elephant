@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # CMakeList.txt : Top-level CMake project file
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 include(cmake/version.cmake)
 project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)
@@ -28,20 +28,20 @@ message(STATUS "## Elephant Gambit version: ${ElephantGambit_VERSION}")
 # set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compiler warning levels
-if(MSVC)
-    # For Microsoft Visual Studio
-    set(WARNING_LEVEL "/W4")
-else()
-    # For GCC and Clang
-    set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic -std=c++20'")
-    ## set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic") // unsure if this does anything
-endif()
-    
-
-    
-add_compile_options(${WARNING_LEVEL})
-message(STATUS "## CXX Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "## Warning level: ${WARNING_LEVEL}")
+# if(MSVC)
+#     # For Microsoft Visual Studio
+#     set(WARNING_LEVEL "/W4")
+# else()
+#     # For GCC and Clang
+#     set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic -std=c++20'")
+#     ## set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic") // unsure if this does anything
+# endif()
+#  
+# 
+#     
+# add_compile_options(${WARNING_LEVEL})
+# message(STATUS "## CXX Standard: ${CMAKE_CXX_STANDARD}")
+# message(STATUS "## Warning level: ${WARNING_LEVEL}")
 
 include(GNUInstallDirs)
 include(cmake/options.cmake)

@@ -173,7 +173,11 @@ public:
 
 struct MutableImplicitPieceSquare {
     MutableImplicitPieceSquare(u64& hash, MaterialPositionMask& material, Square sqr) :
-        m_material(material), m_sqr(sqr), m_hash(hash) {}
+        m_hash(hash),
+        m_material(material),
+        m_sqr(sqr)
+    {
+    }
 
     void operator=(ChessPiece piece)
     {

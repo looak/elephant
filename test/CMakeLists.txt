@@ -21,8 +21,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        release-1.12.1  
-)
+  GIT_TAG        v1.17.0)
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -34,15 +33,22 @@ add_executable(${PROJECT_NAME} ${TEST_SOURCE_ALL})
 
 # Explicitly set the C++ standard for test target
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD_REQUIRED ON)
+set_target_properties(${PROJECT_NAME} PROPERTIES 
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF)
 
 target_include_directories(${PROJECT_NAME} 
   PRIVATE
     ${TEST_INC_DIR})
   
-target_link_libraries(${PROJECT_NAME} gtest_main engine)
+target_link_libraries(${PROJECT_NAME} common_warnings gtest_main engine)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})
-# add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME})
+
+target_include_directories(ElephantTest
+    PRIVATE
+        # This tells the compiler to ignore warnings from Google Test's headers
+        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
+        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include"
+)

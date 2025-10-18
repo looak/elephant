@@ -15,3 +15,27 @@ set(PRECOMPILE_OPTIONS
     ENABLE_TRANSPOSITION_TABLE
     ENABLE_LATE_MOVE_REDUCTION
 )
+
+# Library to hold our shared compiler warning flags
+add_library(common_warnings INTERFACE)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(PROJECT_WARNING_FLAGS
+        "-Wall"                # Enable all core warnings
+        "-Wextra"              # Enable extra warnings
+        "-pedantic"            # Enforce strict standard conformance
+        "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
+        "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
+    )
+    message(STATUS "## Applying GCC/Clang warning flags.")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(PROJECT_WARNING_FLAGS
+        "/W4"                  # High warning level, similar to -Wall/-Wextra
+        "/permissive-"         # Strict conformance, similar to -pedantic
+    )
+    message(STATUS "## Applying MSVC warning flags.")
+endif()
+
+
+message(STATUS "## Warning Level: ${WARNING_LEVEL_ARGS}")
+target_compile_options(common_warnings INTERFACE ${WARNING_LEVEL_ARGS})
