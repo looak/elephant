@@ -32,6 +32,11 @@ include(sourcelist.cmake)
 
 add_executable(${PROJECT_NAME} ${TEST_SOURCE_ALL})
 
+# Explicitly set the C++ standard for test target
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD_REQUIRED ON)
+
 target_include_directories(${PROJECT_NAME} 
   PRIVATE
     ${TEST_INC_DIR})

@@ -1,6 +1,10 @@
 ﻿# Add source to this project's executable.
 add_library(${CLI_LIB} "")
 
+target_compile_features(${CLI_LIB} PRIVATE cxx_std_20)
+set_target_properties(${CLI_LIB} PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(${CLI_LIB} PROPERTIES CXX_STANDARD_REQUIRED ON)
+
 project(ElephantCli VERSION 0.6.1)
 set(ElephantCli_VERSION_PRERELEASE "")
 

@@ -13,10 +13,15 @@ set(CLI_SOURCE ${CLI_SOURCE}
 ${SRC_DIR}/elephant_cli.cpp
 ${SRC_DIR}/commands/commands.hpp
 ${SRC_DIR}/commands/command_api.hpp
-${SRC_DIR}/commands/fen_command.hpp
-${SRC_DIR}/commands/new_game_command.hpp
 
-${SRC_DIR}/command_registry/command_registry.hpp
+${SRC_DIR}/commands/fen_command.hpp
+${SRC_DIR}/commands/help_command.hpp
+${SRC_DIR}/commands/new_game_command.hpp
+${SRC_DIR}/commands/simple_commands.hpp
+
+${SRC_DIR}/command_logic/command_registry.hpp
+${SRC_DIR}/command_logic/command_processor.hpp
+${SRC_DIR}/command_logic/command_processor.cpp
 
 ${SRC_DIR}/printer/printer.hpp
 

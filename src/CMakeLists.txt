@@ -11,6 +11,10 @@ endif()
 
 add_executable (${MAIN_EXE} main.cpp)
 
+target_compile_features(${MAIN_EXE} PRIVATE cxx_std_20)
+set_target_properties(${MAIN_EXE} PROPERTIES CXX_EXTENSIONS OFF)
+set_target_properties(${MAIN_EXE} PROPERTIES CXX_STANDARD_REQUIRED ON)
+
 set(ENGINE_LIB engine)
 set(CLI_LIB cli)
 
