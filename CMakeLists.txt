@@ -23,9 +23,9 @@ set(ElephantGambit_VERSION_PRERELEASE "")
 set(ElephantGambit_VERSION_SUFFIX $(VAR_ELEPHANT_VERSION_SUFFIX))
 message(STATUS "## Elephant Gambit version: ${ElephantGambit_VERSION}")
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_CXX_STANDARD 20)
+# set(CMAKE_CXX_EXTENSIONS OFF)
+# set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Compiler warning levels
 if(MSVC)
@@ -33,7 +33,7 @@ if(MSVC)
     set(WARNING_LEVEL "/W4")
 else()
     # For GCC and Clang
-    set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic'")
+    set(WARNING_LEVEL "'-Wall -Wextra -Wpedantic -std=c++20'")
     ## set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic") // unsure if this does anything
 endif()
     

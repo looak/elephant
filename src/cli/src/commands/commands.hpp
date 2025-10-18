@@ -1,2 +1,4 @@
 #include "fen_command.hpp"
 #include "new_game_command.hpp"
+#include "simple_commands.hpp"
+#include "help_command.hpp"

@@ -10,7 +10,7 @@
 #include <debug/log.hpp>
 
 #include "commands/command_api.hpp"
-#include "command_registry/command_registry.hpp"
+#include "command_logic/command_registry.hpp"
 #include "printer/printer.hpp"
 
 #include <iostream>
@@ -58,7 +58,7 @@ Application::Run()
     LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
 #endif
 
-    GameContext context;
+    AppContext context;
 
     while (1) {
         std::cout << " > ";
@@ -70,62 +70,13 @@ Application::Run()
         if (buffer.empty())
             continue;
 
-        // Use a string stream to easily split the line into words
-        std::istringstream iss(buffer);
-        std::string command_name;
-        iss >> command_name;
-
-        // Check for the exit condition
-        if (command_name == "exit" || command_name == "quit") {
-            prnt::out << "Exiting...";
-            break;
-        }
-
-        // 2. EVALUATE: Find and execute the command.
-        auto command = CommandRegistry::instance().createCommand(command_name);
-
-        // Security: Handle unrecognized commands gracefully
-        if (!command) {
-            prnt::out << "Error: Unknown command '" << command_name << "'";
+        if (context.processInput(buffer))
+        {
             continue;
         }
-
-        // Collect the arguments for the command
-        std::vector<std::string> args;
-        std::string arg;
-        while (iss >> arg) {
-            args.push_back(arg);
+        else
+        {
+            break;
         }
-
-        // The command is created, used, and then destroyed here.
-        command->setContext(&context);
-        command->run(args);
-
-        //std::list<std::string> tokens;
-        //extractArgsFromCommand(buffer, tokens);
-
-        //if (tokens.size() == 0)
-        //    continue;
-
-        //auto&& command = CliCommands::options.find(tokens.front());
-        //if (tokens.size() > 0 && command != CliCommands::options.end()) {
-        //    auto token = tokens.front();
-        //    tokens.pop_front();  // remove command from tokens.
-
-        //    bool commandResult = command->second.first(tokens, context);
-        //    if (commandResult == false) {
-        //        command->second.second(token);
-        //        std::cout << std::endl;
-        //    }
-        //}
-        //else if (tokens.size() == 1) {
-        //    // attempt to make a move with token
-        //    auto moveCommand = CliCommands::options.find("move");
-        //    moveCommand->second.first(tokens, context);
-        //}
-        //else {
-        //    std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-        //    std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
-        //}
     }
 }

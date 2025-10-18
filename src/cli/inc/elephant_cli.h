@@ -15,6 +15,20 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
+#include <memory>
+#include "..\src\command_logic\command_processor.hpp"
+
+class AppContext {
+private:
+    std::unique_ptr<ICommandProcessor> m_currentProcessor;
+
+public:
+    AppContext() { m_currentProcessor = std::make_unique<NormalModeProcessor>(); }
+    ~AppContext() { m_currentProcessor.reset(); }
+
+    void setState(std::unique_ptr<ICommandProcessor> newProcessor) { m_currentProcessor = std::move(newProcessor); }
+    bool processInput(const std::string& line) { return m_currentProcessor->processInput(*this, line); }
+};
 
 class Application {
 public:

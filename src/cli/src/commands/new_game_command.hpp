@@ -1,6 +1,6 @@
 #pragma once
 
-#include <command_registry/command_registry.hpp>
+#include <command_logic/command_registry.hpp>
 #include <commands/command_api.hpp>
 #include <core/game_context.hpp>
 #include <printer/printer.hpp>
