@@ -53,6 +53,9 @@ public:
     void calculateOpponentOpenAngles(const Square kingSquare, PositionReader position);
     
 private:
+    KingPinThreats(const KingPinThreats&) = delete;
+    KingPinThreats& operator=(const KingPinThreats&) = delete;
+
     void compute(Square kingSquare, PositionReader position);
     void calculateEnPassantPinThreat(Square kingSquare, PositionReader position);
 

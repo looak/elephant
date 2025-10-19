@@ -24,6 +24,7 @@
 
 #pragma once
 #include <position/position_accessors.hpp>
+#include <iostream>
 
 class Chessboard;
 
@@ -32,6 +33,9 @@ namespace printer {
 
 void board(std::ostream& output, const Chessboard& board);
 void position(std::ostream& output, PositionReader reader);
+void bitboard(std::ostream& output, const Bitboard& bitboard);
+
+void bitboardOperationResult(std::ostream& output, const Bitboard& result, const Bitboard& lhs, const Bitboard& rhs, const std::string& operation);
 
 }  // namespace printer
 }  // namespace io

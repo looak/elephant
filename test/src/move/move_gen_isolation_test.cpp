@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <position/position.hpp>
 #include <position/position_accessors.hpp>
+#include <io/printer.hpp>
+#include <optional>
 
 #include <move/generation/move_bulk_generator.hpp>
 #include <move/generation/move_gen_isolation.hpp>
@@ -19,13 +21,19 @@ namespace ElephantTest {
 class IsolationFixture : public ::testing::Test {
 public:
 
-    KingPinThreats<Set::WHITE> safeWhiteKingPinThreats(Square sqr = Square::E1) {
-        return KingPinThreats<Set::WHITE>(sqr, testingPosition);
+
+    const KingPinThreats<Set::WHITE>& safeWhiteKingPinThreats(Square sqr = Square::E1)  {
+        whiteKingPinOpt.emplace(sqr, testingPosition);
+        return *whiteKingPinOpt;        
     }
 
-    KingPinThreats<Set::BLACK> safeBlackKingPinThreats(Square sqr = Square::E8) {
-        return KingPinThreats<Set::BLACK>(sqr, testingPosition);
+    const KingPinThreats<Set::BLACK>& safeBlackKingPinThreats(Square sqr = Square::E8) {
+        blackKingPinOpt.emplace(sqr, testingPosition);
+        return *blackKingPinOpt;
     }
+
+    std::optional<KingPinThreats<Set::WHITE>> whiteKingPinOpt;
+    std::optional<KingPinThreats<Set::BLACK>> blackKingPinOpt;
 
     Position testingPosition;
 };
@@ -444,7 +452,11 @@ TEST_F(IsolationFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlo
     });
 
     // do isolation
-    auto [quietE2, capturesE2] = isolator.isolate(Square::E2);
+    auto [quietE2, capturesE2] = isolator.isolate(Square::E2);    
+
+
+    // io::printer::bitboard(std::cout, quietE2);
+    // io::printer::bitboard(std::cout, capturesE2);
 
     // validate
     EXPECT_EQ(expected, quietE2);
@@ -505,6 +517,7 @@ TEST_F(IsolationFixture, Knight_IsolatingPiece_SharingTargetSquares)
     Bitboard empty{};
 
     // do isolation
+
     PieceIsolator<Set::WHITE, knightId> isolator(testingPosition, knightMoves, safeWhiteKingPinThreats());
     auto [quiet, captures] = isolator.isolate(Square::D4);
 
