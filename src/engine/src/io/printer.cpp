@@ -40,5 +40,57 @@ void position(std::ostream& output, PositionReader reader) {
     output << "\n\n     A  B  C  D  E  F  G  H\n";
 }
 
+void bitboard(std::ostream& output, const Bitboard& bitboard)
+{
+    output << "\n";
+    for (int rank = 7; rank >= 0; --rank) {
+        output << " " << (rank + 1) << "  ";
+        for (int file = 0; file < 8; ++file) {
+            Square sqr = static_cast<Square>(rank * 8 + file);
+            output << '[' << (bitboard[sqr] ? "x" : ".") << ']';
+        }
+        output << "\n";
+    }
+    output << "\n     A  B  C  D  E  F  G  H\n\n";
+}
+
+void bitboardOperationResult(std::ostream& output, const Bitboard& result, const Bitboard& lhs, const Bitboard& rhs, const std::string& operation)
+{
+    // Print three boards in a row: lhs <operation> rhs = result
+    output << "\n";
+    for (int rank = 7; rank >= 0; --rank) {
+        // rank label on the left
+        output << " " << (rank + 1) << "  ";
+
+        // lhs board
+        for (int file = 0; file < 8; ++file) {
+            Square sqr = static_cast<Square>(rank * 8 + file);
+            output << '[' << (lhs[sqr] ? "x" : ".") << ']';
+        }
+
+        // operator between lhs and rhs
+        output << "  " << operation << "  ";
+
+        // rhs board
+        for (int file = 0; file < 8; ++file) {
+            Square sqr = static_cast<Square>(rank * 8 + file);
+            output << '[' << (rhs[sqr] ? "x" : ".") << ']';
+        }
+
+        // equals and result board
+        output << "  =  ";
+        for (int file = 0; file < 8; ++file) {
+            Square sqr = static_cast<Square>(rank * 8 + file);
+            output << '[' << (result[sqr] ? "x" : ".") << ']';
+        }
+
+        output << "\n";
+    }
+
+    // File labels for each board (aligned with the printed boards)
+    output << "\n     A  B  C  D  E  F  G  H   " << operation << "   A  B  C  D  E  F  G  H   =   A  B  C  D  E  F  G  H\n\n";
+
+} 
+
 }  // namespace printer
 }  // namespace io
