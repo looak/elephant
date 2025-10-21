@@ -1,109 +1,227 @@
-//#include <gtest/gtest.h>
-//#include <defines.hpp>
+#include <gtest/gtest.h>
+#include <defines.hpp>
+
+#include "elephant_test_utils.h"
+#include <io/fen_parser.hpp>
+#include <core/game_context.hpp>
+#include <move/generation/move_generator.hpp>
+
+
+#include "bitboard_test_helpers.hpp"
+
+namespace ElephantTest {
+////////////////////////////////////////////////////////////////
+/**
+ * @file move_generator_test.cpp
+ * @brief Fixture for testing move generator.
+ * Naming convention as of May 2023: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
+ * @author Alexander Loodin Ek
+ */
+class MoveGeneratorFixture : public ::testing::Test {
+public:
+    virtual void SetUp() {
+        testParams.setAll(true);
+    };
+    virtual void TearDown() {};
+
+    using MovePredicate = std::function<bool(const PackedMove&)>;
+
+    template<Set t_set>
+    Bitboard buildMoveMask(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
+    {
+        Bitboard result;
+        while (auto mv = gen.generateNextMove().move) {
+            if (pred && !pred(mv))
+                continue;
+
+            result[mv.targetSqr()] = true;
+        }
+        return result;
+    }
+
+    template<typename... Squares>
+    bool contains_exactly_target_squares(const std::vector<PrioritizedMove>& moves, Squares... target_squares)
+    {    
+        if (moves.size() != sizeof...(target_squares)) {
+            return false;
+        }
+        
+        if constexpr (sizeof...(target_squares) == 0) {
+            return false;
+        }
+
+        // Put the variadic arguments into a container (std::array is efficient).
+        std::array<Square, sizeof...(target_squares)> targets = { target_squares... };
+
+        // Extract the target squares from the vector of moves.
+        std::vector<Square> target_squares;
+        target_squares.reserve(moves.size());
+        for (const auto& move : moves) {
+            target_squares.push_back(move.move.targetSqr());
+        }
+
+        // Sort both containers. This makes them easy to compare and handles any order differences and duplicates correctly.
+        std::sort(targets.begin(), targets.end());
+        std::sort(target_squares.begin(), target_squares.end());
+        
+        return std::equal(targets.begin(), targets.end(), target_squares.begin());
+    }
+
+    GameContext testContext;
+    MoveGenParams testParams;
+};
+////////////////////////////////////////////////////////////////
+
+// move generator asserts if the board is empty
+TEST_F(MoveGeneratorFixture, Empty)
+{
+    MoveGenerator<Set::WHITE> whiteGen(testContext.readChessPosition(), testParams);
+    MoveGenerator<Set::BLACK> blackGen(testContext.readChessPosition(), testParams);
+
+    PrioritizedMove whiteMove = whiteGen.generateNextMove();
+    PrioritizedMove blackMove = blackGen.generateNextMove();
+
+    EXPECT_TRUE(whiteMove.move.isNull());
+    EXPECT_TRUE(blackMove.move.isNull());
+}
+
+/** Most basic move generation test, a king in the middle of the board with no other pieces,
+* should have eight moves available. */
+    TEST_F(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
+    {
+    using enum Square;
+
+    // setup
+    PositionEditor editor = testContext.editChessPosition();
+    editor.placePieces(
+        piece_constants::white_king, Square::E4
+    //        ,piece_constants::black_king, Square::E8
+    );
+
+    // expected
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(
+        D5, E5, F5,
+        D4,/*K*/F4,
+        D3, E3, F3
+    );
+
+    WhiteMoveGen gen(testContext.readChessPosition(), testParams);
+
+    Bitboard result = buildMoveMask(gen);
+    EXPECT_EQ(expected, result);
+}
+
+ // 8 [ R ][   ][   ][ k ][   ][   ][   ][ r ]
+ // 7 [   ][ b ][   ][   ][   ][   ][ b ][ q ]
+ // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+ // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+ // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+ // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+ // 2 [   ][   ][   ][   ][   ][   ][   ][ B ]
+ // 1 [   ][   ][   ][   ][ K ][   ][   ][ R ]
+ //     A    B    C    D    E    F    G    H
+ // R3k2r/1b4bq/8/8/8/8/7B/4K2R w KQkq - 0 1
+ // after Rxa8 bishop should have two available moves
+TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece)
+{
+    // setup
+    std::string fen = "R3k2r/1b4bq/8/8/8/8/7B/4K2R w KQkq - 0 1";
+    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
+
+    // verify
+    EXPECT_EQ(WHITEROOK, testContext.readChessPosition().pieceAt(Square::A8));
+    // EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
+
+    // setup move generator
+    MoveGenParams params;
+    params.setBishops(true);
+    MoveGenerator<Set::BLACK> gen(testContext.readChessPosition(), params);
+
+    // do
+    auto vectorOfMoves = gen.moves();
+
+    // verify
+    auto predicate = [](const PrioritizedMove& prioritizedMove) { return prioritizedMove.move.sourceSqr() == Square::B7; };
+    std::vector<PrioritizedMove> result;
+    std::copy_if(vectorOfMoves.begin(), vectorOfMoves.end(), std::back_inserter(result), predicate);
+
+    EXPECT_EQ(2, result.size());
+}
+
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][ p ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][ p ][   ][   ][   ][   ]
+// 5 [ K ][ P ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][ R ][   ][   ][   ][ p ][ P ][ k ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][ P ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// 8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1
+// sequence of moves: e4 fxe3 is illegal because it puts
+// king in check.
+TEST_F(MoveGeneratorFixture, Pawn_PinnedCapture_EnPassantCaptureIllegal)
+{
+    // setup
+    std::string fen = "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1";
+    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());    
+    PositionReader pos = testContext.readChessPosition();
+
+    // just make sure setup is correct
+    EXPECT_EQ(Square::G3, pos.enPassant().readSquare());
+
+    // setup move generator
+    MoveGenParams params;
+    params.setPawns(true);
+
+    MoveGenerator<Set::BLACK> gen(pos, params);
+
+    // do
+    auto result = gen.moves();
+
+    // verify
+    bool compareResults = contains_exactly_target_squares(result, Square::C6, Square::C5, Square::D5, Square::F3);
+    EXPECT_TRUE(compareResults);
+}
+
+// 8 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 7 [   ][   ][ p ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][ p ][   ][   ][   ][   ]
+// 5 [ K ][ P ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][ R ][   ][   ][ P ][ p ][   ][ k ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [   ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// 8/2p5/3p4/KP5r/1R2Pp1k/8/8/8 b - e3 0 1
+TEST_F(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
+{
+    // setup
+    std::string fen = "8/2p5/3p4/KP5r/1R2Pp1k/8/8/8 b - e3 0 1";
+    fen_parser::deserialize(fen.c_str(), testContext.editChessboard()); 
+    PositionReader pos = testContext.readChessPosition();
+
+    // just make sure setup is correct
+    EXPECT_EQ(Square::E3, pos.enPassant().readSquare());
+
+    // setup move generator
+    MoveGenParams params;
+    params.setPawns(true);
+
+    MoveGenerator<Set::BLACK> gen(pos, params);
+
+    // do
+    auto result = gen.moves();
+
+    // verify
+    bool compareResults = contains_exactly_target_squares(result, Square::C6, Square::C5, Square::D5, Square::F3);
+    EXPECT_TRUE(compareResults);
+}
+
+}  // namespace ElephantTest
+
 //
-//#include "elephant_test_utils.h"
-//#include <io/fen_parser.hpp>
-//#include <core/game_context.hpp>
-//#include <move/generation/move_generator.hpp>
-//
-//
-//#include "bitboard_test_helpers.hpp"
-//
-//namespace ElephantTest {
-//////////////////////////////////////////////////////////////////
-///**
-// * @file move_generator_test.cpp
-// * @brief Fixture for testing move generator.
-// * Naming convention as of May 2023: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
-// * @author Alexander Loodin Ek
-// */
-//class MoveGeneratorFixture : public ::testing::Test {
-//public:
-//    virtual void SetUp(){
-//
-//    };
-//    virtual void TearDown(){};
-//
-//    using MovePredicate = std::function<bool(const PackedMove&)>;
-//
-//    /**
-//     * @brief Build a vector of moves from a move generator.
-//     * Since historically, move generator was recieving a vector of moves, but we changed
-//     * move gen to generate "next move", we need to build a vector of moves from the generator
-//     * for backwards compatability.
-//     * @param gen Move generator to build from.
-//     * @param predicate Predicate to filter moves.
-//     * @return Vector of moves.     */
-//    template<Set t_set>
-//    std::vector<PackedMove> buildMoveVector(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
-//    {
-//        std::vector<PackedMove> result;
-//        while (auto mv = gen.generateNextMove().move) {
-//            if (pred && !pred(mv))
-//                continue;
-//
-//            result.push_back(mv);
-//        }
-//
-//        return result;
-//    }
-//
-//    template<Set t_set>
-//    Bitboard buildMoveMask(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
-//    {
-//        Bitboard result;
-//        while (auto mv = gen.generateNextMove().move) {
-//            if (pred && !pred(mv))
-//                continue;
-//
-//            result[mv.targetSqr()] = true;
-//        }
-//        return result;
-//    }
-//    
-//    GameContext testContext;
-//};
-//////////////////////////////////////////////////////////////////
-//
-//// move generator asserts if the board is empty
-//TEST_F(MoveGeneratorFixture, Empty)
-//{       
-//    MoveGenerator<Set::WHITE> whiteGen(testContext.readChessPosition());
-//    MoveGenerator<Set::BLACK> blackGen(testContext.readChessPosition());
-//
-//    PrioritizedMove whiteMove = whiteGen.generateNextMove();
-//    PrioritizedMove blackMove = blackGen.generateNextMove();
-//
-//    EXPECT_TRUE(whiteMove.move.isNull());
-//    EXPECT_TRUE(blackMove.move.isNull());
-//}
-//
-////{ King move generation tests
-///** Most basic move generation test, a king in the middle of the board with no other pieces,
-// * should have eight moves available. */
-//TEST_F(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
-//{
-//    using enum Square;
-//    
-//    // setup
-//    PositionEditor editor = testContext.editChessPosition();
-//    editor.placePieces(
-//        piece_constants::white_king, Square::E4
-////        ,piece_constants::black_king, Square::E8
-//    );
-//
-//    // expected
-//    Bitboard expected = BitboardResultFactory::buildExpectedBoard(
-//        D5, E5, F5,
-//        D4,/*K*/F4,
-//        D3, E3, F3
-//    );
-//
-//    WhiteMoveGen gen(testContext.readChessPosition());
-//
-//    Bitboard result = buildMoveMask(gen);
-//    EXPECT_EQ(expected, result);
-//}
+
 //
 //// TEST_F(MoveGeneratorFixture, KingFromE1_White_FiveMovesAvailable)
 //// {
@@ -1496,39 +1614,6 @@
 //// //     EXPECT_EQ(1, count.Checkmates);
 //// // }
 //
-//// // 8 [ r ][   ][   ][ k ][   ][   ][   ][ r ]
-//// // 7 [   ][ b ][   ][   ][   ][   ][ b ][ q ]
-//// // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
-//// // 5 [   ][   ][   ][   ][   ][   ][   ][   ]
-//// // 4 [   ][   ][   ][   ][   ][   ][   ][   ]
-//// // 3 [   ][   ][   ][   ][   ][   ][   ][   ]
-//// // 2 [   ][   ][   ][   ][   ][   ][   ][ B ]
-//// // 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
-//// //     A    B    C    D    E    F    G    H
-//// // r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1
-//// // after Rxa8 bishop should have two available moves
-//// TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece)
-//// {
-////     std::string fen = "r3k2r/1b4bq/8/8/8/8/7B/R3K2R w KQkq - 0 1";
-////     FENParser::deserialize(fen.c_str(), testContext);
-//
-////     // setup
-////     PackedMove mv(Square::A1, Square::A8);
-////     mv.setCapture(true);
-////     testContext.editChessboard().MakeMove<false>(mv);
-////     testContext.editChessboard().setToPlay(Set::BLACK);
-//
-////     // verify
-////     EXPECT_EQ(WHITEROOK, testContext.readChessboard().readPieceAt(Square::A8));
-////     // EXPECT_TRUE(testContext.readChessboard().isChecked(testContext.readToPlay()));
-//
-////     // do
-////     auto predicate = [](const PackedMove& mv) { return mv.sourceSqr() == Square::B7; };
-////     MoveGenerator gen(testContext);
-////     auto result = buildMoveVector(gen, predicate);
-//
-////     EXPECT_EQ(2, result.size());
-//// }
 //
 //// /**
 ////  * 8 [   ][   ][   ][   ][   ][   ][   ][   ]

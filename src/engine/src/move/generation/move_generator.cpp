@@ -8,20 +8,22 @@
 #include <search/search.hpp>
 
 #include <algorithm>
+#include <functional>
 
 template<Set us>
-MoveGenerator<us>::MoveGenerator(PositionReader position, const MoveGenParams& params) :
+MoveGenerator<us>::MoveGenerator(PositionReader position, MoveGenParams& params) :
+m_pinThreats(toSquare(position.material().king<us>().lsbIndex()), position),
     m_position(position),   
-    m_movesGenerated(false),
     m_currentMoveIndx(0),
     m_moveCount(0),
-    m_pinThreats(toSquare(position.material().king<us>().lsbIndex()), position)
+    m_movesGenerated(false),
+    m_params(params)
 {
     m_movesBuffer.fill({});
 }
 
-template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, const MoveGenParams&);
-template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, const MoveGenParams&);
+template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, MoveGenParams&);
+template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, MoveGenParams&);
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::generateNextMove() {
@@ -37,6 +39,29 @@ PrioritizedMove MoveGenerator<us>::generateNextMove() {
 
 template PrioritizedMove MoveGenerator<Set::WHITE>::generateNextMove();
 template PrioritizedMove MoveGenerator<Set::BLACK>::generateNextMove();
+
+#ifdef DEVELOPMENT_BUILD
+template<Set us>
+std::vector<PrioritizedMove> MoveGenerator<us>::moves() {
+    if (!m_movesGenerated) {
+        internalGenerateMovesOrdered();
+    }
+
+    std::vector<PrioritizedMove> allMoves;
+    allMoves.reserve(m_moveCount);
+
+    for (u32 i = 0; i < m_moveCount; ++i) {
+        allMoves.push_back(m_movesBuffer[i]);
+    }
+
+    return allMoves;
+}
+
+template std::vector<PrioritizedMove> MoveGenerator<Set::WHITE>::moves();
+template std::vector<PrioritizedMove> MoveGenerator<Set::BLACK>::moves();
+
+#endif
+
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
@@ -76,6 +101,50 @@ PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
 template PrioritizedMove MoveGenerator<Set::WHITE>::internalGenerateMoves();
 template PrioritizedMove MoveGenerator<Set::BLACK>::internalGenerateMoves();
 
+template<Set us>
+void MoveGenerator<us>::internalGenerateMovesOrdered()
+{
+    using generatorFunc = std::function<void(MoveGenerator<us>*, BulkMoveGenerator&)>;
+    
+    static const std::array<generatorFunc, 6> generators = {
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGeneratePawnMoves(bulkGen);
+        },
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGenerateMovesGeneric<knightId>(bulkGen);
+        },
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGenerateMovesGeneric<bishopId>(bulkGen);
+        },
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGenerateMovesGeneric<rookId>(bulkGen);
+        },
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGenerateMovesGeneric<queenId>(bulkGen);
+        },
+        [](MoveGenerator<us>* gen, BulkMoveGenerator& bulkGen) {
+            gen->internalGenerateKingMoves(bulkGen);
+        }
+    };
+
+    if (m_params.pieceIdFlag == 0) {
+        return; // nothing to do
+    }
+
+    u64 tmp = m_params.pieceIdFlag;
+    u32 piece = intrinsics::lsbIndex(tmp);
+    tmp = intrinsics::resetLsb(tmp);
+    m_params.pieceIdFlag = static_cast<u8>(tmp);
+
+    BulkMoveGenerator bulkMoveGen(m_position);
+    generators[piece](this, bulkMoveGen);
+
+    // sortMoves();
+    // m_movesGenerated = true;
+}
+
+template void MoveGenerator<Set::WHITE>::internalGenerateMovesOrdered();
+template void MoveGenerator<Set::BLACK>::internalGenerateMovesOrdered();
 
 template<Set us>
 void MoveGenerator<us>::sortMoves() {

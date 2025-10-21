@@ -21,11 +21,51 @@
 #include <move/generation/move_ordering_view.hpp>
 #include <position/position_accessors.hpp>
 
-
-struct MoveGenParams {
+struct MoveGenParams {    
     const MoveOrderingView* ordering = nullptr;
     MoveTypes moveFilter = MoveTypes::ALL;
     bool inCheck = false;
+    u8 pieceIdFlag = 0; // bitmask for which piece types to generate moves for
+
+    void setPawns(bool value) {
+        if (value) pieceIdFlag |= 0b00000001;
+        else pieceIdFlag &= 0b11111110;
+    };
+    void setKnights(bool value) {
+        if (value) pieceIdFlag |= 0b00000010;
+        else pieceIdFlag &= 0b11111101;
+    };
+    void setBishops(bool value) {
+        if (value) pieceIdFlag |= 0b00000100;
+        else pieceIdFlag &= 0b11111011;
+    };
+    void setRooks(bool value) {
+        if (value) pieceIdFlag |= 0b00001000;
+        else pieceIdFlag &= 0b11110111;
+    };
+    void setQueens(bool value) {
+        if (value) pieceIdFlag |= 0b00010000;
+        else pieceIdFlag &= 0b11101111;
+    };
+    void setKings(bool value) {
+        if (value) pieceIdFlag |= 0b00100000;
+        else pieceIdFlag &= 0b11011111;
+    };
+    void setAll(bool value) {
+        setPawns(value);
+        setKnights(value);
+        setBishops(value);
+        setRooks(value);
+        setQueens(value);
+        setKings(value);
+    };
+
+    bool hasPawns() const { return (pieceIdFlag & 0b00000001) != 0; };
+    bool hasKnights() const { return (pieceIdFlag & 0b00000010) != 0; };
+    bool hasBishops() const { return (pieceIdFlag & 0b00000100) != 0; };
+    bool hasRooks() const { return (pieceIdFlag & 0b00001000) != 0; };
+    bool hasQueens() const { return (pieceIdFlag & 0b00010000) != 0; };
+    bool hasKings() const { return (pieceIdFlag & 0b00100000) != 0; };
 };
 
 namespace move_generator_constants {
@@ -41,9 +81,13 @@ constexpr u16 killerMovePriority = 800;
 template<Set _us>
 class MoveGenerator {
 public:
-    explicit MoveGenerator(PositionReader position, const MoveGenParams& params = {});
+    explicit MoveGenerator(PositionReader position, MoveGenParams& params);
 
     PrioritizedMove generateNextMove();
+
+#ifdef DEVELOPMENT_BUILD
+    [[nodiscard]] std::vector<PrioritizedMove> moves();
+#endif
 
 private:
     enum class Stage {
@@ -58,6 +102,7 @@ private:
 
     KingPinThreats<_us> computeKingPinThreats();
     PrioritizedMove internalGenerateMoves();
+    void internalGenerateMovesOrdered();
    
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
     void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
@@ -77,6 +122,8 @@ private:
     u32 m_currentMoveIndx;
     u32 m_moveCount;
     bool m_movesGenerated;
+
+    MoveGenParams& m_params;
 };
 
 
