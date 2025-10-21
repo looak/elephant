@@ -16,9 +16,10 @@ PerftResult PerftSearch::Run(int depth)
         return PerftResult();
     }
     PerftResult result;
-    
+    MoveGenParams params;
+
     // perft tests should always run from white's perspective
-    MoveGenerator<us> gen(m_context.readChessboard().readPosition());
+    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);
     MoveExecutor exec(m_context);
 
     while (PrioritizedMove prioritized = gen.generateNextMove()) {
