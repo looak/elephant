@@ -1,8 +1,9 @@
-#include "command_processor.hpp"
-#include <printer/printer.hpp>
-#include "command_registry.hpp"
-#include <commands/command_api.hpp>
-#include "elephant_cli.h"
+#include "commands/command_api.hpp"
+#include "commands/logic/command_processor.hpp"
+#include "commands/logic/command_registry.hpp"
+#include "elephant_cli.hpp"
+#include "printer/printer.hpp"
+
 #include <iostream>
 
 

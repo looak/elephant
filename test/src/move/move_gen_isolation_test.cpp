@@ -454,7 +454,6 @@ TEST_F(IsolationFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlo
     // do isolation
     auto [quietE2, capturesE2] = isolator.isolate(Square::E2);    
 
-
     // io::printer::bitboard(std::cout, quietE2);
     // io::printer::bitboard(std::cout, capturesE2);
 

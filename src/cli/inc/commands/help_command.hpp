@@ -1,9 +1,9 @@
 #pragma once
 
-#include <command_logic/command_registry.hpp>
-#include <commands/command_api.hpp>
+#include "commands/logic/command_registry.hpp"
+#include "commands/command_api.hpp"
 
-class HelpCommand : public Command<std::string, void*> {
+class HelpCommand : public Command<std::string> {
 public:
     static constexpr std::string_view description() { return "Displays list of commands. optioanl arg <cmd>"; }
     static constexpr int priority() { return 100; }
@@ -17,7 +17,7 @@ public:
         }
         return args[0];
     }
-    void* execute(const std::string& args) override
+    bool execute(const std::string& args) override
     {
         //prnt::out << "Help information for: " << args << std::endl;
         if (args.empty()) {
@@ -39,7 +39,7 @@ public:
             }
         }
 
-        return nullptr;
+        return true;
     }
 
     // Outputs help information for the command.

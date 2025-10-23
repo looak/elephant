@@ -14,6 +14,7 @@ bool static_initialize()
     register_AboutCommand();
     register_ExitCommand();
     register_HelpCommand();
+    register_PrintCommand();
 	
 	return true;
 }
