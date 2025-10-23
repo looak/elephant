@@ -1,6 +1,6 @@
 ﻿// ElephantGambit.cpp : Defines the entry point for the application.
 //
-#include "elephant_cli.h"
+#include "elephant_cli.hpp"
 // #include "commands.h"
 // #include "commands_uci.h"
 // #include "commands_utils.h"
@@ -10,7 +10,7 @@
 #include <debug/log.hpp>
 
 #include "commands/command_api.hpp"
-#include "command_logic/command_registry.hpp"
+#include "commands/logic/command_registry.hpp"
 #include "printer/printer.hpp"
 
 #include <iostream>

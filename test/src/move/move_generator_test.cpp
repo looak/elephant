@@ -40,31 +40,33 @@ public:
     }
 
     template<typename... Squares>
-    bool contains_exactly_target_squares(const std::vector<PrioritizedMove>& moves, Squares... target_squares)
+    bool contains_exactly_target_squares(const std::vector<PrioritizedMove>& moves, Squares... inputTargetSquares)
     {    
-        if (moves.size() != sizeof...(target_squares)) {
+        if (moves.size() != sizeof...(inputTargetSquares)) {
             return false;
         }
         
-        if constexpr (sizeof...(target_squares) == 0) {
+        if constexpr (sizeof...(inputTargetSquares) == 0) {
             return false;
         }
 
         // Put the variadic arguments into a container (std::array is efficient).
-        std::array<Square, sizeof...(target_squares)> targets = { target_squares... };
+        std::array<Square, sizeof...(inputTargetSquares)> targets = { inputTargetSquares... };
 
         // Extract the target squares from the vector of moves.
-        std::vector<Square> target_squares;
-        target_squares.reserve(moves.size());
+        std::vector<Square> moveTargetSquares;
+        moveTargetSquares.reserve(moves.size());
         for (const auto& move : moves) {
-            target_squares.push_back(move.move.targetSqr());
+            moveTargetSquares.push_back(move.move.targetSqr());
         }
 
         // Sort both containers. This makes them easy to compare and handles any order differences and duplicates correctly.
         std::sort(targets.begin(), targets.end());
-        std::sort(target_squares.begin(), target_squares.end());
+        std::sort(moveTargetSquares.begin(), moveTargetSquares.end());
         
-        return std::equal(targets.begin(), targets.end(), target_squares.begin());
+        return std::equal(targets.begin(), targets.end(), moveTargetSquares.begin());
+
+        return false;
     }
 
     GameContext testContext;

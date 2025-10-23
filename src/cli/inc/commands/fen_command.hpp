@@ -1,7 +1,7 @@
 #pragma once
 
-#include <commands/command_api.hpp>
-#include <command_logic/command_registry.hpp>
+#include "commands/command_api.hpp"
+#include "commands/logic/command_registry.hpp"
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
 #include <printer/printer.hpp>
@@ -12,7 +12,7 @@ struct FenCommandArgs
 };
 
 static constexpr bool needs_context = true;
-class FenCommand : public Command<FenCommandArgs, bool, needs_context> {
+class FenCommand : public Command<FenCommandArgs, needs_context> {
 public:
 	static constexpr std::string_view description() { return "Sets the board to the given FEN string or outputs the FEN string for current board."; }
 	static constexpr int priority() { return 50; }

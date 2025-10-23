@@ -16,7 +16,7 @@
 
 #pragma once
 #include <memory>
-#include "..\src\command_logic\command_processor.hpp"
+#include "commands/logic/command_processor.hpp"
 
 class AppContext {
 private:

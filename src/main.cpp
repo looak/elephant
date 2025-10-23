@@ -1,7 +1,7 @@
 #include <string>
-#include "cli/inc/elephant_cli.h"
+#include "cli/inc/elephant_cli.hpp"
 #include "util/static_initializer.hpp"
-#include "cli/src/static_initializer.hpp"
+#include "cli/inc/static_initializer.hpp"
 #include "elephant_gambit_config.h"
 
 bool engine_initialized = static_initializer::initialize();

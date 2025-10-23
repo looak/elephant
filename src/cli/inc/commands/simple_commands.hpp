@@ -1,10 +1,11 @@
 #pragma once
 
-#include <command_logic/command_registry.hpp>
-#include <commands/command_api.hpp>
-#include <printer/printer.hpp>
-#include <elephant_cli_config.h>
-#include <elephant_gambit_config.h>
+#include "commands/logic/command_registry.hpp"
+#include "commands/command_api.hpp"
+#include "elephant_cli_config.h"
+#include "elephant_gambit_config.h"
+#include "printer/printer.hpp"
+
 
 class AboutCommand: public CommandNoArgs {
 public:
@@ -13,7 +14,7 @@ public:
     static constexpr std::string_view name() { return "about"; }
 
     // Executes the command with the given arguments.
-    void execute() override
+    bool execute() override
     {
         prnt::out << " Elephant Gambit Open Source Chess Engine 2021-2025";
         prnt::out << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << "-" << ELEPHANT_CLI_VERSION_PRERELEASE
@@ -22,6 +23,7 @@ public:
         prnt::out << " Source: https://github.com/looak/elephant";
         prnt::out << " Author: Alexander Loodin Ek";
         prnt::out << " Contact: alexander.loodin.ek(at)gmail.com";
+        return true;
     }
 
     // Outputs help information for the command.
@@ -38,10 +40,11 @@ class ExitCommand : public CommandNoArgs {
     static constexpr int priority() { return 200; }
     static constexpr std::string_view name() { return "exit"; }
     // Executes the command with the given arguments.
-    void execute() override
+    bool execute() override
     {
         prnt::out << "Exiting Elephant Gambit CLI...";
         std::exit(0);
+        return true;
     }
     // Outputs help information for the command.
     void help() override { prnt::out << prnt::inject_line_divider(ExitCommand::name(), ExitCommand::description()); }

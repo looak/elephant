@@ -1,11 +1,12 @@
 #pragma once
 
-#include <command_logic/command_registry.hpp>
-#include <commands/command_api.hpp>
+#include "commands/logic/command_registry.hpp"
+#include "commands/command_api.hpp"
+
 #include <core/game_context.hpp>
 #include <printer/printer.hpp>
 
-class NewGameCommand : public Command<bool, bool, true> {
+class NewGameCommand : public Command<bool, true> {
 public:
     static constexpr std::string_view description() { return "Resets chessboard into default starting position."; }
     static constexpr int priority() { return 1; }

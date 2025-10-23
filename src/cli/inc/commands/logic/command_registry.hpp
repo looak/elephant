@@ -71,8 +71,8 @@ public:
     CommandRegistrar(std::string_view keyword, std::string_view description, int priority)
     {
         CommandRegistry::instance().registerCommand({keyword, description, priority,
-                                                     // The factory is a simple lambda that creates a new instance.
-                                                     [] { return std::make_unique<T>(); }});
+                                                    // The factory is a simple lambda that creates a new instance.
+                                                    [] { return std::make_unique<T>(); }});
     }
 };
 

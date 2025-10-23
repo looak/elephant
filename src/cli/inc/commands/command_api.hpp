@@ -1,11 +1,11 @@
 #pragma once
 
+#include <core/game_context.hpp>
+#include <position/position_accessors.hpp>
 #include <printer/printer.hpp>
 
 #include <iostream>
 #include <vector>
-
-class GameContext;
 
 // A simple base class for type erasure.
 class ICommandBase {
@@ -18,11 +18,10 @@ public:
     virtual void help() = 0;
 };
 
-template<typename TArgs, typename TResult, bool TNeedsContext = false>
+template<typename TArgs, bool TNeedsContext = false>
 class Command : public ICommandBase {
 public:
-
-    virtual TResult execute(const TArgs& args) = 0;
+    virtual bool execute(const TArgs& args) = 0;
     virtual TArgs parse(const std::vector<std::string>& args) = 0;
 
     // Override the base class run method.
@@ -36,8 +35,10 @@ public:
                 }
             }
             TArgs typed_args = parse(args);
-            TResult result = execute(typed_args);
-            return 0;  // Success
+            if (execute(typed_args))
+                return 0;  // Success
+            else
+                return 1;  // Failure
         }
         catch (const std::exception& e) {
             prnt::err << "Error: " << e.what() << std::endl;
@@ -59,9 +60,48 @@ protected:
     GameContext* m_context = nullptr;
 };
 
+template<typename TArgs>
+class ReadOnlyCommand : public ICommandBase {
+public:
+    virtual bool execute(const TArgs& args) = 0;
+    virtual TArgs parse(const std::vector<std::string>& args) = 0;
+
+    int run(const std::vector<std::string>& args) final
+    {
+        try {
+            if (!args.empty())
+                throw std::runtime_error("This command does not accept arguments.");
+
+            if (m_context == nullptr) 
+                    throw std::runtime_error("Command requires a game context, but none was provided.");
+
+            TArgs typed_args = parse(args);
+            if (execute(typed_args) == false)
+                return 1;
+        }
+        catch (const std::exception& e) {
+            prnt::err << "Error: " << e.what() << std::endl;
+            return 1;  // Failure
+        }
+
+        return 0;  // Success
+    }
+
+    void setContext(GameContext* context) final
+    {
+        m_context = context;
+    }
+
+protected:
+    PositionReader readPosition() const { return m_context->readChessPosition(); }
+
+private:
+    GameContext* m_context = nullptr;
+};
+
 class CommandNoArgs : public ICommandBase {
 public:
-    virtual void execute() = 0;
+    virtual bool execute() = 0;
 
     int run(const std::vector<std::string>& args) final
     {

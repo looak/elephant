@@ -26,7 +26,7 @@ set(ElephantCli_VERSION_PRERELEASE "")
 include(sourcelist.cmake)
 
 include_directories(../engine/inc/)
-include_directories(src)
+include_directories(inc)
 
 target_sources(${CLI_LIB}
     PRIVATE
