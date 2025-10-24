@@ -2,6 +2,9 @@
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
+#include "printer/printer.hpp"
+
+#include <io/printer.hpp>
 
 struct PrintCommandArgs
 {
@@ -18,19 +21,42 @@ public:
 
     bool execute(const PrintCommandArgs& args) override
     {
-        // Implementation of the print command
+        io::printer::position(prnt::out.stream(), readPosition());
         return true;
     }
 
-    PrintCommandArgs parse(const std::vector<std::string>& args) override
+    std::optional<PrintCommandArgs> parse(const std::vector<std::string>& args) override
     {
-        PrintCommandArgs parsedArgs;
-        // Parse arguments and populate parsedArgs
+        PrintCommandArgs parsedArgs{};
+        for (const auto& arg : args) {
+            if (arg == "--pretty") {
+                parsedArgs.pretty = true;
+            }
+            else if (arg == "--flipped") {
+                parsedArgs.flipped = true;
+            }
+            else if (arg == "--pgn") {
+                parsedArgs.pgn = true;
+            }
+            else {
+                prnt::err << "Error: Unknown argument '" << arg << "'";
+                return std::nullopt;
+            }
+        }
         return parsedArgs;
     }
 
-    void help() override
+    void help(bool extended) override
     {
+        if (extended) {
+            prnt::out << "\nUsage: " << PrintCommand::name() << " [--pretty] [--flipped] [--pgn]" << std::endl << std::endl;
+            prnt::out << "Prints the current game state to the console.";
+            prnt::out << "Options:";
+            prnt::out << "  --pretty    Print the board in a human-friendly format.";
+            prnt::out << "  --flipped   Print the board from Black's perspective.";
+            prnt::out << "  --pgn       Print the game in PGN format.";
+            return;
+        }
         prnt::out << prnt::inject_line_divider(PrintCommand::name(), PrintCommand::description());
 
     }

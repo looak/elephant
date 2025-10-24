@@ -15,6 +15,7 @@ bool static_initialize()
     register_ExitCommand();
     register_HelpCommand();
     register_PrintCommand();
+    register_DivideCommand();
 	
 	return true;
 }

@@ -10,7 +10,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
- 
+
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -20,20 +20,20 @@ cmake_minimum_required(VERSION 3.16)
 include(cmake/version.cmake)
 project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)
 set(ElephantGambit_VERSION_PRERELEASE "")
-set(ElephantGambit_VERSION_SUFFIX $(VAR_ELEPHANT_VERSION_SUFFIX))
+set(ElephantGambit_VERSION_SUFFIX "")
 message(STATUS "## Elephant Gambit version: ${ElephantGambit_VERSION}")
 
 include(GNUInstallDirs)
 include(cmake/options.cmake)
 
 foreach(option IN LISTS PRECOMPILE_OPTIONS)
-     if(${${option}})
+    if(${${option}})
         message(STATUS "## Precompile option: ${option} ON")
         add_definitions(-D${option})
     else()
         message(STATUS "## Precompile option: ${option} OFF")
-     endif()
- endforeach()
+    endif()
+endforeach()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
