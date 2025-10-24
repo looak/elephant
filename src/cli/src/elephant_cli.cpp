@@ -18,8 +18,6 @@
 #include <sstream>
 #include <string>
 
-
-
 Application::Application()
 {
     MESSAGE() << "           88                        88";
@@ -33,14 +31,23 @@ Application::Application()
     MESSAGE() << "                         88";
     MESSAGE() << "                         88                                               *j*m";
     MESSAGE() << "\n                                                            a uci chess engine";
-    MESSAGE() << "                                                                      v: " << ELEPHANT_GAMBIT_VERSION_STR;
+    MESSAGE() << "                                                                     v: " << ELEPHANT_GAMBIT_VERSION_STR;
+    MESSAGE() << "                                                                      " << ELEPHANT_GAMBIT_GIT_HASH;
 
-#ifdef EG_DEBUGGING
-    MESSAGE() << "\nEG_DEBUGGING\n v: ";
-    MESSAGE() << ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;
-    MESSAGE() << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX;
+#ifdef DEVELOPMENT_BUILD
+    MESSAGE() << "---------DEVELOPMENT BUILD---------";
+    MESSAGE() << " versions numbers:";
+    MESSAGE() << " engine: " <<ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;
+    MESSAGE() << "    cli: " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX;
+    MESSAGE() << "    git: " << ELEPHANT_GAMBIT_GIT_HASH;
+    MESSAGE() << " timestamps:";
+    MESSAGE() << "  cmake:  " << ELEPHANT_GAMBIT_BUILD_TIMESTAMP;
+    MESSAGE() << "  binary: " << __DATE__ << " at " << __TIME__;
+    MESSAGE() << "----------------------------------";
 #endif
 }
+
+
 
 void
 Application::RunUci()

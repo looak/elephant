@@ -19,16 +19,18 @@ public:
 	static constexpr std::string_view name() { return "fen"; }
 
 	// Parses the arguments from a vector of strings.
-	FenCommandArgs parse(const std::vector<std::string>& args) override
+	std::optional<FenCommandArgs> parse(const std::vector<std::string>& args) override
 	{
 		if (args.empty()) 
-			return {};
+			return std::nullopt;
 		
 		std::string fen;
 		for (const auto& arg : args) {
 			fen += arg + " ";
 		}
-		return {fen};
+		FenCommandArgs commandArgs;
+		commandArgs.fen = fen;
+		return commandArgs;
 	}
 
 	// Executes the command with the given arguments.
@@ -38,19 +40,27 @@ public:
 		if (args.fen.empty()) {
 			std::string output;
 			bool result = fen_parser::serialize(m_context->readChessboard(), output);
-			prnt::err << " " << (result ? output : "Serializing failed!") << "\n";
+			prnt::err << " " << (result ? output : "Serializing failed!");
 			return result;
 		}
 		m_context->Reset();
 		bool ret = fen_parser::deserialize(args.fen.c_str(), m_context->editChessboard());
 		if (!ret)
-			prnt::err << " Invalid FEN: " << args.fen << "\n";
+			prnt::err << " Invalid FEN: " << args.fen;
 		return ret;
 	}
 
 	// Outputs help information for the command.
-	void help() override
+	void help(bool extended) override
 	{	
+		if (extended) {
+			prnt::out << "\nUsage: " << FenCommand::name() << " [<fen_string>]" << std::endl << std::endl;
+			prnt::out << "Sets the board to the given FEN string or outputs the FEN string for current board.";
+			prnt::out << "If a FEN string is provided, the command will parse it and set the game context.";
+			prnt::out << "A invalid FEN string will result in nothing being set.";
+			prnt::out << "If no FEN string is provided, the command will output the current board's FEN representation.";
+			return;
+		}
 		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description());    
 	}
 

@@ -45,11 +45,66 @@ PerftResult PerftSearch::Deepen()
     return PerftResult();
 }
 
-
-std::vector<u32> PerftSearch::Divide(int atDepth)
+template<Set us>
+u64 PerftSearch::internalDivide(int depth)
 {
-    return std::vector<u32>();
+    if (depth <= 0) 
+        return 0;
+
+    MoveGenParams params;
+    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);
+    MoveExecutor exec(m_context);
+
+    int count = 0;
+    
+    while (PrioritizedMove prioritized = gen.generateNextMove()) {
+        count += 1;
+        exec.makeMove<true>(prioritized.move);
+        count += internalDivide<opposing_set<us>()>(depth - 1);
+        exec.unmakeMove();
+    }
+
+    return count;
 }
+
+template<Set us>
+std::vector<DivideResult> PerftSearch::Divide(int depth)
+{
+    if (depth <= 0) {
+        return std::vector<DivideResult>();
+    }
+
+    std::vector<DivideResult> results;
+    MoveGenParams params;
+
+    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);
+    MoveExecutor exec(m_context);
+
+    while (PrioritizedMove prioritized = gen.generateNextMove()) {
+        
+
+        exec.makeMove<true>(prioritized.move);
+        u64 count = internalDivide<opposing_set<us>()>(depth - 1);
+        count = count == 0 ? 1 : count;
+        exec.unmakeMove();
+
+        results.emplace_back(prioritized.move, count);
+    }
+
+    return results;
+}
+
+std::vector<DivideResult> PerftSearch::Divide(Set toPlay, int depth)
+{
+    if (toPlay == Set::WHITE) {
+        return Divide<Set::WHITE>(depth);
+    } else {
+        return Divide<Set::BLACK>(depth);
+    }
+}
+
+template std::vector<DivideResult> PerftSearch::Divide<Set::WHITE>(int);
+template std::vector<DivideResult> PerftSearch::Divide<Set::BLACK>(int);
 
 void PerftSearch::count(PackedMove move, PerftResult& result) {
     // Count the move in the perft result

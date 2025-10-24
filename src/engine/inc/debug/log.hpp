@@ -257,6 +257,26 @@ inline MessageStream& operator<<(MessageStream& out, BasicNarrowIoManip manip)
     return out;
 }
 
+// inline MessageStream&& operator<<(MessageStream&& out, BasicNarrowIoManip manip)
+// {
+//     if (static_cast<BasicNarrowIoManip>(std::endl) == manip)
+//         out.deny_endl(); // Prevent double endl in destructor
+//     out.stream() << manip;
+//     return std::move(out); // Keep it as an rvalue for potential further chaining
+// }
+
+inline std::ostream& operator<<(MessageStream&& out, BasicNarrowIoManip manip)
+{
+    // Apply your custom logic if needed
+    if (static_cast<BasicNarrowIoManip>(std::endl) == manip) {
+        out.deny_endl(); // Prevent the destructor from adding another endl
+    }
+    
+    // Pass the manipulator to the underlying stream and return the stream itself
+    // This allows further chaining with standard manipulators.
+    return out.stream() << manip; 
+}
+
 class NopMessage {
 public:
     constexpr NopMessage(bool ___noop = true) { (void)___noop; }
@@ -381,6 +401,8 @@ public:
         msg << value;
         return msg;
     }
+
+        std::ostream& stream() { return m_stream; }
 };
 
 #if defined(_MSC_VER)

@@ -28,6 +28,7 @@
 #pragma once
 #include <defines.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <move/move.hpp>
 
 #include <vector>
 
@@ -59,6 +60,11 @@ struct PerftResult {
     }
 };
 
+struct DivideResult {
+    PackedMove Move;
+    u64 Nodes = 0;
+};
+
 class PerftSearch {
 public:
     PerftSearch(GameContext& context);
@@ -79,11 +85,21 @@ public:
      * @brief Divides the perft search into a node search per move at origin.
      * @param atDepth The depth to divide the search at.
      * @return A vector of results from the divided searches.    */
-    std::vector<u32> Divide(int atDepth);
+    template<Set us>
+    std::vector<DivideResult> Divide(int atDepth);
+    /**
+     * @brief Divides the perft search into a node search per move at origin.
+     * @param toPlay The set to play.
+     * @param atDepth The depth to divide the search at.
+     * @return A vector of results from the divided searches.    */
+    std::vector<DivideResult> Divide(Set toPlay, int atDepth);
     
 
 private:
     void count(PackedMove move, PerftResult& result);
+
+    template<Set us>
+    u64 internalDivide(int depth);
 
     GameContext& m_context;
     int m_depth;
