@@ -23,6 +23,7 @@ ${INC_DIR}/commands/help_command.hpp
 ${INC_DIR}/commands/new_game_command.hpp
 ${INC_DIR}/commands/simple_commands.hpp
 ${INC_DIR}/commands/print_command.hpp
+${INC_DIR}/commands/move_command.hpp
 
 ${INC_DIR}/printer/printer.hpp
 

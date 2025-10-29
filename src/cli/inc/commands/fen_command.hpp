@@ -54,11 +54,11 @@ public:
 	void help(bool extended) override
 	{	
 		if (extended) {
-			prnt::out << "\nUsage: " << FenCommand::name() << " [<fen_string>]" << std::endl << std::endl;
+			prnt::out << "\nUsage: " << FenCommand::name() << " <fen_string>" << std::endl << std::endl;
 			prnt::out << "Sets the board to the given FEN string or outputs the FEN string for current board.";
-			prnt::out << "If a FEN string is provided, the command will parse it and set the game context.";
-			prnt::out << "A invalid FEN string will result in nothing being set.";
-			prnt::out << "If no FEN string is provided, the command will output the current board's FEN representation.";
+			prnt::out << "  An invalid FEN string will result in nothing being set.";
+			prnt::out << "Inputs:";
+			prnt::out << "  <fen_string> - Optional. FEN string to set the board to, if non provided the current board FEN will be output.";
 			return;
 		}
 		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description());    

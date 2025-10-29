@@ -38,11 +38,13 @@ struct PieceIsoImpl<pawnId> {
 
         if (pinThreats.isChecked()) {
             Bitboard checksMask(pinThreats.checks());
-            auto otherMask = squareMaskTable[(u32)position.enPassant().readTarget()];
-            if (checksMask & otherMask) {
-                checksMask |= position.enPassant().readBitboard();
+            if (position.enPassant()) {
+                auto otherMask = squareMaskTable[(u32)position.enPassant().readTarget()];
+                if (checksMask & otherMask) 
+                    checksMask |= position.enPassant().readBitboard();
             }
             isolatedbb &= checksMask;
+            threatns &= checksMask;
         }
 
         if (srcMask & pinned) {

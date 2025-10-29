@@ -103,7 +103,7 @@ private:
     KingPinThreats<_us> computeKingPinThreats();
     PrioritizedMove internalGenerateMoves();
     void internalGenerateMovesOrdered();
-   
+
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
     void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
     template<u8 pieceId>

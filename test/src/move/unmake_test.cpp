@@ -3,7 +3,6 @@
 
 #include <material/chess_piece.hpp>
 #include <core/chessboard.hpp>
-#include "elephant_test_utils.h"
 #include <core/game_context.hpp>
 #include <debug/log.hpp>
 #include <move/move.hpp>

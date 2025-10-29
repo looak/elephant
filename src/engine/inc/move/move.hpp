@@ -158,8 +158,11 @@ public:
     [[nodiscard]] constexpr i32 source() const { return m_internals & c_sourceSquareConstant; }
     [[nodiscard]] constexpr i32 target() const { return (m_internals >> 6) & c_sourceSquareConstant; }
     [[nodiscard]] constexpr u16 flags() const { return m_internals >> 12; }
-
-    [[nodiscard]] constexpr bool isNull() const { return m_internals == 0; }
+    [[nodiscard]] constexpr bool isNull() const {
+        bool result = sourceSqr() == Square::NullSQ;
+        result |= targetSqr() == Square::NullSQ;        
+        return m_internals == 0 || result;
+    }
     [[nodiscard]] constexpr bool isQuiet() const { return flags() == 0; }
     [[nodiscard]] constexpr bool isCapture() const { return !!(flags() & CAPTURES); }
     [[nodiscard]] constexpr bool isEnPassant() const

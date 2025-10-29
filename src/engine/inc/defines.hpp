@@ -17,6 +17,7 @@
 #pragma once
 #include <cstdint>
 #include <debug/log.hpp>
+#include <debug/elephant_exceptions.hpp>
 
 namespace platform {
 constexpr bool is_win64 =
@@ -101,15 +102,22 @@ constexpr byte operator*(Square sqr) {
     return static_cast<byte>(sqr);
 }
 
+constexpr byte operator/(Square sqr, byte divisor) {
+    return static_cast<byte>(sqr) / divisor;
+}
+
+constexpr byte operator%(Square sqr, byte modulus) {
+    return static_cast<byte>(sqr) % modulus;
+}
+
 constexpr bool operator<(Square lhs, Square rhs) {
     return static_cast<byte>(lhs) < static_cast<byte>(rhs);
 }
 
 constexpr Square toSquare(byte file, byte rank)  {
-#ifdef EG_DEBUGGING
+#ifdef DEVELOPMENT_BUILD
     if (file > 7 || rank > 7) {
-        LOG_ERROR() << "Invalid square coordinates: " << file << ", " << rank;
-        return Square::NullSQ;
+        throw ephant::sqr_exception(std::format("toSquare :: Invalid file or rank for square conversion. (file: {}, rank: {})", file, rank));
     }
     return static_cast<Square>((rank * 8) + file);
 
