@@ -35,6 +35,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 
 ## /debug/...
     ${ENGINE_INC_DIR}/debug/log.hpp
+    ${ENGINE_INC_DIR}/debug/elephant_exceptions.hpp
 
 ## /eval/...
     ${ENGINE_INC_DIR}/eval/evaluation_table.hpp

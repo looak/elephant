@@ -39,22 +39,25 @@ public:
     {        
         prnt::out << " Divide command executed with depth: " << args.depth;
         PerftSearch perftSearch(*m_context);
-        auto results = perftSearch.Divide(m_context->readToPlay(), args.depth);
+        auto results = std::vector<DivideResult>{}; //perftSearch.Divide(m_context->readToPlay(), args.depth);
 
         std::sort(results.begin(), results.end(), [](const DivideResult& a, const DivideResult& b) {
             return a.Move.source() < b.Move.source();
         });
 
-        u32 totalNodes = 0;
+        u64 totalNodes = 0;
+        u64 accumNodes = 0;
         for (const auto& result : results) {
-            u32 prettyCount = result.Nodes;
-            if (result.Nodes == 0)
+            u32 prettyCount = result.Result.Nodes;
+            if (result.Result.Nodes == 0)
                 prettyCount = 1;
 
             prnt::out << " " << result.Move.toString() << ": " << prettyCount << std::endl;
             totalNodes += prettyCount;
+            accumNodes += result.Result.AccNodes;
         }
-        prnt::out << " Total nodes: " << totalNodes << std::endl;
+        prnt::out << " Nodes: " << totalNodes << std::endl;
+        prnt::out << " Total nodes: " << accumNodes << std::endl;
         return true;
     }
 

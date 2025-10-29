@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include <defines.hpp>
 
-#include "elephant_test_utils.h"
 #include <io/fen_parser.hpp>
 #include <core/game_context.hpp>
 #include <move/generation/move_generator.hpp>
@@ -218,6 +217,42 @@ TEST_F(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
     // verify
     bool compareResults = contains_exactly_target_squares(result, Square::C6, Square::C5, Square::D5, Square::F3);
     EXPECT_TRUE(compareResults);
+}
+
+// 8 [   ][   ][   ][   ][ k ][   ][   ][   ]
+// 7 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][ p ][   ][   ][   ]
+// 5 [   ][   ][   ][ P ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][ p ]
+// 2 [   ][   ][   ][   ][ b ][   ][ P ][   ]
+// 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// 4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2
+TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePawnsWereAllowedToCaptureDespiteBeingInCheck)
+{
+    // setup
+    std::string fen = "4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2";
+    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
+    PositionReader pos = testContext.readChessPosition();
+
+    // just make sure setup is correct
+    EXPECT_EQ(WHITEPAWN, pos.pieceAt(Square::D5));
+    EXPECT_EQ(BLACKPAWN, pos.pieceAt(Square::E6));
+    EXPECT_EQ(BLACKBISHOP, pos.pieceAt(Square::E2));
+    EXPECT_EQ(WHITEKING, pos.pieceAt(Square::F1));
+
+    // setup move generator
+    MoveGenParams params;
+    params.setPawns(true);
+
+    MoveGenerator<Set::WHITE> gen(pos, params);
+
+    // do
+    auto result = gen.moves();
+
+    // verify    
+    EXPECT_TRUE(result.empty());
 }
 
 }  // namespace ElephantTest

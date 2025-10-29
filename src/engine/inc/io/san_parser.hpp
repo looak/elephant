@@ -26,7 +26,13 @@
 #include <position/position_accessors.hpp>
 
 namespace san_parser {
+    struct ParsedMove {
+        PackedMove move;
+        std::variant<std::monostate, Square, char> disambiguation;
+    };
+    
     // Parses a move in standard algebraic notation and returns the internal move representation.
+    // Ensure that the piece exists at source but does not validate legality of the move itself.
     PackedMove deserialize(PositionReader context, bool whiteToMove, std::string_view san);
 
     

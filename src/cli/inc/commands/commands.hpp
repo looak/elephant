@@ -4,3 +4,4 @@
 #include "help_command.hpp"
 #include "print_command.hpp"
 #include "divide_command.hpp"
+#include "move_command.hpp"

@@ -12,6 +12,7 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
     // Use a string stream to easily split the line into words
     std::istringstream iss(line);
     std::string command_name;
+    std::vector<std::string> args;
     iss >> command_name;
 
     if (command_name == "exit" || command_name == "quit") {
@@ -29,12 +30,11 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
 
     // Handle unrecognized commands gracefully
     if (command == nullptr) {
-        prnt::out << "Error: Unknown command '" << command_name << "'";
-        return true;
+        command = CommandRegistry::instance().createCommand("move");        
+        args.push_back(command_name);  // treat the command as a SAN move argument
     }
 
-    // Collect the arguments for the command
-    std::vector<std::string> args;
+    // Collect the arguments for the command    
     std::string arg;
     while (iss >> arg) {
         args.push_back(arg);
@@ -42,7 +42,9 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
 
     // The command is created, used, and then destroyed here.
     command->setContext(&m_gameContext);
-    command->run(args);
+    if (command->run(args) > 0) {
+        prnt::err << "Error: Unknown command '" << command_name << "'";
+    }
 
     return true;
 }
@@ -61,6 +63,11 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
 
     if (command_name == "exit" || command_name == "quit") {
         return false;  // Signal to exit the application
+    }
+
+    if (command_name == "normal") {
+        context.setState(std::make_unique<NormalModeProcessor>());
+        return true;
     }
 
     return true;
