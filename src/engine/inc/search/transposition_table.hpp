@@ -91,7 +91,7 @@ struct TranspositionEntry
         else
             s_overwrites++;
 #endif
-        if (this->depth > depth && this->age > age)
+        if (this->depth > _depth && this->age > _age)
             return;
 
         this->hash = _hash;

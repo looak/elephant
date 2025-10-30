@@ -31,7 +31,7 @@ TEST_F(SanParserFixture, ParseValidSan) {
     bool whiteToMove = true;
 
     // do
-    PackedMove move = san_parser::deserialize(testingPosition, whiteToMove, san);
+    PackedMove move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
 
     // verify
     EXPECT_FALSE(move.isNull());
@@ -49,13 +49,13 @@ TEST_F(SanParserFixture, ParseInvalidSan) {
 
     // do & verify
     EXPECT_THROW({
-        san_parser::deserialize(testingPosition, whiteToMove, san);
+        io::san_parser::deserialize(testingPosition, whiteToMove, san);
     }, ephant::io_error);
 }
 
 TEST_F(SanParserFixture, BulkTest_GenericParsingTest) {
     // setup
-    fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", testingPosition.edit());
+    io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", testingPosition.edit());
     struct TestCase {
         std::string san;
         Square expectedSource;
@@ -74,7 +74,7 @@ TEST_F(SanParserFixture, BulkTest_GenericParsingTest) {
     bool whiteToMove = true;
     for (const auto& testCase : testCases) {
         // do
-        PackedMove move = san_parser::deserialize(testingPosition, whiteToMove, testCase.san);
+        PackedMove move = io::san_parser::deserialize(testingPosition, whiteToMove, testCase.san);
 
         // verify
         EXPECT_FALSE(move.isNull());        
@@ -85,20 +85,20 @@ TEST_F(SanParserFixture, BulkTest_GenericParsingTest) {
 
 TEST_F(SanParserFixture, AmbiguousMoveParsing_UnableToResolveAmbiguity_ShouldThrow) {
     // setup
-    fen_parser::deserialize("3k4/8/8/8/8/2N3N1/8/3K4 w - - 0 1", testingPosition.edit());
+    io::fen_parser::deserialize("3k4/8/8/8/8/2N3N1/8/3K4 w - - 0 1", testingPosition.edit());
     std::string san = "Nd5";  // Both knights can move to d5, this should be ambiguous
     bool whiteToMove = true;
 
     // do
     EXPECT_THROW({
-        san_parser::deserialize(testingPosition, whiteToMove, san);
+        io::san_parser::deserialize(testingPosition, whiteToMove, san);
     }, ephant::io_error);
 
     // setup
     san = "Nce4";  // specifying the c-file knight should resolve ambiguity
 
     // do
-    PackedMove move = san_parser::deserialize(testingPosition, whiteToMove, san);
+    PackedMove move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
     
     // verify
     EXPECT_FALSE(move.isNull());

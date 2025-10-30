@@ -45,7 +45,7 @@ depth	nodes	    totalnodes
 // {
 //     // setup
 //     char inputFen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-//     fen_parser::deserialize(inputFen, m_context.editChessboard());
+//     io::fen_parser::deserialize(inputFen, m_context.editChessboard());
 //     io::printer::board(OUT_STREAM(), m_context.readChessboard());
 
 //     PerftSearch perft(m_context);
@@ -154,7 +154,7 @@ Depth	Nodes	    Captures	E.p.	Castles	    Promotions	Checks	    Checkmates
 // {
 //     // setup
 //     char inputFen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-//     fen_parser::deserialize(inputFen, m_context.editChessboard());
+//     io::fen_parser::deserialize(inputFen, m_context.editChessboard());
 //     io::printer::board(OUT_STREAM(), m_context.readChessboard());
 //     PerftSearch perft(m_context);
 
@@ -388,7 +388,7 @@ PerftResult ExecutePerftCase(const std::string& fen, int atDepth)
 {
     // setup
     GameContext context;
-    fen_parser::deserialize(fen.c_str(), context.editChessboard());
+    io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     // do
     PerftSearch perft(context);
@@ -448,8 +448,8 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
         { true, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
         /*  This test takes a long time to run, so it is disabled by default
             https://www.chessprogramming.net/perfect-perft/ */
-        { true, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
-        { true, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
+        { false, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
+        { false, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
         { false, "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
         { true, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };

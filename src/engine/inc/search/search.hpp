@@ -24,6 +24,8 @@
 #include <eval/evaluation_table.hpp>
 #include <move/move.hpp>
 #include <search/transposition_table.hpp>
+#include <position/position_accessors.hpp>
+#include <position/position.hpp>
 
 class Chessboard;
 class Clock;
@@ -49,8 +51,8 @@ struct PieceKey {
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
-    u32 SearchDepth = 64;
-    // u32 QuiescenceDepth = 2;
+    u8 SearchDepth = 6;
+    u8 QuiescenceDepth = 4;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
@@ -64,7 +66,6 @@ struct SearchParameters {
     u32 BlackTimeIncrement = 0;
 
     u32 MovesToGo = 0;
-
     bool Infinite = false;
 };
 
@@ -78,17 +79,19 @@ struct SearchResult {
 typedef std::function<bool()> CancelSearchCondition;
 
 struct SearchContext {
-    GameContext& game;
-    u64& nodes;
+    PositionEditor position;    
     CancelSearchCondition& cancel;
 };
 
-
-
 class Search {
 public:
-    Search() { clear(); }
-    u64 Bench(GameContext& context, u32 depth);
+    Search(Position position) { clear(); }
+
+    template<Set us>
+    SearchResult go(SearchParameters params = {});
+
+    // template<Set us>
+    // SearchResult goIterativeDeepening(SearchParameters params = {});
 
     SearchResult CalculateBestMove(GameContext& context, SearchParameters params);
     i32 CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth);
@@ -102,8 +105,11 @@ private:
 
 
     SearchResult    CalculateBestMoveIterration(SearchContext& context, u32 depth);
-    SearchResult    AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
-    i32             QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply);
+
+    template<Set us>
+    SearchResult    recursiveAlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, u32 ply);
+    template<Set us>
+    i32             recursiveQuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, u32 ply);
 
     bool TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth);
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;

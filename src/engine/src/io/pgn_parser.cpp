@@ -81,7 +81,7 @@ namespace pgn_parser {
 
             u8 pairIndex = 0;
             std::array<std::string, 2> move_pair;
-            for (pairIndex; pairIndex < 2;) {                
+            while (pairIndex < 2) {
                 // identify the move pair by looking for white spaces.
                 size_t nextSpace = annotations.find(' ', i);
                 // if no space assume eol.

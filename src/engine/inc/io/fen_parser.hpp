@@ -22,10 +22,12 @@
 
 class Chessboard;
 
+namespace io {
 namespace fen_parser {
 
     bool deserialize(const char* input, PositionEditor outPosition);
     bool deserialize(const char* input, Chessboard& outputBoard);
     bool serialize(const Chessboard& board, std::string& outputFen);
-    
+
 } // namespace fen_parser
+} // namespace io
