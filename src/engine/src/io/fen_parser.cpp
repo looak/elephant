@@ -12,7 +12,9 @@
 #include <core/game_context.hpp>
 #include <position/castling_state_info.hpp>
 
+namespace io {
 namespace fen_parser {
+    
 
 bool
 deserializeCastling(const std::string& castlingStr, PositionEditor position)
@@ -270,3 +272,4 @@ bool serialize(const Chessboard& board, std::string& resultFen)
 }
 
 } // namespace fen_parser
+} // namespace io

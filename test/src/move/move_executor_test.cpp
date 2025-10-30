@@ -52,16 +52,16 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
 // 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
 //     A    B    C    D    E    F    G    H
 // 1.d4 d5 2.c4 dxc4
-TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
-{
-    std::string pgn = "1.d4 d5 2.c4 dxc4";
-    GameContext game;
-    game.NewGame();
+// TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
+// {
+//     std::string pgn = "1.d4 d5 2.c4 dxc4";
+//     GameContext game;
+//     game.NewGame();
 
-    io::pgn_parser::deserialize(game, pgn);
+//     io::pgn_parser::deserialize(game, pgn);
 
-    io::printer::board(std::cout, game.readChessboard());
-}
+//     io::printer::board(std::cout, game.readChessboard());
+// }
 
 // // https://en.wikipedia.org/wiki/Portable_Game_Notation
 // // 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}

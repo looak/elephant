@@ -127,7 +127,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 {
     // setup
     std::string fen = "R3k2r/1b4bq/8/8/8/8/7B/4K2R w KQkq - 0 1";
-    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
+    io::fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
 
     // verify
     EXPECT_EQ(WHITEROOK, testContext.readChessPosition().pieceAt(Square::A8));
@@ -165,7 +165,7 @@ TEST_F(MoveGeneratorFixture, Pawn_PinnedCapture_EnPassantCaptureIllegal)
 {
     // setup
     std::string fen = "8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1";
-    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());    
+    io::fen_parser::deserialize(fen.c_str(), testContext.editChessboard());    
     PositionReader pos = testContext.readChessPosition();
 
     // just make sure setup is correct
@@ -199,7 +199,7 @@ TEST_F(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
 {
     // setup
     std::string fen = "8/2p5/3p4/KP5r/1R2Pp1k/8/8/8 b - e3 0 1";
-    fen_parser::deserialize(fen.c_str(), testContext.editChessboard()); 
+    io::fen_parser::deserialize(fen.c_str(), testContext.editChessboard()); 
     PositionReader pos = testContext.readChessPosition();
 
     // just make sure setup is correct
@@ -233,7 +233,7 @@ TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
 {
     // setup
     std::string fen = "4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2";
-    fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
+    io::fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
     PositionReader pos = testContext.readChessPosition();
 
     // just make sure setup is correct

@@ -212,6 +212,8 @@ void MoveExecutor::internalHandleRookMovedOrCaptured(Square rookSquare, MoveUndo
         mask |= 0x02;
         internalUpdateCastlingState(mask, undoState);
         break;
+    default:
+        break;
     }
 }
 
