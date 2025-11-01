@@ -62,7 +62,6 @@ template std::vector<PrioritizedMove> MoveGenerator<Set::BLACK>::moves();
 
 #endif
 
-
 template<Set us>
 PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
     const size_t usIndx = static_cast<size_t>(us);

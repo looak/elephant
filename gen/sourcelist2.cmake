@@ -80,9 +80,10 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
     ${ENGINE_INC_DIR}/search/search_constants.hpp
-    ${ENGINE_INC_DIR}/search/search_policies.hpp    
+    ${ENGINE_INC_DIR}/search/search_policies.hpp
     ${ENGINE_INC_DIR}/search/search_results.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp
+    ${ENGINE_INC_DIR}/search/tt_policies.hpp
 
 ## /util/...
     ${ENGINE_INC_DIR}/util/clock.hpp
@@ -126,6 +127,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 
 ## /move/generation/...
     ${ENGINE_SRC_DIR}/move/generation/king_pin_threats.cpp
+    ${ENGINE_SRC_DIR}/move/generation/move_gen_isolation.cpp
     ${ENGINE_SRC_DIR}/move/generation/move_generator.cpp
 
 ## /position/...

@@ -85,6 +85,11 @@ public:
 
     PrioritizedMove generateNextMove();
 
+
+    bool isChecked() const {
+        return m_pinThreats.isChecked();
+    }
+
 #ifdef DEVELOPMENT_BUILD
     [[nodiscard]] std::vector<PrioritizedMove> moves();
 #endif

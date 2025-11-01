@@ -16,7 +16,7 @@
 #pragma once
 #include "defines.hpp"
 
-static constexpr u32 c_maxSearchDepth = 16;
+static constexpr u32 c_maxSearchDepth = 64;
 static constexpr i32 c_maxScore = 32000;
 static constexpr i32 c_checkmateConstant = 24000;
 static constexpr i32 c_checkmateMaxDistance = 256;

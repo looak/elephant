@@ -27,7 +27,7 @@
 
 /**
  * @brief Represents the state of a game. Important for some rules of such as half move count.  */
- struct GameState {
+struct GameState {
     GameState() = default;
     GameState(const GameState& rhs) :
         plyCount(rhs.plyCount),
@@ -36,18 +36,18 @@
     {}
 
     bool operator==(const GameState& other) const {
-        return plyCount == other.plyCount &&
-               moveCount == other.moveCount &&
-               whiteToMove == other.whiteToMove;
+        return  plyCount == other.plyCount &&
+                moveCount == other.moveCount &&
+                whiteToMove == other.whiteToMove;
     }
 
     u16 plyCount = 0;  // number of half moves made
     u16 moveCount = 1;  // number of full moves made
     bool whiteToMove = true;  // true if it's white's turn to move
- };
+};
 
 
- // TODO: Probably just remove chessboard entierly.
+// TODO: Probably just remove chessboard entierly.
 /**
  * @brief The Chessboard class represents a chess board and its current state.  */
 class Chessboard {
@@ -60,6 +60,9 @@ public:
     PositionEditor editPosition() { return m_position.edit(); }
     GameState& editState() { return m_gameState; }
     const GameState& readState() const { return m_gameState; }
+
+    template<bool validation = false>
+    void makeMove(const PackedMove move);
 
     u16 readMoveCount() const { return m_gameState.moveCount; }
     u16 readPlyCount() const { return m_gameState.plyCount; }

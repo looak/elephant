@@ -5,14 +5,8 @@
 #include <core/square_notation.hpp>
 #include <position/hash_zobrist.hpp>
 
-MoveExecutor::MoveExecutor(GameContext& context) :
-    m_position(context.editChessboard().editPosition()),
-    m_gameStateRef(context.editChessboard().editState()),
-    m_gameHistoryRef(context.editGameHistory())
-{}
-
 template<bool validation>
-void MoveExecutor::makeMove(const PackedMove move)
+void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& plyCount)
 {
     if constexpr (validation) {
         if (move.isNull()) {
@@ -20,10 +14,10 @@ void MoveExecutor::makeMove(const PackedMove move)
             return;  // early exit if the move is null
         }
     }
-    MoveUndoUnit& undoUnit = m_gameHistoryRef.moveUndoUnits.emplace_back();
+    
     undoUnit.move = move;
     undoUnit.hash = m_position.hash();
-    undoUnit.plyCount = m_gameStateRef.plyCount;
+    undoUnit.plyCount = plyCount;
 
     ChessPiece movingPiece = m_position.pieceAt(move.sourceSqr());
     undoUnit.movedPiece = movingPiece;
@@ -50,7 +44,7 @@ void MoveExecutor::makeMove(const PackedMove move)
         // updating pieceTarget since if we're capturing enpassant the target will be on a
         // different square.
         std::tie(captureTarget, movingPiece) = internalHandlePawnMove(move, movingPiece.getSet(), materialEditor, undoUnit);
-        m_gameStateRef.plyCount = 0;  // reset ply count on pawn move
+        plyCount = 0;  // reset ply count on pawn move
         break;
 
     case PieceType::KING:
@@ -64,12 +58,13 @@ void MoveExecutor::makeMove(const PackedMove move)
         m_position.enPassant().clear();
     }
 
-    // since capture will reset this to 0, we need to increment it here.
-    m_gameStateRef.plyCount++;
-    m_gameHistoryRef.age++;
-
+    plyCount++;  // increment ply count on non-capture move
+    
     if (move.isCapture())
+    {
         internalHandleCapture(move, captureTarget, undoUnit);
+        plyCount = 0;  // reset ply count on capture move
+    }   
 
     // should happen after capture since enpassant logic relies on that order.
     internalMakeMove(movingPiece, move.sourceSqr(), move.targetSqr(), materialEditor);
@@ -77,15 +72,10 @@ void MoveExecutor::makeMove(const PackedMove move)
     // unless something goes wrong, updating the black to move hash should remove it when it's time for white to move,
     // or add it when it's time for black to move.
     m_position.hash() = zobrist::updateBlackToMoveHash(m_position.hash());
-
-    // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
-    m_gameStateRef.whiteToMove = !m_gameStateRef.whiteToMove;
-    m_gameStateRef.moveCount += (short)m_gameStateRef.whiteToMove;
 }
 
-template void MoveExecutor::makeMove<true>(const PackedMove);
-template void MoveExecutor::makeMove<false>(const PackedMove);
-
+template void MoveExecutor::makeMove<true>(const PackedMove, MoveUndoUnit&, u16&);
+template void MoveExecutor::makeMove<false>(const PackedMove, MoveUndoUnit&, u16&);
 
 void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
 {
@@ -274,13 +264,8 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
     FATAL_ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
 }
 
-bool MoveExecutor::unmakeMove()
+bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
 {
-    if (m_gameHistoryRef.moveUndoUnits.empty()) return false;
-
-    MoveUndoUnit undoState = m_gameHistoryRef.moveUndoUnits.back();
-    m_gameHistoryRef.moveUndoUnits.pop_back();
-
     const Square srcSqr = undoState.move.sourceSqr();
     const Square trgSqr = undoState.move.targetSqr();
     //const ChessPiece movedPiece = m_position.readPieceAt((Square)trgSqr);
@@ -330,10 +315,6 @@ bool MoveExecutor::unmakeMove()
     m_position.castling().write(undoState.castlingState.read());    // restore castling state
 
     m_position.hash() = undoState.hash;  // this should be calculated and not just overwritten?
-    m_gameStateRef.moveCount -= (short)m_gameStateRef.whiteToMove;
-    m_gameStateRef.whiteToMove = !m_gameStateRef.whiteToMove;
-    m_gameStateRef.plyCount = undoState.plyCount;
-    m_gameHistoryRef.age--;
 
     return true;
 }

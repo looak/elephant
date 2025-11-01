@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "elephant_test_logger.hpp"
 
 #include <util/clock.hpp>
 #include <io/fen_parser.hpp>
@@ -11,9 +12,20 @@ namespace ElephantTest {
 class SearchFixture : public ::testing::Test {
 public:
     virtual void SetUp(){
+        testingParams.SearchDepth = 12;
+        testingParams.MoveTime = 30 * 1000; // 30 seconds
+
+        testingParams.UseTranspositionTable = false;
+        testingParams.UseIterativeDeepening = false;
+        testingParams.UseQuiescenceSearch = false;
+        testingParams.UseNullMovePruning = false;
+        testingParams.UseLateMoveReduction = false;
+        testingParams.UseMoveOrdering = false;
 
     };
     virtual void TearDown(){};
+
+    SearchParameters testingParams;
 };
 
 ////////////////////////////////////////////////////////////////
@@ -26,14 +38,12 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher;
-    SearchParameters params;
-    params.SearchDepth = 4;
-    params.MoveTime = 30 * 1000; // 30 seconds
+    Search searcher(context.readChessPosition(), context.editTranspositionTable());    
+    
     // execute
-    SearchResult result = searcher.CalculateBestMove(context, params);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams);
 
-    i32 mateScore = 24000 - result.score;
+    i32 mateScore = result.score - c_checkmateConstant;
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
@@ -49,15 +59,12 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher;
-    SearchParameters params;
-    params.SearchDepth = 4;
-    params.MoveTime = 30 * 1000; // 30 seconds
+    Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
     // execute
-    SearchResult result = searcher.CalculateBestMove(context, params);
+    SearchResult result = searcher.go<Set::BLACK>(testingParams);
 
-    i32 mateScore = 24000 - result.score;
+    i32 mateScore = result.score - c_checkmateConstant;
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
@@ -71,12 +78,9 @@ TEST_F(SearchFixture, WhiteForcedMate)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher;
-    SearchParameters params;
-    params.SearchDepth = 3;
-    params.MoveTime = 30 * 1000; // 30 seconds
+    Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
-    SearchResult result = searcher.CalculateBestMove(context, params);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams);
     EXPECT_TRUE(result.ForcedMate);
 }
 
@@ -86,12 +90,9 @@ TEST_F(SearchFixture, MateAgainstSelf)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher;
-    SearchParameters params;
-    params.SearchDepth = 3;
-    params.MoveTime = 30 * 1000; // 30 seconds
+    Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
-    SearchResult result = searcher.CalculateBestMove(context, params);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams);
     EXPECT_NE(result.move, PackedMove::NullMove());
 }
 
@@ -100,12 +101,9 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher;
-        SearchParameters params;
-        params.SearchDepth = 5;
-        params.MoveTime = 30 * 1000; // 30 seconds
+        Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
-        SearchResult result = searcher.CalculateBestMove(context, params);
+        SearchResult result = searcher.go<Set::WHITE>(testingParams);
 
         EXPECT_EQ(searchCase.expectedMove, result.move.toString());
     }
@@ -116,14 +114,20 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher;
-        SearchParameters params;
-        params.SearchDepth = 6; // depth in ply so 3 * 2.
-        params.MoveTime = 30 * 1000; // 30 seconds
-
-        SearchResult result = searcher.CalculateBestMove(context, params);
+        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        SearchResult result;
+        if (context.readToPlay() == Set::BLACK) {
+            result = searcher.go<Set::BLACK>(testingParams);
+        }
+        else {
+            result = searcher.go<Set::WHITE>(testingParams);
+        }
 
         EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+        OUT() << "Tested position: " << searchCase.fen;
+        OUT() << "Expected move:   " << searchCase.expectedMove;
+        OUT() << "Found move:      " << result.move.toString();
+        OUT() << "-----------------------------";
     }
 }
 
@@ -133,15 +137,21 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher;
-        SearchParameters params;
-        params.SearchDepth = 10; // depth in ply so 3 * 2.
-        params.MoveTime = 30 * 1000; // 30 seconds
+        Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
-        SearchResult result = searcher.CalculateBestMove(context, params);
-        // result = searcher.CalculateBestMove(context, params);
+        SearchResult result;
+        if (context.readToPlay() == Set::BLACK) {
+            result = searcher.go<Set::BLACK>(testingParams);
+        }
+        else {
+            result = searcher.go<Set::WHITE>(testingParams);
+        }
 
         EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+        OUT() << "Tested position: " << searchCase.fen;
+        OUT() << "Expected move:   " << searchCase.expectedMove;
+        OUT() << "Found move:      " << result.move.toString();
+        OUT() << "-----------------------------";
     }
 }
 // 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1

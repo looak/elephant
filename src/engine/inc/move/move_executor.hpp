@@ -33,11 +33,14 @@ struct GameState;
 
 class MoveExecutor {
 public:
-    MoveExecutor(GameContext& context);
+    MoveExecutor(PositionProxy<PositionEditPolicy> position)
+        : m_position(position) {}
+
+    ~MoveExecutor() = default;
 
     template<bool validation = false>
-    void makeMove(const PackedMove move);
-    bool unmakeMove();
+    void makeMove(const PackedMove move, MoveUndoUnit& undoState, u16& plyCount);
+    bool unmakeMove(const MoveUndoUnit& undoState);
 
 private:
     MoveUndoUnit internalMakeMove(const std::string& moveString);
@@ -53,7 +56,4 @@ private:
     void internalUpdateEnPassant(Square source, Square target);
 
     PositionProxy<PositionEditPolicy> m_position;
-
-    GameState& m_gameStateRef;
-    GameHistory& m_gameHistoryRef;
 };

@@ -123,8 +123,7 @@ TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
         return {};
 
     MoveGenParams params;
-    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);
-    MoveExecutor exec(m_context);
+    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);    
 
     TResult result = {};
 
@@ -133,9 +132,9 @@ TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
             accumulator(prioritized.move, result, true);
         }
 
-        exec.makeMove<true>(prioritized.move);
-        result += internalRun<opposing_set<us>(), TResult, TAccumulator>(depth - 1, accumulator);        
-        exec.unmakeMove();
+        m_context.MakeMove<true>(prioritized.move);
+        result += internalRun<opposing_set<us>(), TResult, TAccumulator>(depth - 1, accumulator);
+        m_context.UnmakeMove();
     }
 
     return result;
