@@ -23,7 +23,7 @@ public:
     virtual void TearDown() {};
 
     GameContext m_context;
-    Search m_search;
+    // Search m_search;
 };
 //////////////////////////////////////////////////////////////
 void validateNodeCount(PerftResult& result, int expectedNodes)

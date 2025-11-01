@@ -115,14 +115,13 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
     zobrist::internals::initialize();
 
     GameContext game;
-    game.NewGame();
-    MoveExecutor executor(game);
+    game.NewGame();    
 
     PositionReader positionReader = game.readChessPosition();
     u64 initialHash = positionReader.hash();
 
     PackedMove move(Square::E2, Square::E4);
-    executor.makeMove<true>(move);
+    game.MakeMove<true>(move);
     
     u64 afterMoveHash = positionReader.hash();
 
@@ -139,7 +138,7 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
     editor.enPassant().writeSquare(epSqr);
     EXPECT_EQ(hashWithEnPassant, positionReader.hash()) << "Hash should match after resetting en passant.";
 
-    executor.unmakeMove();
+    game.UnmakeMove();
 
     EXPECT_EQ(initialHash, positionReader.hash()) << "Hash should be restored to initial value after unmaking the move.";
 

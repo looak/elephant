@@ -29,17 +29,19 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     
     // set up
     chess_positions::defaultStartingPosition(m_game.editChessPosition());
-    MoveExecutor executor(m_game);
+    u16 ply = 0;
+    MoveExecutor executor(m_game.editChessPosition());
     PositionReader positionReader(m_game.readChessPosition());
 
     PackedMove move(Square::E2, Square::E4);
 
     // do
-    executor.makeMove<true>(move);
+    executor.makeMove<true>(move, m_game.editGameHistory().moveUndoUnits.emplace_back(), ply);
 
     // verify
     EXPECT_EQ(positionReader.pieceAt(Square::E4), piece_constants::white_pawn);
     EXPECT_EQ(positionReader.pieceAt(Square::E2), piece_constants::null());
+    EXPECT_EQ(ply, 1);
 }
 
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]

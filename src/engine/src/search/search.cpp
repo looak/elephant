@@ -15,18 +15,6 @@
 #include <utility>
 
 
-template<Set us>
-SearchResult Search::go(SearchParameters params) {
-
-
-}
-
-template SearchResult Search::go<Set::WHITE>(SearchParameters);
-template SearchResult Search::go<Set::BLACK>(SearchParameters);
-
-
-
-
 // void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
 //     i64 et = clock.getElapsedTime();
 
@@ -64,276 +52,7 @@ template SearchResult Search::go<Set::BLACK>(SearchParameters);
 //         << " nodes " << nodes << " time " << et << " pv" << pvSS.str() << "\n";
 // }
 
-template<Set us>
-SearchResult go(SearchParameters params)
-{
-    Clock searchClock;
-    searchClock.Start();
 
-    u64 nodeCount = 0;
-    std::function<bool()> cancellationFunc = buildCancellationFunction(context.readToPlay(), params, searchClock);
-    SearchContext searchContext = { position.edit(), cancellationFunc };
-
-    SearchResult result;
-    for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
-
-        Clock iterationClock;
-        iterationClock.Start();
-        nodeCount = 0;
-        auto itrResult = recursiveAlphaBetaNegamax(searchContext, itrDepth, -c_maxScore, c_maxScore, maximizingPlayer, ply);
-        iterationClock.Stop();
-
-        bool cancelled = cancellationFunc();
-        if (cancelled) {
-            itrResult = result;
-        }
-
-        ReportSearchResult(searchContext, itrResult, params.SearchDepth, itrDepth, nodeCount, clock);
-        if (itrResult.ForcedMate) {
-#ifdef DEBUG_TRANSITION_TABLE
-            context.editTranspositionTable().debugStatistics();
-#endif
-            return itrResult;
-        }
-
-        if (cancelled == true)
-            break;
-
-        result = itrResult;
-    }
-
-#ifdef DEBUG_TRANSITION_TABLE
-    context.editTranspositionTable().debugStatistics();
-#endif
-
-    result.count = nodeCount;
-    return result;
-}
-
-SearchResult Search::CalculateBestMoveIterration(SearchContext& context, u32 depth) {
-    bool maximizingPlayer = context.game.readToPlay() == Set::WHITE;
-
-    u32 ply = 1;
-
-    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply);
-
-    return result;
-
-}
-
-template SearchResult Search::goIterativeDeepening<Set::WHITE>(SearchParameters);
-template SearchResult Search::goIterativeDeepening<Set::BLACK>(SearchParameters);
-
-// i32 Search::CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth)
-// {
-//     i32 alpha = -c_maxScore;
-//     i32 beta = c_maxScore;
-//     u32 ply = 1;
-//     u64 nodeCount = 0;
-//     std::function<bool()> cancelleation = []() { return false; };
-//     SearchContext searchContext = { context, nodeCount, cancelleation };
-//     auto eval = AlphaBetaNegamax(searchContext, depth, alpha, beta, !maximizingPlayer, ply);
-
-//     return eval.score;
-// }
-
-SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters params)
-{
-    Clock searchClock;
-    searchClock.Start();
-    u64 nodeCount = 0;
-    std::function<bool()> cancellationFunc = buildCancellationFunction(context.readToPlay(), params, searchClock);
-    SearchContext searchContext = { context, nodeCount, cancellationFunc };
-
-    SearchResult result;
-    for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
-
-        Clock clock;
-        clock.Start();
-        nodeCount = 0;
-        auto itrResult = CalculateBestMoveIterration(searchContext, itrDepth);
-        clock.Stop();
-
-        bool cancelled = cancellationFunc();
-        if (cancelled) {
-            itrResult = result;
-        }
-
-        ReportSearchResult(searchContext, itrResult, params.SearchDepth, itrDepth, nodeCount, clock);
-        if (itrResult.ForcedMate) {
-#ifdef DEBUG_TRANSITION_TABLE
-            context.editTranspositionTable().debugStatistics();
-#endif
-            return itrResult;
-        }
-
-        if (cancelled == true)
-            break;
-
-        result = itrResult;
-    }
-
-#ifdef DEBUG_TRANSITION_TABLE
-    context.editTranspositionTable().debugStatistics();
-#endif
-
-    result.count = nodeCount;
-    return result;
-}
-
-template<Set us>
-SearchResult Search::recursiveAlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
-    if (context.cancel() == true || depth <= 0) {
-        // at depth zero we start the quiet search to get a better evaluation.
-        // this search will try to go as deep as possible until it finds a quiet position.
-        i32 score = recursiveQuiescenceNegamax<us>(context, 4, alpha, beta, ply + 1);
-        return { .score = score, .move = PackedMove::NullMove() };
-    }
-
-    PositionReader currentPos = context.position.read();
-
-    // initialize the move generator.
-    MoveGenParams genParams;
-    MoveGenerator<us> generator(currentPos, genParams);
-    auto prioratized = generator.generateNextMove();
-
-    // if there are no moves to make, we're either in checkmate or stalemate.
-    if (prioratized.move.isNull()) {
-        if (true /*generator.isChecked()*/)
-            return { -c_checkmateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
-        return { .score = -c_drawConstant, .move = PackedMove::NullMove() };  // we're in stalemate
-    }
-
-    i32 bestEval = -c_maxScore;
-    PackedMove bestMove;
-
-    // probe transposition table.
-    auto& entry = context.game.editTranspositionTable().editEntry(currentPos.hash());
-#if defined(ENABLE_TRANSPOSITION_TABLE)
-    if (auto result = entry.evaluate(currentPos.hash(), depth, alpha, beta); result.has_value()) {
-        return { .score = entry.adjustedScore(ply), .move = entry.move };
-    }
-#endif
-
-    auto flag = TranspositionFlag::TTF_CUT_EXACT;
-
-#if defined(ENABLE_LATE_MOVE_REDUCTION)
-    static const i8 depthReductionThreshold = 4;
-    i8 depthReductionCounter = 0;
-#endif
-    do {
-        u32 extendedDepth = depth; // + Extension(chessboard, prioratized, ply);
-        SearchResult result;
-        bool doFullSearch = true;
-
-#if defined(ENABLE_LATE_MOVE_REDUCTION)
-        // should implement research on beta cutoffs.
-        if (depth > 3 && depthReductionCounter >= depthReductionThreshold && extendedDepth == 0 && prioratized.move.isCapture() == false) {
-            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-            doFullSearch = result.score > alpha;
-        }
-
-        depthReductionCounter++;
-#endif
-        MoveExecutor executor(context.game);
-        context.game.MakeMove(prioratized.move);
-
-        i32 eval = 0;
-        if (context.game.IsRepetition(context.game.readChessboard().readPosition().hash())) {
-            eval = -c_drawConstant;
-            result = { .score = eval, .move = prioratized.move };
-        }
-        else if (doFullSearch) {
-            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-            eval = -result.score;
-        }
-
-        context.game.UnmakeMove();
-        context.nodes++;
-
-        if (context.cancel() == true)
-            return { .score = 0, .move = PackedMove::NullMove() };
-
-        if (eval > bestEval) {
-            bestEval = eval;
-            bestMove = prioratized.move;
-
-            if (eval > alpha) {
-                alpha = eval;
-                flag = TranspositionFlag::TTF_CUT_EXACT;
-            }
-
-            if (beta <= alpha) {
-                entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, beta, ply, depth, TTF_CUT_BETA);
-                if (prioratized.move.isCapture() == false)
-                    pushKillerMove(prioratized.move, ply);
-
-                putHistoryHeuristic(static_cast<u8>(chessboard.readToPlay()), prioratized.move.source(), prioratized.move.target(), depth);
-                return { .score = bestEval, .move = bestMove };
-            }
-        }
-
-        prioratized = generator.generateNextMove();
-    } while (prioratized.move.isNull() == false);
-
-    entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, bestEval, ply, depth, flag);
-
-    return { .score = bestEval, .move = bestMove };
-}
-
-template SearchResult Search::recursiveAlphaBetaNegamax<Set::WHITE>(SearchContext&, u32, i32, i32, u32);
-template SearchResult Search::recursiveAlphaBetaNegamax<Set::BLACK>(SearchContext&, u32, i32, i32, u32);
-
-template<Set us>
-i32 Search::recursiveQuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, u32 ply) {
-    MoveGenerator<us> generator(context.position, MoveGenParams{ .onlyCaptures = true });    
-    Evaluator evaluator(context.position.read());
-
-    i32 perspective = 0;
-    if constexpr (us == Set::WHITE) {
-        perspective = 1;
-    }
-    else {
-        perspective = -1;
-    }
-
-    i32 eval = evaluator.Evaluate(generator) * perspective;
-    if (eval >= beta)
-        return beta;
-    if (eval > alpha)
-        alpha = eval;
-
-    auto prioratized = generator.generateNextMove();
-
-    if (context.cancel() == true
-        || prioratized.move.isNull()
-        || ply >= c_maxSearchDepth
-        || (depth <= 0 && generator.isChecked() == false)) {
-
-        return eval;
-    }
-
-    i32 maxEval = -c_maxScore;
-    do {
-        context.game.MakeMove(prioratized.move);
-        i32 eval = -recursiveQuiescenceNegamax<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1);
-        context.nodes++;
-        context.game.UnmakeMove();
-
-        maxEval = std::max(maxEval, eval);
-        alpha = std::max(alpha, eval);
-
-        if (beta <= alpha)
-            return beta;
-
-        prioratized = generator.generateNextMove();
-    } while (prioratized.move.isNull() == false);
-
-    return maxEval;
-}
-
-template i32 Search::recursiveQuiescenceNegamax<Set::WHITE>(SearchContext&, u32, i32, i32, u32);
-template i32 Search::recursiveQuiescenceNegamax<Set::BLACK>(SearchContext&, u32, i32, i32, u32);
 
 bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth) {
     // should return false if we want to abort our search.
@@ -386,7 +105,7 @@ CancelSearchCondition Search::buildCancellationFunction(Set perspective, const S
         };
 }
 
-i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u32 ply) const {
+i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u16 ply) const {
     if (ply >= c_maxSearchDepth)
         return 0;
     //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
@@ -412,7 +131,7 @@ void Search::clear() {
     }
 }
 
-bool Search::isKillerMove(PackedMove move, u32 ply) const {
+bool Search::isKillerMove(PackedMove move, u16 ply) const {
     const PackedMove* movesAtPly = &m_killerMoves[0][ply];
     return movesAtPly[0] == move || movesAtPly[1] == move || movesAtPly[2] == move || movesAtPly[3] == move;
 }
@@ -421,7 +140,7 @@ u32 Search::getHistoryHeuristic(u8 set, u8 src, u8 dst) const {
     return m_historyHeuristic[set][src][dst];
 }
 
-void Search::pushKillerMove(PackedMove mv, u32 ply) {
+void Search::pushKillerMove(PackedMove mv, u16 ply) {
     PackedMove* movesAtPly = &m_killerMoves[0][ply];
 
     // don't fill the killer move list with the same move.

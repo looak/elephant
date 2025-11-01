@@ -39,11 +39,11 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
     editor.placePiece(piece_constants::white_pawn, Square::E2);
     u64 orgHash = editor.hash();
 
-    MoveExecutor executor(m_game);
+    
     PackedMove move(Square::E2, Square::E3);
 
     // do e3 move
-    executor.makeMove(move);
+    m_game.MakeMove<true>(move);
 
     // verify
     EXPECT_NE(orgHash, editor.hash()); 
@@ -52,7 +52,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
     EXPECT_EQ(ChessPiece::None(), editor.pieceAt(Square::E2));
 
     // unmake move
-    bool unmakeResult = executor.unmakeMove();
+    bool unmakeResult = m_game.UnmakeMove();
 
     // verify state of board
     EXPECT_TRUE(unmakeResult);
@@ -64,7 +64,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
     PackedMove moveE4(Square::E2, Square::E4);
 
     // do e4 move
-    executor.makeMove(moveE4);
+    m_game.MakeMove<true>(moveE4);
 
     // verify
     EXPECT_EQ(Square::E3, editor.enPassant().readSquare());
@@ -73,7 +73,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
     EXPECT_NE(orgHash, editor.hash());
 
     // unmake move
-    unmakeResult = executor.unmakeMove();
+    unmakeResult = m_game.UnmakeMove();
 
     // verify state of board
     EXPECT_TRUE(unmakeResult);
@@ -97,8 +97,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
 // 1. e4 dxe3 e.p.
 TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
 {
-    // setup
-    MoveExecutor executor(m_game);
+    // setup    
     PositionEditor editor = m_game.editChessboard().editPosition();
     auto P = WHITEPAWN;
     auto p = BLACKPAWN;
@@ -114,7 +113,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     PackedMove move;
     move.setSource(Square::E2);
     move.setTarget(Square::E4);
-    executor.makeMove<true>(move);
+    m_game.MakeMove<true>(move);
   
     /**
      * En passant is a special pawn capture move in chess where a pawn captures an opposing pawn
@@ -134,7 +133,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     epCapture.setEnPassant(true);
 
     // do
-    executor.makeMove<true>(epCapture);
+    m_game.MakeMove<true>(epCapture);
 
     // validate
     EXPECT_EQ(Square::NullSQ, editor.enPassant().readSquare());
@@ -149,7 +148,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(1, material.blackPawns().count());
 
     // do
-    bool result = executor.unmakeMove();
+    bool result = m_game.UnmakeMove();
 
     // validate
     EXPECT_TRUE(result);

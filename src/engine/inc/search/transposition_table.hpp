@@ -109,14 +109,14 @@ struct TranspositionEntry
      * @param alpha current alpha value
      * @param beta current beta value
      * @return optioanl score if this node is useful, otherwise nullopt    */
-    std::optional<i32> evaluate(u64 posHash, u8 _depth, i32 alpha, i32 beta) const {
+    std::optional<i32> evaluate(u64 posHash, u8 depth, i32 alpha, i32 beta) const {
 #ifdef DEBUG_TRANSITION_TABLE
         s_reads++;
 #endif
         if (this->hash != posHash)
             return std::nullopt;
 
-        if (this->depth >= _depth) {
+        if (this->depth >= depth) {
 #ifdef DEBUG_TRANSITION_TABLE
             s_hits++;
 #endif
