@@ -15,65 +15,49 @@
 #include <utility>
 
 
-// void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
-//     i64 et = clock.getElapsedTime();
+void Search::ReportSearchResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
+    
+    i64 et = clock.getElapsedTime();
 
-//     // build the principal variation string.
-//     u32 madeMoves = 0;
-//     std::stringstream pvSS;
-//     for (u32 i = 0; i < searchDepth; ++i) {
-//         u64 hash = context.game.readChessboard().readPosition().hash();
-//         auto pvMove = context.game.editTranspositionTable().probe(hash);
-//         if (pvMove.isNull())
-//             break;
-//         context.game.MakeMove(pvMove);
-//         pvSS << " " << pvMove.toString();
-//         madeMoves++;
-//     }
+    i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
+    checkmateDistance = abs(checkmateDistance);
+    if ((u32)checkmateDistance <= searchDepth) {
+        // found checkmate within depth.
+        searchResult.ForcedMate = true;
+        checkmateDistance /= 2;
+        std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << nodes
+            << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
 
-//     for (u32 i = 0; i < madeMoves; ++i) {
-//         context.game.UnmakeMove();
-//     }
-
-//     i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
-//     checkmateDistance = abs(checkmateDistance);
-//     if ((u32)checkmateDistance <= searchDepth) {
-//         // found checkmate within depth.
-//         searchResult.ForcedMate = true;
-//         checkmateDistance /= 2;
-//         std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << nodes
-//             << " time " << et << " pv" << pvSS.str() << "\n";
-
-//         return;
-//     }
-
-//     i32 centipawn = searchResult.score;
-//     std::cout << "info score cp " << centipawn << " depth " << itrDepth
-//         << " nodes " << nodes << " time " << et << " pv" << pvSS.str() << "\n";
-// }
-
-
-
-bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth) {
-    // should return false if we want to abort our search.
-    // how do we manage time?
-    // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
-    if (elapsedTime > c_maxTimeAllowed) {
-        return false;
-    }
-    else {
-        i64 avrgTime = elapsedTime / depth;
-        avrgTime *= avrgTime;  // assume exponential time increase per depth.
-        avrgTime /= 2;         // give some credit to the alpha beta search.
-        if (avrgTime > c_maxTimeAllowed)
-            return false;
-        else
-            return true;
+        return;
     }
 
-    return false;
+    i32 centipawn = searchResult.score;
+    std::cout << "info score cp " << centipawn << " depth " << itrDepth
+        << " nodes " << nodes << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
 }
+
+
+
+// bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) {
+//     // should return false if we want to abort our search.
+//     // how do we manage time?
+//     // lots of magic numbers in here.
+//     const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
+//     if (elapsedTime > c_maxTimeAllowed) {
+//         return false;
+//     }
+//     else {
+//         i64 avrgTime = elapsedTime / depth;
+//         avrgTime *= avrgTime;  // assume exponential time increase per depth.
+//         avrgTime /= 2;         // give some credit to the alpha beta search.
+//         if (avrgTime > c_maxTimeAllowed)
+//             return false;
+//         else
+//             return true;
+//     }
+
+//     return false;
+// }
 
 CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
     if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {
@@ -105,16 +89,16 @@ CancelSearchCondition Search::buildCancellationFunction(Set perspective, const S
         };
 }
 
-i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u16 ply) const {
-    if (ply >= c_maxSearchDepth)
-        return 0;
-    //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
-    if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
-        return 1;
-    }
+// i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u16 ply) const {
+//     if (ply >= c_maxSearchDepth)
+//         return 0;
+//     //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
+//     if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
+//         return 1;
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
 void Search::clear() {
     for (u32 i = 0; i < 2; ++i) {

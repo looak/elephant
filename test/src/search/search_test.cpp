@@ -47,8 +47,8 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
-    EXPECT_EQ(Square::G3, result.move.sourceSqr());
-    EXPECT_EQ(Square::G6, result.move.targetSqr());
+    EXPECT_EQ(Square::G3, result.move().sourceSqr());
+    EXPECT_EQ(Square::G6, result.move().targetSqr());
 }
 
 TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
@@ -68,8 +68,8 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
-    EXPECT_EQ(Square::C6, result.move.sourceSqr());
-    EXPECT_EQ(Square::C4, result.move.targetSqr());
+    EXPECT_EQ(Square::C6, result.move().sourceSqr());
+    EXPECT_EQ(Square::C4, result.move().targetSqr());
 }
 
 TEST_F(SearchFixture, WhiteForcedMate)
@@ -93,7 +93,7 @@ TEST_F(SearchFixture, MateAgainstSelf)
     Search searcher(context.readChessPosition(), context.editTranspositionTable());
 
     SearchResult result = searcher.go<Set::WHITE>(testingParams);
-    EXPECT_NE(result.move, PackedMove::NullMove());
+    EXPECT_NE(result.move(), PackedMove::NullMove());
 }
 
 TEST_F(SearchFixture, ExpectedMoveSearchCases) {
@@ -105,7 +105,7 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
 
         SearchResult result = searcher.go<Set::WHITE>(testingParams);
 
-        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+        EXPECT_EQ(searchCase.expectedMove, result.move().toString());
     }
 }
 
@@ -123,10 +123,10 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
             result = searcher.go<Set::WHITE>(testingParams);
         }
 
-        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+        EXPECT_EQ(searchCase.expectedMove, result.move().toString());
         OUT() << "Tested position: " << searchCase.fen;
         OUT() << "Expected move:   " << searchCase.expectedMove;
-        OUT() << "Found move:      " << result.move.toString();
+        OUT() << "Found move:      " << result.move().toString();
         OUT() << "-----------------------------";
     }
 }
@@ -147,10 +147,10 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
             result = searcher.go<Set::WHITE>(testingParams);
         }
 
-        EXPECT_EQ(searchCase.expectedMove, result.move.toString());
+        EXPECT_EQ(searchCase.expectedMove, result.move().toString());
         OUT() << "Tested position: " << searchCase.fen;
         OUT() << "Expected move:   " << searchCase.expectedMove;
-        OUT() << "Found move:      " << result.move.toString();
+        OUT() << "Found move:      " << result.move().toString();
         OUT() << "-----------------------------";
     }
 }
