@@ -55,6 +55,8 @@ def generate_header_comment(fen):
         print("Chessboard header comment copied to clipboard.")
     except ImportError:
         print("pyperclip module not found. Unable to copy to clipboard.")
+    except Exception as e:
+        print(f"Unable to copy to clipboard: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate header comments for chessboards in various styles to clipboard.") 

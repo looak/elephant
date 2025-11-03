@@ -21,6 +21,7 @@
  * 
  * @author Alexander Loodin Ek  */
 #pragma once
+#include <variant>
 #include <string_view>
 #include <move/move.hpp>
 #include <position/position_accessors.hpp>
