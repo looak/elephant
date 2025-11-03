@@ -1,4 +1,3 @@
-#pragma once
 #include <position/position_accessors.hpp>
 #include <position/position.hpp>
 

@@ -5,6 +5,7 @@
 #include "search/transposition_table.hpp"
 
 #include "util/clock.hpp"
+#include "io/printer.hpp"
 #include "core/game_context.hpp"
 
 #include <optional>
@@ -60,13 +61,13 @@ public:
 
 class LmrEnabled {
 public:
-    static bool should_reduce(u32 depth, u32 move_index, bool is_capture, bool in_check) {
-        return depth > 2 && move_index > 3 && !is_capture && !in_check;
+    static constexpr bool enabled = true;
+    static bool shouldReduce(u32 depth, PackedMove move, bool isChecked) {
+        return depth > 2 && move.isQuiet() && !isChecked;
     }
-    
-    static u32 get_reduction(u32 depth, u32 move_index) {
+
+    static u32 getReduction(u32 depth) {
         u32 reduction = 1;
-        if (move_index > 6) reduction++;
         if (depth > 6) reduction++;
         return std::min(reduction, depth - 1); 
     }
@@ -74,8 +75,9 @@ public:
 
 class LmrDisabled {
 public:
-    static bool should_reduce(u32, u32, bool, bool) { return false; }
-    static u32 get_reduction(u32, u32) { return 0; }
+    static constexpr bool enabled = false;
+    static bool shouldReduce(u32, u32, bool, bool) { return false; }
+    static u32 getReduction(u32, u32) { return 0; }
 };
 
 
@@ -101,18 +103,20 @@ public:
 
 class NmpEnabled {
 public:
-    static bool should_prune(u32 depth, bool in_check) {
-        return !in_check && depth >= 3;
+    static constexpr bool enabled = true;
+    static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
+        return !inCheck && depth >= 3 && hasNonPawnMaterial;
     }
-    static u32 get_reduction(u32 depth) {
+    static u32 getReduction(u32 depth) {
         return (depth > 6) ? 3 : 2;
     }
 };
 
 class NmpDisabled {
 public:
-    static bool should_prune(u32, bool) { return false; }
-    static u32 get_reduction(u32) { return 0; }
+    static constexpr bool enabled = false;
+    static bool shouldPrune(u32, bool) { return false; }
+    static u32 getReduction(u32) { return 0; }
 };
 
 // --- Quiescence Search Policies ---
@@ -120,11 +124,13 @@ public:
 class QSearchEnabled {
 public:
     static constexpr bool enabled = true;
+    static inline u16 maxDepth = 12;
 };
 
 class QSearchDisabled {
 public:
     static constexpr bool enabled = false;
+    static inline u16 maxDepth = 0;
 };
 
 // --- Debug Policies ---
@@ -139,17 +145,24 @@ public:
         return m_searchClocks.top();
     }
 
-    static void popClock(u64 nodes, u64& nps) {
+    static void popClock() {
         if (!m_searchClocks.empty()) {
             Clock& clock = m_searchClocks.top();
-            clock.Stop();
-            nps = clock.calcNodesPerSecond(nodes);
+            clock.Stop();            
             m_searchClocks.pop();
         }
     }
 
-    static void reportNps(u64 nps) {
-        LOG_INFO() << "NPS: " << nps << "\n";
+    static void reportNps(u64 nodes, u64 qnodes) {
+        const Clock& clock = m_searchClocks.top();
+
+        std::cout << " ------------------------------ \n";
+        std::cout << " Nodes: " << io::printer::formatReadableNumber(nodes)
+                  << " QNodes: " << io::printer::formatReadableNumber(qnodes)
+                  << " Total: " << io::printer::formatReadableNumber(nodes + qnodes) << "\n";
+        std::cout << " NPS:   " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes))
+                  << " QNPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(qnodes)) << "\n";
+        std::cout << " Total NPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes + qnodes)) << "\n";
     }
 
 private:
@@ -163,12 +176,12 @@ public:
         m_dummyClock.Start();
         return m_dummyClock;
     }
-    static u64 popClock(u64) {
+    static u64 popClock() {
         m_dummyClock.Stop();
         return 0;
     }
 
-    static void reportNps(u64) {
+    static void reportNps(u64, u64) {
         // Do nothing
     }
 
