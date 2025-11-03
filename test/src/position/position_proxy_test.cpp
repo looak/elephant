@@ -28,6 +28,24 @@ TEST_F(PositionProxyFixture, PositionReader_CreationAndIsEmpty_ShouldBeFalse)
     EXPECT_FALSE(positionReader.empty()) << "Position should not be empty.";    
 }
 
+TEST_F(PositionProxyFixture, Position_Copy)
+{
+    Position A;
+    auto readerA = A.read();
+
+    EXPECT_TRUE(readerA.empty());
+
+    Position B;
+    chess_positions::defaultStartingPosition(B.edit());
+
+    auto readerB = B.read();
+    EXPECT_FALSE(readerB.empty());
+
+    A = readerB.copy();
+    EXPECT_FALSE(readerA.empty());
+    EXPECT_EQ(A, B);
+}
+
 /**
  * @brief Tests the PositionProxy's ability iterate over the board and read and write pieces through the iterator.
  */
@@ -74,7 +92,7 @@ TEST_F(PositionProxyFixture, PositionIterator_MutableIterator)
 
 TEST_F(PositionProxyFixture, PositionIterator_IterratingExtended_ArbitraryIncrements)
 {
-     Chessboard board;
+    Chessboard board;
     auto positionReader = board.readPosition();
     auto itr = positionReader.begin();
 

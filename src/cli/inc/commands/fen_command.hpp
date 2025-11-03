@@ -39,12 +39,12 @@ public:
 		// If fen is empty we want to serialize current context.
 		if (args.fen.empty()) {
 			std::string output;
-			bool result = fen_parser::serialize(m_context->readChessboard(), output);
+			bool result = io::fen_parser::serialize(m_context->readChessboard(), output);
 			prnt::err << " " << (result ? output : "Serializing failed!");
 			return result;
 		}
 		m_context->Reset();
-		bool ret = fen_parser::deserialize(args.fen.c_str(), m_context->editChessboard());
+		bool ret = io::fen_parser::deserialize(args.fen.c_str(), m_context->editChessboard());
 		if (!ret)
 			prnt::err << " Invalid FEN: " << args.fen;
 		return ret;

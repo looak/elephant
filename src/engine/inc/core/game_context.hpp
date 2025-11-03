@@ -25,7 +25,10 @@ struct GameHistory {
     GameHistory() = default;    
 
     u32 age = 0;
+    // needs to be a vector to allow validation of move repetition.
     std::vector<MoveUndoUnit> moveUndoUnits;
+
+    bool IsRepetition(u64 hashKey) const;
 
     private:
     GameHistory(const GameHistory& rhs) = delete;
@@ -41,14 +44,13 @@ public:
 
     void Reset();
     void NewGame();
-    
-    /**
-     * @brief Makes a move on the board, assumes move is legal. */
+        
+    template<bool validation = false>
     void MakeMove(const PackedMove move);
     bool UnmakeMove();
 
     bool GameOver() const;
-    bool IsRepetition(u64 hashKey) const;
+    
 
     /**
      * @brief Checks if the game is over.    */

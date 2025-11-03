@@ -5,6 +5,7 @@
 #include <position/position.hpp>
 #include <variant>
 
+namespace io {
 namespace san_parser {
     /**
      * Resolves the source square for a given target square in SAN notation.   */
@@ -157,7 +158,7 @@ namespace san_parser {
     }
 
 } // namespace san_parser
-
+} // namespace io
 
 /*
 We could look at the san in reverse, we know that the san will always end with a square notation (e.g., e4, d5, f8, etc.)

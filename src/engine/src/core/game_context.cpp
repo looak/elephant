@@ -48,35 +48,57 @@ GameContext::GameOver() const
     return false;
 }
 
-void
-GameContext::MakeMove(const PackedMove move)
+template<bool validation>
+void GameContext::MakeMove(const PackedMove move)
 {
-    MoveExecutor executor(*this);
-    executor.makeMove<false>(move);
+    auto& gameState = m_board.editState();
+    auto& undoUnit = m_history.moveUndoUnits.emplace_back();
+    
+    MoveExecutor executor(m_board.editPosition());
+    executor.makeMove<validation>(move, undoUnit, gameState.plyCount);
+
+    // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
+    gameState.whiteToMove = !gameState.whiteToMove;
+    gameState.moveCount += (short)gameState.whiteToMove;
+    m_history.age++;
 }
 
-bool
-GameContext::UnmakeMove()
-{
+template void GameContext::MakeMove<false>(const PackedMove move);
+template void GameContext::MakeMove<true>(const PackedMove move);
 
-    return false;    
+bool GameContext::UnmakeMove()
+{
+    MoveExecutor executor(m_board.editPosition());
+    if (m_history.moveUndoUnits.empty()) return false;
+
+    MoveUndoUnit undoState = m_history.moveUndoUnits.back();
+    m_history.moveUndoUnits.pop_back();
+
+    bool result = executor.unmakeMove(undoState);
+    
+    auto& gameState = m_board.editState();
+    gameState.moveCount -= (short)gameState.whiteToMove;
+    gameState.whiteToMove = !gameState.whiteToMove;
+    gameState.plyCount = undoState.plyCount;
+    m_history.age--;
+
+    return result;
 }
 
-bool
-GameContext::isGameOver() const
+bool GameContext::isGameOver() const
 {
     return false;
 }
 
-bool GameContext::IsRepetition(u64 hashKey) const {
+bool GameHistory::IsRepetition(u64 hashKey) const {
 
-    if (m_history.moveUndoUnits.size() < 4)
+    if (moveUndoUnits.size() < 4)
         return false;
 
     int count = 0;
 
-    auto itr = m_history.moveUndoUnits.rbegin() + 1;
-    while (itr != m_history.moveUndoUnits.rend()) {
+    auto itr = moveUndoUnits.rbegin() + 1;
+    while (itr != moveUndoUnits.rend()) {
         if (itr->hash == hashKey)
             count++;
         itr++;

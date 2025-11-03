@@ -55,7 +55,5 @@ private:
     MaterialPositionMask m_materialMask;
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
-
-    // TODO: consider moving this somewhere else.
     u64 m_hash = 0;
 };

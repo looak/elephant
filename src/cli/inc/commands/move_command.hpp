@@ -44,7 +44,7 @@ public:
         }
         PackedMove move;
         try {
-            move = san_parser::deserialize(m_context->readChessPosition(), m_context->readToPlay() == Set::WHITE ? true : false, args[0]); 
+            move = io::san_parser::deserialize(m_context->readChessPosition(), m_context->readToPlay() == Set::WHITE ? true : false, args[0]); 
         } catch (const std::exception& e) {
             prnt::err << e.what();
             return std::nullopt;        
@@ -57,8 +57,8 @@ public:
     bool execute(const MoveCommandArgs& args) override
     {   
         try {
-            MoveExecutor exec(*m_context);
-            exec.makeMove(args.move);
+            MoveExecutor exec(m_context->editChessPosition());            
+            m_context->MakeMove<true>(args.move);
         } catch (const std::exception& e) {
             prnt::err << e.what();
             return false;

@@ -58,7 +58,6 @@ public:
 
 private:
     PositionReader m_position;
-    // Bitboard moves[2][6];    
 };
 
 template<Set us, MoveTypes moveFilter>
@@ -81,18 +80,6 @@ Bitboard BulkMoveGenerator::computeBulkPawnMoves() const {
     const Bitboard enPassantSqr = m_position.enPassant().readBitboard();
     movesMask |= (opMat | enPassantSqr) & threatenedSquares;
 
-    // moved this code to MoveGenerator
-    // auto kingMask = m_moveGen.readKingPinThreats<us>();
-
-    // if (kingMask.isChecked()) {
-    //     Bitboard checksMask(kingMask.checks());
-    //     auto otherMask = squareMaskTable[(u32)m_position.enPassant().readTarget()];
-    //     if (checksMask & otherMask) {
-    //         checksMask |= m_position.enPassant().readBitboard();
-    //     }
-    //     movesMask &= checksMask;
-    // }
-
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         movesMask &= opMat;
 
@@ -104,12 +91,8 @@ Bitboard BulkMoveGenerator::computeBulkKnightMoves() const {
     const MaterialPositionMask& material = m_position.material();
     const Bitboard ourMaterial = material.combine<us>();
     Bitboard moves = material.topology<us>().computeThreatenedSquaresKnightBulk();
-
-    moves &= ~ourMaterial;
     
-    // auto kingMask = m_moveGen.readKingPinThreats<us>();
-    // if (kingMask.isChecked())
-    //     return moves & kingMask.checks();
+    moves &= ~ourMaterial; 
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         return moves & material.combine<opposing_set<us>()>();
@@ -146,15 +129,10 @@ Bitboard BulkMoveGenerator::computeBulkBishopMoves() const
     const MaterialPositionMask& material = m_position.material();
     const Bitboard materialbb = material.combine<us>();
     const Bitboard occupancy = material.combine();
-    // const auto& kingMask = m_moveGen.readKingPinThreats<us>();
     const MaterialTopology<us> topology = material.topology<us>();
     Bitboard moves = topology.template computeThreatenedSquaresBishopBulk<pieceId>(occupancy);
 
-    // if (kingMask.isChecked())
-    //     moves &= kingMask.checks();
-    // else
     moves ^= (materialbb & moves); // Can't capture our own pieces
-    // moves &= ~ourMaterial; // seems cleaner
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         moves &= material.combine<opposing_set<us>()>();
@@ -168,15 +146,11 @@ Bitboard BulkMoveGenerator::computeBulkRookMoves() const
     const MaterialPositionMask& material = m_position.material();
     const Bitboard materialbb = material.combine<us>();
     const Bitboard occupancy = material.combine();
- //   const auto& kingMask = m_moveGen.readKingPinThreats<us>();
     const MaterialTopology<us> topology = material.topology<us>();
     Bitboard moves = topology.template computeThreatenedSquaresRookBulk<pieceId>(occupancy);
 
-    // if (kingMask.isChecked())
-    //     moves &= kingMask.checks();
-    // else
+
     moves ^= (materialbb & moves); // Can't capture our own pieces
-    // moves &= ~ourMaterial; // seems cleaner
 
     if constexpr (moveFilter == MoveTypes::CAPTURES_ONLY)
         moves &= material.combine<opposing_set<us>()>();

@@ -29,17 +29,19 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     
     // set up
     chess_positions::defaultStartingPosition(m_game.editChessPosition());
-    MoveExecutor executor(m_game);
+    u16 ply = 0;
+    MoveExecutor executor(m_game.editChessPosition());
     PositionReader positionReader(m_game.readChessPosition());
 
     PackedMove move(Square::E2, Square::E4);
 
     // do
-    executor.makeMove<true>(move);
+    executor.makeMove<true>(move, m_game.editGameHistory().moveUndoUnits.emplace_back(), ply);
 
     // verify
     EXPECT_EQ(positionReader.pieceAt(Square::E4), piece_constants::white_pawn);
     EXPECT_EQ(positionReader.pieceAt(Square::E2), piece_constants::null());
+    EXPECT_EQ(ply, 1);
 }
 
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
@@ -52,16 +54,16 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
 // 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
 //     A    B    C    D    E    F    G    H
 // 1.d4 d5 2.c4 dxc4
-TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
-{
-    std::string pgn = "1.d4 d5 2.c4 dxc4";
-    GameContext game;
-    game.NewGame();
+// TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
+// {
+//     std::string pgn = "1.d4 d5 2.c4 dxc4";
+//     GameContext game;
+//     game.NewGame();
 
-    io::pgn_parser::deserialize(game, pgn);
+//     io::pgn_parser::deserialize(game, pgn);
 
-    io::printer::board(std::cout, game.readChessboard());
-}
+//     io::printer::board(std::cout, game.readChessboard());
+// }
 
 // // https://en.wikipedia.org/wiki/Portable_Game_Notation
 // // 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}

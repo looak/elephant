@@ -36,14 +36,13 @@ namespace pgn_parser {
         // Parse the individual moves from the move pair
         std::string whiteMove = move_pair[0];
         std::string blackMove = move_pair[1];
-
-        MoveExecutor moveExecutor(game);
+        
         bool blackToMove = false;
 
         do {            
             PackedMove move = san_parser::deserialize(game.readChessboard().readPosition(), !blackToMove, move_pair[(u8)blackToMove]);
             blackToMove = !blackToMove;
-            moveExecutor.makeMove<true>(move);            
+            game.MakeMove<true>(move);
         } while(blackToMove);
 
     }
@@ -81,7 +80,7 @@ namespace pgn_parser {
 
             u8 pairIndex = 0;
             std::array<std::string, 2> move_pair;
-            for (pairIndex; pairIndex < 2;) {                
+            while (pairIndex < 2) {
                 // identify the move pair by looking for white spaces.
                 size_t nextSpace = annotations.find(' ', i);
                 // if no space assume eol.

@@ -15,29 +15,9 @@
 #include <utility>
 
 
-u64 Search::Bench(GameContext& context, u32 depth) {
-    return CalculateBestMove(context, { .SearchDepth = depth }).count;
-}
-
-void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
+void Search::ReportSearchResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
+    
     i64 et = clock.getElapsedTime();
-
-    // build the principal variation string.
-    u32 madeMoves = 0;
-    std::stringstream pvSS;
-    for (u32 i = 0; i < searchDepth; ++i) {
-        u64 hash = context.game.readChessboard().readPosition().hash();
-        auto pvMove = context.game.editTranspositionTable().probe(hash);
-        if (pvMove.isNull())
-            break;
-        context.game.MakeMove(pvMove);
-        pvSS << " " << pvMove.toString();
-        madeMoves++;
-    }
-
-    for (u32 i = 0; i < madeMoves; ++i) {
-        context.game.UnmakeMove();
-    }
 
     i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
     checkmateDistance = abs(checkmateDistance);
@@ -46,244 +26,38 @@ void Search::ReportSearchResult(SearchContext& context, SearchResult& searchResu
         searchResult.ForcedMate = true;
         checkmateDistance /= 2;
         std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << nodes
-            << " time " << et << " pv" << pvSS.str() << "\n";
+            << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
 
         return;
     }
 
     i32 centipawn = searchResult.score;
     std::cout << "info score cp " << centipawn << " depth " << itrDepth
-        << " nodes " << nodes << " time " << et << " pv" << pvSS.str() << "\n";
+        << " nodes " << nodes << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
 }
 
-i32 Search::CalculateMove(GameContext& context, bool maximizingPlayer, u32 depth)
-{
-    i32 alpha = -c_maxScore;
-    i32 beta = c_maxScore;
-    u32 ply = 1;
-    u64 nodeCount = 0;
-    std::function<bool()> cancelleation = []() { return false; };
-    SearchContext searchContext = { context, nodeCount, cancelleation };
-    auto eval = AlphaBetaNegamax(searchContext, depth, alpha, beta, !maximizingPlayer, ply);
 
-    return eval.score;
-}
 
-SearchResult Search::CalculateBestMove(GameContext& context, SearchParameters params)
-{
-    Clock searchClock;
-    searchClock.Start();
-    u64 nodeCount = 0;
-    std::function<bool()> cancellationFunc = buildCancellationFunction(context.readToPlay(), params, searchClock);
-    SearchContext searchContext = { context, nodeCount, cancellationFunc };
+// bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) {
+//     // should return false if we want to abort our search.
+//     // how do we manage time?
+//     // lots of magic numbers in here.
+//     const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
+//     if (elapsedTime > c_maxTimeAllowed) {
+//         return false;
+//     }
+//     else {
+//         i64 avrgTime = elapsedTime / depth;
+//         avrgTime *= avrgTime;  // assume exponential time increase per depth.
+//         avrgTime /= 2;         // give some credit to the alpha beta search.
+//         if (avrgTime > c_maxTimeAllowed)
+//             return false;
+//         else
+//             return true;
+//     }
 
-    SearchResult result;
-    for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
-
-        Clock clock;
-        clock.Start();
-        nodeCount = 0;
-        auto itrResult = CalculateBestMoveIterration(searchContext, itrDepth);
-        clock.Stop();
-
-        bool cancelled = cancellationFunc();
-        if (cancelled) {
-            itrResult = result;
-        }
-
-        ReportSearchResult(searchContext, itrResult, params.SearchDepth, itrDepth, nodeCount, clock);
-        if (itrResult.ForcedMate) {
-#ifdef DEBUG_TRANSITION_TABLE
-            context.editTranspositionTable().debugStatistics();
-#endif
-            return itrResult;
-        }
-
-        if (cancelled == true)
-            break;
-
-        result = itrResult;
-    }
-
-#ifdef DEBUG_TRANSITION_TABLE
-    context.editTranspositionTable().debugStatistics();
-#endif
-
-    result.count = nodeCount;
-    return result;
-}
-
-SearchResult Search::CalculateBestMoveIterration(SearchContext& context, u32 depth) {
-    bool maximizingPlayer = context.game.readToPlay() == Set::WHITE;
-
-    u32 ply = 1;
-
-    auto result = AlphaBetaNegamax(context, depth, -c_maxScore, c_maxScore, maximizingPlayer, ply);
-
-    return result;
-}
-
-SearchResult Search::AlphaBetaNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
-    if (context.cancel() == true || depth <= 0) {
-        // at depth zero we start the quiet search to get a better evaluation.
-        // this search will try to go as deep as possible until it finds a quiet position.
-        i32 score = QuiescenceNegamax(context, 4, alpha, beta, maximizingPlayer, 1);
-        return { .score = score, .move = PackedMove::NullMove() };
-    }
-
-    // initialize the move generator.
-    MoveGenParams genParams;
-    // genParams.position = context.game.readChessboard().readPosition();
-    MoveGenerator<Set::WHITE> generator(context.game.readChessboard().readPosition(), genParams);
-    auto prioratized = generator.generateNextMove();
-
-    // if there are no moves to make, we're either in checkmate or stalemate.
-    if (prioratized.move.isNull()) {
-        if (true /*generator.isChecked()*/)
-            return { -c_checkmateConstant + (i32)ply, PackedMove::NullMove() };  // negative "infinity" since we're in checkmate
-        return { .score = -c_drawConstant, .move = PackedMove::NullMove() };  // we're in stalemate
-    }
-
-    i32 bestEval = -c_maxScore;
-    PackedMove bestMove;
-
-    // probe transposition table.
-    auto& chessboard = context.game.readChessboard();
-    auto& entry = context.game.editTranspositionTable().editEntry(chessboard.readPosition().hash());
-#if defined(ENABLE_TRANSPOSITION_TABLE)
-    if (auto result = entry.evaluate(chessboard.readPosition().hash(), depth, alpha, beta); result.has_value()) {
-        return { .score = entry.adjustedScore(ply), .move = entry.move };
-    }
-#endif
-
-    auto flag = TranspositionFlag::TTF_CUT_EXACT;
-
-#if defined(ENABLE_LATE_MOVE_REDUCTION)
-    static const i8 depthReductionThreshold = 4;
-    i8 depthReductionCounter = 0;
-#endif
-    do {
-        u32 extendedDepth = depth; // + Extension(chessboard, prioratized, ply);
-        SearchResult result;
-        bool doFullSearch = true;
-
-#if defined(ENABLE_LATE_MOVE_REDUCTION)
-        // should implement research on beta cutoffs.
-        if (depth > 3 && depthReductionCounter >= depthReductionThreshold && extendedDepth == 0 && prioratized.move.isCapture() == false) {
-            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-            doFullSearch = result.score > alpha;
-        }
-
-        depthReductionCounter++;
-#endif
-        context.game.MakeMove(prioratized.move);
-
-        i32 eval = 0;
-        if (context.game.IsRepetition(context.game.readChessboard().readPosition().hash())) {
-            eval = -c_drawConstant;
-            result = { .score = eval, .move = prioratized.move };
-        }
-        else if (doFullSearch) {
-            result = AlphaBetaNegamax(context, extendedDepth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-            eval = -result.score;
-        }
-
-        context.game.UnmakeMove();
-        context.nodes++;
-
-        if (context.cancel() == true)
-            return { .score = 0, .move = PackedMove::NullMove() };
-
-        if (eval > bestEval) {
-            bestEval = eval;
-            bestMove = prioratized.move;
-
-            if (eval > alpha) {
-                alpha = eval;
-                flag = TranspositionFlag::TTF_CUT_EXACT;
-            }
-
-            if (beta <= alpha) {
-                entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, beta, ply, depth, TTF_CUT_BETA);
-                if (prioratized.move.isCapture() == false)
-                    pushKillerMove(prioratized.move, ply);
-
-                putHistoryHeuristic(static_cast<u8>(chessboard.readToPlay()), prioratized.move.source(), prioratized.move.target(), depth);
-                return { .score = bestEval, .move = bestMove };
-            }
-        }
-
-        prioratized = generator.generateNextMove();
-    } while (prioratized.move.isNull() == false);
-
-    entry.update(chessboard.readPosition().hash(), bestMove, context.game.readGameHistory().age, bestEval, ply, depth, flag);
-
-    return { .score = bestEval, .move = bestMove };
-}
-
-i32 Search::QuiescenceNegamax(SearchContext& context, u32 depth, i32 alpha, i32 beta, bool maximizingPlayer, u32 ply) {
-    // MoveGenerator generator(context.game.readChessboard().readPosition(), context.game.readToPlay(), PieceType::NONE, MoveTypes::CAPTURES_ONLY);
-    // generator.generate();
-
-    // Evaluator evaluator(context.game.readChessboard().readPosition());
-    // i32 perspective = maximizingPlayer ? 1 : -1;
-    // i32 eval = evaluator.Evaluate(generator) * perspective;
-    // if (eval >= beta)
-    //     return beta;
-    // if (eval > alpha)
-    //     alpha = eval;
-
-    // auto prioratized = generator.generateNextMove();
-
-    // if (context.cancel() == true
-    //     || prioratized.move.isNull()
-    //     || ply >= c_maxSearchDepth
-    //     || (depth <= 0 && generator.isChecked() == false)) {
-
-    //     return eval;
-    // }
-
-    // i32 maxEval = -c_maxScore;
-    // do {
-    //     context.game.MakeMove(prioratized.move);
-    //     i32 eval = -QuiescenceNegamax(context, depth - 1, -beta, -alpha, !maximizingPlayer, ply + 1);
-    //     context.nodes++;
-    //     context.game.UnmakeMove();
-
-    //     maxEval = std::max(maxEval, eval);
-    //     alpha = std::max(alpha, eval);
-
-    //     if (beta <= alpha)
-    //         return beta;
-
-    //     prioratized = generator.generateNextMove();
-    // } while (prioratized.move.isNull() == false);
-
-    // return maxEval;
-
-    return 0;
-}
-
-bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u32 depth) {
-    // should return false if we want to abort our search.
-    // how do we manage time?
-    // lots of magic numbers in here.
-    const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
-    if (elapsedTime > c_maxTimeAllowed) {
-        return false;
-    }
-    else {
-        i64 avrgTime = elapsedTime / depth;
-        avrgTime *= avrgTime;  // assume exponential time increase per depth.
-        avrgTime /= 2;         // give some credit to the alpha beta search.
-        if (avrgTime > c_maxTimeAllowed)
-            return false;
-        else
-            return true;
-    }
-
-    return false;
-}
+//     return false;
+// }
 
 CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
     if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {
@@ -315,16 +89,16 @@ CancelSearchCondition Search::buildCancellationFunction(Set perspective, const S
         };
 }
 
-i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u32 ply) const {
-    if (ply >= c_maxSearchDepth)
-        return 0;
-    //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
-    if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
-        return 1;
-    }
+// i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u16 ply) const {
+//     if (ply >= c_maxSearchDepth)
+//         return 0;
+//     //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
+//     if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
+//         return 1;
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
 void Search::clear() {
     for (u32 i = 0; i < 2; ++i) {
@@ -341,7 +115,7 @@ void Search::clear() {
     }
 }
 
-bool Search::isKillerMove(PackedMove move, u32 ply) const {
+bool Search::isKillerMove(PackedMove move, u16 ply) const {
     const PackedMove* movesAtPly = &m_killerMoves[0][ply];
     return movesAtPly[0] == move || movesAtPly[1] == move || movesAtPly[2] == move || movesAtPly[3] == move;
 }
@@ -350,7 +124,7 @@ u32 Search::getHistoryHeuristic(u8 set, u8 src, u8 dst) const {
     return m_historyHeuristic[set][src][dst];
 }
 
-void Search::pushKillerMove(PackedMove mv, u32 ply) {
+void Search::pushKillerMove(PackedMove mv, u16 ply) {
     PackedMove* movesAtPly = &m_killerMoves[0][ply];
 
     // don't fill the killer move list with the same move.

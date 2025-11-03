@@ -26,6 +26,7 @@
 #include <move/move.hpp>
 #include <position/position_accessors.hpp>
 
+namespace io {
 namespace san_parser {
     struct ParsedMove {
         PackedMove move;
@@ -39,3 +40,4 @@ namespace san_parser {
     
 
 } // namespace san_parser
+} // namespace io

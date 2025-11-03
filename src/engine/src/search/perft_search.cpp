@@ -58,7 +58,6 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
 
     std::vector<DivideResult> results;
     MoveGenParams params;
-    MoveExecutor exec(m_context);
 
     typedef std::function<void(PackedMove, DivideResult::inner&, bool)> t_accFunction;
 
@@ -67,11 +66,11 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
         result.AccNodes++;
     };
 
-    auto forEachMoveLambda = [&exec, &results, depth, &accumulator, this] (PackedMove move) {
-        exec.makeMove<true>(move);
+    auto forEachMoveLambda = [&results, depth, &accumulator, this] (PackedMove move) {        
+        m_context.MakeMove<true>(move);
         auto inner = internalRunEntryPoint<DivideResult::inner, t_accFunction>(depth - 1, accumulator);
         inner.Nodes = inner.Nodes == 0 ? 1 : inner.Nodes;
-        exec.unmakeMove();
+        m_context.UnmakeMove();
 
         results.emplace_back(move, inner);
     };

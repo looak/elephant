@@ -62,8 +62,8 @@ public:
 
     void clear();
     bool empty() const { return material().empty(); }
-    Position copy() const;
-
+    Position copy() const;   
+    
     /**
      * @brief Places multiple pieces on the board, pairs of <ChessPiece>, <Square>
      * @param placements: ChessPiece, Square      */

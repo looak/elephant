@@ -28,7 +28,7 @@ TEST_F(FenParserFixture, Initialize)
 {
     Chessboard board;
     std::string empty = "";
-    bool result = fen_parser::deserialize(empty.c_str(), board);
+    bool result = io::fen_parser::deserialize(empty.c_str(), board);
     EXPECT_FALSE(result);
 }
 
@@ -37,7 +37,7 @@ TEST_F(FenParserFixture, StartingPosition)
     std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     Chessboard newGameBoard;
     PositionReader posReader = newGameBoard.readPosition();
-    bool result = fen_parser::deserialize(startingPositionFen.c_str(), newGameBoard);
+    bool result = io::fen_parser::deserialize(startingPositionFen.c_str(), newGameBoard);
     EXPECT_TRUE(result);
 
     EXPECT_EQ(0, newGameBoard.readPlyCount());
@@ -61,7 +61,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 {
     std::string gameSixFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
     Chessboard resultBoard;
-    bool result = fen_parser::deserialize(gameSixFen.c_str(), resultBoard);
+    bool result = io::fen_parser::deserialize(gameSixFen.c_str(), resultBoard);
     EXPECT_TRUE(result);
     // PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, resultBoard.readPlyCount());
@@ -91,7 +91,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 
     // round trip
     std::string output;
-    fen_parser::serialize(resultBoard, output);
+    io::fen_parser::serialize(resultBoard, output);
     EXPECT_TRUE(result);
     EXPECT_EQ(gameSixFen, output);
 }
@@ -100,7 +100,7 @@ TEST_F(FenParserFixture, PerftPositionThree)
 {
     Chessboard testBoard;
     std::string fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-    bool result = fen_parser::deserialize(fen.c_str(), testBoard);
+    bool result = io::fen_parser::deserialize(fen.c_str(), testBoard);
 
     EXPECT_TRUE(result);
     
@@ -116,7 +116,7 @@ TEST_F(FenParserFixture, SerializeDefaultPosition)
     Chessboard testingBoard;
     chess_positions::defaultStartingPosition(testingBoard.editPosition());
     std::string output;
-    bool result = fen_parser::serialize(testingBoard, output);
+    bool result = io::fen_parser::serialize(testingBoard, output);
 
     const std::string expected = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     EXPECT_TRUE(result);
@@ -127,7 +127,7 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
 {
     Chessboard testingBoard;
     std::string fen("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 5 19");
-    fen_parser::deserialize(fen.c_str(), testingBoard);
+    io::fen_parser::deserialize(fen.c_str(), testingBoard);
 
     EXPECT_EQ(5, testingBoard.readPlyCount());
     EXPECT_EQ(19, testingBoard.readMoveCount());
@@ -136,7 +136,7 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
     EXPECT_EQ(Square::D3, sqr);
 
     std::string output;
-    bool result = fen_parser::serialize(testingBoard, output);
+    bool result = io::fen_parser::serialize(testingBoard, output);
     EXPECT_EQ(fen, output);
     EXPECT_TRUE(result);
 }

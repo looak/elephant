@@ -85,11 +85,26 @@ public:
 
     PrioritizedMove generateNextMove();
 
+
+    bool isChecked() const {
+        return m_pinThreats.isChecked();
+    }
+
 #ifdef DEVELOPMENT_BUILD
     [[nodiscard]] std::vector<PrioritizedMove> moves();
 #endif
 
 private:
+enum class Stage{
+    PV_MOVE,
+    CAPTURES,
+    KILLERS,
+    QUIETS,
+    DONE
+};
+
+/*
+Consider this flow:
     enum class Stage {
         PV_MOVE,
         CAPTURES_GEN,
@@ -99,7 +114,7 @@ private:
         QUIETS_SORT,
         DONE
     };
-
+*/
     KingPinThreats<_us> computeKingPinThreats();
     PrioritizedMove internalGenerateMoves();
     void internalGenerateMovesOrdered();
@@ -122,7 +137,7 @@ private:
     u32 m_currentMoveIndx;
     u32 m_moveCount;
     bool m_movesGenerated;
-
+    Stage m_stage;
     MoveGenParams& m_params;
 };
 

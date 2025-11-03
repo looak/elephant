@@ -17,9 +17,14 @@ m_pinThreats(toSquare(position.material().king<us>().lsbIndex()), position),
     m_currentMoveIndx(0),
     m_moveCount(0),
     m_movesGenerated(false),
+    m_stage(Stage::PV_MOVE),
     m_params(params)
 {
     m_movesBuffer.fill({});
+
+    if (params.ordering == nullptr || params.ordering->pvMove == PackedMove::NullMove()) {
+        m_stage = Stage::CAPTURES;
+    }
 }
 
 template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, MoveGenParams&);
@@ -61,7 +66,6 @@ template std::vector<PrioritizedMove> MoveGenerator<Set::WHITE>::moves();
 template std::vector<PrioritizedMove> MoveGenerator<Set::BLACK>::moves();
 
 #endif
-
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
@@ -148,18 +152,17 @@ template void MoveGenerator<Set::BLACK>::internalGenerateMovesOrdered();
 
 template<Set us>
 void MoveGenerator<us>::sortMoves() {
-    // if (m_tt != nullptr) {
-    //     PackedMove pv = m_tt->probe(m_hashKey);
-    //     if (pv != PackedMove::NullMove()) {
-    //         auto itrMv = std::find_if(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, [&](const PrioritizedMove& pm) {
-    //             return pm.move == pv;
-    //             });
+    if (m_params.ordering != nullptr) {
+        if (m_params.ordering->pvMove != PackedMove::NullMove()) {
+            auto itrMv = std::find_if(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, [&](const PrioritizedMove& pm) {
+                return pm.move == m_params.ordering->pvMove;
+                });
 
-    //         if (itrMv != m_movesBuffer.end()) {
-    //             itrMv->priority += move_generator_constants::pvMovePriority;
-    //         }
-    //     }
-    // }
+            if (itrMv != m_movesBuffer.end()) {
+                itrMv->priority += move_generator_constants::pvMovePriority;
+            }
+        }
+    }
 
     // if (m_search != nullptr) {
     //     for (u32 i = 0; i < m_moveCount; ++i) {
@@ -169,7 +172,7 @@ void MoveGenerator<us>::sortMoves() {
     //             move.priority += m_search->getHistoryHeuristic(static_cast<u8>(m_toMove), move.move.source(), move.move.target());
     //         }
     //     }
-    // }
+    // }    
 
     PrioritizedMoveComparator comparator;
     std::sort(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, comparator);
