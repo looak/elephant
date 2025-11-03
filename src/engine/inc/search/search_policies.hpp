@@ -18,12 +18,12 @@ namespace search_policies {
 
 class TTEnabled {
 public:
-    static std::optional<SearchResult> probe(
+    static std::optional<i32> probe(
         TranspositionTable& tt, u64 hash, u8 depth, i32 alpha, i32 beta, i32 ply) 
     {
         TranspositionEntry& entry = tt.editEntry(hash);
         if (auto result = entry.evaluate(hash, depth, alpha, beta); result.has_value()) {
-            return SearchResult{ .score = entry.adjustedScore(ply), .move = entry.move };
+            return entry.adjustedScore(ply);
         }
         return std::nullopt;
     }
@@ -45,7 +45,7 @@ public:
 
 class TTDisabled {
 public:
-    static std::optional<SearchResult> probe(TranspositionTable&, u64, u8, i32, i32, i32) 
+    static std::optional<i32> probe(TranspositionTable&, u64, u8, i32, i32, i32) 
     { return std::nullopt; }
 
     static void store(TranspositionTable&, u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
@@ -132,25 +132,24 @@ public:
 #if defined(DEVELOPMENT_BUILD)
 class DebugEnabled {
 public:
-    static void pushClock() {
+    static const Clock& pushClock() {
         Clock clock;
         clock.Start();
         m_searchClocks.push(clock);
+        return m_searchClocks.top();
     }
 
-    static u64 popClock(u64 nodes) {
-        u64 nps = 0;
+    static void popClock(u64 nodes, u64& nps) {
         if (!m_searchClocks.empty()) {
             Clock& clock = m_searchClocks.top();
             clock.Stop();
             nps = clock.calcNodesPerSecond(nodes);
             m_searchClocks.pop();
         }
-        return nps;
     }
 
     static void reportNps(u64 nps) {
-        LOG_DEBUG() << "NPS: " << nps << "\n";
+        LOG_INFO() << "NPS: " << nps << "\n";
     }
 
 private:
@@ -160,16 +159,21 @@ private:
 
 class DebugDisabled {
 public:
-    static void pushClock() {
-        // Do nothing
+    static const Clock& pushClock() {
+        m_dummyClock.Start();
+        return m_dummyClock;
     }
     static u64 popClock(u64) {
+        m_dummyClock.Stop();
         return 0;
     }
 
     static void reportNps(u64) {
         // Do nothing
     }
+
+private:
+    static inline Clock m_dummyClock;
 };
 
 } // namespace search_policies
