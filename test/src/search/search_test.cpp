@@ -15,12 +15,10 @@ public:
         testingParams.SearchDepth = 12;
         testingParams.MoveTime = 30 * 1000; // 30 seconds
 
-        testingParams.UseTranspositionTable = false;
-        testingParams.UseIterativeDeepening = false;
-        testingParams.UseQuiescenceSearch = false;
-        testingParams.UseNullMovePruning = false;
-        testingParams.UseLateMoveReduction = false;
-        testingParams.UseMoveOrdering = false;
+        testingParams.UseTranspositionTable = true;        
+        testingParams.UseQuiescenceSearch = true;
+        testingParams.UseNullMovePruning = true;
+        testingParams.UseLateMoveReduction = true;
 
     };
     virtual void TearDown(){};
@@ -43,7 +41,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     // execute
     SearchResult result = searcher.go<Set::WHITE>(testingParams);
 
-    i32 mateScore = result.score - c_checkmateConstant;
+    i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
@@ -64,7 +62,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     // execute
     SearchResult result = searcher.go<Set::BLACK>(testingParams);
 
-    i32 mateScore = result.score - c_checkmateConstant;
+    i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
 
     EXPECT_EQ(2, mateScore);
@@ -154,6 +152,30 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
         OUT() << "-----------------------------";
     }
 }
-// 2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1
+
+TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
+    for (const auto& searchCase : s_mateInEight) {
+        GameContext context;
+        testingParams.SearchDepth = 16; // increase depth for harder mates
+        io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
+
+        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+
+        SearchResult result;
+        if (context.readToPlay() == Set::BLACK) {
+            result = searcher.go<Set::BLACK>(testingParams);
+        }
+        else {
+            result = searcher.go<Set::WHITE>(testingParams);
+        }
+
+        EXPECT_EQ(searchCase.expectedMove, result.move().toString());
+        OUT() << "Tested position: " << searchCase.fen;
+        OUT() << "Expected move:   " << searchCase.expectedMove;
+        OUT() << "Found move:      " << result.move().toString();
+        OUT() << "-----------------------------";
+    }
+}
+
 
 }  // namespace ElephantTest

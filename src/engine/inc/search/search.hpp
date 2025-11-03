@@ -67,12 +67,10 @@ struct SearchParameters {
 
     u32 MovesToGo = 0;
     bool Infinite = false;
-    bool UseTranspositionTable = true;
-    bool UseIterativeDeepening = true;
+    bool UseTranspositionTable = true;    
     bool UseQuiescenceSearch = true;
     bool UseNullMovePruning = true;
     bool UseLateMoveReduction = true;
-    bool UseMoveOrdering = true;
 };
 
 typedef std::function<bool()> CancelSearchCondition;
@@ -85,7 +83,8 @@ struct ThreadSearchContext {
     Position position;
     GameState gameState;
     GameHistory gameHistory;
-    u64 nodeCount;
+    u64 nodeCount = 0;
+    u64 qNodeCount = 0;
     
 };
 
@@ -179,8 +178,8 @@ SearchResult Search::runSearchWithConfig(ThreadSearchContext& context, SearchPar
         ReportSearchResult(itrResult, params.SearchDepth, itrDepth, context.nodeCount, itrClock);
 
         u64 nps = 0;
-        config::Debug_Policy::popClock(context.nodeCount, nps);
-        config::Debug_Policy::reportNps(nps);
+        config::Debug_Policy::reportNps(context.nodeCount, context.qNodeCount);
+        config::Debug_Policy::popClock();
 
         // bool cancelled = cancellationFunc();
         // if (cancelled) {
@@ -215,79 +214,107 @@ SearchResult Search::runSearchWithConfig(ThreadSearchContext& context, SearchPar
 
 template<Set us, typename config>
 i16 Search::recursiveAlphaBetaNegamax(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
-    THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");
-    if (depth <= 0) {
-        pv->length = 0;
-        if constexpr (config::QSearch_Policy::enabled) {
-            i16 score = recursiveQuiescenceNegamax<us, config>(context, depth, alpha, beta, ply);
-            return score;
-        }
-        else {
-            Evaluator evaluator(context.position.read());
-            i16 perspective = 0;
-            if constexpr (us == Set::WHITE) {
-                perspective = 1;
-            }
-            else {
-                perspective = -1;
-            }
-            return evaluator.Evaluate() * perspective;            
-        }
-    }
+    THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");   
 
     PositionReader currentPos = context.position.read();
+    pv->length = 0;
 
-    // initialize the move generator.
-    MoveGenParams genParams;
-    MoveGenerator<us> generator(currentPos, genParams);
-    auto prioratized = generator.generateNextMove();
-
-    // if there are no moves to make, we're either in checkmate or stalemate.
-    if (prioratized.move.isNull()) {
-        if (generator.isChecked() == true)
-            return -c_checkmateConstant - (i16)ply;  // negative "infinity" since we're in checkmate
-        return -c_drawConstant;  // we're in stalemate
-    }
-
-    i16 bestEval = -c_maxScore;
-    i16 eval = -c_maxScore;
-    PackedMove bestMove;
-
-    // probe transposition table.
+    // --- Transposition Table Probe ---
     std::optional<i16> ttProbeResult = config::TT_Policy::probe(m_transpositionTable, currentPos.hash(), depth, alpha, beta, ply);
     if (ttProbeResult.has_value()) {
         return ttProbeResult.value();
     }
 
-    auto flag = TranspositionFlag::TTF_CUT_EXACT;
+    // --- No-Moves Check (Mate/Stalemate) ---
+    MoveGenParams genParams;
+    MoveOrderingView orderingView;
 
-// #if defined(ENABLE_LATE_MOVE_REDUCTION)
-//     static const i8 depthReductionThreshold = 4;
-//     i8 depthReductionCounter = 0;
-// #endif
+    if(pv->length > 0) {
+        orderingView.pvMove = pv->moves[0];
+    }
 
+    MoveGenerator<us> generator(currentPos, genParams);
+    auto prioratized = generator.generateNextMove();
+
+    if (prioratized.move.isNull()) {
+        if (generator.isChecked())
+            return -c_checkmateConstant + (i16)ply; // Mate score (correctly adjusted)
+        return -c_drawConstant; // Stalemate
+    }
+
+    // --- Leaf Node Check ---
+    if (depth <= 0) {
+        pv->length = 0;
+        if constexpr (config::QSearch_Policy::enabled) {
+            // Start Q-Search with its *own* depth limit, configured with search params.
+            return recursiveQuiescenceNegamax<us, config>(context, config::QSearch_Policy::maxDepth, alpha, beta, ply);
+        } else {
+            Evaluator evaluator(context.position.read());
+            i16 perspective = (us == Set::WHITE) ? 1 : -1;
+            return evaluator.Evaluate() * perspective;
+        }
+    }
+
+    // --- Null Move Pruning ---
+    if constexpr (config::NMP_Policy::enabled) {
+        // Check if we have any pieces besides the king and pawns - trying to identify zugzwang positions to avoid pruning them.
+        const auto& material = currentPos.material();
+        Bitboard nonPawnMaterial =  material.knights<us>() | material.bishops<us>() |
+                                    material.rooks<us>() | material.queens<us>();
+        bool hasAnyNonPawnMaterial = !nonPawnMaterial.empty();
+
+        if (config::NMP_Policy::shouldPrune(depth, generator.isChecked(), hasAnyNonPawnMaterial)) {
+            u16 R = config::NMP_Policy::getReduction(depth);
+            PVLine nullPv;
+            i16 nullScore = -recursiveAlphaBetaNegamax<opposing_set<us>(), config>(context, depth - 1 - R, -beta, -beta + 1, ply + 1, &nullPv);
+
+            context.nodeCount++;
+
+            if (nullScore >= beta) {
+                return nullScore;
+            }
+        }
+    }
+
+    // --- Main Search Loop ---
+    i16 bestEval = -c_maxScore; // Start at -infinity
+    PackedMove bestMove = PackedMove::NullMove();
+    auto flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
     PVLine childPv;
+
     MoveExecutor executor(context.position.edit());
 
     do {
-        u16 extendedDepth = depth; // + Extension(chessboard, prioratized, ply);
-        bool doFullSearch = true;
-
-        MoveUndoUnit undoState;
-        u16 movingPly = ply; // make move modifies ply according to chess rules, but we don't care about that modified ply in search.
-        executor.makeMove(prioratized.move, undoState, movingPly);
-
-        if (context.gameHistory.IsRepetition(currentPos.hash()) == true) {
-            return -c_drawConstant;
+        u16 modifiedDepth = depth;
+        // --- Late Move Reduction if Enabled ---
+        if constexpr (config::LMR_Policy::enabled) {
+            if (config::LMR_Policy::shouldReduce(depth, prioratized.move, generator.isChecked())) {
+                modifiedDepth -= config::LMR_Policy::getReduction(depth);
+            }
         }
 
-        eval = -recursiveAlphaBetaNegamax<opposing_set<us>(), config>(context, extendedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+        MoveUndoUnit undoState;
+        u16 movingPly = ply;
+        executor.makeMove(prioratized.move, undoState, movingPly);
+
+        i16 eval;        
+        if (context.gameHistory.IsRepetition(currentPos.hash()) == true) {
+            eval = -c_drawConstant;
+        } else {
+            eval = -recursiveAlphaBetaNegamax<opposing_set<us>(), config>(context, modifiedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+        }
+
+        // if (eval > alpha && modifiedDepth < depth) {
+        //     // Re-search at full depth
+        //     eval = -recursiveAlphaBetaNegamax<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1, &childPv);
+        // }
 
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
-        // if (context.cancel() == true)
-        //     return { .score = 0, .move = PackedMove::NullMove() };        
+        // if (context.cancel()) return 0; // Handle search cancellation
+
+        // --- 5. Alpha-Beta Logic (Fail-Soft) ---
 
         if (eval > bestEval) {
             bestEval = eval;
@@ -295,48 +322,47 @@ i16 Search::recursiveAlphaBetaNegamax(ThreadSearchContext& context, u16 depth, i
 
             if (bestEval > alpha) {
                 alpha = bestEval;
-                flag = TranspositionFlag::TTF_CUT_EXACT;
+                flag = TranspositionFlag::TTF_CUT_EXACT; // This is now a PV-Node
+
+                // Update the Principal Variation
+                pv->moves[0] = bestMove;
+                memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
+                pv->length = childPv.length + 1;
             }
 
-            if (beta <= alpha) {
+            if (alpha >= beta) {
+                flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
                 config::TT_Policy::update(
                     m_transpositionTable,
                     currentPos.hash(),
-                    bestMove,
+                    bestMove, // Store the move that *caused* the cutoff
                     context.gameHistory.age,
-                    alpha,
+                    bestEval, // Store the actual score
                     ply,
                     depth,
-                    TranspositionFlag::TTF_CUT_BETA);
+                    flag);
                 
-                // if (prioratized.move.isCapture() == false)
-                //     pushKillerMove(prioratized.move, ply);
-
-                //putHistoryHeuristic(static_cast<u8>(context.gameState.whiteToMove), prioratized.move.source(), prioratized.move.target(), depth);
-                pv->moves[0] = bestMove;
-                memcpy(pv->moves +1, childPv.moves, childPv.length * sizeof(PackedMove));
-                pv->length = childPv.length + 1;
-                return alpha;
+                // (pushKillerMove logic would go here)
+                
+                return bestEval; 
             }
         }
 
-        
         prioratized = generator.generateNextMove();
     } while (prioratized.move.isNull() == false);
 
+    // --- 6. Store to TT ---
+    // All moves searched, no cutoff.
     config::TT_Policy::update(
         m_transpositionTable,
         currentPos.hash(),
-        bestMove,
+        bestMove, // Store the best move found
         context.gameHistory.age,
-        bestEval,
+        bestEval, // Store the best score (which is alpha if it was a PV node)
         ply,
         depth,
-        flag);
+        flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
 
-    pv->moves[0] = bestMove;
-    memcpy(pv->moves +1, childPv.moves, childPv.length * sizeof(PackedMove));
-    pv->length = childPv.length + 1;
     return bestEval;
 }
 
@@ -373,8 +399,8 @@ i16 Search::recursiveQuiescenceNegamax(ThreadSearchContext& context, u16 depth, 
         MoveExecutor executor(context.position.edit());
         MoveUndoUnit undoState;
         executor.makeMove(prioratized.move, undoState, ply);
-        i16 eval = -recursiveQuiescenceNegamax<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1);
-        context.nodeCount++;
+        i16 eval = -recursiveQuiescenceNegamax<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1);        
+        context.qNodeCount++;
         executor.unmakeMove(undoState);
 
         maxEval = std::max(maxEval, eval);
@@ -411,7 +437,7 @@ SearchResult Search::dispatchNMP(ThreadSearchContext& context, SearchParameters 
 
 template<Set us, typename TT, typename NMP>
 SearchResult Search::dispatchLMR(ThreadSearchContext& context, SearchParameters params) {
-    if (params.UseLateMoveReduction) {        
+    if (params.UseLateMoveReduction) {
         return dispatchQSearch<us, TT, NMP, search_policies::LmrEnabled>(context, params);
     } else {
         return dispatchQSearch<us, TT, NMP, search_policies::LmrDisabled>(context, params);
@@ -422,7 +448,7 @@ template<Set us, typename TT, typename NMP, typename LMR>
 SearchResult Search::dispatchQSearch(ThreadSearchContext& context, SearchParameters params)
 {
     if (params.UseQuiescenceSearch) {
-        
+        search_policies::QSearchEnabled::maxDepth = params.QuiescenceDepth;
         return dispatchDebug<us, TT, NMP, LMR, search_policies::QSearchEnabled>(context, params);
     } else {
         return dispatchDebug<us, TT, NMP, LMR, search_policies::QSearchDisabled>(context, params);

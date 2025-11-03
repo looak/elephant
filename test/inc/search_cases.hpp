@@ -22,3 +22,7 @@ const std::vector<SearchCase> s_mateInFive = {
     {"6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1", "h4f4" },
     {"6r1/p3p1rk/1p1pPp1p/q3n2R/4P3/3BR2P/PPP2QP1/7K w - - 0 1", "h5h6" }
 };
+
+const std::vector<SearchCase> s_mateInEight = {
+    {"4r2k/1p3rbp/2p1N1pn/p3n3/P2NB3/1P4q1/4R1P1/B1Q2RK1 b - - 4 32", "h6g4" } 
+};
