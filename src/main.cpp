@@ -14,15 +14,19 @@ main(int argc, char* argv[])
     assert(cli_initialized);
     WeightStore::get()->loadFromFile(std::format("{}/res/weights.ini", ROOT_PATH));
 
-    Application app;
-
     if (argc > 1) {
         std::string argument(argv[1]);
-        if (argument == "uci")
-            app.RunUci();
+        if (argument == "uci") {
+            AppContext context;
+            context.setState(std::make_unique<UciModeProcessor>());
+            context.processInput("");
+        }
+        //    app.RunUci();
     }
-
-    app.Run();
+    else {
+        Application app;
+        app.Run();
+    }
 
     return 0;
 }

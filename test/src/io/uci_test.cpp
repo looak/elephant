@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-#include "elephant_test_utils.h"
 
 #include <io/fen_parser.hpp>
 #include <core/uci.hpp>
@@ -109,16 +108,16 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     EXPECT_EQ(1, m_uci.readGameContext().readMoveCount());
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
-    const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::E1));
-    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::E8));
-    EXPECT_EQ(WHITEQUEEN, board.readPieceAt(Square::D1));
-    EXPECT_EQ(BLACKQUEEN, board.readPieceAt(Square::D8));
+    auto board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(WHITEKING, board.pieceAt(Square::E1));
+    EXPECT_EQ(BLACKKING, board.pieceAt(Square::E8));
+    EXPECT_EQ(WHITEQUEEN, board.pieceAt(Square::D1));
+    EXPECT_EQ(BLACKQUEEN, board.pieceAt(Square::D8));
 
-    EXPECT_TRUE(board.readCastlingState().hasAll());
+    EXPECT_TRUE(board.castling().hasAll());
 
     std::string outputFen;
-    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_STREQ(c_startPositionFen.c_str(), outputFen.c_str());
 }
 
@@ -128,7 +127,7 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     m_uci.Enable();
     std::string gocFen = "r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1";
     GameContext expected;
-    FENParser::deserialize(gocFen.c_str(), expected);
+    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
 
     // do
     std::string commandLine = "position fen " + gocFen;
@@ -142,14 +141,14 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
-    const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::G1));
-    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::G8));
+    const auto& board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(WHITEKING, board.pieceAt(Square::G1));
+    EXPECT_EQ(BLACKKING, board.pieceAt(Square::G8));
 
-    EXPECT_FALSE(board.readCastlingState().hasAny());
+    EXPECT_FALSE(board.castling().hasAny());
 
     std::string outputFen;
-    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
@@ -160,7 +159,7 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
     m_uci.Enable();
     std::string gocFen = "2r5/p1p1nk1p/q4pp1/1p1pp3/1P4P1/2P5/3PPP1P/2Q1K1NR w K - 0 32";
     GameContext expected;
-    FENParser::deserialize(gocFen.c_str(), expected);
+    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
 
     // do
     std::string commandLine = "position fen " + gocFen + " moves d2d4 e5d4";
@@ -174,21 +173,21 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
     EXPECT_EQ(Set::WHITE, m_uci.readGameContext().readToPlay());
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
-    const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(BLACKPAWN, board.readPieceAt(Square::D4));
-    EXPECT_EQ(WHITEPAWN, board.readPieceAt(Square::C3));
+    const auto& board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(BLACKPAWN, board.pieceAt(Square::D4));
+    EXPECT_EQ(WHITEPAWN, board.pieceAt(Square::C3));
 
     CastlingStateInfo expectedCastlingState;
-    expectedCastlingState.setWhiteKingSide();
-    expectedCastlingState.unsetWhiteQueenSide();
-    expectedCastlingState.unsetBlack();
-    EXPECT_EQ(expectedCastlingState, board.readCastlingState());
+    expectedCastlingState.grantWhiteKingSide();
+    expectedCastlingState.revokeWhiteQueenSide();
+    expectedCastlingState.revokeAllBlack();
+    EXPECT_EQ(expectedCastlingState, board.castling());
 
-    EXPECT_FALSE(board.readPosition().readEnPassant());
+    EXPECT_FALSE(board.enPassant());
 
     gocFen = "2r5/p1p1nk1p/q4pp1/1p1p4/1P1p2P1/2P5/4PP1P/2Q1K1NR w K - 0 33";
     std::string outputFen;
-    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
@@ -198,7 +197,7 @@ TEST_F(UciFixture, DISABLED_position_fen_perft)
     m_uci.Enable();
     std::string gocFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ;D1 20 ;D2 400 ;D3 8902";
     GameContext expected;
-    FENParser::deserialize(gocFen.c_str(), expected);
+    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
 
     // do
     std::string commandLine = "position fen " + gocFen;
@@ -212,14 +211,14 @@ TEST_F(UciFixture, DISABLED_position_fen_perft)
     EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
     // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
 
-    const auto& board = m_uci.readGameContext().readChessboard();
-    EXPECT_EQ(WHITEKING, board.readPieceAt(Square::G1));
-    EXPECT_EQ(BLACKKING, board.readPieceAt(Square::G8));
+    const auto& board = m_uci.readGameContext().readChessPosition();    
+    EXPECT_EQ(WHITEKING, board.pieceAt(Square::G1));
+    EXPECT_EQ(BLACKKING, board.pieceAt(Square::G8));
 
-    EXPECT_FALSE(board.readCastlingState().hasAny());
+    EXPECT_FALSE(board.castling().hasAny());
 
     std::string outputFen;
-    FENParser::serialize(m_uci.readGameContext(), outputFen);
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 

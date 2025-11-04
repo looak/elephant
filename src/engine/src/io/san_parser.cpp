@@ -157,6 +157,32 @@ namespace san_parser {
         return result;
     }
 
+    PackedMove deserialize(const char* an)
+    {
+        std::string_view san(an);
+        size_t length = san.length();        
+        Square sourceSquare = parseSquare(san.substr(0, 2));
+        Square targetSquare = parseSquare(san.substr(length - 2, 2));
+
+                
+        THROW_EXPR(sourceSquare != Square::NullSQ && targetSquare != Square::NullSQ, ephant::io_error,
+                std::format("san_parser :: Invalid square notation in simplified SAN deserialization: {}", san));
+
+        PackedMove result(sourceSquare, targetSquare);
+
+        if (san.length() > 4) {
+            char promoteChar = san[4];
+            if (promoteChar == '=') {
+                promoteChar = san[5];
+            }
+            PieceType promoteTo = piece_constants::notation::fromChar(promoteChar);
+            ChessPiece promotePiece(Set::WHITE, promoteTo); // set does not matter here.
+            result.setPromoteTo(promotePiece);
+        }
+
+        return result;
+    }
+
 } // namespace san_parser
 } // namespace io
 

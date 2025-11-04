@@ -37,7 +37,9 @@ namespace san_parser {
     // Ensure that the piece exists at source but does not validate legality of the move itself.
     PackedMove deserialize(PositionReader context, bool whiteToMove, std::string_view san);
 
-    
+    // simplified deserialization of standard algebraic notation without position context.
+    PackedMove deserialize(const char* an);
+       
 
 } // namespace san_parser
 } // namespace io

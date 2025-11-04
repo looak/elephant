@@ -112,6 +112,8 @@ TEST_F(MoveGeneratorFixture, Empty)
     EXPECT_EQ(expected, result);
 }
 
+#ifdef DEVELOPMENT_BUILD
+
  // 8 [ R ][   ][   ][ k ][   ][   ][   ][ r ]
  // 7 [   ][ b ][   ][   ][   ][   ][ b ][ q ]
  // 6 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -254,7 +256,7 @@ TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
     // verify    
     EXPECT_TRUE(result.empty());
 }
-
+#endif
 }  // namespace ElephantTest
 
 //
