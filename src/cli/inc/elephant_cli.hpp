@@ -26,6 +26,8 @@ public:
     AppContext() { m_currentProcessor = std::make_unique<NormalModeProcessor>(); }
     ~AppContext() { m_currentProcessor.reset(); }
 
+    bool handlesInput() { return m_currentProcessor->handlesInput(); }
+
     void setState(std::unique_ptr<ICommandProcessor> newProcessor) { m_currentProcessor = std::move(newProcessor); }
     bool processInput(const std::string& line) { return m_currentProcessor->processInput(*this, line); }
 };

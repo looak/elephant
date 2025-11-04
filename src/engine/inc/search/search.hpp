@@ -51,7 +51,7 @@ struct PieceKey {
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
-    u8 SearchDepth = 6;
+    u8 SearchDepth = 8;
     u8 QuiescenceDepth = 4;
 
     // total amount of time allowed to search for a move in milliseconds.
@@ -134,7 +134,6 @@ private:
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
     //i16 Extension(const Chessboard& board, const PrioritizedMove& prioratized, u16 ply) const;
     void ReportSearchResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const;
-    void setConfig(const SearchParameters& params);
 
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;
@@ -460,7 +459,7 @@ SearchResult Search::dispatchDebug(ThreadSearchContext& context, SearchParameter
 #if defined(DEVELOPMENT_BUILD)
     using Config = SearchConfig<TT, NMP, LMR, QSearch, search_policies::DebugEnabled>;
     return runSearchWithConfig<us, Config>(context, params);
-#elif
+#else
     using Config = SearchConfig<TT, NMP, LMR, QSearch, search_policies::DebugDisabled>;
     return runSearchWithConfig<us, Config>(context, params);
 #endif

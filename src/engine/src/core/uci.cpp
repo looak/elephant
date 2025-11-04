@@ -2,6 +2,7 @@
 
 #include <elephant_gambit_config.h>
 #include <io/fen_parser.hpp>
+#include <io/san_parser.hpp>
 #include <core/game_context.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
@@ -122,58 +123,23 @@ UCI::Position(std::list<std::string>& args)
             std::string moveStr = args.front();
             args.pop_front();
 
-            Move move = Move::fromString(moveStr);
-            move.Piece = position.pieceAt(move.SourceSquare);
+            PackedMove move = io::san_parser::deserialize(moveStr.c_str());
+            auto cp = position.pieceAt(move.sourceSqr());
 
-            if (move.Piece == ChessPiece::None())
+            if (cp == ChessPiece::None())
             {
                 LOG_ERROR() << "Invalid move: " << moveStr;
                 return false;
             }
 
-            move.setCapture(position.pieceAt(move.TargetSquare).isValid());
-
-            if (move.Piece.getType() == PieceType::PAWN && position.enPassant())
-            {
-                bool enPassant = position.enPassant().readSquare() == move.TargetSquare;
-                if (enPassant) {
-                    move.setEnPassant(enPassant);
-                    move.setCapture(enPassant);
-                }
+            auto capture = position.pieceAt(move.targetSqr());
+            if (capture != ChessPiece::None()) {
+                move.setCapture(true);
             }
 
-            // if (!m_context.MakeMove(move.readPackedMove())) {
-            //     LOG_ERROR() << "Failed to make move: " << move.toString();
-            //     return false;
-            // }
+            m_context.MakeMove(move);
         }
     }
-
-    // if (args.front().find(";") != std::string::npos)
-    // {
-    //     std::vector<std::pair<int, int>> depthNodeCount;
-    //     do {
-    //         std::string depthValue = args.front();
-    //         args.pop_front();
-    //         std::string nodeCountStr = args.front();
-    //         args.pop_front();
-
-    //         depthValue.erase(0, 2);
-    //         int depth = std::stoi(depthValue);
-    //         int nodeCount = std::stoi(nodeCountStr);
-
-    //         depthNodeCount.push_back(std::make_pair(depth, nodeCount));
-
-    //     } while (args.size() > 0 && args.front().find(";") != std::string::npos);
-
-    //     for (auto&& [depth, nodeCount] : depthNodeCount)
-    //     {
-    //         Search search;
-    //         auto result = search.PerftDivide(m_context, depth);
-    //         //LOG_DEBUG() << "Depth: " << depth << " NodeCount: " << nodeCount << "\n";
-    //         std::cout << "nodes " << result.Nodes << "\n";
-    //     }
-    // }
 
     return true;
 }
@@ -320,9 +286,16 @@ UCI::Go(std::list<std::string>& args)
         }
     }
 
-    // SearchResult result = m_context.CalculateBestMove(searchParams);
-    // m_stream << "bestmove " << result.move.toString();
-    m_stream << "\n";
+    Search searcher(m_context.readChessboard().readPosition(), m_context.editTranspositionTable());
+
+    if (m_context.readToPlay() == Set::WHITE) {
+        SearchResult result = searcher.go<Set::WHITE>(searchParams);
+        m_stream << "bestmove " << result.move().toString() << "\n";
+    }
+    else {
+        SearchResult result = searcher.go<Set::BLACK>(searchParams);
+        m_stream << "bestmove " << result.move().toString() << "\n";
+    }
     return true;
 }
 

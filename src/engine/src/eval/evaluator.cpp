@@ -25,8 +25,8 @@ Evaluator::Evaluate()
     // score += tmp;
     // LOG_DEBUG() << "Pawn structure score: " << tmp;
 
-    tmp = MopUpValue(materialScore);
-    score += tmp;
+    //tmp = MopUpValue(materialScore);
+    //score += tmp;
     // LOG_DEBUG() << "Mop up value: " << tmp;
 
     // tmp = EvaluateKingSafety();

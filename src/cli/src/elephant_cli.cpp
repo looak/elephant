@@ -55,7 +55,9 @@ Application::RunUci()
 #ifdef OUTPUT_LOG_TO_FILE
     LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
 #endif
-    //UCICommands::UCIEnable();
+    AppContext context;
+    context.setState(std::make_unique<UciModeProcessor>());
+    context.processInput("");
 }
 
 void
@@ -68,22 +70,25 @@ Application::Run()
     AppContext context;
 
     while (1) {
-        std::cout << " > ";
-        std::string buffer = "";
 
-        if (!std::getline(std::cin, buffer))
-            break;
+        if (context.handlesInput())
+            context.processInput("");
+        else {
+            std::cout << " > ";
+            std::string buffer = "";
 
-        if (buffer.empty())
-            continue;
+            if (!std::getline(std::cin, buffer))
+                break;
 
-        if (context.processInput(buffer))
-        {
-            continue;
-        }
-        else
-        {
-            break;
+            if (buffer.empty())
+                continue;
+
+            if (context.processInput(buffer)) {
+                continue;
+            }
+            else {
+                break;
+            }
         }
     }
 }

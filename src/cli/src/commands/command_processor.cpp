@@ -4,6 +4,8 @@
 #include "elephant_cli.hpp"
 #include "printer/printer.hpp"
 
+#include "commands/uci_commands.hpp"
+
 #include <iostream>
 
 
@@ -49,25 +51,60 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
     return true;
 }
 
-UciModeProcessor::UciModeProcessor()
+UciModeProcessor::UciModeProcessor() 
 {
-    system("cls");  // Clear console on Windows)
-    prnt::out << "UCI mode enabled. Type 'exit' or 'quit' to leave UCI mode.";
+    system("cls");
+}
+
+void UciModeProcessor::options()
+{    
+    for (auto&& option : UCICommands::options) {
+        std::cout << "option name " << option.first << " " << option.second << "\n";
+    } 
+}
+
+void UciModeProcessor::extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
+{
+    std::istringstream ssargs(buffer);
+    std::string token;
+    while (std::getline(ssargs, token, ' ')) {
+        tokens.push_back(token);
+    }
 }
 
 bool UciModeProcessor::processInput(AppContext& context, const std::string& line)
 {
-    std::istringstream iss(line);
-    std::string command_name;
-    iss >> command_name;
+    UCI interface;
+    options();
+    interface.Enable();
+    while (interface.Enabled()) {
+        std::string buffer = "";
+        std::getline(std::cin, buffer);
+        std::list<std::string> tokens;
+        extractArgsFromCommand(buffer, tokens);
 
-    if (command_name == "exit" || command_name == "quit") {
-        return false;  // Signal to exit the application
-    }
+        LOG_INFO() << "From GUI: " << buffer;
 
-    if (command_name == "normal") {
-        context.setState(std::make_unique<NormalModeProcessor>());
-        return true;
+        if (tokens.size() == 0)
+            continue;
+
+        std::string commandStr = tokens.front();
+        auto&& command = UCICommands::commands.find(commandStr);
+        if (tokens.size() > 0 && command != UCICommands::commands.end()) {
+            auto token = tokens.front();
+            if (token == "quit" || token == "exit")
+                std::exit(0);
+            if (token == "normal") {
+                context.setState(std::make_unique<NormalModeProcessor>());
+                return true;
+            }       
+
+            tokens.pop_front();  // remove command from arguments
+            if (!command->second(tokens, interface)) {
+                LOG_ERROR() << " Something went wrong during command: " << commandStr;
+                std::exit(1);
+            }
+        }
     }
 
     return true;

@@ -20,10 +20,11 @@ ${INC_DIR}/commands/commands.hpp
 ${INC_DIR}/commands/command_api.hpp
 ${INC_DIR}/commands/fen_command.hpp
 ${INC_DIR}/commands/help_command.hpp
-${INC_DIR}/commands/new_game_command.hpp
-${INC_DIR}/commands/simple_commands.hpp
-${INC_DIR}/commands/print_command.hpp
 ${INC_DIR}/commands/move_command.hpp
+${INC_DIR}/commands/new_game_command.hpp
+${INC_DIR}/commands/print_command.hpp
+${INC_DIR}/commands/simple_commands.hpp
+${INC_DIR}/commands/uci_commands.hpp
 
 ${INC_DIR}/printer/printer.hpp
 
@@ -33,19 +34,9 @@ ${INC_DIR}/static_initializer.hpp
 set(CLI_SOURCE ${CLI_SOURCE}
 ${SRC_DIR}/elephant_cli.cpp
 ${SRC_DIR}/commands/command_processor.cpp
-
-
+${SRC_DIR}/commands/uci_commands.cpp
 
 ${SRC_DIR}/static_initializer.cpp
-
 )
-
-#${SRC_DIR}/commands_print.cpp 
-#${SRC_DIR}/commands_print.h
-#${SRC_DIR}/commands.cpp 
-#${SRC_DIR}/commands.h
-#${SRC_DIR}/commands_utils.h
-#${SRC_DIR}/commands_uci.cpp
-#${SRC_DIR}/commands_uci.h )
 
 
