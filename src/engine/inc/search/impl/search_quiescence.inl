@@ -6,17 +6,19 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
     MoveGenerator<us> generator(context.position.read(), genParams);
     Evaluator evaluator(context.position.read());
 
-    i16 perspective = 0;
-    if constexpr (us == Set::WHITE) {
-        perspective = 1;
-    }
-    else {
-        perspective = -1;
-    }
-
+    i16 perspective = 1 - (int)us * 2; // WHITE = 1, BLACK = -1
     i16 eval = evaluator.Evaluate() * perspective;
+
     if (eval >= beta)
         return beta;
+    
+    constexpr i16 c_evalMargin = 100; // 1 pawn margin
+    
+    // margin is too large, cut-off
+    i16 margin = eval + c_evalMargin + piece_constants::value[queenId];
+    if (alpha > margin)
+        return alpha; // even the best capture can not raise eval above alpha.
+
     if (eval > alpha)
         alpha = eval;
 
@@ -44,6 +46,8 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
             return beta;
 
         move = generator.pop();
+        // skip bad captures - static exchange evaluation
+
     } while (move.isNull() == false);
 
     return maxEval;

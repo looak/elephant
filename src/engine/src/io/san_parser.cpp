@@ -162,7 +162,7 @@ namespace san_parser {
         std::string_view san(an);
         size_t length = san.length();        
         Square sourceSquare = parseSquare(san.substr(0, 2));
-        Square targetSquare = parseSquare(san.substr(length - 2, 2));
+        Square targetSquare = parseSquare(san.substr(2, 2));
 
                 
         THROW_EXPR(sourceSquare != Square::NullSQ && targetSquare != Square::NullSQ, ephant::io_error,

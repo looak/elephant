@@ -3,6 +3,11 @@
 template<Set us, typename Config>
 bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i16 beta, u16 ply) {
     PositionReader pos = ctx.position.read();
+
+    // Safety check: Don't prune near mate scores
+    if (beta >= c_checkmateConstant - 100 || beta <= -c_checkmateConstant + 100) {
+        return false;
+    }
     
     // Check if we have any pieces besides the king and pawns - trying to identify zugzwang positions to avoid pruning them.
     const auto& mat = pos.material();
@@ -12,11 +17,15 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
         return false;
     }
 
+    // consider adding makeNullMove to move executor.
+    u64 originalHash = ctx.position.read().hash();
+    ctx.position.edit().hash() = zobrist::updateBlackToMoveHash(originalHash);
+
     u16 R = Config::NMP_Policy::getReduction(depth);
     i16 nullScore = -nullmove<opposing_set<us>(), Config>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
-    
+        
     ctx.nodeCount++;
-
+    ctx.position.edit().hash() = originalHash;
     return (nullScore >= beta);
 }
 
@@ -59,7 +68,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         // --- Late Move Reduction if Enabled ---
         if constexpr (config::LMR_Policy::enabled) {
             if (config::LMR_Policy::shouldReduce(depth, move, index, generator.isChecked())) {
-                modifiedDepth -= config::LMR_Policy::getReduction(depth);
+                modifiedDepth -= config::LMR_Policy::getReduction(depth);                
             }
         }
 

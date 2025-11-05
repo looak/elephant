@@ -246,4 +246,29 @@ TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
     EXPECT_TRUE(result);
 }
 
+TEST_F(UciFixture, position_PromotingPawn)
+{
+    // setup
+    m_uci.Enable();
+    std::string fen = "8/2k3P1/8/8/8/8/8/2K5 w - - 0 1";
+
+    // do
+    std::string commandLine = "position fen " + fen + " moves g7g8q";
+    std::list<std::string> args;
+    extractArgsFromCommand(commandLine, args);
+    args.pop_front();  // pop position
+    bool result = m_uci.Position(args);
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
+
+    const auto& board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(WHITEQUEEN, board.pieceAt(Square::G8));
+
+    std::string outputFen;
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
+    EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 1 1", outputFen.c_str());
+}
+
 }  // namespace ElephantTest

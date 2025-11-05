@@ -52,7 +52,7 @@ struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
     u8 SearchDepth = 8;
-    u8 QuiescenceDepth = 4;
+    u8 QuiescenceDepth = 12;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
@@ -67,7 +67,7 @@ struct SearchParameters {
 
     u32 MovesToGo = 0;
     bool Infinite = false;
-    bool UseTranspositionTable = false;    
+    bool UseTranspositionTable = true;    
     bool UseQuiescenceSearch = true;
     bool UseNullMovePruning = true;
     bool UseLateMoveReduction = true;
@@ -136,16 +136,17 @@ private:
     void pushKillerMove(PackedMove mv, u16 ply);
     void putHistoryHeuristic(u8 set, u8 src, u8 dst, u32 depth);
     
-    void reportResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const;
-    
-    //bool TimeManagement(i64 elapsedTime, i64 timeleft, i16 timeInc, u32 depth);
+    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const;
+
+    bool allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) const;
+
     CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
     //i16 Extension(const Chessboard& board, const PrioritizedMove& prioratized, u16 ply) const;
 
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;
 
-    PackedMove m_killerMoves[4][64];
+    PackedMove m_killerMoves[4][c_maxSearchDepth];
     u32 m_historyHeuristic[2][64][64];
 
     PositionReader m_originPosition;
