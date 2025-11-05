@@ -5,7 +5,7 @@ set(EXCEPTIONS_ENABLED OFF CACHE STRING "Enable exceptions" FORCE)
 set(LOGGING_ENABLED ON CACHE STRING "Enable logging" FORCE)
 set(DEBUG_LOGGING_ENABLED OFF CACHE STRING "Enable debug logging" FORCE)
 
-set(DEBUG_TRANSITION_TABLE OFF CACHE STRING "Enable debug output for transition table" FORCE)
+set(DEBUG_TRANSITION_TABLE ON CACHE STRING "Enable debug output for transition table" FORCE)
 
 
 set(PRECOMPILE_OPTIONS

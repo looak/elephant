@@ -75,6 +75,4 @@ TEST(TranspositionEntryTest, Flags)
     EXPECT_TRUE(entry.alpha());
 }
 
-
-
 } // namespace ElephantTest

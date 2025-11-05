@@ -29,7 +29,7 @@ public:
     Bitboard buildMoveMask(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
     {
         Bitboard result;
-        while (auto mv = gen.generateNextMove().move) {
+        while (auto mv = gen.pop()) {
             if (pred && !pred(mv))
                 continue;
 
@@ -79,11 +79,11 @@ TEST_F(MoveGeneratorFixture, Empty)
     MoveGenerator<Set::WHITE> whiteGen(testContext.readChessPosition(), testParams);
     MoveGenerator<Set::BLACK> blackGen(testContext.readChessPosition(), testParams);
 
-    PrioritizedMove whiteMove = whiteGen.generateNextMove();
-    PrioritizedMove blackMove = blackGen.generateNextMove();
+    PackedMove whiteMove = whiteGen.pop();
+    PackedMove blackMove = blackGen.pop();
 
-    EXPECT_TRUE(whiteMove.move.isNull());
-    EXPECT_TRUE(blackMove.move.isNull());
+    EXPECT_TRUE(whiteMove.isNull());
+    EXPECT_TRUE(blackMove.isNull());
 }
 
 /** Most basic move generation test, a king in the middle of the board with no other pieces,

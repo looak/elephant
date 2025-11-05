@@ -302,7 +302,7 @@ protected:
         if (m_userMessage.get() != nullptr && !m_userMessage->empty())
             m_stream << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
         else if (!m_message->empty())
-            m_stream << m_message->c_str() << "\n";
+            m_stream << m_message->c_str() << " ";
     }
 
 public:
@@ -324,6 +324,7 @@ public:
             .append(" ")
             .append(function)
             .append("()");
+        m_stream << *m_message << " ";
     }
 
     LogMessage(const std::string& prefix, const std::string& file, int line, std::ostream& stream = std::cout) :
@@ -331,6 +332,7 @@ public:
         m_message(new ::std::string)
     {
         m_message->append(prefix).append(file).append(":").append(std::to_string(line));
+        m_stream << *m_message << " ";
     }
 
     virtual ~LogMessage()
@@ -339,15 +341,15 @@ public:
         ScopedDualRedirect redirect_cerr(std::cerr, LogHelpers::readOutputFilename());
 #endif
 
-        flush();
+        //flush();
 
-        std::string* strPtr = m_message.release();
-        if (strPtr != nullptr)
-            delete strPtr;
+        //std::string* strPtr = m_message.release();
+        //if (strPtr != nullptr)
+        //    delete strPtr;
 
-        strPtr = m_userMessage.release();
-        if (strPtr != nullptr)
-            delete strPtr;
+        //strPtr = m_userMessage.release();
+        //if (strPtr != nullptr)
+        //    delete strPtr;
     }
 
     template<typename T>

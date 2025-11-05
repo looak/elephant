@@ -84,6 +84,12 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/search_results.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp
 
+## /search/impl/...
+    ${ENGINE_INC_DIR}/search/impl/search_impl.inl
+    ${ENGINE_INC_DIR}/search/impl/search_alphabeta.inl
+    ${ENGINE_INC_DIR}/search/impl/search_nullmove.inl
+    ${ENGINE_INC_DIR}/search/impl/search_quiescence.inl
+
 ## /util/...
     ${ENGINE_INC_DIR}/util/clock.hpp
     ${ENGINE_INC_DIR}/util/static_initializer.hpp

@@ -19,40 +19,60 @@ namespace search_policies {
 
 class TTEnabled {
 public:
-    static std::optional<i32> probe(
-        TranspositionTable& tt, u64 hash, u8 depth, i32 alpha, i32 beta, i32 ply) 
+    static void assign(TranspositionTable& tt) {
+        m_table = &tt;        
+    }
+
+    static std::optional<i32> probe(u64 hash, u8 depth, i32 alpha, i32 beta, i32 ply) 
     {
-        TranspositionEntry& entry = tt.editEntry(hash);
+        TranspositionEntry& entry = m_table->editEntry(hash);
         if (auto result = entry.evaluate(hash, depth, alpha, beta); result.has_value()) {
             return entry.adjustedScore(ply);
         }
         return std::nullopt;
     }
 
-    static void store(
-        TranspositionTable& tt, u64 hash, PackedMove move, u16 age, 
-        i16 score, i32 ply, u8 depth, TranspositionFlag flag)
+    static void store(u64 hash, PackedMove move, u16 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
     {
-        TranspositionEntry& entry = tt.editEntry(hash);
+        TranspositionEntry& entry = m_table->editEntry(hash);
         entry.update(hash, move, age, score, ply, depth, flag);
     }
 
-    static void update(TranspositionTable& tt, u64 hash, PackedMove move, u16 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
+    static void update(u64 hash, PackedMove move, u16 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
     {
-        TranspositionEntry& entry = tt.editEntry(hash);
+        TranspositionEntry& entry = m_table->editEntry(hash);
         entry.update(hash, move, age, score, ply, depth, flag);
     }
+
+    static void printStats() 
+    {
+        if constexpr (!m_debugEnabled)
+            return;
+
+        m_table->debugStatistics();
+    }
+
+private:
+#ifdef DEBUG_TRANSITION_TABLE
+    static constexpr bool m_debugEnabled = true;
+#else
+    static constexpr bool m_debugEnabled = false;
+#endif
+    static inline TranspositionTable* m_table;
 };
 
 class TTDisabled {
 public:
-    static std::optional<i32> probe(TranspositionTable&, u64, u8, i32, i32, i32) 
+    static std::optional<i32> probe(u64, u8, i32, i32, i32) 
     { return std::nullopt; }
 
-    static void store(TranspositionTable&, u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
+    static void store(u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
     { /* Do nothing */ }
 
-    static void update(TranspositionTable&, u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
+    static void update(u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
+    { /* Do nothing */ }
+
+    static void printStats() 
     { /* Do nothing */ }
 };
 
@@ -62,13 +82,15 @@ public:
 class LmrEnabled {
 public:
     static constexpr bool enabled = true;
-    static bool shouldReduce(u32 depth, PackedMove move, bool isChecked) {
-        return depth > 2 && move.isQuiet() && !isChecked;
+    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked) {
+        return depth > lmr_params::minDepth 
+        && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
+        && isChecked == false;
     }
 
     static u32 getReduction(u32 depth) {
         u32 reduction = 1;
-        if (depth > 6) reduction++;
+        if (depth > lmr_params::earlyReductionThreshold) reduction++;
         return std::min(reduction, depth - 1); 
     }
 };
@@ -76,8 +98,8 @@ public:
 class LmrDisabled {
 public:
     static constexpr bool enabled = false;
-    static bool shouldReduce(u32, u32, bool, bool) { return false; }
-    static u32 getReduction(u32, u32) { return 0; }
+    static bool shouldReduce(u32, PackedMove, u16, bool) { return false; }
+    static u32 getReduction(u32) { return 0; }
 };
 
 
