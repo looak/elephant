@@ -17,9 +17,16 @@
 #include "defines.hpp"
 
 static constexpr u32 c_maxSearchDepth = 64;
-static constexpr i32 c_maxScore = 32000;
+static constexpr i32 c_infinity = 32000;
 static constexpr i32 c_checkmateConstant = 24000;
+static constexpr i32 c_nullMoveOffset = 500;
 static constexpr i32 c_checkmateMaxDistance = 256;
 static constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 static constexpr i16 c_drawConstant = 0;
-//static constexpr i32 c_pvScore = 10000;
+
+// late move reduction parameters
+namespace lmr_params {
+static constexpr u32 minDepth = 3;
+static constexpr u32 earlyReductionThreshold = 8; // was 6
+static constexpr u32 reduceAfterIndex = 4;
+} // namespace lmr_params

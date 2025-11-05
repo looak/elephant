@@ -26,8 +26,7 @@
 
 enum class MoveTypes {
     ALL,
-    CAPTURES_ONLY,
-    QUIET_ONLY,
+    CAPTURES_ONLY
 };
 
 enum MoveFlag : byte {
@@ -133,10 +132,8 @@ struct PackedMove {
 public:
     static PackedMove NullMove() { return PackedMove{ 0x0 }; };
 
-    PackedMove() :
-        m_internals(0)
-    {
-    }
+    PackedMove() = default;
+
     PackedMove(u16 packed) :
         m_internals(packed)
     {
@@ -148,10 +145,11 @@ public:
         setTarget(target);
     }
 
-    PackedMove(const PackedMove& other) :
-        m_internals(other.m_internals)
-    {
-    }
+    PackedMove(const PackedMove&) = default;
+    PackedMove& operator=(const PackedMove&) = default;
+    ~PackedMove() = default;
+
+
 
     [[nodiscard]] constexpr Square sourceSqr() const { return static_cast<Square>(source()); }
     [[nodiscard]] constexpr Square targetSqr() const { return static_cast<Square>(target()); }
@@ -292,7 +290,10 @@ private:
 };
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
+static_assert(std::is_trivially_copyable<PackedMove>::value, "PackedMove is not trivially copyable");
 
+// TODO: this should just be an implementation detail for move generator and should not 
+// be returned outside of that context.
 struct PrioritizedMove {
     PrioritizedMove() :
         move(0),

@@ -159,8 +159,9 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
 }
 
 void MoveExecutor::internalHandleRookMove(const ChessPiece piece, const PackedMove move, Square targetRook, Square rookMove, MoveUndoUnit& undoState) {
+    // rook is being moved by king castling, the target square for the rook is figured out previously.
     if (piece.getType() == PieceType::KING && targetRook != Square::NullSQ) {
-        ChessPiece rook(piece.getSet(), PieceType::ROOK);
+        ChessPiece rook(piece.getSet(), PieceType::ROOK); // construct rook piece for hashing purposes inside internalMakeMove
         auto editor = m_position.materialEditor(piece.getSet(), PieceType::ROOK);
         internalMakeMove(rook, targetRook, rookMove, editor);
     }
@@ -314,7 +315,7 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
     m_position.enPassant().write(undoState.enPassantState.read());  // restore enpassant state
     m_position.castling().write(undoState.castlingState.read());    // restore castling state
 
-    m_position.hash() = undoState.hash;  // this should be calculated and not just overwritten?
+    m_position.hash() = undoState.hash; // overwrite hash to previous state.
 
     return true;
 }

@@ -49,7 +49,7 @@ TEST_F(IsolationFixture, Pawn_IsolatingPiece_PawnOnDifferentRankAndFile)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
     
     // expected
     Bitboard expected = BitboardResultFactory::buildBoardFromAscii({
@@ -85,7 +85,7 @@ TEST_F(IsolationFixture, Pawn_IsolatingPiece_PawnOnSameRank)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
 
     // expected
     Bitboard expectedD5 = BitboardResultFactory::buildExpectedBoard(Square::D5);
@@ -115,7 +115,7 @@ TEST_F(IsolationFixture, Pawn_IsolatingPiece_PawnOnSameFile)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
 
     // expected
     Bitboard expectedD2 = BitboardResultFactory::buildExpectedBoard(Square::D3, Square::D4);
@@ -157,7 +157,7 @@ TEST_F(IsolationFixture, Pawn_BlackPinnedPiece_NoAvailableMovesSinceItsPinned)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::BLACK, pawnId> isolator(testingPosition, movesbb, kpt);
@@ -193,7 +193,7 @@ TEST_F(IsolationFixture, Pawn_WhitePinnedPiece_NoAvailableMovesSinceItsPinned)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::WHITE, pawnId> isolator(testingPosition, movesbb, kpt);
@@ -243,7 +243,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_PawnCanMoveIntoBlockingCheckButNoFurther)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::BLACK, pawnId> isolator(testingPosition, movesbb, kpt);
@@ -280,7 +280,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_CanCaptureCheckingPiece)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::BLACK, pawnId> isolator(testingPosition, movesbb, kpt);
@@ -317,7 +317,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard movesbb = moveGen.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::BLACK, pawnId> isolator(testingPosition, movesbb, kpt);
@@ -357,7 +357,7 @@ TEST_F(IsolationFixture, Pawn_PinnedPieceWhite_CanCapturePinningBishop)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard pawnMoves = moveGen.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard pawnMoves = moveGen.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
 
     // do isolation
     PieceIsolator<Set::WHITE, pawnId> isolator(testingPosition, pawnMoves, kpt);
@@ -411,7 +411,7 @@ TEST_F(IsolationFixture, Knight_IsolatingPiece_TwoKnightsNotSharingSquaresButBlo
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE>();
+    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE, MoveTypes::ALL>();
 
     // verify moves
     EXPECT_EQ(knightMoves, expected);
@@ -495,7 +495,7 @@ TEST_F(IsolationFixture, Knight_IsolatingPiece_SharingTargetSquares)
 
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE>();
+    Bitboard knightMoves = moveGen.computeBulkKnightMoves<Set::WHITE, MoveTypes::ALL>();
 
     // validate moves
     EXPECT_EQ(expected, knightMoves);
@@ -576,7 +576,7 @@ TEST_F(IsolationFixture, Bishop_IsolatingPiece_BishopsOnSameDiagonal)
     
     // generate moves
     BulkMoveGenerator moveGen(testingPosition);
-    Bitboard bishopMoves = moveGen.computeBulkBishopMoves<Set::BLACK>();
+    Bitboard bishopMoves = moveGen.computeBulkBishopMoves<Set::BLACK, bishopId, MoveTypes::ALL>();
     EXPECT_EQ(expected, bishopMoves);
 
     PieceIsolator<Set::BLACK, bishopId> isolator(testingPosition, bishopMoves, safeBlackKingPinThreats());

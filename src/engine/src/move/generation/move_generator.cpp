@@ -1,14 +1,8 @@
 #include <bitboard/attacks/attacks.hpp>
 #include <core/game_context.hpp>
-#include <material/material_topology.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
 #include <move/generation/move_bulk_generator.hpp>
-#include <search/transposition_table.hpp>
-#include <search/search.hpp>
-
-#include <algorithm>
-#include <functional>
 
 template<Set us>
 MoveGenerator<us>::MoveGenerator(PositionReader position, MoveGenParams& params) :
@@ -31,19 +25,36 @@ template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, MoveGenParams&
 template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, MoveGenParams&);
 
 template<Set us>
-PrioritizedMove MoveGenerator<us>::generateNextMove() {
+PackedMove MoveGenerator<us>::pop() {
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++];
+        return m_movesBuffer[m_currentMoveIndx++].move;
     }
 
     if (m_movesGenerated)
-        return { PackedMove::NullMove(), 0 };
+        return PackedMove::NullMove();
 
-    return internalGenerateMoves();
+    PackedMove result = internalGenerateMoves().move;
+    m_currentMoveIndx++;
+    return result;
 }
 
-template PrioritizedMove MoveGenerator<Set::WHITE>::generateNextMove();
-template PrioritizedMove MoveGenerator<Set::BLACK>::generateNextMove();
+template PackedMove MoveGenerator<Set::WHITE>::pop();
+template PackedMove MoveGenerator<Set::BLACK>::pop();
+
+template<Set us>
+PackedMove MoveGenerator<us>::peek() {
+    if (m_currentMoveIndx < m_moveCount) {
+        return m_movesBuffer[m_currentMoveIndx].move;
+    }
+
+    if (m_movesGenerated)
+        return PackedMove::NullMove();
+
+    return internalGenerateMoves().move;
+}
+
+template PackedMove MoveGenerator<Set::WHITE>::peek();
+template PackedMove MoveGenerator<Set::BLACK>::peek();
 
 #ifdef DEVELOPMENT_BUILD
 template<Set us>
@@ -96,7 +107,7 @@ PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
     }
 
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++];
+        return m_movesBuffer[m_currentMoveIndx];
     }
 
     return { PackedMove::NullMove(), 0 };
@@ -223,10 +234,9 @@ template<Set us>
 void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
 {
     u8 usIndx = static_cast<u8>(us);
-    const Bitboard movesbb = bulkMoveGen.computeBulkPawnMoves<us>();
+    const Bitboard movesbb = internalCallBulkGeneratorForPiece(pawnId, bulkMoveGen);
     if (movesbb.empty())
         return;
-
         
     PieceIsolator<us, pawnId> isolator(m_position, movesbb, m_pinThreats);
 
@@ -309,7 +319,7 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
     const Bitboard opMaterial = m_position.material().combine<opposing_set<us>()>();
     const u8 setId = static_cast<u8>(us);
 
-    Bitboard movesbb = bulkMoveGen.computeKingMoves<us>();
+    Bitboard movesbb = internalCallBulkGeneratorForPiece(kingId, bulkMoveGen);
 #if defined EG_DEBUGGING || defined EG_TESTING
     // during testing and debugging king can be missing
     if (movesbb.empty())
@@ -392,3 +402,21 @@ void MoveGenerator<us>::buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb
 
 template void MoveGenerator<Set::WHITE>::buildPackedMoveFromBitboard(u8, Bitboard, Square, bool);
 template void MoveGenerator<Set::BLACK>::buildPackedMoveFromBitboard(u8, Bitboard, Square, bool);
+
+template<Set us>
+Bitboard MoveGenerator<us>::internalCallBulkGeneratorForPiece(u8 pieceId, BulkMoveGenerator bulkMoveGen)
+{
+    // TODO: Next major refactor should figure out a smother way to setup this, MoveGenerator should probably be templated 
+    // on the filter as well.
+    if (m_params.moveFilter == MoveTypes::ALL) {
+        return bulkMoveGen.computeBulkMovesGeneric<us, MoveTypes::ALL>(pieceId);
+    }
+    else if (m_params.moveFilter == MoveTypes::CAPTURES_ONLY) {
+        return bulkMoveGen.computeBulkMovesGeneric<us, MoveTypes::CAPTURES_ONLY>(pieceId);
+    }
+    /*else {
+        return bulkMoveGen.computeBulkMovesGeneric<us, pieceId, MoveTypes::ALL>();
+    }*/
+
+    return 0;
+}

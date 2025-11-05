@@ -127,12 +127,12 @@ TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
 
     TResult result = {};
 
-    while (PrioritizedMove prioritized = gen.generateNextMove()) {
+    while (PackedMove move = gen.pop()) {
         if (depth == 1) {
-            accumulator(prioritized.move, result, true);
+            accumulator(move, result, true);
         }
 
-        m_context.MakeMove<true>(prioritized.move);
+        m_context.MakeMove<true>(move);
         result += internalRun<opposing_set<us>(), TResult, TAccumulator>(depth - 1, accumulator);
         m_context.UnmakeMove();
     }

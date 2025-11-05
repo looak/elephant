@@ -191,25 +191,25 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
 
 //     // do
 //     MoveGenerator whiteMoves(context);
-//     PackedMove wMove = whiteMoves.generateNextMove().move;
+//     PackedMove wMove = whiteMoves.pop().move;
 //     while (wMove != PackedMove::NullMove()) {
 //         if (board.readPieceAt(wMove.sourceSqr()).isPawn() == false) {
-//             wMove = whiteMoves.generateNextMove().move;
+//             wMove = whiteMoves.pop().move;
 //             continue;
 //         }
 
 //         auto whiteUndo = board.MakeMove<false>(wMove);
 //         context.editChessboard().setToPlay(Set::BLACK);
 //         MoveGenerator blackMoves(context);
-//         PackedMove bMove = blackMoves.generateNextMove().move;
+//         PackedMove bMove = blackMoves.pop().move;
 //         while (bMove != PackedMove::NullMove()) {
 //             auto blackUndo = board.MakeMove<false>(bMove);
 //             board.UnmakeMove(blackUndo);
-//             bMove = blackMoves.generateNextMove().move;
+//             bMove = blackMoves.pop().move;
 //         }
 
 //         board.UnmakeMove(whiteUndo);
-//         wMove = whiteMoves.generateNextMove().move;
+//         wMove = whiteMoves.pop().move;
 //     }
 //     // validate
 //     auto whitePawns = material.whitePawns();

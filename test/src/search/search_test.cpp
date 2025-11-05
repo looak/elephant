@@ -15,7 +15,7 @@ public:
         testingParams.SearchDepth = 12;
         testingParams.MoveTime = 30 * 1000; // 30 seconds
 
-        testingParams.UseTranspositionTable = true;        
+        testingParams.UseTranspositionTable = true;
         testingParams.UseQuiescenceSearch = true;
         testingParams.UseNullMovePruning = true;
         testingParams.UseLateMoveReduction = true;
@@ -177,5 +177,30 @@ TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
     }
 }
 
+TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
+    for (const auto& searchCase : s_nullMovePruning) {
+        GameContext context;
+        io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
+
+        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+
+        testingParams.UseNullMovePruning = true;
+        testingParams.UseTranspositionTable = true;
+        testingParams.SearchDepth = 16;
+        SearchResult result;
+        if (context.readToPlay() == Set::BLACK) {
+            result = searcher.go<Set::BLACK>(testingParams);
+        }
+        else {
+            result = searcher.go<Set::WHITE>(testingParams);
+        }
+
+        EXPECT_EQ(searchCase.expectedMove, result.move().toString());
+        OUT() << "Tested position: " << searchCase.fen;
+        OUT() << "Expected move:   " << searchCase.expectedMove;
+        OUT() << "Found move:      " << result.move().toString();
+        OUT() << "-----------------------------";
+    }
+}
 
 }  // namespace ElephantTest

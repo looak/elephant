@@ -23,7 +23,6 @@
 
 #include <bitboard/bitboard.hpp>
 #include <move/move.hpp>
-#include <move/generation/king_pin_threats.hpp>
 #include <position/position_accessors.hpp>
 
 class BulkMoveGenerator {
@@ -32,28 +31,28 @@ public:
         m_position(position)
     {}
 
-    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, MoveTypes moveFilter>
     Bitboard computeBulkPawnMoves() const;
 
-    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, MoveTypes moveFilter>
     Bitboard computeBulkKnightMoves() const;
 
-    template<Set set, u8 pieceId = rookId, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, u8 pieceId = rookId, MoveTypes moveFilter>
     Bitboard computeBulkRookMoves() const;
 
-    template<Set set, u8 pieceId = bishopId, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, u8 pieceId = bishopId, MoveTypes moveFilter>
     Bitboard computeBulkBishopMoves() const;
 
-    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, MoveTypes moveFilter>
     Bitboard computeBulkQueenMoves() const;
     
-    template<Set set, Set op = opposing_set<set>(), MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, MoveTypes moveFilter, Set op = opposing_set<set>()>
     Bitboard computeKingMoves() const;
 
     template<Set us>
     Bitboard computeCastlingMoves(CastlingStateInfo castling, Bitboard threatenedMask) const;
 
-    template<Set set, MoveTypes moveFilter = MoveTypes::ALL>
+    template<Set set, MoveTypes moveFilter>
     Bitboard computeBulkMovesGeneric(u8 pieceId) const;
 
 private:
@@ -101,7 +100,7 @@ Bitboard BulkMoveGenerator::computeBulkKnightMoves() const {
 }
 
 
-template<Set us, Set op, MoveTypes moveFilter>
+template<Set us, MoveTypes moveFilter, Set op>
 Bitboard BulkMoveGenerator::computeKingMoves() const
 {
     bool constexpr includeMaterial = false;
@@ -228,7 +227,7 @@ Bitboard BulkMoveGenerator::computeBulkMovesGeneric(u8 pieceId) const {
         case bishopId: return computeBulkBishopMoves<set, bishopId, moveFilter>();
         case rookId: return computeBulkRookMoves<set, rookId, moveFilter>();
         case queenId: return computeBulkQueenMoves<set, moveFilter>();
-        case kingId: return computeKingMoves<set, opposing_set<set>(), moveFilter>();
+        case kingId: return computeKingMoves<set, moveFilter>();
         default:
             LOG_ERROR() << "Unsupported piece type for generic move generation: " << pieceId;
             return 0;

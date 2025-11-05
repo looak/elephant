@@ -43,7 +43,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_CanCaptureQueenButNotMoveInQueensRays)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::WHITE>();
+    Bitboard result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
 
     ASSERT_EQ(result, expected);
 }
@@ -75,7 +75,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_BlackCastlingRights_AllAvailable)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -105,7 +105,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_BlackCastlingRights_WhiteHasAvailableS
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -135,7 +135,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCasstlingRights_AllAvailable)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::WHITE>();
+    Bitboard result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -165,7 +165,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCasstlingRights_SteppingThroughFl
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::WHITE>();
+    Bitboard result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 
 
@@ -174,7 +174,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCasstlingRights_SteppingThroughFl
     expected[C1] = true; // queen side castling square
 
     // do
-    result = generator.computeKingMoves<Set::WHITE>();
+    result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 
     // grant king side
@@ -184,7 +184,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCasstlingRights_SteppingThroughFl
     expected[G1] = true; // king side castling square
 
     // do
-    result = generator.computeKingMoves<Set::WHITE>();
+    result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 
     // grant all
@@ -192,7 +192,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCasstlingRights_SteppingThroughFl
     expected[C1] = true; // queen side castling square
 
     // do
-    result = generator.computeKingMoves<Set::WHITE>();
+    result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -223,7 +223,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_WhiteCastlingRights_OnlyKingSideAvaila
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::WHITE>();
+    Bitboard result = generator.computeKingMoves<Set::WHITE, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -254,7 +254,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_Castling_BlockedByOpponentPieceInBetwe
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
 
     // validate
     EXPECT_EQ(expected, result.read());
@@ -287,7 +287,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_Castling_BlockedByOwnPieceInBetween)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
 
     // validate
     EXPECT_EQ(expected, result);
@@ -321,7 +321,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_Capture_CantCaptureGuardedPieces)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
 
     // validate
     EXPECT_EQ(expected, result);
@@ -355,7 +355,7 @@ TEST_F(BulkMoveGeneratorTestFixture, King_Capture_CaptureDespiteBeingChecked)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeKingMoves<Set::BLACK>();
+    Bitboard result = generator.computeKingMoves<Set::BLACK, MoveTypes::ALL>();
 
     // validate
     EXPECT_EQ(expected, result);
@@ -383,7 +383,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_WhiteBaseRank_DoublePushAvailable)
 
     // Act
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
 
     // Assert
     EXPECT_EQ(expected, result);
@@ -411,7 +411,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_BlackBulkCalc_SinglePawnOneMove)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
     EXPECT_EQ(expected, result);
 }
 
@@ -445,7 +445,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_BlackBulkMoves_MoreThanOne)
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -486,7 +486,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_WhiteBulkMovesAndCaptures_IncludingEnP
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkPawnMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkPawnMoves<Set::WHITE, MoveTypes::ALL>();
         
     // verify
     EXPECT_EQ(expected, result);
@@ -519,7 +519,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Pawn_WhiteEnPassant_ShouldBeAbleToCaptureBl
 
     //  do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK>();
+    Bitboard result = generator.computeBulkPawnMoves<Set::BLACK, MoveTypes::ALL>();
 
     // validate
     EXPECT_EQ(expected, result);
@@ -560,7 +560,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Knight_BunchOfWhiteKnights_ShouldIdentifyBo
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkKnightMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkKnightMoves<Set::WHITE, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -596,7 +596,7 @@ TEST_F(BulkMoveGeneratorTestFixture, VisualHelpers_KnightMovesFromB1)
     });
 
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkKnightMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkKnightMoves<Set::WHITE, MoveTypes::ALL>();
 
     EXPECT_EQ(expected, result);
 }
@@ -631,7 +631,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Bishop_BlackBulkCompute_SingleBishopEmptyBo
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkBishopMoves<Set::BLACK>();
+    Bitboard result = generator.computeBulkBishopMoves<Set::BLACK, bishopId, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -669,7 +669,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Bishop_BulkCalc_WhiteBishopAvailableCapture
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE, bishopId, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -705,7 +705,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Bishop_WhiteBulkCalculateAvailableMovePosit
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE, bishopId, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);
@@ -743,7 +743,7 @@ TEST_F(BulkMoveGeneratorTestFixture, Bishop_WhiteBulkCalculateAvailableMovePosit
 
     // do
     BulkMoveGenerator generator(testingPosition);
-    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE>();
+    Bitboard result = generator.computeBulkBishopMoves<Set::WHITE, bishopId, MoveTypes::ALL>();
 
     // verify
     EXPECT_EQ(expected, result);

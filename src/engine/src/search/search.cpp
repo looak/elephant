@@ -15,7 +15,7 @@
 #include <utility>
 
 
-void Search::ReportSearchResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
+void Search::reportResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
     
     i64 et = clock.getElapsedTime();
 

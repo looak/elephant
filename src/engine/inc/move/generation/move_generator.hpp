@@ -83,8 +83,8 @@ class MoveGenerator {
 public:
     explicit MoveGenerator(PositionReader position, MoveGenParams& params);
 
-    PrioritizedMove generateNextMove();
-
+    [[nodiscard]] PackedMove pop();
+    PackedMove peek();
 
     bool isChecked() const {
         return m_pinThreats.isChecked();
@@ -118,12 +118,13 @@ Consider this flow:
     KingPinThreats<_us> computeKingPinThreats();
     PrioritizedMove internalGenerateMoves();
     void internalGenerateMovesOrdered();
-
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
     void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
     template<u8 pieceId>
     void internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen);
     void internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen);
+
+    Bitboard internalCallBulkGeneratorForPiece(u8 pieceId, BulkMoveGenerator bulkMoveGen);
 
     void buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture);
 
@@ -158,7 +159,7 @@ template<Set us>
 template<u8 pieceId>
 void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen)
 {
-    const Bitboard movesbb = bulkMoveGen.computeBulkMovesGeneric<us>(pieceId);
+    const Bitboard movesbb = internalCallBulkGeneratorForPiece(pieceId, bulkMoveGen);
     if (movesbb.empty())
         return;
 

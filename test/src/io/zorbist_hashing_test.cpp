@@ -144,4 +144,22 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
 
 }
 
+TEST(ZobristHashing, HashToMove_Unmake_Rehash)
+{
+    zobrist::internals::initialize();
+
+    GameContext game;
+    game.NewGame();    
+
+    PositionReader positionReader = game.readChessPosition();
+    u64 initialHash = positionReader.hash();
+    
+    u64 newHash = zobrist::updateBlackToMoveHash(initialHash);
+    EXPECT_NE(initialHash, newHash) << "Hash should change after updating black to move.";
+
+    newHash = zobrist::updateBlackToMoveHash(newHash);
+    EXPECT_EQ(initialHash, newHash) << "Hash should revert to initial value after updating";
+
+}
+
 } // namespace ElephantTest

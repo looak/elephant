@@ -36,10 +36,10 @@ namespace san_parser {
             BulkMoveGenerator gen(editor);
             Bitboard movesbb;
             if (whiteToMove) {
-                movesbb = gen.computeBulkMovesGeneric<Set::WHITE>(pieceId);
+                movesbb = gen.computeBulkMovesGeneric<Set::WHITE, MoveTypes::ALL>(pieceId);
             }
             else {
-                movesbb = gen.computeBulkMovesGeneric<Set::BLACK>(pieceId);
+                movesbb = gen.computeBulkMovesGeneric<Set::BLACK, MoveTypes::ALL>(pieceId);
             }
 
             // ... checking the generated moves with our target mask.

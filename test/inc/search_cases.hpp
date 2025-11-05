@@ -26,3 +26,9 @@ const std::vector<SearchCase> s_mateInFive = {
 const std::vector<SearchCase> s_mateInEight = {
     {"4r2k/1p3rbp/2p1N1pn/p3n3/P2NB3/1P4q1/4R1P1/B1Q2RK1 b - - 4 32", "h6g4" } 
 };
+
+const std::vector<SearchCase> s_nullMovePruning = {
+    { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1"},
+    { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6"},
+    { "8/6r1/p7/1p6/3kBn1P/P2p1P2/1P6/3R1K2 b - - 0 1", "d4e3"}
+};
