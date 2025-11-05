@@ -15,13 +15,13 @@
 #include <utility>
 
 
-void Search::reportResult(SearchResult& searchResult, u32 searchDepth, u32 itrDepth, u64 nodes, const Clock& clock) const {
+void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const {
     
     i64 et = clock.getElapsedTime();
 
     i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
     checkmateDistance = abs(checkmateDistance);
-    if ((u32)checkmateDistance <= searchDepth) {
+    if ((u32)checkmateDistance <= itrDepth + 1) {
         // found checkmate within depth.
         searchResult.ForcedMate = true;
         checkmateDistance /= 2;
@@ -36,28 +36,23 @@ void Search::reportResult(SearchResult& searchResult, u32 searchDepth, u32 itrDe
         << " nodes " << nodes << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
 }
 
+bool Search::allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) const {
+    const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
+    if (elapsedTime > c_maxTimeAllowed) {
+        return false;
+    }
+    else {
+        i64 avrgTime = elapsedTime / depth;
+        avrgTime *= avrgTime;  // assume exponential time increase per depth.
+        avrgTime /= 2;         // give some credit to the alpha beta search.
+        if (avrgTime > c_maxTimeAllowed)
+            return false;
+        else
+            return true;
+    }
 
-
-// bool Search::TimeManagement(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) {
-//     // should return false if we want to abort our search.
-//     // how do we manage time?
-//     // lots of magic numbers in here.
-//     const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
-//     if (elapsedTime > c_maxTimeAllowed) {
-//         return false;
-//     }
-//     else {
-//         i64 avrgTime = elapsedTime / depth;
-//         avrgTime *= avrgTime;  // assume exponential time increase per depth.
-//         avrgTime /= 2;         // give some credit to the alpha beta search.
-//         if (avrgTime > c_maxTimeAllowed)
-//             return false;
-//         else
-//             return true;
-//     }
-
-//     return false;
-// }
+    return false;
+}
 
 CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
     if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {

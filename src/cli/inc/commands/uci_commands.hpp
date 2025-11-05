@@ -45,6 +45,7 @@ bool PositionCommand(std::list<std::string>& args, UCI& context);
 bool GoCommand(std::list<std::string>& args, UCI& context);
 bool StopCommand(std::list<std::string>& args, UCI& context);
 bool PonderHitCommand(std::list<std::string>& args, UCI& context);
+bool PrintCommand(std::list<std::string>& args, UCI& context);
 bool QuitCommand(std::list<std::string>& args, UCI& context);
 
 static UCICommandsMap commands = {
@@ -57,6 +58,7 @@ static UCICommandsMap commands = {
     { "go", GoCommand },
     { "stop", StopCommand },
     { "ponderhit", PonderHitCommand },
+    { "print", PrintCommand },
     { "quit", QuitCommand }
 };
 

@@ -11,6 +11,13 @@ template<Set us, typename config>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
     SearchResult result;
 
+    u32 timeLeft = params.BlackTimelimit;
+    u32 timeIncrement = params.BlackTimeIncrement;
+    if constexpr (us == Set::WHITE) {
+        timeLeft = params.WhiteTimelimit;
+        timeIncrement = params.WhiteTimeIncrement;
+    }
+
     // iterative deepening loop -- might make this optional.
     for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {        
         const Clock& itrClock = config::Debug_Policy::pushClock();
@@ -18,7 +25,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         SearchResult itrResult;        
         itrResult.score = alphaBeta<us, config>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
 
-        reportResult(itrResult, params.SearchDepth, itrDepth, context.nodeCount, itrClock);
+        reportResult(itrResult, itrDepth, context.nodeCount, itrClock);
 
         config::Debug_Policy::reportNps(context.nodeCount, context.qNodeCount);
         config::Debug_Policy::popClock();
@@ -40,10 +47,10 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
             return itrResult;
         }
 
-        // if (cancelled == true)
-        //     break;
-
         result = itrResult;
+        
+        if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
+            break;
     }
     
     config::TT_Policy::printStats();

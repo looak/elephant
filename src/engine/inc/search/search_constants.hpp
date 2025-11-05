@@ -28,5 +28,5 @@ static constexpr i16 c_drawConstant = 0;
 namespace lmr_params {
 static constexpr u32 minDepth = 3;
 static constexpr u32 earlyReductionThreshold = 8; // was 6
-static constexpr u32 reduceAfterIndex = 4;
+static constexpr u32 reduceAfterIndex = 5;
 } // namespace lmr_params

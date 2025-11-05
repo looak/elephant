@@ -15,10 +15,10 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     MoveGenParams genParams;
     MoveOrderingView orderingView;
     
-    // if(pv->length > 0) {
-    //     orderingView.pvMove = pv->moves[0];
-    //     genParams.ordering = &orderingView;
-    // }
+    if(pv->length > 0) {
+        orderingView.pvMove = pv->moves[0];
+        genParams.ordering = &orderingView;
+    }
 
     MoveGenerator<us> generator(pos, genParams);   
 

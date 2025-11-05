@@ -1,4 +1,6 @@
 #include "commands/uci_commands.hpp"
+
+#include <io/printer.hpp>
 #include <move/move.hpp>
 #include <core/uci.hpp>
 
@@ -53,6 +55,13 @@ bool UCICommands::PonderHitCommand(std::list<std::string>&, UCI&)
     LOG_ERROR() << "Not implemented";
     return false;
 }
+
+bool UCICommands::PrintCommand(std::list<std::string>&, UCI& interface)
+{
+    io::printer::board(std::cout, interface.readGameContext().readChessboard());
+    return true;
+}
+
 bool UCICommands::QuitCommand(std::list<std::string>&, UCI&)
 {
     std::cout << "bye bye\n";

@@ -1,6 +1,6 @@
 #include <io/printer.hpp>
+#include <io/fen_parser.hpp>
 #include <core/chessboard.hpp>
-
 
 namespace io {
 namespace printer {
@@ -12,7 +12,11 @@ void board(std::ostream& output, const Chessboard& board) {
 
     output << " move: " << board.readMoveCount()
            << "\tturn: " << (board.readToPlay() == Set::WHITE ? "White\n" : "Black\n");
-    output << " castling: " << castling.toString() << "\ten passant: " << ep.toString() << "\n\n";
+    output << " castling: " << castling.toString() << "\ten passant: " << ep.toString() << "\n";
+    
+    std::string fen;
+    io::fen_parser::serialize(board, fen);
+    output << "FEN: " << fen << "\n\n";
 }
 
 void position(std::ostream& output, PositionReader reader) {

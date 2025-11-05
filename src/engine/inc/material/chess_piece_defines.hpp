@@ -97,6 +97,9 @@ constexpr i8 pawn_modifier()
 namespace piece_constants {
 namespace notation {
 constexpr PieceType fromChar(char c) {
+    if (std::islower(c))
+        c = std::toupper(c);
+        
     switch (c) {
         case 'K': return PieceType::KING;
         case 'Q': return PieceType::QUEEN;
