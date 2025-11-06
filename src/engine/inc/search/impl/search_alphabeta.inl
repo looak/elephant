@@ -59,7 +59,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     config::TT_Policy::update(        
         pos.hash(),
         bestMove, // Store the best move found
-        context.gameHistory.age,
         eval, // Store the best score (which is alpha if it was a PV node)
         ply,
         depth,
