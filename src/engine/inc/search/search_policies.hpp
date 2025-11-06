@@ -26,22 +26,16 @@ public:
     static std::optional<i32> probe(u64 hash, u8 depth, i32 alpha, i32 beta, i32 ply) 
     {
         TranspositionEntry& entry = m_table->editEntry(hash);
-        if (auto result = entry.evaluate(hash, depth, alpha, beta); result.has_value()) {
+        if (auto result = entry.evaluate(hash, depth, alpha, beta, m_table->readAge()); result.has_value()) {
             return entry.adjustedScore(ply);
         }
         return std::nullopt;
     }
 
-    static void store(u64 hash, PackedMove move, u16 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
+    static void update(u64 hash, PackedMove move, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
     {
         TranspositionEntry& entry = m_table->editEntry(hash);
-        entry.update(hash, move, age, score, ply, depth, flag);
-    }
-
-    static void update(u64 hash, PackedMove move, u16 age, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
-    {
-        TranspositionEntry& entry = m_table->editEntry(hash);
-        entry.update(hash, move, age, score, ply, depth, flag);
+        entry.update(hash, move, m_table->readAge(), score, ply, depth, flag);
     }
 
     static void printStats() 
@@ -66,10 +60,7 @@ public:
     static std::optional<i32> probe(u64, u8, i32, i32, i32) 
     { return std::nullopt; }
 
-    static void store(u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
-    { /* Do nothing */ }
-
-    static void update(u64, PackedMove, u16, i16, i32, u8, TranspositionFlag)
+    static void update(u64, PackedMove, i16, i32, u8, TranspositionFlag)
     { /* Do nothing */ }
 
     static void printStats() 

@@ -34,15 +34,20 @@
 
 struct Move;
 
-// absolute maximum size of the transposition table
-constexpr u32 c_tableMaxSize = 1024; // 1 gb
+namespace transposition_table_constants {
+    
+    // absolute maximum size of the transposition table
+    constexpr u32 c_tableMaxSize = 1024; // 1 gb
+
+    constexpr u8 c_maxAge = 255; 
+} // namespace transposition_table_constants
 
 #ifdef DEBUG_TRANSITION_TABLE
 static u64 s_writes;
 static u64 s_reads;
 static u64 s_hits;
 static u64 s_overwrites;
-static u64 s_age_replaced;
+static u64 s_aged_out;
 static u64 s_hash_collisions;
 #endif
 
@@ -62,14 +67,13 @@ enum TranspositionFlag {
  * - depth: 8-bits
  * - flag: 2-bits
  * - age: 6-bits    */
-struct TranspositionEntry
-{
+struct TranspositionEntry {
     u64 hash;
     PackedMove move;
     i16 score;
     u8 depth;
     byte flag;
-    u16 age;
+    u8 age;
 
     inline bool exact() const { return flag == TranspositionFlag::TTF_CUT_EXACT; }
     inline bool beta() const { return flag == TranspositionFlag::TTF_CUT_BETA; }
@@ -92,7 +96,12 @@ struct TranspositionEntry
             s_overwrites++;
 #endif
         if (this->depth > _depth && this->age > _age)
+        {
+#ifdef DEBUG_TRANSITION_TABLE
+            s_aged_out++;
+#endif
             return;
+        }
 
         this->hash = _hash;
         this->move = _move;
@@ -109,24 +118,36 @@ struct TranspositionEntry
      * @param alpha current alpha value
      * @param beta current beta value
      * @return optioanl score if this node is useful, otherwise nullopt    */
-    std::optional<i32> evaluate(u64 posHash, u8 depth, i32 alpha, i32 beta) const {
+    std::optional<i32> evaluate(u64 posHash, u8 depth, i32 alpha, i32 beta, u8 currentAge) const {
 #ifdef DEBUG_TRANSITION_TABLE
         s_reads++;
 #endif
         if (this->hash != posHash)
             return std::nullopt;
 
-        if (this->depth >= depth) {
+        u8 ageDiff = currentAge - this->age;
+        if (ageDiff > 6) // entry is too old
+        {
+#ifdef DEBUG_TRANSITION_TABLE
+            s_aged_out++;
+#endif
+            return std::nullopt;            
+        }
+        
+
+        if (this->depth < depth)
+            return std::nullopt;
+        
 #ifdef DEBUG_TRANSITION_TABLE
             s_hits++;
 #endif
-            if (this->exact())
-                return this->score;
-            else if (this->alpha() && this->score <= alpha)
-                return this->score;
-            else if (this->beta() && this->score >= beta)
-                return this->score;
-        }
+
+        if (this->exact())
+            return this->score;
+        else if (this->alpha() && this->score <= alpha)
+            return this->score;
+        else if (this->beta() && this->score >= beta)
+            return this->score;
 
         return std::nullopt;
     }
@@ -153,6 +174,13 @@ public:
     PackedMove probe(u64 boardHash) const;
     std::pair<PackedMove, i32> probeScore(u64 boardHash) const;
 
+    void incrementAge() { 
+        m_currentAge++; 
+        if (m_currentAge > transposition_table_constants::c_maxAge) m_currentAge = 0; 
+    }
+
+    u8 readAge() const { return m_currentAge; }
+
 
 #ifdef DEBUG_TRANSITION_TABLE
     void debugStatistics() const;
@@ -162,6 +190,7 @@ private:
     std::vector<T> m_table;
     u64 m_elementCountMax;
     u64 m_mask;
+    u8 m_currentAge;
 };
 
 
@@ -179,16 +208,16 @@ TranspositionTableImpl<T>::TranspositionTableImpl() :
     s_reads = 0;
     s_hits = 0;
     s_overwrites = 0;
-    s_age_replaced = 0;
+    s_aged_out = 0;
 #endif
 }
 
 template<class T>
 void TranspositionTableImpl<T>::resize(u32 megabytes)
 {
-    size_t newSize = (std::min(c_tableMaxSize, megabytes) * 1024 * 1024) / sizeof(T);
-    LOG_WARNING_EXPR(megabytes < c_tableMaxSize) << "TranspositionTableImpl::resize() requested size is too large, resizing to "
-        << c_tableMaxSize << "mb instead of " << megabytes << "mb.";
+    size_t newSize = (std::min(transposition_table_constants::c_tableMaxSize, megabytes) * 1024 * 1024) / sizeof(T);
+    LOG_WARNING_EXPR(megabytes < transposition_table_constants::c_tableMaxSize) << "TranspositionTableImpl::resize() requested size is too large, resizing to "
+        << transposition_table_constants::c_tableMaxSize << "mb instead of " << megabytes << "mb.";
 
     this->clear();
     m_table.resize(newSize);
@@ -206,33 +235,16 @@ void TranspositionTableImpl<T>::clear()
     s_reads = 0;
     s_hits = 0;
     s_overwrites = 0;
-    s_age_replaced = 0;
+    s_aged_out = 0;
 #endif
 }
 
-template<class T>
-PackedMove TranspositionTableImpl<T>::probe(u64 boardHash) const {
-    auto entry = m_table[entryIndex(boardHash)];
-    if (boardHash == entry.hash && entry.exact())
-        return entry.move;
-
-    return PackedMove::NullMove();
-}
-
-template<class T>
-std::pair<PackedMove, i32> TranspositionTableImpl<T>::probeScore(u64 boardHash) const {
-    auto entry = m_table[entryIndex(boardHash)];
-    if (boardHash == entry.hash && entry.exact())
-        return std::make_pair(entry.move, entry.score);
-
-    return std::make_pair(PackedMove::NullMove(), 0);
-}
 
 #ifdef DEBUG_TRANSITION_TABLE
 template<class T>
 void TranspositionTableImpl<T>::debugStatistics() const
 {
-    LOG_INFO() << "TranspositionTable:\n\t" << s_writes << " writes,\n\t" << s_age_replaced << " aged-out,\n\t" << s_reads << " reads,\n\t" << s_hits << " hits,\n\t" << s_overwrites << " overwrites";
+    LOG_INFO() << "TranspositionTable:\n\t" << s_writes << " writes,\n\t" << s_aged_out << " aged-out,\n\t" << s_reads << " reads,\n\t" << s_hits << " hits,\n\t" << s_overwrites << " overwrites";
     LOG_INFO() << "Size: " << readSize() << " elements, " << readSizeMegaBytes() << "mb";
 }
 #endif

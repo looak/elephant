@@ -3,6 +3,8 @@
 template<Set us>
 SearchResult Search::go(SearchParameters params)
 {   
+    m_transpositionTable.incrementAge();
+    
     ThreadSearchContext searchContext(m_originPosition.copy(), us == Set::WHITE);    
     return dispatchSearch<us>(searchContext, params);
 }
@@ -49,8 +51,8 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
         
-        if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
-            break;
+        // if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
+        //     break;
     }
     
     config::TT_Policy::printStats();
