@@ -37,8 +37,9 @@ struct GameHistory {
 
 class GameContext {
 public:
-    GameContext() {
-        m_transpositionTable.resize(64);
+    GameContext() :
+        m_transpositionTable(64)
+    {
         Reset();
     }    
 

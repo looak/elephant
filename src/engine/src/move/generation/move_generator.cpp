@@ -169,9 +169,15 @@ void MoveGenerator<us>::sortMoves() {
                 return pm.move == m_params.ordering->pvMove;
                 });
 
-            if (itrMv != m_movesBuffer.end()) {
+            if (itrMv != m_movesBuffer.end()) 
                 itrMv->priority += move_generator_constants::pvMovePriority;
-            }
+            
+            auto ttMove = std::find_if(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, [&](const PrioritizedMove& pm) {
+                return pm.move == m_params.ordering->ttMove;
+                });
+            
+            if (ttMove != m_movesBuffer.end() && ttMove != itrMv)
+                ttMove->priority += move_generator_constants::ttMovePriority;
         }
     }
 

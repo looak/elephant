@@ -9,16 +9,17 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
 
     // --- Transposition Table Probe ---    
     if (std::optional<i16> ttProbeResult = config::TT_Policy::probe(pos.hash(), depth, alpha, beta, ply))
-        return ttProbeResult.value();
+        return ttProbeResult.value();    
 
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveGenParams genParams;
     MoveOrderingView orderingView;
-    
-    if(pv->length > 0) {
-        orderingView.pvMove = pv->moves[0];
-        genParams.ordering = &orderingView;
-    }
+
+    // --- prime move ordering ---    
+    config::TT_Policy::probeMove(pos.hash(), orderingView.ttMove);
+    if(pv->length > 0) orderingView.pvMove = pv->moves[0];
+
+    genParams.ordering = &orderingView;
 
     MoveGenerator<us> generator(pos, genParams);   
 
