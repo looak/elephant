@@ -74,6 +74,7 @@ namespace move_generator_constants {
 constexpr u16 capturePriority = 1000;
 constexpr u16 promotionPriority = 2000;
 constexpr u16 checkPriority = 900;
+constexpr u16 ttMovePriority = 4000;
 constexpr u16 pvMovePriority = 5000;
 constexpr u16 killerMovePriority = 800;
 } // namespace move_generator_constants

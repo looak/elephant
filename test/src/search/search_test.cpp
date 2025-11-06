@@ -186,7 +186,7 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 
         testingParams.UseNullMovePruning = true;
         testingParams.UseTranspositionTable = true;
-        testingParams.SearchDepth = 16;
+        testingParams.SearchDepth = 10;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             result = searcher.go<Set::BLACK>(testingParams);

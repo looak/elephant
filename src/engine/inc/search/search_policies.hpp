@@ -23,42 +23,80 @@ public:
         m_table = &tt;        
     }
 
-    static std::optional<i32> probe(u64 hash, u8 depth, i32 alpha, i32 beta, i32 ply) 
-    {
-        TranspositionEntry& entry = m_table->editEntry(hash);
-        if (auto result = entry.evaluate(hash, depth, alpha, beta, m_table->readAge()); result.has_value()) {
-            return entry.adjustedScore(ply);
+    static std::optional<i16> probe(u64 hash, u8 requiredDepth, i16 alpha, i16 beta, u16 ply) 
+    {  
+        PackedMove move;
+        i16 score;
+        u8 depth;
+        TranspositionFlag flag;
+        if (m_table->probe(hash, move, score, depth, flag) == false)
+            return std::nullopt;
+
+        if (depth < requiredDepth)
+            return std::nullopt;
+
+        if (score >= c_checkmateConstant - c_maxSearchDepth) {
+            score -= ply;
+        } else if (score <= -c_checkmateConstant + c_maxSearchDepth) {
+            score += ply;
         }
+
+        switch (flag) {
+            case TTF_CUT_EXACT:
+                return score;
+            case TTF_CUT_BETA:
+                if (score >= beta)
+                    return score;
+                break;
+            case TTF_CUT_ALPHA:
+                if (score <= alpha)
+                    return score;
+                break;
+            default:
+                break;
+        }
+
         return std::nullopt;
+    }
+
+    static bool probeMove(u64 hash, PackedMove& outMove) {
+        i16 dummyScore;
+        u8 dummyDepth;
+        TranspositionFlag dummyFlag;
+        return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
     }
 
     static void update(u64 hash, PackedMove move, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
     {
-        TranspositionEntry& entry = m_table->editEntry(hash);
-        entry.update(hash, move, m_table->readAge(), score, ply, depth, flag);
+                // Adjust mate scores for storage (reverse of probe)
+        if (score >= c_checkmateConstant - c_maxSearchDepth) {
+            score += ply;
+        } else if (score <= -c_checkmateConstant + c_maxSearchDepth) {
+            score -= ply;
+        }
+
+        m_table->store(hash, move, score, depth, flag);
     }
 
     static void printStats() 
     {
-        if constexpr (!m_debugEnabled)
-            return;
-
-        m_table->debugStatistics();
+    #ifdef DEBUG_TRANSITION_TABLE
+        m_table->print_stats();
+    #endif
     }
 
 private:
-#ifdef DEBUG_TRANSITION_TABLE
-    static constexpr bool m_debugEnabled = true;
-#else
-    static constexpr bool m_debugEnabled = false;
-#endif
+
     static inline TranspositionTable* m_table;
 };
 
 class TTDisabled {
 public:
-    static std::optional<i32> probe(u64, u8, i32, i32, i32) 
+    static std::optional<i16> probe(u64, u8, i16, i16, u16) 
     { return std::nullopt; }
+
+    static bool probeMove(u64, PackedMove&) 
+    { return false; }
 
     static void update(u64, PackedMove, i16, i32, u8, TranspositionFlag)
     { /* Do nothing */ }
