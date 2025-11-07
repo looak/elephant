@@ -23,13 +23,10 @@ public:
         m_table = &tt;        
     }
 
-    static std::optional<i16> probe(u64 hash, u8 requiredDepth, i16 alpha, i16 beta, u16 ply) 
-    {  
-        PackedMove move;
+    static std::optional<i16> probe(u64 hash, u8 requiredDepth, i16 alpha, i16 beta, u16 ply, TranspositionFlag& flag, PackedMove& outMove) {        
         i16 score;
         u8 depth;
-        TranspositionFlag flag;
-        if (m_table->probe(hash, move, score, depth, flag) == false)
+        if (m_table->probe(hash, outMove, score, depth, flag) == false)
             return std::nullopt;
 
         if (depth < requiredDepth)
@@ -81,7 +78,7 @@ private:
 
 class TTDisabled {
 public:
-    static std::optional<i16> probe(u64, u8, i16, i16, u16) 
+    static std::optional<i16> probe(u64, u8, i16, i16, u16, TranspositionFlag&, PackedMove&) 
     { return std::nullopt; }
 
     static bool probeMove(u64, PackedMove&) 

@@ -6,24 +6,30 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
 
     PositionReader pos = context.position.read();
     pv->length = 0;
+    PackedMove bestMove = PackedMove::NullMove();
 
-    // --- Transposition Table Probe ---    
-    if (std::optional<i16> ttProbeResult = config::TT_Policy::probe(pos.hash(), depth, alpha, beta, ply))
+    // --- Transposition Table Probe ---
+    TranspositionFlag flag = TranspositionFlag::TTF_NONE;
+    if (std::optional<i16> ttProbeResult = config::TT_Policy::probe(pos.hash(), depth, alpha, beta, ply, flag, bestMove)) {
+        if (flag == TranspositionFlag::TTF_CUT_EXACT) {
+            pv->moves[0] = bestMove;
+            pv->length = 1;
+        }
         return ttProbeResult.value();    
+    }
 
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveGenParams genParams;
     MoveOrderingView orderingView;
 
     // --- prime move ordering ---    
-    config::TT_Policy::probeMove(pos.hash(), orderingView.ttMove);
-    if(pv->length > 0) orderingView.pvMove = pv->moves[0];
-
+    if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
+    if (pv->length > 0) orderingView.pvMove = pv->moves[0];
     genParams.ordering = &orderingView;
 
     MoveGenerator<us> generator(pos, genParams);   
 
-    // --- terminal node ---
+    // --- Terminal Node ---
     if (generator.peek().isNull()) {
         if (generator.isChecked())
             return -c_checkmateConstant + (i16)ply; // Mate score adjusted by ply
@@ -50,12 +56,11 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
         }
     }
 
-    // --- Main Search Loop ---
-    PackedMove bestMove = PackedMove::NullMove();
-    auto flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
+    // --- Main Search Loop ---    
+    flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
     i16 eval = searchMoves<us, config>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
 
-    // --- 6. Store to TT ---
+    // --- Store to TT ---
     // All moves searched, no cutoff.
     config::TT_Policy::update(        
         pos.hash(),
@@ -94,9 +99,10 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
         MoveUndoUnit undoState;
         u16 movingPly = ply; // this will become important once we start caring about 50-move rule.
         executor.makeMove(move, undoState, movingPly);
+        context.history.push(pos.hash());
 
-        i16 eval;        
-        if (context.gameHistory.IsRepetition(pos.hash()) == true) {
+        i16 eval;
+        if (context.history.isRepetition(pos.hash()) == true) {
             eval = -c_drawConstant;
         } else {
             eval = -alphaBeta<opposing_set<us>(), config>(context, modifiedDepth - 1, -beta, -alpha, ply + 1, &childPv);
@@ -109,6 +115,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             }
         }
 
+        context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
 

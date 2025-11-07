@@ -75,6 +75,38 @@ struct SearchParameters {
 
 typedef std::function<bool()> CancelSearchCondition;
 
+struct MoveHistory {
+private:
+    std::vector<u64> recentHashes;
+
+public:
+    MoveHistory() {
+        // rarely will we have a game that goes this deep.
+        recentHashes.reserve(128);
+    }
+
+    void push(u64 hash) {
+        recentHashes.push_back(hash);
+    }
+    void pop() {
+        if (!recentHashes.empty()) {
+            recentHashes.pop_back();
+        }
+    }
+
+    bool isRepetition(u64 hashKey) const {
+        int occurrences = 0;
+        for (auto it = recentHashes.rbegin(); it != recentHashes.rend(); ++it) {
+            if (*it == hashKey) {
+                occurrences++;
+                if (occurrences >= 3)
+                    return true;
+            }
+        }        
+        return false;
+    }
+};
+
 struct ThreadSearchContext {
     ThreadSearchContext(Position position, bool whiteToMove)
         : position(position) {
@@ -82,7 +114,7 @@ struct ThreadSearchContext {
         }
     Position position;
     GameState gameState;
-    GameHistory gameHistory;
+    MoveHistory history;
     u64 nodeCount = 0;
     u64 qNodeCount = 0;    
 };
