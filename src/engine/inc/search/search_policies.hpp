@@ -35,11 +35,7 @@ public:
         if (depth < requiredDepth)
             return std::nullopt;
 
-        if (score >= c_checkmateConstant - c_maxSearchDepth) {
-            score -= ply;
-        } else if (score <= -c_checkmateConstant + c_maxSearchDepth) {
-            score += ply;
-        }
+        // mate score is already adjusted during search, so we don't need to adjust it again here.
 
         switch (flag) {
             case TTF_CUT_EXACT:
@@ -68,13 +64,6 @@ public:
 
     static void update(u64 hash, PackedMove move, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
     {
-                // Adjust mate scores for storage (reverse of probe)
-        if (score >= c_checkmateConstant - c_maxSearchDepth) {
-            score += ply;
-        } else if (score <= -c_checkmateConstant + c_maxSearchDepth) {
-            score -= ply;
-        }
-
         m_table->store(hash, move, score, depth, flag);
     }
 

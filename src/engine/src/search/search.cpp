@@ -37,6 +37,9 @@ void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, c
 }
 
 bool Search::allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) const {
+    if (timeleft <= 0 && timeInc <= 0) {
+        return true; // infinite time
+    }
     const i64 c_maxTimeAllowed = (timeInc * .75f) + (timeleft / 32);  // at 5min this is 9 seconds.
     if (elapsedTime > c_maxTimeAllowed) {
         return false;

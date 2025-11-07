@@ -201,7 +201,8 @@ void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, i32 dst
     bool orthogonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr]).empty();
     bool diagonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr]).empty();
 
-    u16 promotionPriorityValue = move_generator_constants::promotionPriority << u8(move.isCapture());
+    const i32 promotionPriorityValue = move_generator_constants::promotionPriority 
+        + ((u8)move.isCapture() * move_generator_constants::capturePriority);
 
     move.setPromoteTo(queenId);
     PrioritizedMove queenPromote(move, 0);
