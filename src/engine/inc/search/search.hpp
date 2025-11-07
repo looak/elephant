@@ -51,8 +51,8 @@ struct PieceKey {
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
-    u8 SearchDepth = 12;
-    u8 QuiescenceDepth = 8;
+    u8 SearchDepth = 24;
+    u8 QuiescenceDepth = 12;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
