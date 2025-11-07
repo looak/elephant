@@ -21,7 +21,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     }
 
     // iterative deepening loop -- might make this optional.
-    for (u32 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {        
+    for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {        
         const Clock& itrClock = config::Debug_Policy::pushClock();
 
         SearchResult itrResult;        

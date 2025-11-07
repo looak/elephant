@@ -133,7 +133,8 @@ UCI::Position(std::list<std::string>& args)
             }
 
             auto capture = position.pieceAt(move.targetSqr());
-            if (capture != ChessPiece::None()) {
+            if (capture != ChessPiece::None() 
+            || position.enPassant().readSquare() == move.targetSqr()) {
                 move.setCapture(true);
             }
 

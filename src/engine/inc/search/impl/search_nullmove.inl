@@ -17,13 +17,13 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
         return false;
     }
 
-    // consider adding makeNullMove to move executor.
+    // TODO: consider adding makeNullMove to move executor.
     u64 originalHash = ctx.position.read().hash();
     ctx.position.edit().hash() = zobrist::updateBlackToMoveHash(originalHash);
 
     u16 R = Config::NMP_Policy::getReduction(depth);
     i16 nullScore = -nullmove<opposing_set<us>(), Config>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
-        
+
     ctx.nodeCount++;
     ctx.position.edit().hash() = originalHash;
     return (nullScore >= beta);
@@ -59,6 +59,8 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         }
     }
 
+
+    // --- Main Search Loop ---
     i16 bestEval = -c_infinity; // Start at -infinity
     MoveExecutor executor(context.position.edit());
     u16 index = 0;
@@ -75,29 +77,24 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         MoveUndoUnit undoState;
         u16 movingPly = ply;
         executor.makeMove(move, undoState, movingPly);
+        context.history.push(currentPos.hash());
 
-        i16 eval;        
-        if (context.gameHistory.IsRepetition(currentPos.hash()) == true) {
+        i16 eval;
+        if (context.history.isRepetition(currentPos.hash()) == true) {
             eval = -c_drawConstant;
         } else {
             eval = -nullmove<opposing_set<us>(), config>(context, modifiedDepth - 1, -beta, -alpha, ply + 1);
         }
 
-        // TODO: Evaluat if we need to research within the NullMoveReduction LMR.
-        // if constexpr (config::LMR_Policy::enabled) {
-        //     // late move reduction - re-search if eval is better than alpha
-        //     if (eval > alpha && modifiedDepth < depth) {
-        //         // Re-search at full depth
-        //         eval = -recursiveAlphaBetaNullMove<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1);
-        //     }
-        // }
+        // TODO: Evaluate if we need to re-search within the NullMoveReduction because of LMR.
 
+        context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
         // if (context.cancel()) return 0; // Handle search cancellation
 
-        // --- 5. Alpha-Beta Logic (Fail-Soft) ---
+        // --- Alpha-Beta Logic (Fail-Soft) ---
 
         if (eval > bestEval) {
             bestEval = eval;            
