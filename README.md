@@ -71,6 +71,7 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
     * pv priority
     * killer heuristic
     * late move reduction
+    * null move pruning
 
 * Evaluation:
     * material
@@ -87,7 +88,6 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 ## Goals & todo
 
-* null move pruning
 * multi threaded search
 * reach elo 2000
 

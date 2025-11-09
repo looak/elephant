@@ -84,7 +84,7 @@ class MoveGenerator {
 public:
     explicit MoveGenerator(PositionReader position, MoveGenParams& params);
 
-    [[nodiscard]] PackedMove pop();
+    [[nodiscard]] PrioritizedMove pop();
     PackedMove peek();
 
     bool isChecked() const {

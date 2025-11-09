@@ -78,13 +78,13 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
     
     if (m_context.readToPlay() == Set::WHITE) {
         MoveGenerator<Set::WHITE> gen(m_context.readChessboard().readPosition(), params);
-        while (PackedMove move = gen.pop()) {
-            forEachMoveLambda(move);
+        while (PrioritizedMove ordered = gen.pop()) {
+            forEachMoveLambda(ordered.move);
         }
     } else {
         MoveGenerator<Set::BLACK> gen(m_context.readChessboard().readPosition(), params);
-        while (PackedMove move = gen.pop()) {
-            forEachMoveLambda(move);
+        while (PrioritizedMove ordered = gen.pop()) {
+            forEachMoveLambda(ordered.move);
         }
     }
 

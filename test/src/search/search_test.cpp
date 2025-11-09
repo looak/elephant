@@ -36,7 +36,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context.readChessPosition(), context.editTranspositionTable());    
+    Search searcher(context);
     
     // execute
     SearchResult result = searcher.go<Set::WHITE>(testingParams);
@@ -57,7 +57,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context.readChessPosition(), context.editTranspositionTable());
+    Search searcher(context);
 
     // execute
     SearchResult result = searcher.go<Set::BLACK>(testingParams);
@@ -76,7 +76,7 @@ TEST_F(SearchFixture, WhiteForcedMate)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context.readChessPosition(), context.editTranspositionTable());
+    Search searcher(context);
 
     SearchResult result = searcher.go<Set::WHITE>(testingParams);
     EXPECT_TRUE(result.ForcedMate);
@@ -88,7 +88,7 @@ TEST_F(SearchFixture, MateAgainstSelf)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context.readChessPosition(), context.editTranspositionTable());
+    Search searcher(context);
 
     SearchResult result = searcher.go<Set::WHITE>(testingParams);
     EXPECT_NE(result.move(), PackedMove::NullMove());
@@ -99,7 +99,7 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        Search searcher(context);
 
         SearchResult result = searcher.go<Set::WHITE>(testingParams);
 
@@ -112,7 +112,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        Search searcher(context);
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             result = searcher.go<Set::BLACK>(testingParams);
@@ -135,7 +135,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        Search searcher(context);
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
@@ -159,7 +159,7 @@ TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
         testingParams.SearchDepth = 16; // increase depth for harder mates
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        Search searcher(context);
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
@@ -182,7 +182,7 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context.readChessPosition(), context.editTranspositionTable());
+        Search searcher(context);
 
         testingParams.UseNullMovePruning = true;
         testingParams.UseTranspositionTable = true;

@@ -127,7 +127,7 @@ TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
 
     TResult result = {};
 
-    while (PackedMove move = gen.pop()) {
+    while (PackedMove move = gen.pop().move) {
         if (depth == 1) {
             accumulator(move, result, true);
         }

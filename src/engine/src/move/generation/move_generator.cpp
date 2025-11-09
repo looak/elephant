@@ -25,21 +25,21 @@ template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, MoveGenParams&
 template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, MoveGenParams&);
 
 template<Set us>
-PackedMove MoveGenerator<us>::pop() {
+PrioritizedMove MoveGenerator<us>::pop() {
     if (m_currentMoveIndx < m_moveCount) {
-        return m_movesBuffer[m_currentMoveIndx++].move;
+        return m_movesBuffer[m_currentMoveIndx++];
     }
 
     if (m_movesGenerated)
-        return PackedMove::NullMove();
+        return { PackedMove::NullMove(), 0 };
 
-    PackedMove result = internalGenerateMoves().move;
+    PrioritizedMove result = internalGenerateMoves();
     m_currentMoveIndx++;
     return result;
 }
 
-template PackedMove MoveGenerator<Set::WHITE>::pop();
-template PackedMove MoveGenerator<Set::BLACK>::pop();
+template PrioritizedMove MoveGenerator<Set::WHITE>::pop();
+template PrioritizedMove MoveGenerator<Set::BLACK>::pop();
 
 template<Set us>
 PackedMove MoveGenerator<us>::peek() {
@@ -415,6 +415,8 @@ Bitboard MoveGenerator<us>::internalCallBulkGeneratorForPiece(u8 pieceId, BulkMo
 {
     // TODO: Next major refactor should figure out a smother way to setup this, MoveGenerator should probably be templated 
     // on the filter as well.
+    // TODO: BulkMoveGen should just generate all moves and then the move generator should filter them. This to allow
+    // me to generate checking moves in quiescence search which currently ignores them.
     if (m_params.moveFilter == MoveTypes::ALL) {
         return bulkMoveGen.computeBulkMovesGeneric<us, MoveTypes::ALL>(pieceId);
     }
