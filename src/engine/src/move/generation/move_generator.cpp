@@ -179,6 +179,18 @@ void MoveGenerator<us>::sortMoves() {
             if (ttMove != m_movesBuffer.end() && ttMove != itrMv)
                 ttMove->priority += move_generator_constants::ttMovePriority;
         }
+        for (int i = 0; i < 2; ++i) {
+            if (m_params.ordering->killers[i] != PackedMove::NullMove()) {
+                auto killerMove = std::find_if(m_movesBuffer.begin(), m_movesBuffer.begin() + m_moveCount, [&](const PrioritizedMove& pm) {
+                    return pm.move == m_params.ordering->killers[i];
+                    });
+                
+                if (killerMove != m_movesBuffer.end()) {
+                    killerMove->priority += move_generator_constants::killerMovePriority;
+         //           killerMove->priority += m_params.ordering->getHistoryScore(us, killerMove->move.sourceSqr(), killerMove->move.targetSqr());
+                }
+            }
+        }
     }
 
     // if (m_search != nullptr) {

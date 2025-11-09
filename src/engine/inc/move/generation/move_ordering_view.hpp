@@ -9,8 +9,7 @@
 struct MoveOrderingView {
     PackedMove pvMove = PackedMove::NullMove();
     PackedMove ttMove = PackedMove::NullMove();
-    const PackedMove* killerMoves = nullptr;
-    u64 killerMoveCount = 0;
+    PackedMove killers[2];    
     const i32* history = nullptr; // Pointer to a flat history table
 
     // Helper to safely access history score

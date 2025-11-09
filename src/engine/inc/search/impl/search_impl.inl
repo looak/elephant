@@ -100,19 +100,29 @@ SearchResult Search::dispatchQSearch(ThreadSearchContext& context, SearchParamet
 {
     if (params.UseQuiescenceSearch) {
         search_policies::QSearchEnabled::maxDepth = params.QuiescenceDepth;
-        return dispatchDebug<us, TT, NMP, LMR, search_policies::QSearchEnabled>(context, params);
+        return dispatchOrdering<us, TT, NMP, LMR, search_policies::QSearchEnabled>(context, params);
     } else {
-        return dispatchDebug<us, TT, NMP, LMR, search_policies::QSearchDisabled>(context, params);
+        return dispatchOrdering<us, TT, NMP, LMR, search_policies::QSearchDisabled>(context, params);
     }
 }
 
 template<Set us, typename TT, typename NMP, typename LMR, typename QSearch>
+SearchResult Search::dispatchOrdering(ThreadSearchContext& context, SearchParameters params)
+{
+    if (params.UseMoveOrdering) {        
+        return dispatchDebug<us, TT, NMP, LMR, QSearch, search_policies::OrderingEnabled>(context, params);
+    } else {
+        return dispatchDebug<us, TT, NMP, LMR, QSearch, search_policies::OrderingDisabled>(context, params);
+    }
+}
+
+template<Set us, typename TT, typename NMP, typename LMR, typename QSearch, typename Ordering>
 SearchResult Search::dispatchDebug(ThreadSearchContext& context, SearchParameters params) {    
 #if defined(DEVELOPMENT_BUILD)
-    using Config = SearchConfig<TT, NMP, LMR, QSearch, search_policies::DebugEnabled>;
+    using Config = SearchConfig<TT, NMP, LMR, QSearch, Ordering, search_policies::DebugEnabled>;
     return iterativeDeepening<us, Config>(context, params);
 #else
-    using Config = SearchConfig<TT, NMP, LMR, QSearch, search_policies::DebugDisabled>;
+    using Config = SearchConfig<TT, NMP, LMR, QSearch, Ordering, search_policies::DebugDisabled>;
     return iterativeDeepening<us, Config>(context, params);
 #endif
 }
