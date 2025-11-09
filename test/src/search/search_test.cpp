@@ -206,20 +206,28 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
     }
 }
 
-TEST_F(SearchFixture, DISABLED_SearchTimeManagement_InitialTest) {   
+TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {   
     GameContext context;
     std::string fen("r4rk1/2pb1p1p/p1n1p1p1/1p6/3Pn3/2P2N2/PP1BRPPP/5RK1 w - - 0 19");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     Search searcher(context);
+    Clock testing_clock;
+    testing_clock.Start();
 
-    testingParams.WhiteTimeIncrement = 1000;
+    testingParams.WhiteTimeIncrement = 500; // 0.5s increment
     testingParams.WhiteTimelimit = 10000;
+    testingParams.MoveTime = 0; // let time manager decide
 
     clock->applyTimeSettings(testingParams, Set::WHITE);
     
+    
     SearchResult result;    
     result = searcher.go<Set::WHITE>(testingParams, clock);    
+
+    testing_clock.Stop();
+    OUT() << "Search completed in " << testing_clock.getElapsedTime() << " ms.";
+    EXPECT_LT(testing_clock.getElapsedTime(), 1000); // should finish within 1s
 
 }
 
