@@ -20,10 +20,13 @@ public:
         testingParams.UseNullMovePruning = true;
         testingParams.UseLateMoveReduction = true;
 
+        clock = std::make_shared<TimeManager>(testingParams, Set::WHITE);
+
     };
     virtual void TearDown(){};
 
     SearchParameters testingParams;
+    std::shared_ptr<TimeManager> clock;
 };
 
 ////////////////////////////////////////////////////////////////
@@ -39,7 +42,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     Search searcher(context);
     
     // execute
-    SearchResult result = searcher.go<Set::WHITE>(testingParams);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
 
     i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
@@ -60,7 +63,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     Search searcher(context);
 
     // execute
-    SearchResult result = searcher.go<Set::BLACK>(testingParams);
+    SearchResult result = searcher.go<Set::BLACK>(testingParams, clock);
 
     i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
@@ -78,7 +81,7 @@ TEST_F(SearchFixture, WhiteForcedMate)
 
     Search searcher(context);
 
-    SearchResult result = searcher.go<Set::WHITE>(testingParams);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
     EXPECT_TRUE(result.ForcedMate);
 }
 
@@ -90,7 +93,7 @@ TEST_F(SearchFixture, MateAgainstSelf)
 
     Search searcher(context);
 
-    SearchResult result = searcher.go<Set::WHITE>(testingParams);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
     EXPECT_NE(result.move(), PackedMove::NullMove());
 }
 
@@ -101,7 +104,7 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
 
         Search searcher(context);
 
-        SearchResult result = searcher.go<Set::WHITE>(testingParams);
+        SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
     }
@@ -115,10 +118,10 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         Search searcher(context);
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams);
+            result = searcher.go<Set::BLACK>(testingParams, clock);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams);
+            result = searcher.go<Set::WHITE>(testingParams, clock);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -139,10 +142,10 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams);
+            result = searcher.go<Set::BLACK>(testingParams, clock);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams);
+            result = searcher.go<Set::WHITE>(testingParams, clock);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -163,10 +166,10 @@ TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams);
+            result = searcher.go<Set::BLACK>(testingParams, clock);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams);
+            result = searcher.go<Set::WHITE>(testingParams, clock);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -189,10 +192,10 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         testingParams.SearchDepth = 10;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams);
+            result = searcher.go<Set::BLACK>(testingParams, clock);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams);
+            result = searcher.go<Set::WHITE>(testingParams, clock);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -201,6 +204,23 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         OUT() << "Found move:      " << result.move().toString();
         OUT() << "-----------------------------";
     }
+}
+
+TEST_F(SearchFixture, DISABLED_SearchTimeManagement_InitialTest) {   
+    GameContext context;
+    std::string fen("r4rk1/2pb1p1p/p1n1p1p1/1p6/3Pn3/2P2N2/PP1BRPPP/5RK1 w - - 0 19");
+    io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+
+    Search searcher(context);
+
+    testingParams.WhiteTimeIncrement = 1000;
+    testingParams.WhiteTimelimit = 10000;
+
+    clock->applyTimeSettings(testingParams, Set::WHITE);
+    
+    SearchResult result;    
+    result = searcher.go<Set::WHITE>(testingParams, clock);    
+
 }
 
 }  // namespace ElephantTest

@@ -28,6 +28,7 @@
 #include <unordered_map>
 
 #include <core/game_context.hpp>
+#include <util/time_manager.hpp>
 
 class UCI
 {
@@ -86,6 +87,7 @@ private:
     void InitializeOptions();
 
     bool m_enabled;
+    std::shared_ptr<TimeManager> m_timeManager;
     GameContext m_context;
     std::ostream& m_stream;
     std::unordered_map<std::string, std::string> m_options;

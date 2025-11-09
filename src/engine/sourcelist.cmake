@@ -92,6 +92,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 
 ## /util/...
     ${ENGINE_INC_DIR}/util/clock.hpp
+    ${ENGINE_INC_DIR}/util/time_manager.hpp
     ${ENGINE_INC_DIR}/util/static_initializer.hpp
 )
 
@@ -145,6 +146,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 
 ## /util/...
     ${ENGINE_SRC_DIR}/util/clock.cpp
+    ${ENGINE_SRC_DIR}/util/time_manager.cpp
 )
 
 set(ENGINE_SOURCE_ALL ${ENGINE_SOURCE} ${ENGINE_SOURCE_INCLUDE})

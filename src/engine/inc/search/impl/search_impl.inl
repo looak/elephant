@@ -1,11 +1,12 @@
 #pragma once
 
 template<Set us>
-SearchResult Search::go(SearchParameters params)
+SearchResult Search::go(SearchParameters params, std::shared_ptr<TimeManager> clock)
 {   
     m_transpositionTable.incrementAge();
     
     ThreadSearchContext searchContext(m_originPosition.copy(), us == Set::WHITE);
+    searchContext.clock = clock;
 
     // prime hashes from historical positions to allow proper 3-fold repetition avoidance
     for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
@@ -19,16 +20,12 @@ template<Set us, typename config>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
     SearchResult result;
 
-    u32 timeLeft = params.BlackTimelimit;
-    u32 timeIncrement = params.BlackTimeIncrement;
-    if constexpr (us == Set::WHITE) {
-        timeLeft = params.WhiteTimelimit;
-        timeIncrement = params.WhiteTimeIncrement;
-    }
+    context.clock->begin();
+    u64 lastIterationTimeSpan = context.clock->now();
 
     // iterative deepening loop -- might make this optional.
-    for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {        
-        const Clock& itrClock = config::Debug_Policy::pushClock();
+    for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
+        const Clock& itrClock = config::Debug_Policy::pushClock();        
 
         SearchResult itrResult;        
         itrResult.score = alphaBeta<us, config>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
@@ -37,12 +34,6 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         config::Debug_Policy::reportNps(context.nodeCount, context.qNodeCount);
         config::Debug_Policy::popClock();
-
-        // bool cancelled = cancellationFunc();
-        // if (cancelled) {
-        //     itrResult = result;
-        // }
-
 
         // forced mate check
         i16 checkmateDistance = c_checkmateConstant - abs((int)itrResult.score);
@@ -57,8 +48,17 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
         
-        if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
+        u64 iterationTimeSpan = context.clock->now() - lastIterationTimeSpan;
+        lastIterationTimeSpan = context.clock->now();
+
+        if (context.clock->shouldStop() == true)
             break;
+
+        if (context.clock->continueIterativeDeepening(iterationTimeSpan) == false)
+            break;
+        
+        // if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
+        //     break;
     }
     
     config::TT_Policy::printStats();

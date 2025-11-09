@@ -21,6 +21,9 @@
 #include <vector>
 
 #include <defines.hpp>
+#include <core/chessboard.hpp>
+#include <core/game_context.hpp>
+#include <eval/evaluator.hpp>
 #include <eval/evaluation_table.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
@@ -30,23 +33,8 @@
 #include <search/search_policies.hpp>
 #include <position/position_accessors.hpp>
 #include <position/position.hpp>
-#include <core/game_context.hpp>
-#include <core/chessboard.hpp>
 #include <util/clock.hpp>
-#include <eval/evaluator.hpp>
-
-struct PieceKey {
-    ChessPiece Piece;
-    Square SourceSqr;
-
-    bool operator<(const PieceKey& rhs) const
-    {
-        if (Piece == rhs.Piece)
-            return SourceSqr < rhs.SourceSqr;
-
-        return Piece < rhs.Piece;
-    }
-};
+#include <util/time_manager.hpp>
 
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
@@ -72,8 +60,6 @@ struct SearchParameters {
     bool UseNullMovePruning = true;
     bool UseLateMoveReduction = true;
 };
-
-typedef std::function<bool()> CancelSearchCondition;
 
 struct MoveHistory {
 private:
@@ -116,7 +102,8 @@ struct ThreadSearchContext {
     GameState gameState;
     MoveHistory history;
     u64 nodeCount = 0;
-    u64 qNodeCount = 0;    
+    u64 qNodeCount = 0;
+    std::shared_ptr<TimeManager> clock;
 };
 
 class Search {
@@ -130,7 +117,7 @@ public:
 
     // entry point
     template<Set us>
-    SearchResult go(SearchParameters params = {});
+    SearchResult go(SearchParameters params, std::shared_ptr<TimeManager> clock);
 
     void clear();
     bool isKillerMove(PackedMove move, u16 ply) const;
@@ -173,10 +160,7 @@ private:
     void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const;
 
     bool allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) const;
-
-    CancelSearchCondition buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const;
-    //i16 Extension(const Chessboard& board, const PrioritizedMove& prioratized, u16 ply) const;
-
+  
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;
     GameContext& m_gameContext;
