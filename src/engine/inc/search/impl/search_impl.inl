@@ -56,9 +56,6 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         if (context.clock->continueIterativeDeepening(iterationTimeSpan) == false)
             break;
-        
-        // if (allowAnotherIteration(itrClock.getElapsedTime(), timeLeft, timeIncrement, itrDepth) == false)
-        //     break;
     }
     
     config::TT_Policy::printStats();
