@@ -5,7 +5,13 @@ SearchResult Search::go(SearchParameters params)
 {   
     m_transpositionTable.incrementAge();
     
-    ThreadSearchContext searchContext(m_originPosition.copy(), us == Set::WHITE);    
+    ThreadSearchContext searchContext(m_originPosition.copy(), us == Set::WHITE);
+
+    // prime hashes from historical positions to allow proper 3-fold repetition avoidance
+    for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
+        searchContext.history.push(undoUnit.hash);
+    }
+
     return dispatchSearch<us>(searchContext, params);
 }
 

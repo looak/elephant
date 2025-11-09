@@ -39,7 +39,8 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveGenParams genParams;
     MoveGenerator<us> generator(currentPos, genParams);
-    auto move = generator.pop();
+    PrioritizedMove ordered = generator.pop();
+    PackedMove move = ordered.move;
 
     if (move.isNull()) {
         if (generator.isChecked())
@@ -69,7 +70,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         u16 modifiedDepth = depth;
         // --- Late Move Reduction if Enabled ---
         if constexpr (config::LMR_Policy::enabled) {
-            if (config::LMR_Policy::shouldReduce(depth, move, index, generator.isChecked())) {
+            if (config::LMR_Policy::shouldReduce(depth, move, index, generator.isChecked(), ordered.isCheck())) {
                 modifiedDepth -= config::LMR_Policy::getReduction(depth);                
             }
         }
@@ -106,7 +107,8 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
                 return bestEval;
         }
 
-        move = generator.pop();
+        ordered = generator.pop();
+        move = ordered.move;
         index++;
     } while (move.isNull() == false);
 

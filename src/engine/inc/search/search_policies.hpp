@@ -97,10 +97,11 @@ public:
 class LmrEnabled {
 public:
     static constexpr bool enabled = true;
-    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked) {
+    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool isChecking) {
         return depth > lmr_params::minDepth 
         && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
         && isChecked == false;
+        //&& isChecking == false;
     }
 
     static u32 getReduction(u32 depth) {
@@ -113,7 +114,7 @@ public:
 class LmrDisabled {
 public:
     static constexpr bool enabled = false;
-    static bool shouldReduce(u32, PackedMove, u16, bool) { return false; }
+    static bool shouldReduce(u32, PackedMove, u16, bool, bool) { return false; }
     static u32 getReduction(u32) { return 0; }
 };
 
@@ -162,6 +163,11 @@ class QSearchEnabled {
 public:
     static constexpr bool enabled = true;
     static inline u16 maxDepth = 12;
+
+    static bool futile(u8 depth, i16 eval, i16 alpha) {
+        return (depth < quiescence_params::futilityDepthMargin)
+        && (alpha < eval + quiescence_params::futilityMargin);
+    }
 };
 
 class QSearchDisabled {

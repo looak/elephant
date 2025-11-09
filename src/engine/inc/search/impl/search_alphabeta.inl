@@ -43,7 +43,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
             // Start Q-Search with its *own* depth limit, configured with search params.
             return quiescence<us, config>(context, config::QSearch_Policy::maxDepth, alpha, beta, ply);
         } else {
-            int perspective = 1 - (int)us * 2;            
+            int perspective = 1 - (int)us * 2;
             Evaluator evaluator(context.position.read());
             return evaluator.Evaluate() * perspective;
         }
@@ -85,21 +85,25 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
     u16 index = 0;
 
     MoveExecutor executor(context.position.edit());
-    PackedMove move = gen.pop();
+    PrioritizedMove ordered = gen.pop();
     
     do {
+        PackedMove move = ordered.move;
         u16 modifiedDepth = depth;
         // --- Late Move Reduction ---
         if constexpr (config::LMR_Policy::enabled) {
-            if (config::LMR_Policy::shouldReduce(depth, move, index, gen.isChecked())) {
+            if (config::LMR_Policy::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
                 modifiedDepth -= config::LMR_Policy::getReduction(depth);
             }
         }
 
+        // --- Checking Search Extensions ---
+        // modifiedDepth += move.isChecking() * 1; // Extend by 1 if the move gives check
+
         MoveUndoUnit undoState;
         u16 movingPly = ply; // this will become important once we start caring about 50-move rule.
         executor.makeMove(move, undoState, movingPly);
-        context.history.push(pos.hash());
+        context.history.push(pos.hash());        
 
         i16 eval;
         if (context.history.isRepetition(pos.hash()) == true) {
@@ -121,7 +125,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
 
         // if (context.cancel()) return 0; // Handle search cancellation
 
-        // --- 5. Alpha-Beta Logic (Fail-Soft) ---
+        // --- Alpha-Beta Logic (Fail-Soft) ---
         if (eval > bestEval) {
             bestEval = eval;
             outMove = move;
@@ -144,9 +148,9 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             }
         }
 
-        move = gen.pop();
+        ordered = gen.pop();
         index++;
-    } while (move.isNull() == false);
+    } while (ordered.move.isNull() == false);
 
     return bestEval;
 }

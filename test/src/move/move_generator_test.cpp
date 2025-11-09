@@ -29,7 +29,7 @@ public:
     Bitboard buildMoveMask(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
     {
         Bitboard result;
-        while (auto mv = gen.pop()) {
+        while (auto mv = gen.pop().move) {
             if (pred && !pred(mv))
                 continue;
 
@@ -79,8 +79,8 @@ TEST_F(MoveGeneratorFixture, Empty)
     MoveGenerator<Set::WHITE> whiteGen(testContext.readChessPosition(), testParams);
     MoveGenerator<Set::BLACK> blackGen(testContext.readChessPosition(), testParams);
 
-    PackedMove whiteMove = whiteGen.pop();
-    PackedMove blackMove = blackGen.pop();
+    PackedMove whiteMove = whiteGen.pop().move;
+    PackedMove blackMove = blackGen.pop().move;
 
     EXPECT_TRUE(whiteMove.isNull());
     EXPECT_TRUE(blackMove.isNull());

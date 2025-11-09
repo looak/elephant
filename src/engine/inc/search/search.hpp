@@ -52,7 +52,7 @@ struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
     u8 SearchDepth = 24;
-    u8 QuiescenceDepth = 12;
+    u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
@@ -122,9 +122,11 @@ struct ThreadSearchContext {
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(PositionReader position, TranspositionTable& tt) : 
-        m_originPosition(position), m_transpositionTable(tt) 
-        { clear(); }
+    Search(GameContext& context)
+        : m_transpositionTable(context.editTranspositionTable())
+        , m_gameContext(context)
+        , m_originPosition(context.readChessPosition())
+    { clear(); }
 
     // entry point
     template<Set us>
@@ -177,11 +179,13 @@ private:
 
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;
+    GameContext& m_gameContext;
 
     PackedMove m_killerMoves[4][c_maxSearchDepth];
     u32 m_historyHeuristic[2][64][64];
 
     PositionReader m_originPosition;
+
 };
 
 #include <search/impl/search_impl.inl>

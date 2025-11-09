@@ -287,7 +287,7 @@ UCI::Go(std::list<std::string>& args)
         }
     }
 
-    Search searcher(m_context.readChessboard().readPosition(), m_context.editTranspositionTable());
+    Search searcher(m_context);
 
     if (m_context.readToPlay() == Set::WHITE) {
         SearchResult result = searcher.go<Set::WHITE>(searchParams);

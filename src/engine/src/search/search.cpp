@@ -19,9 +19,8 @@ void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, c
     
     i64 et = clock.getElapsedTime();
 
-    i32 checkmateDistance = c_checkmateConstant - abs((int)searchResult.score);
-    checkmateDistance = abs(checkmateDistance);
-    if ((u32)checkmateDistance <= itrDepth + 1) {
+    u32 checkmateDistance = static_cast<u32>(c_checkmateConstant - abs(searchResult.score));
+    if (checkmateDistance <= c_maxSearchDepth) {
         // found checkmate within depth.
         searchResult.ForcedMate = true;
         checkmateDistance /= 2;
