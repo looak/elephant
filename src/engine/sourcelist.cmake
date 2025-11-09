@@ -80,6 +80,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
     ${ENGINE_INC_DIR}/search/search_constants.hpp
+    ${ENGINE_INC_DIR}/search/search_heuristic_structures.hpp
     ${ENGINE_INC_DIR}/search/search_policies.hpp    
     ${ENGINE_INC_DIR}/search/search_results.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp

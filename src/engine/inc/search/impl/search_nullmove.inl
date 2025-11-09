@@ -29,7 +29,6 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
     return (nullScore >= beta);
 }
 
-
 template<Set us, typename config>
 i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply) {
     THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");   
@@ -59,7 +58,6 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
             return evaluator.Evaluate() * perspective;
         }
     }
-
 
     // --- Main Search Loop ---
     i16 bestEval = -c_infinity; // Start at -infinity
@@ -96,10 +94,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
-        // if (context.cancel()) return 0; // Handle search cancellation
-
-        // --- Alpha-Beta Logic (Fail-Soft) ---
-
+        // --- Alpha-Beta Evaluation ---
         if (eval > bestEval) {
             bestEval = eval;            
 

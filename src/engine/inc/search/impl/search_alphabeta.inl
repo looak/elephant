@@ -25,6 +25,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     // --- prime move ordering ---    
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pv->length > 0) orderingView.pvMove = pv->moves[0];
+    config::Ordering_Policy::prime(context.moveOrdering.killers, orderingView, ply);
     genParams.ordering = &orderingView;
 
     MoveGenerator<us> generator(pos, genParams);   
@@ -144,7 +145,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             // --- Beta Cutoff ---
             if (alpha >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high                
-                // (pushKillerMove logic would go here)                
+                config::Ordering_Policy::push(context.moveOrdering.killers, move, ply);
                 return bestEval; 
             }
         }

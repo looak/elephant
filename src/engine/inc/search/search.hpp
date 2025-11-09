@@ -29,6 +29,7 @@
 #include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 #include <search/transposition_table.hpp>
+#include <search/search_heuristic_structures.hpp>
 #include <search/search_results.hpp>
 #include <search/search_policies.hpp>
 #include <position/position_accessors.hpp>
@@ -59,38 +60,7 @@ struct SearchParameters {
     bool UseQuiescenceSearch = true;
     bool UseNullMovePruning = true;
     bool UseLateMoveReduction = true;
-};
-
-struct MoveHistory {
-private:
-    std::vector<u64> recentHashes;
-
-public:
-    MoveHistory() {
-        // rarely will we have a game that goes this deep.
-        recentHashes.reserve(128);
-    }
-
-    void push(u64 hash) {
-        recentHashes.push_back(hash);
-    }
-    void pop() {
-        if (!recentHashes.empty()) {
-            recentHashes.pop_back();
-        }
-    }
-
-    bool isRepetition(u64 hashKey) const {
-        int occurrences = 0;
-        for (auto it = recentHashes.rbegin(); it != recentHashes.rend(); ++it) {
-            if (*it == hashKey) {
-                occurrences++;
-                if (occurrences >= 3)
-                    return true;
-            }
-        }        
-        return false;
-    }
+    bool UseMoveOrdering = true;
 };
 
 struct ThreadSearchContext {
@@ -101,6 +71,7 @@ struct ThreadSearchContext {
     Position position;
     GameState gameState;
     MoveHistory history;
+    MoveOrderingHeuristic moveOrdering;
     u64 nodeCount = 0;
     u64 qNodeCount = 0;
     std::shared_ptr<TimeManager> clock;
@@ -113,15 +84,11 @@ public:
         : m_transpositionTable(context.editTranspositionTable())
         , m_gameContext(context)
         , m_originPosition(context.readChessPosition())
-    { clear(); }
+    {}
 
     // entry point
     template<Set us>
     SearchResult go(SearchParameters params, std::shared_ptr<TimeManager> clock);
-
-    void clear();
-    bool isKillerMove(PackedMove move, u16 ply) const;
-    u32 getHistoryHeuristic(u8 set, u8 src, u8 dst) const;
 
 private:
     // these methods will run from top down just to keep things organized.
@@ -134,6 +101,8 @@ private:
     template<Set us, typename TT, typename NMP, typename LMR>
     SearchResult dispatchQSearch(ThreadSearchContext& context, SearchParameters params);
     template<Set us, typename TT, typename NMP, typename LMR, typename QSearch>
+    SearchResult dispatchOrdering(ThreadSearchContext& context, SearchParameters params);
+    template<Set us, typename TT, typename NMP, typename LMR, typename QSearch, typename Ordering>
     SearchResult dispatchDebug(ThreadSearchContext& context, SearchParameters params);
     
     // start of actual search
@@ -153,23 +122,14 @@ private:
     bool tryNullMovePrune(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
     template<Set us, typename config>
     i16 nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
+        
+    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const;    
 
-    void pushKillerMove(PackedMove mv, u16 ply);
-    void putHistoryHeuristic(u8 set, u8 src, u8 dst, u32 depth);
-    
-    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const;
-
-    bool allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u16 depth) const;
-  
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;
     GameContext& m_gameContext;
 
-    PackedMove m_killerMoves[4][c_maxSearchDepth];
-    u32 m_historyHeuristic[2][64][64];
-
     PositionReader m_originPosition;
-
 };
 
 #include <search/impl/search_impl.inl>

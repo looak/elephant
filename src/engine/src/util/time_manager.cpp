@@ -55,14 +55,12 @@ void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspect
         }
 
          // Add increment - partial if available
-        baseTime += m_increment_ms * 0.6f;
-
+        baseTime += m_increment_ms * 0.75f;
         allocatedTime = baseTime;
     }
 
     // Safety margin to avoid time forfeits
     allocatedTime = static_cast<u64>(allocatedTime * 0.95f);
-
     return allocatedTime;
 }
 
@@ -76,22 +74,17 @@ bool TimeManager::continueIterativeDeepening(u64 lastIterationTimeSpan) const {
     // A common, safe heuristic: if the *next* iteration is
     // predicted to take more than 50% of the *total remaining time*, stop.
     // A simple prediction is that the next depth will take ~4-6x longer.
-    // We'll use a factor of 4 for safety.
-    
+    // We'll use a factor of 4 for safety.    
     i64 predictedTime = lastIterationTimeSpan * 4;
 
     timepoint_t now = chess_time_t::now();
     auto timeSpent = std::chrono::duration_cast<ms_t>(now - m_startTime).count();
     auto allocatedTime = std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count();
-    i64 timeRemaining = allocatedTime - timeSpent;
+    const float margin = 0.95f;
+    i64 timeRemaining = (allocatedTime - timeSpent) * margin;
 
-    // If we predict the next iteration will use up more than half our remaining time, stop.
-    if (predictedTime > (timeRemaining / 2)) {
-        return false;
-    }
-
-    // Otherwise, we're good to go.
-    return true;
+    // If we predict the next iteration will use up more than our remaining time and a margin, stop.
+    return predictedTime < timeRemaining;
 }
 
 void TimeManager::begin() {

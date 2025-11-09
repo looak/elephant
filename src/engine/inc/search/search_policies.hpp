@@ -1,6 +1,22 @@
+// Elephant Gambit Chess Engine - a Chess AI
+// Copyright(C) 2025  Alexander Loodin Ek
+
+// This program is free software : you can redistribute it and /or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
 
 #include "search/search_constants.hpp"
+#include "search/search_heuristic_structures.hpp"
 #include "search/search_results.hpp"
 #include "search/transposition_table.hpp"
 
@@ -11,12 +27,14 @@
 #include <optional>
 #include <stack>
 
+// TODO: Implementation here could be moved to a .cpp
+
 // Forward-declare Search class for policy callbacks
 class Search;
 
 namespace search_policies {
-// --- Transposition Table Policies ---
 
+// --- Transposition Table Policies ---
 class TTEnabled {
 public:
     static void assign(TranspositionTable& tt) {
@@ -93,7 +111,6 @@ public:
 
 
 // --- Late Move Reduction (LMR) Policies ---
-
 class LmrEnabled {
 public:
     static constexpr bool enabled = true;
@@ -118,24 +135,22 @@ public:
     static u32 getReduction(u32) { return 0; }
 };
 
-
 // --- Move Ordering Heuristics (Killers/History) Policies ---
+class OrderingEnabled {
+public:
+    static void push(KillerMoves& killers, PackedMove move, u32 ply) {
+        killers.push(move, ply);
+    }
+    static void prime(const KillerMoves& killers, MoveOrderingView& view, u32 ply) {
+        killers.retrieve(ply, view.killers[0], view.killers[1]);
+    }
+};
 
-// class OrderingEnabled {
-// public:
-//     static void store_killer(Search& search, PackedMove move, u32 ply) {
-//         search.pushKillerMove(move, ply);
-//     }
-//     static void store_history(Search& search, Set set, PackedMove move, u32 depth) {
-//         search.putHistoryHeuristic(static_cast<u8>(set), move.source(), move.target(), depth);
-//     }
-// };
-
-// class OrderingDisabled {
-// public:
-//     static void store_killer(Search&, PackedMove, u32) { /* Do nothing */ }
-//     static void store_history(Search&, Set, PackedMove, u32) { /* Do nothing */ }
-// };
+class OrderingDisabled {
+public:
+    static void push(KillerMoves&, PackedMove, u32) { /* Do nothing */ }
+    static void prime(const KillerMoves&, MoveOrderingView&, u32) { /* Do nothing */ }
+};
 
 // --- Null Move Pruning (NMP) Policies ---
 
@@ -240,6 +255,7 @@ template<
     typename NMP,
     typename LMR,
     typename QSearch,
+    typename Ordering,
     typename Debug
 >
 struct SearchConfig {
@@ -247,5 +263,6 @@ struct SearchConfig {
     using NMP_Policy = NMP;
     using LMR_Policy = LMR;
     using QSearch_Policy = QSearch;    
+    using Ordering_Policy = Ordering;
     using Debug_Policy = Debug;
 };

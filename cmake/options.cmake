@@ -1,4 +1,4 @@
-set(DEVELOPMENT_BUILD OFF CACHE STRING "Enable development build settings" FORCE)
+set(DEVELOPMENT_BUILD ON CACHE STRING "Enable development build settings" FORCE)
 set(FATAL_ASSERTS_ENABLED OFF CACHE STRING "Enable fatal assert" FORCE)
 set(EXCEPTIONS_ENABLED ON CACHE STRING "Enable exceptions" FORCE)
 
