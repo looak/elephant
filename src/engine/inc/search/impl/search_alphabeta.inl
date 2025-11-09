@@ -88,6 +88,9 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
     PrioritizedMove ordered = gen.pop();
     
     do {
+        if (context.clock->shouldStop() == true) 
+            break;
+
         PackedMove move = ordered.move;
         u16 modifiedDepth = depth;
         // --- Late Move Reduction ---
@@ -122,8 +125,6 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
         context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
-
-        // if (context.cancel()) return 0; // Handle search cancellation
 
         // --- Alpha-Beta Logic (Fail-Soft) ---
         if (eval > bestEval) {

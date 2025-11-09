@@ -16,6 +16,7 @@ UCI::UCI() :
     m_enabled(true),
     m_stream(std::cout)
 {
+    m_timeManager = std::make_shared<TimeManager>(SearchParameters{}, Set::WHITE);
     m_stream << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
     m_stream << "id author Alexander Loodin Ek\n";
     InitializeOptions();
@@ -290,11 +291,13 @@ UCI::Go(std::list<std::string>& args)
     Search searcher(m_context);
 
     if (m_context.readToPlay() == Set::WHITE) {
-        SearchResult result = searcher.go<Set::WHITE>(searchParams);
+        m_timeManager->applyTimeSettings(searchParams, Set::WHITE);
+        SearchResult result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
         m_stream << "bestmove " << result.move().toString() << "\n";
     }
     else {
-        SearchResult result = searcher.go<Set::BLACK>(searchParams);
+        m_timeManager->applyTimeSettings(searchParams, Set::BLACK);
+        SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
         m_stream << "bestmove " << result.move().toString() << "\n";
     }
     return true;

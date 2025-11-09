@@ -67,6 +67,9 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
     u16 index = 0;
 
     do {
+        if (context.clock->shouldStop() == true) 
+            break;
+
         u16 modifiedDepth = depth;
         // --- Late Move Reduction if Enabled ---
         if constexpr (config::LMR_Policy::enabled) {

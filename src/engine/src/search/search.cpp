@@ -56,47 +56,6 @@ bool Search::allowAnotherIteration(i64 elapsedTime, i64 timeleft, i32 timeInc, u
     return false;
 }
 
-CancelSearchCondition Search::buildCancellationFunction(Set perspective, const SearchParameters& params, const Clock& clock) const {
-    if (params.BlackTimelimit == 0 && params.WhiteTimelimit == 0 && params.MoveTime == 0) {
-        // we will never cancel a search based on time.
-        return [&]() {
-            return false;
-            };
-    }
-
-    if (params.MoveTime > 0) {
-        i64 moveTime = params.MoveTime;
-        return [&clock, moveTime]() {
-            return clock.getElapsedTime() > moveTime;
-            };
-    }
-
-    u32 timelimit = perspective == Set::WHITE ? params.WhiteTimelimit : params.BlackTimelimit;
-    i32 timeInc = perspective == Set::WHITE ? params.WhiteTimeIncrement : params.BlackTimeIncrement;
-
-    if (timelimit > 0) {
-        const i64 c_maxTimeAllowed = timeInc + (timelimit / 24);  // at 5min this is 12 seconds, at 1min this is 2.5 seconds
-        return [&clock, c_maxTimeAllowed]() {
-            return clock.getElapsedTime() > c_maxTimeAllowed;
-            };
-    }
-
-    return [&]() {
-        return true;
-        };
-}
-
-// i32 Search::Extension(const Chessboard&, const PrioritizedMove& prioratized, u16 ply) const {
-//     if (ply >= c_maxSearchDepth)
-//         return 0;
-//     //    board.readPosition().calcKingMask<Set::WHITE>().isChecked();
-//     if (prioratized.move.isCapture() || prioratized.move.isPromotion() || prioratized.isCheck()) {
-//         return 1;
-//     }
-
-//     return 0;
-// }
-
 void Search::clear() {
     for (u32 i = 0; i < 2; ++i) {
         for (u32 j = 0; j < 64; ++j) {
