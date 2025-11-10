@@ -92,6 +92,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/impl/search_quiescence.inl
 
 ## /util/...
+    ${ENGINE_INC_DIR}/util/bench_positions.hpp
     ${ENGINE_INC_DIR}/util/clock.hpp
     ${ENGINE_INC_DIR}/util/time_manager.hpp
     ${ENGINE_INC_DIR}/util/static_initializer.hpp

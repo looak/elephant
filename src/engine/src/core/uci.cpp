@@ -6,6 +6,7 @@
 #include <core/game_context.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
+#include <util/bench_positions.hpp>
 
 #include <functional>
 #include <map>
@@ -305,6 +306,40 @@ UCI::Go(std::list<std::string> args)
         SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
         m_stream << "bestmove " << result.move().toString() << "\n";
     }
+    return true;
+}
+
+bool UCI::Bench(std::list<std::string> args)
+{
+    LOG_INFO() << "Starting benchmark...";
+
+    Clock timer;
+    timer.Start();
+    u64 nodes = 0;
+
+    for (const auto& fen : bench::fens) {
+        GameContext context;
+        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+
+        Search search(context);
+        SearchParameters params;
+        TimeManager tm(params, context.readToPlay());
+        
+        params.SearchDepth = bench::depth;
+        if (context.readToPlay() == Set::WHITE) {
+            auto result = search.go<Set::WHITE>(params, tm);
+            nodes += result.count;
+        }
+        else {
+            auto result = search.go<Set::BLACK>(params, tm);
+            nodes += result.count;
+        }
+    }
+
+    timer.Stop();
+    i64 elapsedSeconds = timer.getElapsedTime() / 1000;
+    std::cout << "info string " << elapsedSeconds << " seconds\n";
+    std::cout << nodes << " nodes " << nodes / elapsedSeconds << " nps\n";
     return true;
 }
 

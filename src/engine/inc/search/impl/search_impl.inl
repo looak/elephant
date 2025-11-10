@@ -19,7 +19,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
                 searchContext.history.push(undoUnit.hash);
             }
             auto result = dispatchSearch<us>(searchContext, params);
-            result.count = searchContext.nodeCount;
+            result.count = searchContext.nodeCount + searchContext.qNodeCount;
             return result;
         }));
     }    
@@ -52,7 +52,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         SearchResult itrResult;        
         itrResult.score = alphaBeta<us, config>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
 
-        reportResult(itrResult, itrDepth, context.nodeCount, itrClock);
+        reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, itrClock);
 
         config::Debug_Policy::reportNps(context.nodeCount, context.qNodeCount);
         config::Debug_Policy::popClock();

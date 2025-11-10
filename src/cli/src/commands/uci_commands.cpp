@@ -47,6 +47,10 @@ bool UCICommands::GoCommand(std::list<std::string> args, UCI& interface)
     interface.Go(args);
     return true;
 }
+bool UCICommands::BenchCommand(std::list<std::string> args, UCI& interface)
+{
+    return interface.Bench(args);
+}
 bool UCICommands::StopCommand(std::list<std::string>, UCI& interface)
 {
     return interface.Stop();
