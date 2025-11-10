@@ -30,6 +30,7 @@ public:
     bool handlesInput() override { return true; }
     UciModeProcessor();
     bool processInput(AppContext& context, const std::string& line) override;
+    void independentMode();
 
 private:
 
