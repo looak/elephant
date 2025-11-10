@@ -3,17 +3,18 @@
 
 TimeManager::TimeManager(const SearchParameters& params, Set perspective)
     : m_perspective(perspective)
-    , m_stopRequested(false)
     , m_isTimeManaged(true)
 {
     applyTimeSettings(params, perspective);
 }
 
 void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspective) {
-        // Set up the time parameters for our side
+    m_isTimeManaged = false;
+
+    // Set up the time parameters for our side
     if (perspective == Set::WHITE) {
         m_timeLeft_ms = params.WhiteTimelimit;
-        m_increment_ms = params.WhiteTimeIncrement;
+        m_increment_ms = params.WhiteTimeIncrement;        
     } else {
         m_timeLeft_ms = params.BlackTimelimit;
         m_increment_ms = params.BlackTimeIncrement;
@@ -22,18 +23,12 @@ void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspect
     m_moveTime_ms = params.MoveTime;
     m_movesToGo = params.MovesToGo;
 
-    // Check for non-time-managed modes (infinite, depth-only, etc.)
-    if (params.Infinite || params.SearchDepth == 0) {
+    if (params.MoveTime > 0 || m_timeLeft_ms > 0) {
+        m_isTimeManaged = true;
+    }
+
+    if (params.Infinite) {
         m_isTimeManaged = false;
-    } 
-    else if (params.SearchDepth > 0 && params.SearchDepth < c_maxSearchDepth) {
-        // m_isTimeManaged = false; // Depth-limited search
-    }
-    else if (params.MoveTime > 0) {
-        m_isTimeManaged = true; // Special case: fixed movetime
-    }
-    else if (m_timeLeft_ms == 0) {
-        m_isTimeManaged = false; // No wtime/btime, must be infinite
     }
 }
 
@@ -88,8 +83,7 @@ bool TimeManager::continueIterativeDeepening(u64 lastIterationTimeSpan) const {
 }
 
 void TimeManager::begin() {
-    m_startTime = chess_time_t::now();
-    m_stopRequested.store(false, std::memory_order_relaxed);
+    m_startTime = chess_time_t::now();    
 
     if (m_isTimeManaged == false) {
         // For infinite, depth, or nodes search, set stop time to "never"
@@ -110,7 +104,7 @@ u64 TimeManager::now() const {
 
 bool TimeManager::shouldStop() const {
     // Check for external "stop" command (e.g., from UCI)
-    if (m_stopRequested.load(std::memory_order_relaxed)) {
+    if (m_stopSource.stop_requested()) {
         return true;
     }
 
@@ -125,5 +119,15 @@ bool TimeManager::shouldStop() const {
 }
 
 void TimeManager::cancel() {
-    m_stopRequested.store(true, std::memory_order_release);
+    m_stopSource.request_stop();
+}
+
+std::stop_token TimeManager::cancelToken() const {
+    return m_stopSource.get_token();
+}
+
+void TimeManager::reset() {
+    // Clear any previous stop requests
+    this->cancel();
+    m_stopSource = std::stop_source();
 }

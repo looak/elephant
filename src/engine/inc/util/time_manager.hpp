@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <atomic>
+#include <stop_token>
 
 #include <material/chess_piece_defines.hpp>
 
@@ -48,7 +48,16 @@ public:
 
         /**
      * @brief Signals all search threads to stop (e.g., from a UCI "stop" command).     */
-    void cancel();   
+    void cancel(); 
+
+    /**
+     * @brief Gets the stop token associated with this TimeManager.
+     * @return The std::stop_token used to signal search threads to stop.     */
+    std::stop_token cancelToken() const;
+    /**
+     * @brief Resets the TimeManager state for a new search.
+     * This clears any stop requests and prepares the manager for reuse.     */
+    void reset();
 
 private:
     // --- Configuration (set at creation) ---
@@ -61,9 +70,8 @@ private:
     // --- State ---
     timepoint_t m_startTime;
     timepoint_t m_endTime;
-    std::atomic<bool> m_stopRequested;
+    std::stop_source m_stopSource;
     bool m_isTimeManaged;
-
 
     /**
      * @brief This is the "brain" of the time manager, calculating the ideal time slice.

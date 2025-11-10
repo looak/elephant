@@ -42,6 +42,7 @@ struct SearchParameters {
     // 0 = infinite
     u8 SearchDepth = 24;
     u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
+    u16 ThreadCount = 1;
 
     // total amount of time allowed to search for a move in milliseconds.
     // 0 = no time limit
@@ -64,8 +65,8 @@ struct SearchParameters {
 };
 
 struct ThreadSearchContext {
-    ThreadSearchContext(Position position, bool whiteToMove)
-        : position(position) {
+    ThreadSearchContext(Position position, bool whiteToMove, const TimeManager& _clock)
+        : position(position), clock(_clock) {
             gameState.whiteToMove = whiteToMove;
         }
     Position position;
@@ -74,7 +75,7 @@ struct ThreadSearchContext {
     MoveOrderingHeuristic moveOrdering;
     u64 nodeCount = 0;
     u64 qNodeCount = 0;
-    std::shared_ptr<TimeManager> clock;
+    const TimeManager& clock;
 };
 
 class Search {
@@ -88,7 +89,7 @@ public:
 
     // entry point
     template<Set us>
-    SearchResult go(SearchParameters params, std::shared_ptr<TimeManager> clock);
+    SearchResult go(SearchParameters params, TimeManager& clock);
 
 private:
     // these methods will run from top down just to keep things organized.

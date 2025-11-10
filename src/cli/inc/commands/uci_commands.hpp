@@ -20,33 +20,35 @@
  * https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
  * @author Alexander Loodin Ek  */
 #pragma once
+#include <defines.hpp>
+#include <condition_variable>
 #include <functional>
-#include <map>
-#include <string>
+#include <future>
 #include <list>
+#include <map>
+#include <mutex>
+#include <queue>
+#include <string>
 
 class UCI;
 
-namespace UCICommands
-{
+namespace UCICommands {
 
-typedef std::function<bool(std::list<std::string>&, UCI&)> UCICommandFunction;
+typedef std::function<bool(std::list<std::string>, UCI&)> UCICommandFunction;
 typedef std::map<std::string, UCICommandFunction> UCICommandsMap;
 typedef std::map<std::string, std::string> UCIOptionsMap;
 
-void UCIEnable();
-
-bool DebugCommand(std::list<std::string>& args, UCI& context);
-bool IsReadyCommand(std::list<std::string>& args, UCI& context);
-bool SetOptionCommand(std::list<std::string>& args, UCI& context);
-bool RegisterCommand(std::list<std::string>& args, UCI& context);
-bool NewGameCommand(std::list<std::string>& args, UCI& context);
-bool PositionCommand(std::list<std::string>& args, UCI& context);
-bool GoCommand(std::list<std::string>& args, UCI& context);
-bool StopCommand(std::list<std::string>& args, UCI& context);
-bool PonderHitCommand(std::list<std::string>& args, UCI& context);
-bool PrintCommand(std::list<std::string>& args, UCI& context);
-bool QuitCommand(std::list<std::string>& args, UCI& context);
+bool DebugCommand(std::list<std::string> args, UCI& context);
+bool IsReadyCommand(std::list<std::string> args, UCI& context);
+bool SetOptionCommand(std::list<std::string> args, UCI& context);
+bool RegisterCommand(std::list<std::string> args, UCI& context);
+bool NewGameCommand(std::list<std::string> args, UCI& context);
+bool PositionCommand(std::list<std::string> args, UCI& context);
+bool GoCommand(std::list<std::string> args, UCI& context);
+bool StopCommand(std::list<std::string> args, UCI& context);
+bool PonderHitCommand(std::list<std::string> args, UCI& context);
+bool PrintCommand(std::list<std::string> args, UCI& context);
+bool QuitCommand(std::list<std::string> args, UCI& context);
 
 static UCICommandsMap commands = {
     { "debug", DebugCommand },
@@ -68,3 +70,26 @@ static UCIOptionsMap options = {
 };
 
 } // namespace UCICommands
+
+
+using CommandFunction = std::function<bool(UCI&)>;
+struct UCIThread {
+private:
+    UCI& interface;
+    u32 m_id;
+
+    std::mutex m_mtx;
+    std::condition_variable_any m_cv;
+    std::queue<CommandFunction> m_commandQueue;
+    std::vector<std::future<bool>> m_runningCommands;
+
+    void cleanupCompletedFutures();
+
+public:
+    UCIThread(UCI& interface, u32 id)
+        : interface(interface), m_id(id) {}
+
+    void queue(std::list<std::string> args, UCICommands::UCICommandFunction command);
+    void process(std::stop_token stopToken);
+    
+};
