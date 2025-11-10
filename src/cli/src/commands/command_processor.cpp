@@ -77,6 +77,13 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
     UCI interface;
     options();
     interface.Enable();
+    UCIThread uciThread(interface, 0);
+
+    std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
+        uciThread.process(stopToken);
+    });
+    
+
     while (interface.Enabled()) {
         std::string buffer = "";
         std::getline(std::cin, buffer);
@@ -100,10 +107,7 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
             }       
 
             tokens.pop_front();  // remove command from arguments
-            if (!command->second(tokens, interface)) {
-                LOG_ERROR() << " Something went wrong during command: " << commandStr;
-                std::exit(1);
-            }
+            uciThread.queue(tokens, command->second);
         }
     }
 

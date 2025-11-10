@@ -32,6 +32,7 @@ public:
     bool processInput(AppContext& context, const std::string& line) override;
 
 private:
+
     void options();
     void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens);   
     

@@ -11,22 +11,24 @@ namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
 class SearchFixture : public ::testing::Test {
 public:
+    SearchFixture() :
+        timeManager(testingParams, Set::WHITE)
+    {}
     virtual void SetUp(){
         testingParams.SearchDepth = 12;
-        testingParams.MoveTime = 30 * 1000; // 30 seconds
+        testingParams.ThreadCount = 1;
+        //testingParams.MoveTime = 30 * 1000; // 30 seconds
 
         testingParams.UseTranspositionTable = true;
         testingParams.UseQuiescenceSearch = true;
         testingParams.UseNullMovePruning = true;
-        testingParams.UseLateMoveReduction = true;
-
-        clock = std::make_shared<TimeManager>(testingParams, Set::WHITE);
+        testingParams.UseLateMoveReduction = true;        
 
     };
     virtual void TearDown(){};
 
     SearchParameters testingParams;
-    std::shared_ptr<TimeManager> clock;
+    TimeManager timeManager;
 };
 
 ////////////////////////////////////////////////////////////////
@@ -42,7 +44,8 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     Search searcher(context);
     
     // execute
-    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
 
     i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
@@ -63,7 +66,8 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     Search searcher(context);
 
     // execute
-    SearchResult result = searcher.go<Set::BLACK>(testingParams, clock);
+    timeManager.applyTimeSettings(testingParams, Set::BLACK);
+    SearchResult result = searcher.go<Set::BLACK>(testingParams, timeManager);
 
     i32 mateScore = c_checkmateConstant - result.score;
     mateScore /= 2;
@@ -80,8 +84,8 @@ TEST_F(SearchFixture, WhiteForcedMate)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     Search searcher(context);
-
-    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
     EXPECT_TRUE(result.ForcedMate);
 }
 
@@ -92,8 +96,8 @@ TEST_F(SearchFixture, MateAgainstSelf)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     Search searcher(context);
-
-    SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
     EXPECT_NE(result.move(), PackedMove::NullMove());
 }
 
@@ -103,8 +107,8 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         Search searcher(context);
-
-        SearchResult result = searcher.go<Set::WHITE>(testingParams, clock);
+        timeManager.applyTimeSettings(testingParams, Set::WHITE);
+        SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
     }
@@ -118,10 +122,12 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         Search searcher(context);
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::BLACK);
+            result = searcher.go<Set::BLACK>(testingParams, timeManager);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::WHITE);
+            result = searcher.go<Set::WHITE>(testingParams, timeManager);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -142,10 +148,12 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::BLACK);
+            result = searcher.go<Set::BLACK>(testingParams, timeManager);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::WHITE);
+            result = searcher.go<Set::WHITE>(testingParams, timeManager);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -166,10 +174,12 @@ TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::BLACK);
+            result = searcher.go<Set::BLACK>(testingParams, timeManager);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::WHITE);
+            result = searcher.go<Set::WHITE>(testingParams, timeManager);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -192,10 +202,12 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         testingParams.SearchDepth = 10;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
-            result = searcher.go<Set::BLACK>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::BLACK);
+            result = searcher.go<Set::BLACK>(testingParams, timeManager);
         }
         else {
-            result = searcher.go<Set::WHITE>(testingParams, clock);
+            timeManager.applyTimeSettings(testingParams, Set::WHITE);
+            result = searcher.go<Set::WHITE>(testingParams, timeManager);
         }
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
@@ -219,11 +231,10 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
     testingParams.WhiteTimelimit = 10000;
     testingParams.MoveTime = 0; // let time manager decide
 
-    clock->applyTimeSettings(testingParams, Set::WHITE);
-    
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
     
     SearchResult result;    
-    result = searcher.go<Set::WHITE>(testingParams, clock);    
+    result = searcher.go<Set::WHITE>(testingParams, timeManager);    
 
     testing_clock.Stop();
     OUT() << "Search completed in " << testing_clock.getElapsedTime() << " ms.";

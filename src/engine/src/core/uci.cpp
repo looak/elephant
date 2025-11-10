@@ -14,9 +14,9 @@
 
 UCI::UCI() :
     m_enabled(true),
-    m_stream(std::cout)
-{
-    m_timeManager = std::make_shared<TimeManager>(SearchParameters{}, Set::WHITE);
+    m_stream(std::cout),
+    m_timeManager(SearchParameters{}, Set::WHITE)
+{    
     m_stream << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
     m_stream << "id author Alexander Loodin Ek\n";
     InitializeOptions();
@@ -57,7 +57,7 @@ UCI::IsReady()
 }
 
 bool
-UCI::SetOption(const std::list<std::string>& args)
+UCI::SetOption(const std::list<std::string> args)
 {
     if (args.size() < 4) {
         LOG_ERROR() << "SetOption: Not enough arguments";
@@ -71,6 +71,8 @@ UCI::SetOption(const std::list<std::string>& args)
 
     if (name->compare("Threads") == 0) {
         LOG_DEBUG() << "Threads: " << *value;
+        m_options["Threads"] = *value;
+        m_threadCount = static_cast<u16>(std::stoi(*value));
     }
     else if (name->compare("Hash") == 0) {
         m_options["Hash"] = *value;
@@ -86,7 +88,7 @@ UCI::SetOption(const std::list<std::string>& args)
 }
 
 bool
-UCI::Position(std::list<std::string>& args)
+UCI::Position(std::list<std::string> args)
 {
     if (args.size() == 0) {
         LOG_ERROR() << "PositionCommand: No arguments";
@@ -156,13 +158,15 @@ UCI::NewGame()
 bool
 UCI::Stop()
 {
+    m_timeManager.cancel();
     return true;
 }
 
 bool
-UCI::Go(std::list<std::string>& args)
+UCI::Go(std::list<std::string> args)
 {
     SearchParameters searchParams;
+    m_timeManager.reset();
 
     // some of these args have values associated with them, so when we iterate
     // over the options, some times we need to jump twice. Hence the lambda
@@ -289,14 +293,15 @@ UCI::Go(std::list<std::string>& args)
     }
 
     Search searcher(m_context);
+    searchParams.ThreadCount = m_threadCount;
 
     if (m_context.readToPlay() == Set::WHITE) {
-        m_timeManager->applyTimeSettings(searchParams, Set::WHITE);
+        m_timeManager.applyTimeSettings(searchParams, Set::WHITE);
         SearchResult result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
         m_stream << "bestmove " << result.move().toString() << "\n";
     }
     else {
-        m_timeManager->applyTimeSettings(searchParams, Set::BLACK);
+        m_timeManager.applyTimeSettings(searchParams, Set::BLACK);
         SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
         m_stream << "bestmove " << result.move().toString() << "\n";
     }
@@ -304,7 +309,7 @@ UCI::Go(std::list<std::string>& args)
 }
 
 bool
-UCI::Perft(std::list<std::string>&)
+UCI::Perft(std::list<std::string>)
 {
     return false;
 }

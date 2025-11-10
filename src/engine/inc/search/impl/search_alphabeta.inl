@@ -89,7 +89,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
     PrioritizedMove ordered = gen.pop();
     
     do {
-        if (context.clock->shouldStop() == true) 
+        if (context.clock.shouldStop() == true) 
             break;
 
         PackedMove move = ordered.move;

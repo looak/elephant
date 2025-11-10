@@ -1,27 +1,47 @@
 #pragma once
+#include <thread>
+#include <future>
 
 template<Set us>
-SearchResult Search::go(SearchParameters params, std::shared_ptr<TimeManager> clock)
-{   
+SearchResult Search::go(SearchParameters params, TimeManager& clock) {   
+    clock.begin();
     m_transpositionTable.incrementAge();
     
-    ThreadSearchContext searchContext(m_originPosition.copy(), us == Set::WHITE);
-    searchContext.clock = clock;
+    std::vector<std::future<SearchResult>> searchResults;
+    
+    for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
+        searchResults.push_back(std::async(std::launch::async,
+            [this, &params, &clock]() {
+            ThreadSearchContext searchContext(this->m_originPosition.copy(), us == Set::WHITE, clock);
+            // prime hashes from historical positions to allow proper 3-fold repetition avoidance
+            // TODO: This could be done once for all ThreadContexts.
+            for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
+                searchContext.history.push(undoUnit.hash);
+            }
+            return dispatchSearch<us>(searchContext, params);
+        }));
+    }    
 
-    // prime hashes from historical positions to allow proper 3-fold repetition avoidance
-    for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
-        searchContext.history.push(undoUnit.hash);
+    SearchResult finalResult;
+    for (auto& fut : searchResults) {
+        // fut.get() will BLOCK until the thread is finished
+        // (either by completing or by seeing the cancel signal)
+        // It also propagates exceptions.
+        try {
+            finalResult = fut.get();            
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Search thread exception: " << e.what();
+        }
     }
 
-    return dispatchSearch<us>(searchContext, params);
+    return finalResult;
 }
 
 template<Set us, typename config>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
     SearchResult result;
 
-    context.clock->begin();
-    u64 lastIterationTimeSpan = context.clock->now();
+    u64 lastIterationTimeSpan = context.clock.now();
 
     // iterative deepening loop -- might make this optional.
     for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
@@ -48,13 +68,13 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
         
-        u64 iterationTimeSpan = context.clock->now() - lastIterationTimeSpan;
-        lastIterationTimeSpan = context.clock->now();
+        u64 iterationTimeSpan = context.clock.now() - lastIterationTimeSpan;
+        lastIterationTimeSpan = context.clock.now();
 
-        if (context.clock->shouldStop() == true)
+        if (context.clock.shouldStop() == true)
             break;
 
-        if (context.clock->continueIterativeDeepening(iterationTimeSpan) == false)
+        if (context.clock.continueIterativeDeepening(iterationTimeSpan) == false)
             break;
     }
     

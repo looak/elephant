@@ -45,7 +45,7 @@ public:
     * set up the position described in fenstring on the internal board and play the
     * moves on the internal chess board. If the game was played from the start
     * position the string "startpos" will be sent   */
-    bool Position(std::list<std::string>& args);
+    bool Position(std::list<std::string> args);
 
     /**
      * Synchronizes the engine with the GUI by ensuring that the engine is ready
@@ -59,7 +59,7 @@ public:
     /**
      * option name [name] value [value]
      * sets a option on the engine */
-    bool SetOption(const std::list<std::string>& args);
+    bool SetOption(const std::list<std::string> args);
 
     /**
      * Sets up the engine for a new game. The engine will respond "isready"    */
@@ -69,7 +69,7 @@ public:
      * Starts calculating the best move for the current position. Number of
      * options are available according to the UCI standard and described in
      * the documentation.     */
-    bool Go(std::list<std::string>& args);
+    bool Go(std::list<std::string> args);
 
     /**
      * Stops calculating the best move for the current position. If the engine
@@ -78,7 +78,7 @@ public:
 
     /**
      * Non standard UCI, used for testing.   */
-    bool Perft(std::list<std::string>& args);
+    bool Perft(std::list<std::string> args);
 
     const GameContext& readGameContext() { return m_context; }
 private:
@@ -87,7 +87,8 @@ private:
     void InitializeOptions();
 
     bool m_enabled;
-    std::shared_ptr<TimeManager> m_timeManager;
+    u16 m_threadCount = 1;
+    TimeManager m_timeManager;
     GameContext m_context;
     std::ostream& m_stream;
     std::unordered_map<std::string, std::string> m_options;

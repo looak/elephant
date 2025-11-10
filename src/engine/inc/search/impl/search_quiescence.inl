@@ -29,7 +29,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
     
     i16 maxEval = -c_infinity;
     do {
-        if (context.clock->shouldStop() == true) 
+        if (context.clock.shouldStop() == true) 
             break;
         
         MoveExecutor executor(context.position.edit());
