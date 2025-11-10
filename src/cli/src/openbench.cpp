@@ -1,12 +1,12 @@
 #include <iostream>
 #include <vector>
 
-#include "clock.hpp"
-#include "commands_uci.h"
+#include <util/clock.hpp>
+#include <util/static_initializer.hpp>
+#include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
-#include "search.hpp"
-#include "static_initializer.hpp"
+#include <search/search.hpp>
 
 bool g_initialized = static_initializer::initialize();
 
@@ -72,10 +72,21 @@ void bench() {
 
     for (const auto& fen : fens) {
         GameContext context;
-        FENParser::deserialize(fen.c_str(), context);
+        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-        Search search;
-        nodes += search.Bench(context, depth);
+        Search search(context);
+        SearchParameters params;
+        TimeManager tm(params, context.readToPlay());
+        
+        params.SearchDepth = depth;
+        if (context.readToPlay() == Set::WHITE) {
+            auto result = search.go<Set::WHITE>(params, tm);
+            nodes += result.count;
+        }
+        else {
+            auto result = search.go<Set::BLACK>(params, tm);
+            nodes += result.count;
+        }
     }
 
     timer.Stop();
@@ -96,6 +107,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    UCICommands::UCIEnable();
+    UciModeProcessor processor;
+    processor.independentMode();
+
     return 0;
 }

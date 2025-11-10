@@ -18,7 +18,9 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
                 searchContext.history.push(undoUnit.hash);
             }
-            return dispatchSearch<us>(searchContext, params);
+            auto result = dispatchSearch<us>(searchContext, params);
+            result.count = searchContext.nodeCount;
+            return result;
         }));
     }    
 

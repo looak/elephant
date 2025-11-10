@@ -3,44 +3,59 @@ EXE ?= elephant_ob
 
 # Versioning
 export ElephantGambit_VERSION_MAJOR = 0
-export ElephantGambit_VERSION_MINOR = 6
-export ElephantGambit_VERSION_PATCH = 5
+export ElephantGambit_VERSION_MINOR = 10
+export ElephantGambit_VERSION_PATCH = 0
 export ElephantGambit_VERSION = $(ElephantGambit_VERSION_MAJOR).$(ElephantGambit_VERSION_MINOR).$(ElephantGambit_VERSION_PATCH)
 
 # Directories
 CSRC_DIR := ../src/cli/src
+CINC_DIR := ../src/cli/inc
 ESRC_DIR := ../src/engine/src
 INC_DIR := ../src/engine/inc 
+BUILD_DIR := ./build
+BIN_DIR := ./bin
 
 # Compiler and flags
 CXX := g++
-CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP -I$(INC_DIR)
+CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP -I$(INC_DIR) -I$(CINC_DIR)
 
 # Versioning header and template
 VERSION_HEADER := ../src/engine/inc/elephant_gambit_config.h
 VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
 
 # Source files
-ENGINE_SRC := $(wildcard $(ESRC_DIR)/*.cpp)
-COMMAND_SRC := $(CSRC_DIR)/commands_uci.cpp
+ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
+COMMAND_SRC := $(CSRC_DIR)/commands/uci_commands.cpp $(CSRC_DIR)/commands/command_processor.cpp
 SRC := $(CSRC_DIR)/openbench.cpp $(COMMAND_SRC) $(ENGINE_SRC)
 
 # Object files
-OBJ := $(patsubst %.cpp,%.o,$(SRC))
+OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(patsubst %.cpp,%.o,$(SRC))))
 DEP := $(OBJ:.o=.d)
+
+# Executable in bin directory
+EXE_PATH := $(BIN_DIR)/$(EXE)
 
 # Phony targets
 .PHONY: all clean
 
+vpath %.cpp $(CSRC_DIR) $(CSRC_DIR)/commands $(shell find $(ESRC_DIR) -type d)
+
 # Main target
-all: $(EXE)
+all: $(EXE_PATH)
+
+# Create directories if they don't exist
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
 # Executable dependency on object files AND version header
-$(EXE): $(OBJ) 
+$(EXE_PATH): $(OBJ) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Object file compilation rule
-%.o: %.cpp $(VERSION_HEADER)
+$(BUILD_DIR)/%.o: %.cpp $(VERSION_HEADER) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Version header generation rule (simplified for readability)
@@ -53,4 +68,9 @@ $(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE)
 
 # Clean rule
 clean:
-	rm -f $(EXE) $(OBJ) $(VERSION_HEADER) $(DEP)
+	rm -rf $(BUILD_DIR) $(BIN_DIR) $(VERSION_HEADER)
+
+
+# Debug rule
+print-%:
+	@echo $* = $($*)

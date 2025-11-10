@@ -7,6 +7,7 @@
 #include "commands/uci_commands.hpp"
 
 #include <iostream>
+#include <thread>
 
 
 bool NormalModeProcessor::processInput(AppContext& context, const std::string& line)
@@ -112,4 +113,40 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
     }
 
     return true;
+}
+
+void UciModeProcessor::independentMode()
+{
+    UCI interface;
+    options();
+    interface.Enable();
+    UCIThread uciThread(interface, 0);
+
+    std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
+        uciThread.process(stopToken);
+    });
+    
+
+    while (interface.Enabled()) {
+        std::string buffer = "";
+        std::getline(std::cin, buffer);
+        std::list<std::string> tokens;
+        extractArgsFromCommand(buffer, tokens);
+
+        LOG_INFO() << "From GUI: " << buffer;
+
+        if (tokens.size() == 0)
+            continue;
+
+        std::string commandStr = tokens.front();
+        auto&& command = UCICommands::commands.find(commandStr);
+        if (tokens.size() > 0 && command != UCICommands::commands.end()) {
+            auto token = tokens.front();
+            if (token == "quit" || token == "exit")
+                std::exit(0);  
+
+            tokens.pop_front();  // remove command from arguments
+            uciThread.queue(tokens, command->second);
+        }
+    }
 }
