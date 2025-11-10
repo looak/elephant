@@ -80,6 +80,10 @@ public:
      * Non standard UCI, used for testing.   */
     bool Perft(std::list<std::string> args);
 
+    /**
+     *  Non standard UCI, used for benchmarking engine.     */
+    bool Bench(std::list<std::string> args);
+
     const GameContext& readGameContext() { return m_context; }
 private:
     /**

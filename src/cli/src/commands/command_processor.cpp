@@ -80,6 +80,8 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
     interface.Enable();
     UCIThread uciThread(interface, 0);
 
+    // TODO: This doesn't have to be it's own thread. Internally it just dispatches the work onto
+    // futures anyway. We can probably simplify this.
     std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
         uciThread.process(stopToken);
     });
