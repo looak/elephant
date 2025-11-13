@@ -96,7 +96,7 @@ constexpr i8 pawn_modifier()
 
 namespace piece_constants {
 namespace notation {
-constexpr PieceType fromChar(char c) {
+inline PieceType fromChar(char c) {
     if (std::islower(c))
         c = std::toupper(c);
         

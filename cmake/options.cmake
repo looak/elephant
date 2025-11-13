@@ -2,8 +2,8 @@ set(DEVELOPMENT_BUILD OFF CACHE STRING "Enable development build settings" FORCE
 set(FATAL_ASSERTS_ENABLED OFF CACHE STRING "Enable fatal assert" FORCE)
 set(EXCEPTIONS_ENABLED ON CACHE STRING "Enable exceptions" FORCE)
 
-set(LOGGING_ENABLED OFF CACHE STRING "Enable logging" FORCE)
-set(DEBUG_LOGGING_ENABLED OFF CACHE STRING "Enable debug logging" FORCE)
+set(LOGGING_ENABLED ON CACHE STRING "Enable logging" FORCE)
+set(DEBUG_LOGGING_ENABLED ON CACHE STRING "Enable debug logging" FORCE)
 
 set(DEBUG_TRANSITION_TABLE OFF CACHE STRING "Enable debug output for transition table" FORCE)
 

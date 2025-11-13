@@ -18,12 +18,16 @@ UCI::UCI() :
     m_stream(std::cout),
     m_timeManager(SearchParameters{}, Set::WHITE)
 {    
-    m_stream << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
-    m_stream << "id author Alexander Loodin Ek\n";
+    std::osyncstream output(m_stream);
+    output << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
+    output << "id author Alexander Loodin Ek\n";    
     InitializeOptions();
 }
 
-UCI::~UCI() { m_stream << "quit\n"; }
+UCI::~UCI() {
+    std::osyncstream output(m_stream);
+    output << "quit\n";
+}
 
 void UCI::InitializeOptions() 
 {
@@ -35,7 +39,8 @@ void
 UCI::Enable()
 {
     m_enabled = true;
-    m_stream << "uciok\n";
+    std::osyncstream output(m_stream);
+    output << "uciok\n";
 }
 
 bool
@@ -53,7 +58,8 @@ UCI::Disable()
 bool
 UCI::IsReady()
 {
-    m_stream << "readyok\n";
+    std::osyncstream output(m_stream);
+    output << "readyok\n";
     return true;
 }
 
@@ -64,14 +70,14 @@ UCI::SetOption(const std::list<std::string> args)
         LOG_ERROR() << "SetOption: Not enough arguments";
         return false;
     }
-
+    
     auto&& option = args.begin();
     auto&& name = std::next(option);
     auto&& valuetype = std::next(name);
     auto&& value = std::next(valuetype);
 
-    if (name->compare("Threads") == 0) {
-        LOG_DEBUG() << "Threads: " << *value;
+    
+    if (name->compare("Threads") == 0) {        
         m_options["Threads"] = *value;
         m_threadCount = static_cast<u16>(std::stoi(*value));
     }
@@ -85,7 +91,6 @@ UCI::SetOption(const std::list<std::string> args)
     }
 
     return true;
-
 }
 
 bool
@@ -296,15 +301,16 @@ UCI::Go(std::list<std::string> args)
     Search searcher(m_context);
     searchParams.ThreadCount = m_threadCount;
 
+    std::osyncstream output(m_stream);
     if (m_context.readToPlay() == Set::WHITE) {
         m_timeManager.applyTimeSettings(searchParams, Set::WHITE);
         SearchResult result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
-        m_stream << "bestmove " << result.move().toString() << "\n";
+        output << "bestmove " << result.move().toString() << "\n";
     }
     else {
         m_timeManager.applyTimeSettings(searchParams, Set::BLACK);
         SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
-        m_stream << "bestmove " << result.move().toString() << "\n";
+        output << "bestmove " << result.move().toString() << "\n";
     }
     return true;
 }
