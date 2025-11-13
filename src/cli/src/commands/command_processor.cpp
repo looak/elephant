@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <thread>
+#include <syncstream>
 
 
 bool NormalModeProcessor::processInput(AppContext& context, const std::string& line)
@@ -78,22 +79,17 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
     UCI interface;
     options();
     interface.Enable();
-    UCIThread uciThread(interface, 0);
+    UCIThreadContext uciWorker(interface, 0);
 
-    // TODO: This doesn't have to be it's own thread. Internally it just dispatches the work onto
-    // futures anyway. We can probably simplify this.
-    std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
-        uciThread.process(stopToken);
+    std::jthread uciWorkerThread([&uciWorker](std::stop_token stopToken) {        
+        uciWorker.process(stopToken);
     });
     
-
     while (interface.Enabled()) {
         std::string buffer = "";
         std::getline(std::cin, buffer);
         std::list<std::string> tokens;
-        extractArgsFromCommand(buffer, tokens);
-
-        LOG_INFO() << "From GUI: " << buffer;
+        extractArgsFromCommand(buffer, tokens);        
 
         if (tokens.size() == 0)
             continue;
@@ -108,12 +104,16 @@ bool UciModeProcessor::processInput(AppContext& context, const std::string& line
                 context.setState(std::make_unique<NormalModeProcessor>());
                 return true;
             }       
-
+            std::osyncstream syncOut(std::cout);
+            syncOut << "queuing command: " << commandStr << "\n";
             tokens.pop_front();  // remove command from arguments
-            uciThread.queue(tokens, command->second);
+            uciWorker.queue(tokens, command->second);
+            
+                
         }
     }
 
+    uciWorkerThread.request_stop();
     return true;
 }
 
@@ -122,7 +122,7 @@ void UciModeProcessor::independentMode()
     UCI interface;
     options();
     interface.Enable();
-    UCIThread uciThread(interface, 0);
+    UCIThreadContext uciThread(interface, 0);
 
     std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
         uciThread.process(stopToken);

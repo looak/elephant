@@ -15,14 +15,14 @@ Evaluator::Evaluate()
     i32 score = 0;
     i32 materialScore = EvaluateMaterial();
     score += materialScore;
-    LOG_DEBUG() << "Material score: " << score;
+//    LOG_DEBUG() << "Material score: " << score;
 
     i32 tmp = EvaluatePiecePositions();
     score += tmp;
     // LOG_DEBUG() << "Piece position score: " << tmp;
 
-    tmp = EvaluatePawnStructure();
-    score += tmp;
+    /*tmp = EvaluatePawnStructure();
+    score += tmp;*/
     // LOG_DEBUG() << "Pawn structure score: " << tmp;
 
     tmp = MopUpValue(materialScore);

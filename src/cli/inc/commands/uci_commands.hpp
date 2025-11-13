@@ -75,23 +75,18 @@ static UCIOptionsMap options = {
 
 
 using CommandFunction = std::function<bool(UCI&)>;
-struct UCIThread {
+struct UCIThreadContext {
 private:
     UCI& interface;
     u32 m_id;
 
     std::mutex m_mtx;
-    std::condition_variable_any m_cv;
+    std::condition_variable m_cv;
     std::queue<CommandFunction> m_commandQueue;
-    std::vector<std::future<bool>> m_runningCommands;
-
-    void cleanupCompletedFutures();
-
 public:
-    UCIThread(UCI& interface, u32 id)
+    UCIThreadContext(UCI& interface, u32 id)
         : interface(interface), m_id(id) {}
 
     void queue(std::list<std::string> args, UCICommands::UCICommandFunction command);
     void process(std::stop_token stopToken);
-    
 };

@@ -24,6 +24,7 @@
 
 #pragma once
 #include <iostream>
+#include <syncstream>
 #include <list>
 #include <unordered_map>
 

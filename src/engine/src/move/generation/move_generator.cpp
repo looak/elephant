@@ -14,8 +14,6 @@ m_pinThreats(toSquare(position.material().king<us>().lsbIndex()), position),
     m_stage(Stage::PV_MOVE),
     m_params(params)
 {
-    m_movesBuffer.fill({});
-
     if (params.ordering == nullptr || params.ordering->pvMove == PackedMove::NullMove()) {
         m_stage = Stage::CAPTURES;
     }

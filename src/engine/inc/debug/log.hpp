@@ -22,10 +22,11 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <syncstream>
 #include <sstream>
 #include <string>
 
-// #define OUTPUT_LOG_TO_FILE
+#define OUTPUT_LOG_TO_FILE
 // #define EG_DEBUGGING
 
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
@@ -63,7 +64,7 @@
     switch (0)      \
     case 0:         \
     default:        \
-        LoggingInternals::DebugLogMessage("[    DEBUG ] ", __FILENAME__, __LINE__)
+        LoggingInternals::DebugLogMessage()
 #else
 #define LOG_DEBUG() LoggingInternals::NopMessage()
 #endif
@@ -141,9 +142,10 @@ public:
 protected:
     int sync() override
     {
-        int result1 = m_bufferOne->pubsync();
-        int result2 = m_bufferTwo->pubsync();
-        return (result1 == 0 && result2 == 0) ? 0 : -1;
+        // int result1 = m_bufferOne->pubsync();
+        // int result2 = m_bufferTwo->pubsync();
+        // return (result1 == 0 && result2 == 0) ? 0 : -1;
+        return 0;
     }
 
     std::streamsize xsputn(const char* s, std::streamsize n) override
@@ -211,7 +213,8 @@ public:
 #ifdef OUTPUT_LOG_TO_FILE
         ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
 #endif
-        m_stream << t;
+        std::osyncstream output(m_stream);
+        output << t;
         return *this;
     }    
 
@@ -221,11 +224,11 @@ public:
 #ifdef OUTPUT_LOG_TO_FILE
         ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
 #endif
+        std::osyncstream output(m_stream);
         if (pointer == nullptr)
-            m_stream << "(nullptr)";
+            output << "(nullptr)";
         else
-            m_stream << pointer;
-
+            output << pointer;
         return *this;
     }
 
@@ -234,7 +237,8 @@ public:
 #ifdef OUTPUT_LOG_TO_FILE
         ScopedDualRedirect redirect_cout(m_stream, LogHelpers::readOutputFilename());
 #endif
-        m_stream << (value ? "true" : "false");
+        std::osyncstream output(m_stream);
+        output << (value ? "true" : "false");
         return *this;
     }
 
@@ -299,10 +303,11 @@ protected:
 
     void flush()
     {
+        std::osyncstream syncOut(m_stream);
         if (m_userMessage.get() != nullptr && !m_userMessage->empty())
-            m_stream << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
+            syncOut << m_message->c_str() << " > " << m_userMessage->c_str() << "\n";
         else if (!m_message->empty())
-            m_stream << m_message->c_str() << " ";
+            syncOut << m_message->c_str() << " ";
     }
 
 public:
@@ -324,7 +329,9 @@ public:
             .append(" ")
             .append(function)
             .append("()");
-        m_stream << *m_message << " ";
+
+        std::osyncstream output(m_stream);
+        output << *m_message << " ";
     }
 
     LogMessage(const std::string& prefix, const std::string& file, int line, std::ostream& stream = std::cout) :
@@ -332,7 +339,8 @@ public:
         m_message(new ::std::string)
     {
         m_message->append(prefix).append(file).append(":").append(std::to_string(line));
-        m_stream << *m_message << " ";
+        std::osyncstream output(m_stream);
+        output << *m_message << " ";
     }
 
     virtual ~LogMessage()
