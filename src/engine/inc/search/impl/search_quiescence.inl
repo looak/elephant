@@ -1,6 +1,6 @@
 #pragma once
 
-template<Set us, typename config>
+template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply) {
     MoveGenParams genParams = MoveGenParams{ .moveFilter = MoveTypes::CAPTURES_ONLY };
     MoveGenerator<us> generator(context.position.read(), genParams);
@@ -13,7 +13,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
     if (eval >= beta)
         return beta;
     
-    if (config::QSearch_Policy::futile(depth, eval, alpha))
+    if (search_policies::QuiescencePolicy::futile(depth, eval, alpha))
         return eval;
 
     if (eval > alpha)
@@ -35,7 +35,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
         MoveExecutor executor(context.position.edit());
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, ply);
-        i16 eval = -quiescence<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1);        
+        i16 eval = -quiescence<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1);        
         context.qNodeCount++;
         executor.unmakeMove(undoState);
 

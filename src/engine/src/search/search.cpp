@@ -15,22 +15,19 @@
 #include <utility>
 
 
-void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const {
-    
-    i64 et = clock.getElapsedTime();
-
+void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const {
     u32 checkmateDistance = static_cast<u32>(c_checkmateConstant - abs(searchResult.score));
     if (checkmateDistance <= c_maxSearchDepth) {
         // found checkmate within depth.
         searchResult.ForcedMate = true;
         checkmateDistance /= 2;
         std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << nodes
-            << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
+            << " time " << elapsedTime << " pv " << searchResult.pvLine.toString() << "\n";
 
         return;
     }
 
     i32 centipawn = searchResult.score;
     std::cout << "info score cp " << centipawn << " depth " << itrDepth
-        << " nodes " << nodes << " time " << et << " pv " << searchResult.pvLine.toString() << "\n";
+        << " nodes " << nodes << " time " << elapsedTime << " pv " << searchResult.pvLine.toString() << "\n";
 }

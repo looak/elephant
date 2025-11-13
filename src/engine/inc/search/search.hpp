@@ -85,46 +85,36 @@ public:
         : m_transpositionTable(context.editTranspositionTable())
         , m_gameContext(context)
         , m_originPosition(context.readChessPosition())
-    {}
+    {
+        if constexpr (search_policies::TT::enabled) {
+            search_policies::TT::assign(m_transpositionTable);
+        }
+    }
 
     // entry point
     template<Set us>
     SearchResult go(SearchParameters params, TimeManager& clock);
 
 private:
-    // these methods will run from top down just to keep things organized.
-    template<Set us>
-    SearchResult dispatchSearch(ThreadSearchContext& context, SearchParameters params);    
-    template<Set us, typename TT>
-    SearchResult dispatchNMP(ThreadSearchContext& context, SearchParameters params);    
-    template<Set us, typename TT, typename NMP>
-    SearchResult dispatchLMR(ThreadSearchContext& context, SearchParameters params);
-    template<Set us, typename TT, typename NMP, typename LMR>
-    SearchResult dispatchQSearch(ThreadSearchContext& context, SearchParameters params);
-    template<Set us, typename TT, typename NMP, typename LMR, typename QSearch>
-    SearchResult dispatchOrdering(ThreadSearchContext& context, SearchParameters params);
-    template<Set us, typename TT, typename NMP, typename LMR, typename QSearch, typename Ordering>
-    SearchResult dispatchDebug(ThreadSearchContext& context, SearchParameters params);
-    
     // start of actual search
-    template<Set us, typename Config>
+    template<Set us>
     SearchResult iterativeDeepening(ThreadSearchContext& context, SearchParameters params);
 
     // internal seach methods
-    template<Set us, typename config>
+    template<Set us>
     i16 alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-    template<Set us, typename config>
+    template<Set us>
     i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
 
-    template<Set us, typename config>
+    template<Set us>
     i16 quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
 
-    template<Set us, typename config>
+    template<Set us>
     bool tryNullMovePrune(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
-    template<Set us, typename config>
+    template<Set us>
     i16 nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
         
-    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, const Clock& clock) const;    
+    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;    
 
     EvaluationTable m_evaluationTable;
     TranspositionTable& m_transpositionTable;

@@ -10,6 +10,7 @@ namespace elephant {
 bool static_initialize()
 {
     register_FenCommand();
+    register_BenchCommand();
     register_NewGameCommand();
     register_AboutCommand();
     register_ExitCommand();

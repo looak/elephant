@@ -1,6 +1,6 @@
 #pragma once
 
-template<Set us, typename Config>
+template<Set us>
 bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i16 beta, u16 ply) {
     PositionReader pos = ctx.position.read();
 
@@ -13,7 +13,7 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
     const auto& mat = pos.material();
     Bitboard pieces = mat.knights<us>() | mat.bishops<us>() | mat.rooks<us>() | mat.queens<us>();
     
-    if (!Config::NMP_Policy::shouldPrune(depth, false, !pieces.empty())) {
+    if (!search_policies::NMP::shouldPrune(depth, false, !pieces.empty())) {
         return false;
     }
 
@@ -21,15 +21,15 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
     u64 originalHash = ctx.position.read().hash();
     ctx.position.edit().hash() = zobrist::updateBlackToMoveHash(originalHash);
 
-    u16 R = Config::NMP_Policy::getReduction(depth);
-    i16 nullScore = -nullmove<opposing_set<us>(), Config>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
+    u16 R = search_policies::NMP::getReduction(depth);
+    i16 nullScore = -nullmove<opposing_set<us>()>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
 
     ctx.nodeCount++;
     ctx.position.edit().hash() = originalHash;
     return (nullScore >= beta);
 }
 
-template<Set us, typename config>
+template<Set us>
 i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply) {
     THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");   
 
@@ -49,9 +49,9 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
 
     // --- Leaf Node Check ---
     if (depth <= 0) {
-        if constexpr (config::QSearch_Policy::enabled) {
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us, config>(context, config::QSearch_Policy::maxDepth, alpha, beta, ply);
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
         } else {
             Evaluator evaluator(context.position.read());
             i16 perspective = (us == Set::WHITE) ? 1 : -1;
@@ -70,9 +70,9 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
 
         u16 modifiedDepth = depth;
         // --- Late Move Reduction if Enabled ---
-        if constexpr (config::LMR_Policy::enabled) {
-            if (config::LMR_Policy::shouldReduce(depth, move, index, generator.isChecked(), ordered.isCheck())) {
-                modifiedDepth -= config::LMR_Policy::getReduction(depth);                
+        if constexpr (search_policies::LMR::enabled) {
+            if (search_policies::LMR::shouldReduce(depth, move, index, generator.isChecked(), ordered.isCheck())) {
+                modifiedDepth -= search_policies::LMR::getReduction(depth);                
             }
         }
 
@@ -85,7 +85,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 bet
         if (context.history.isRepetition(currentPos.hash()) == true) {
             eval = -c_drawConstant;
         } else {
-            eval = -nullmove<opposing_set<us>(), config>(context, modifiedDepth - 1, -beta, -alpha, ply + 1);
+            eval = -nullmove<opposing_set<us>()>(context, modifiedDepth - 1, -beta, -alpha, ply + 1);
         }
 
         // TODO: Evaluate if we need to re-search within the NullMoveReduction because of LMR.
