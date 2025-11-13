@@ -35,8 +35,9 @@ class Search;
 namespace search_policies {
 
 // --- Transposition Table Policies ---
-class TTEnabled {
+class TT {
 public:
+    static constexpr bool enabled = true;
     static void assign(TranspositionTable& tt) {
         m_table = &tt;        
     }
@@ -94,24 +95,8 @@ private:
     static inline TranspositionTable* m_table;
 };
 
-class TTDisabled {
-public:
-    static std::optional<i16> probe(u64, u8, i16, i16, u16, TranspositionFlag&, PackedMove&) 
-    { return std::nullopt; }
-
-    static bool probeMove(u64, PackedMove&) 
-    { return false; }
-
-    static void update(u64, PackedMove, i16, i32, u8, TranspositionFlag)
-    { /* Do nothing */ }
-
-    static void printStats() 
-    { /* Do nothing */ }
-};
-
-
 // --- Late Move Reduction (LMR) Policies ---
-class LmrEnabled {
+class LMR {
 public:
     static constexpr bool enabled = true;
     static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool isChecking) {
@@ -128,15 +113,9 @@ public:
     }
 };
 
-class LmrDisabled {
-public:
-    static constexpr bool enabled = false;
-    static bool shouldReduce(u32, PackedMove, u16, bool, bool) { return false; }
-    static u32 getReduction(u32) { return 0; }
-};
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---
-class OrderingEnabled {
+class MoveOrdering {
 public:
     static void push(KillerMoves& killers, PackedMove move, u32 ply) {
         killers.push(move, ply);
@@ -146,15 +125,9 @@ public:
     }
 };
 
-class OrderingDisabled {
-public:
-    static void push(KillerMoves&, PackedMove, u32) { /* Do nothing */ }
-    static void prime(const KillerMoves&, MoveOrderingView&, u32) { /* Do nothing */ }
-};
-
 // --- Null Move Pruning (NMP) Policies ---
 
-class NmpEnabled {
+class NMP {
 public:
     static constexpr bool enabled = true;
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
@@ -165,16 +138,9 @@ public:
     }
 };
 
-class NmpDisabled {
-public:
-    static constexpr bool enabled = false;
-    static bool shouldPrune(u32, bool) { return false; }
-    static u32 getReduction(u32) { return 0; }
-};
-
 // --- Quiescence Search Policies ---
 
-class QSearchEnabled {
+class QuiescencePolicy {
 public:
     static constexpr bool enabled = true;
     static inline u16 maxDepth = 12;
@@ -183,12 +149,6 @@ public:
         return (depth < quiescence_params::futilityDepthMargin)
         && (alpha < eval + quiescence_params::futilityMargin);
     }
-};
-
-class QSearchDisabled {
-public:
-    static constexpr bool enabled = false;
-    static inline u16 maxDepth = 0;
 };
 
 // --- Debug Policies ---
@@ -251,15 +211,13 @@ private:
 
 
 template<
-    typename TT,
     typename NMP,
     typename LMR,
     typename QSearch,
     typename Ordering,
     typename Debug
 >
-struct SearchConfig {
-    using TT_Policy = TT;
+struct SearchConfig {    
     using NMP_Policy = NMP;
     using LMR_Policy = LMR;
     using QSearch_Policy = QSearch;    

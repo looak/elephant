@@ -1,6 +1,6 @@
 #pragma once
 
-template<Set us, typename config>
+template<Set us>
 i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in alphaBeta.");   
 
@@ -10,12 +10,15 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
 
     // --- Transposition Table Probe ---
     TranspositionFlag flag = TranspositionFlag::TTF_NONE;
-    if (std::optional<i16> ttProbeResult = config::TT_Policy::probe(pos.hash(), depth, alpha, beta, ply, flag, bestMove)) {
-        if (flag == TranspositionFlag::TTF_CUT_EXACT) {
-            pv->moves[0] = bestMove;
-            pv->length = 1;
+    if constexpr (search_policies::TT::enabled) {
+        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, alpha, beta, ply, flag, bestMove);
+        if (ttProbeResult.has_value()) {
+            if (flag == TranspositionFlag::TTF_CUT_EXACT) {
+                pv->moves[0] = bestMove;
+                pv->length = 1;
+            }
+            return ttProbeResult.value();    
         }
-        return ttProbeResult.value();    
     }
 
     // --- No-Moves Check (Mate/Stalemate) ---
@@ -25,7 +28,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     // --- prime move ordering ---    
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pv->length > 0) orderingView.pvMove = pv->moves[0];
-    config::Ordering_Policy::prime(context.moveOrdering.killers, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.moveOrdering.killers, orderingView, ply);
     genParams.ordering = &orderingView;
 
     MoveGenerator<us> generator(pos, genParams);   
@@ -40,9 +43,9 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     // --- Leaf Node Check ---
     if (depth <= 0) {
         pv->length = 0;
-        if constexpr (config::QSearch_Policy::enabled) {
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us, config>(context, config::QSearch_Policy::maxDepth, alpha, beta, ply);
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
         } else {
             int perspective = 1 - (int)us * 2;
             Evaluator evaluator(context.position.read());
@@ -51,31 +54,32 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     }
 
     // --- Null Move Pruning ---
-    if constexpr (config::NMP_Policy::enabled) {
-        if (generator.isChecked() == false && tryNullMovePrune<us, config>(context, depth, alpha, beta, ply)) {
+    if constexpr (search_policies::NMP::enabled) {
+        if (generator.isChecked() == false && tryNullMovePrune<us>(context, depth, alpha, beta, ply)) {
             return beta;
         }
     }
 
     // --- Main Search Loop ---    
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us, config>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
+    i16 eval = searchMoves<us>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
 
     // --- Store to TT ---
-    // All moves searched, no cutoff.
-    config::TT_Policy::update(        
-        pos.hash(),
-        bestMove, // Store the best move found
-        eval, // Store the best score (which is alpha if it was a PV node)
-        ply,
-        depth,
-        flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
-
+    if constexpr (search_policies::TT::enabled) {        
+        // All moves searched, no cutoff.
+        search_policies::TT::update(
+            pos.hash(),
+            bestMove, // Store the best move found
+            eval, // Store the best score (which is alpha if it was a PV node)
+            ply,
+            depth,
+            flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
+    }
     return eval;
 }
 
 
-template<Set us, typename config>
+template<Set us>
 i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove)
 {
     // --- Main Search Loop ---
@@ -95,9 +99,9 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
         PackedMove move = ordered.move;
         u16 modifiedDepth = depth;
         // --- Late Move Reduction ---
-        if constexpr (config::LMR_Policy::enabled) {
-            if (config::LMR_Policy::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
-                modifiedDepth -= config::LMR_Policy::getReduction(depth);
+        if constexpr (search_policies::LMR::enabled) {
+            if (search_policies::LMR::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
+                modifiedDepth -= search_policies::LMR::getReduction(depth);
             }
         }
 
@@ -113,13 +117,13 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
         if (context.history.isRepetition(pos.hash()) == true) {
             eval = -c_drawConstant;
         } else {
-            eval = -alphaBeta<opposing_set<us>(), config>(context, modifiedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+            eval = -alphaBeta<opposing_set<us>()>(context, modifiedDepth - 1, -beta, -alpha, ply + 1, &childPv);
         }
 
-        if constexpr (config::LMR_Policy::enabled) {
+        if constexpr (search_policies::LMR::enabled) {
             if (eval > alpha && modifiedDepth < depth) {
                 // Re-search at full depth
-                eval = -alphaBeta<opposing_set<us>(), config>(context, depth - 1, -beta, -alpha, ply + 1, &childPv);
+                eval = -alphaBeta<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1, &childPv);
             }
         }
 
@@ -145,7 +149,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             // --- Beta Cutoff ---
             if (alpha >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high                
-                config::Ordering_Policy::push(context.moveOrdering.killers, move, ply);
+                search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
                 return bestEval; 
             }
         }

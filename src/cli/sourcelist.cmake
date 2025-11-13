@@ -18,6 +18,7 @@ ${INC_DIR}/commands/logic/command_registry.hpp
 
 ${INC_DIR}/commands/commands.hpp
 ${INC_DIR}/commands/command_api.hpp
+${INC_DIR}/commands/bench_command.hpp
 ${INC_DIR}/commands/fen_command.hpp
 ${INC_DIR}/commands/help_command.hpp
 ${INC_DIR}/commands/move_command.hpp
