@@ -244,6 +244,7 @@ public:
 
     [[nodiscard]] std::string toString() const
     {
+        THROW_EXPR(!isNull(), ephant::io_error, "Cannot convert NullMove to string.");
         std::string ret;
         ret += SquareNotation(sourceSqr()).toString();
         ret += SquareNotation(targetSqr()).toString();

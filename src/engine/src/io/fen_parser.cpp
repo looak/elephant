@@ -16,24 +16,22 @@ namespace io {
 namespace fen_parser {
 namespace internals {
 std::list<std::string_view> tokenize(std::string_view s, char delim) {
-std::list<std::string_view> tokens;
+    std::list<std::string_view> tokens;
 
-while (true) {
-    auto pos = s.find(delim);
-    if (pos == std::string_view::npos) {
-        if (!s.empty())
-            tokens.push_back(s);
-        break;
+    while (true) {
+        auto pos = s.find(delim);
+        if (pos == std::string_view::npos) {
+            if (!s.empty())
+                tokens.push_back(s);
+            break;
+        }
+        tokens.push_back(s.substr(0, pos));
+        s.remove_prefix(pos + 1);
     }
-    tokens.push_back(s.substr(0, pos));
-    s.remove_prefix(pos + 1);
-}
 
-return tokens;
+    return tokens;
 }
-
 } // namespace internals
-    
 
 bool
 deserializeCastling(std::string_view castlingStr, PositionEditor position)
