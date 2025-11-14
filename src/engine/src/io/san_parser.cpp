@@ -1,110 +1,25 @@
 #include <io/san_parser.hpp>
 #include <debug/elephant_exceptions.hpp>
-#include <move/generation/move_bulk_generator.hpp>
-#include <move/generation/move_gen_isolation.hpp>
+#include <move/generation/move_generator.hpp>
 #include <position/position.hpp>
 #include <variant>
 
 namespace io {
 namespace san_parser {
-    /**
-     * Resolves the source square for a given target square in SAN notation.   */
-    Square resolveSource(PositionReader context, bool whiteToMove, PieceType piece, Square target, std::variant<std::monostate, Square, char> disambiguation = std::monostate{}) {
-        const u8 pieceId = toPieceIndex(piece);
-        Position posCopy = context.copy();
-        PositionEditor editor(posCopy);
-        Bitboard& materialEditor = editor.material().editMaterial(pieceId);
-        const Bitboard targetMask = squareMaskTable[*target]; 
-
-        // remove opponent pieces since material is stored combined.
-        materialEditor &= editor.material().set(whiteToMove ? 0 : 1);
-
-        // copy current state of material so that we can use it as a iterator.
-        Bitboard materialItr = materialEditor;
-
-        // clear editor since we'll need to pass in the position to our move generator.
-        materialEditor.reset();
-
-        // cache possible source squares to ensure we don't have ambiguity.
-        std::vector<Square> possibleSources;
-
-        while (materialItr.empty() == false) {
-            // piece by piece we'll generate their moves ...
-            Square source = toSquare(materialItr.popLsb());
-            materialEditor[source] = true;
-
-            BulkMoveGenerator gen(editor);
-            Bitboard movesbb;
-            if (whiteToMove) {
-                movesbb = gen.computeBulkMovesGeneric<Set::WHITE, MoveTypes::ALL>(pieceId);
-            }
-            else {
-                movesbb = gen.computeBulkMovesGeneric<Set::BLACK, MoveTypes::ALL>(pieceId);
-            }
-
-            // ... checking the generated moves with our target mask.
-            movesbb &= targetMask;
-
-            if (movesbb.empty() == false) {
-                // If we have valid moves, we can use the source square.
-                possibleSources.push_back(source);
-            }
-        }
-
-        if (possibleSources.size() > 1) {
-            if (const char* file_or_rank = std::get_if<char>(&disambiguation)) {
-                if (std::isdigit(*file_or_rank)) {
-                    // disambiguation by rank
-                    byte rank = *file_or_rank - '1';
-                    possibleSources.erase(
-                        std::remove_if(
-                            possibleSources.begin(),
-                            possibleSources.end(),
-                            [rank](Square sqr) {
-                                return (sqr / 8) != rank;
-                            }),
-                        possibleSources.end());
-                }
-                else if (std::isalpha(*file_or_rank)) {
-                    // disambiguation by file
-                    byte file = *file_or_rank - 'a';
-                    possibleSources.erase(
-                        std::remove_if(
-                            possibleSources.begin(),
-                            possibleSources.end(),
-                            [file](Square sqr) {
-                                return (sqr % 8) != file;
-                            }),
-                        possibleSources.end());
-                }
-                else {
-                    THROW_EXPR(false, ephant::io_error, "san_parser :: Invalid disambiguation character in SAN parsing.");
-                }
-            }
-        }
-
-        // If we still have multiple possible sources, something has gone wrong...
-        THROW_EXPR(possibleSources.size() < 2, ephant::io_error, "san_parser :: Ambiguous move detected when resolving source square in SAN parsing.");
-
-        return possibleSources.empty() ? Square::NullSQ : possibleSources[0];
-    }
-
-    PackedMove resolve(PositionReader context, bool whiteToMove, PieceType piece, Square target, std::variant<std::monostate, Square, char> disambiguation = std::monostate{}) {
-        Square source = Square::NullSQ;
-        // if disambiguation context is a whole square we can directly use that as source.
-        if (std::get_if<Square>(&disambiguation) == nullptr) {
-            source = resolveSource(context, whiteToMove, piece, target, disambiguation);
-        }
-        PackedMove result(source, target);
-        return result;
-    }
-
     PieceType parsePieceType(char pieceChar) {
         PieceType piece = PieceType::PAWN;
         if (std::isupper(pieceChar)) {
             piece = piece_constants::notation::fromChar(pieceChar);
         }
         return piece;
+    }
+
+    PieceType hasPromotion(std::string_view san) {
+        if (std::isalpha(san.back())) {
+            char promoteChar = san.back();
+            return piece_constants::notation::fromChar(promoteChar);
+        }
+        return PieceType::NONE;
     }
 
     Square parseSquare(std::string_view san) {
@@ -117,6 +32,96 @@ namespace san_parser {
         return toSquare(file - 'a', rank - '1');
     }
 
+    template<Set us>
+    PackedMove identify(PositionReader position, std::string_view san) {
+
+        auto cursor = san.begin();
+        PieceType piece = parsePieceType(*cursor);
+
+        if (piece != PieceType::PAWN) {
+            san.remove_prefix(1);
+        }
+
+        Square target = Square::NullSQ;
+        Square source = Square::NullSQ;
+        std::optional<char> disambiguationChar;
+
+        switch(san.length()) {
+            case 2: {
+                // e4, f3, b5, etc.
+                target = parseSquare(san);
+                break;
+            }
+            case 3: {
+                // Nbd2, R1e5, etc.
+                disambiguationChar = san[0];
+                target = parseSquare(san.substr(1,2));
+                break;
+            }
+            case 4: {
+                source = parseSquare(san.substr(0,2));
+                target = parseSquare(san.substr(2,2));
+                break;
+            }
+            default:
+                THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Unsupported SAN notation length for identification: {}", san));
+        }
+
+        std::vector<PrioritizedMove> candidateMoves;
+
+        MoveGenParams params;
+        PackedMove candidate = PackedMove::NullMove();
+        MoveGenerator<us> gen(position, params);
+        do {
+            PrioritizedMove mv = gen.pop();
+            candidate = mv.move;
+
+            if (candidate.isNull() == true)
+                break;
+
+            auto pieceAtSource = position.pieceAt(mv.move.sourceSqr());
+            if (pieceAtSource.getType() != piece)
+                continue;
+                
+            if (mv.move.targetSqr() == target)
+                candidateMoves.push_back(mv);
+
+        } while(true);
+
+        THROW_EXPR(candidateMoves.size() > 0, ephant::io_error, std::format("san_parser :: No matching moves found for SAN: {}", san));
+
+        if (candidateMoves.size() == 1) {            
+            return candidateMoves[0].move;
+        }
+        else {
+            for(const auto& candMove : candidateMoves) {
+                if (source != Square::NullSQ) {
+                    if (candMove.move.sourceSqr() == source) {
+                        return candMove.move;
+                    }
+                }
+                else if (disambiguationChar.has_value()) {
+                    char disambig = disambiguationChar.value();
+                    if (std::isdigit(disambig)) {
+                        byte rank = disambig - '1';
+                        if ((candMove.move.sourceSqr() / 8) == rank) {
+                            return candMove.move;
+                        }
+                    }
+                    else if (std::isalpha(disambig)) {
+                        byte file = disambig - 'a';
+                        if ((candMove.move.sourceSqr() % 8) == file) {
+                            return candMove.move;
+                        }
+                    }
+                }
+            }
+        }
+
+        THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Ambiguous SAN notation could not be resolved: {}", san));
+        return PackedMove::NullMove();
+    }
+
     PackedMove deserialize(PositionReader context, bool whiteToMove, std::string_view san) {        
         auto cursor = san.begin();
         while (cursor != san.end()) {
@@ -124,40 +129,28 @@ namespace san_parser {
             cursor++;
         }
 
-        cursor = san.begin();
-        PieceType piece = parsePieceType(*cursor);
-        
-        // if no piece specified we assume pawn.
-        if (piece != PieceType::PAWN) {
-            // If we read a piece we move the cursor forward.
-            cursor++;
+        std::string cleanSan(san);
+        // remove check and mate indications
+        if (cleanSan.ends_with('+') || cleanSan.ends_with('#')) {
+            cleanSan.pop_back();
+        }
+        // remove capture indication
+        cleanSan.erase(std::remove(cleanSan.begin(), cleanSan.end(), 'x'), cleanSan.end());
+
+        PieceType promotion = hasPromotion(cleanSan);
+        if (promotion != PieceType::NONE) {
+            cleanSan.erase(std::remove(cleanSan.begin(), cleanSan.end(), '='), cleanSan.end());
+            cleanSan.pop_back();
         }
 
-        size_t lengthLeft = std::distance(cursor, san.end());
-        size_t containsCapture = san.find('x', cursor - san.begin()) != std::string_view::npos ? 1 : 0;
-        std::variant<std::monostate, Square, char> disambiguation = std::monostate{};
-        
-        switch (lengthLeft - containsCapture) {
-            case 3:
-                // Nbd2, R1e1, etc. (disambiguation by file or rank)
-                disambiguation = *cursor;
-                cursor++;
-                break;
-            case 4:
-                // Nxe5, Rxa8, etc. (captures)
-                disambiguation = parseSquare(san.substr(cursor - san.begin(), 2));
-                cursor += 2;
-                break;
-        }
-        
-        // no additional information to resolve ambiguity in the san.
-        Square targetSquare = parseSquare(san.substr(cursor - san.begin(), 2));
-        PackedMove result = resolve(context, whiteToMove, piece, targetSquare, disambiguation);
+        if (whiteToMove)
+            return identify<Set::WHITE>(context, cleanSan);
+        else
+            return identify<Set::BLACK>(context, cleanSan);
 
-        return result;
     }
 
-    PackedMove deserialize(const char* an)
+    PackedMove deserialize(std::string_view an)
     {
         std::string_view san(an);
         size_t length = san.length();        

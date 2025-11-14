@@ -25,6 +25,11 @@ bool Chessboard::compare(const Chessboard& other) const
     return m_gameState == other.m_gameState && m_position == other.m_position;
 }
 
+bool Chessboard::compare(const Position& other) const
+{
+    return m_position == other;
+}
+
 std::string
 Chessboard::toString() const
 {

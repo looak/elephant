@@ -71,6 +71,7 @@ public:
     std::string toString() const;
 
     bool compare(const Chessboard& other) const;
+    bool compare(const Position& other) const;
 
 private:
     GameState m_gameState;

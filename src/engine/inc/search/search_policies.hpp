@@ -208,19 +208,3 @@ private:
 };
 
 } // namespace search_policies
-
-
-template<
-    typename NMP,
-    typename LMR,
-    typename QSearch,
-    typename Ordering,
-    typename Debug
->
-struct SearchConfig {    
-    using NMP_Policy = NMP;
-    using LMR_Policy = LMR;
-    using QSearch_Policy = QSearch;    
-    using Ordering_Policy = Ordering;
-    using Debug_Policy = Debug;
-};

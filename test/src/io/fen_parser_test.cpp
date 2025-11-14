@@ -37,7 +37,7 @@ TEST_F(FenParserFixture, StartingPosition)
     std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     Chessboard newGameBoard;
     PositionReader posReader = newGameBoard.readPosition();
-    bool result = io::fen_parser::deserialize(startingPositionFen.c_str(), newGameBoard);
+    bool result = io::fen_parser::deserialize(startingPositionFen, newGameBoard);
     EXPECT_TRUE(result);
 
     EXPECT_EQ(0, newGameBoard.readPlyCount());
@@ -51,7 +51,36 @@ TEST_F(FenParserFixture, StartingPosition)
     Chessboard expected;
     chess_positions::defaultStartingPosition(expected.editPosition());
     EXPECT_TRUE(expected.compare(newGameBoard));
+}
 
+TEST_F(FenParserFixture, StartingPosition_OnlyPositionNoState)
+{
+    // setup
+    std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";    
+    Position position;
+
+    // do
+    bool result = io::fen_parser::deserialize(startingPositionFen, position);
+
+    // verify
+    EXPECT_TRUE(result);
+
+    Chessboard expected;
+    chess_positions::defaultStartingPosition(expected.editPosition());
+    position.edit().castling().grantAll();
+    position.edit().enPassant().clear();
+
+    EXPECT_TRUE(expected.compare(position));
+
+    // without state
+    std::string noStateFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    Position positionNoState;
+    result = io::fen_parser::deserialize(noStateFen, positionNoState);
+
+    EXPECT_TRUE(result);
+    position.edit().castling().clear();
+
+    EXPECT_EQ(position, positionNoState);
 }
 
 // The so far longest game in the history of world championship chess.
@@ -61,7 +90,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
 {
     std::string gameSixFen("3k4/5RN1/4P3/5P2/7K/8/8/6q1 b - - 2 136");
     Chessboard resultBoard;
-    bool result = io::fen_parser::deserialize(gameSixFen.c_str(), resultBoard);
+    bool result = io::fen_parser::deserialize(gameSixFen, resultBoard);
     EXPECT_TRUE(result);
     // PrintBoard(testContext.readChessboard());
     EXPECT_EQ(2, resultBoard.readPlyCount());
@@ -100,7 +129,7 @@ TEST_F(FenParserFixture, PerftPositionThree)
 {
     Chessboard testBoard;
     std::string fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
-    bool result = io::fen_parser::deserialize(fen.c_str(), testBoard);
+    bool result = io::fen_parser::deserialize(fen, testBoard);
 
     EXPECT_TRUE(result);
     
@@ -127,7 +156,7 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
 {
     Chessboard testingBoard;
     std::string fen("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 5 19");
-    io::fen_parser::deserialize(fen.c_str(), testingBoard);
+    io::fen_parser::deserialize(fen, testingBoard);
 
     EXPECT_EQ(5, testingBoard.readPlyCount());
     EXPECT_EQ(19, testingBoard.readMoveCount());
