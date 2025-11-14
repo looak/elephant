@@ -69,6 +69,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 ## /search/...
     ${TEST_SRC_DIR}/search/perft_test.cpp
     ${TEST_SRC_DIR}/search/search_test.cpp
+    ${TEST_SRC_DIR}/search/arasan_test.cpp
     ## ${TEST_SRC_DIR}/search/transposition_test.cpp
 )
 

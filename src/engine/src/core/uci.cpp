@@ -132,7 +132,7 @@ UCI::Position(std::list<std::string> args)
             std::string moveStr = args.front();
             args.pop_front();
 
-            PackedMove move = io::san_parser::deserialize(moveStr.c_str());
+            PackedMove move = io::san_parser::deserialize(moveStr);
             auto cp = position.pieceAt(move.sourceSqr());
 
             if (cp == ChessPiece::None())

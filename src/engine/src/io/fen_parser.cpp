@@ -14,10 +14,29 @@
 
 namespace io {
 namespace fen_parser {
+namespace internals {
+std::list<std::string_view> tokenize(std::string_view s, char delim) {
+std::list<std::string_view> tokens;
+
+while (true) {
+    auto pos = s.find(delim);
+    if (pos == std::string_view::npos) {
+        if (!s.empty())
+            tokens.push_back(s);
+        break;
+    }
+    tokens.push_back(s.substr(0, pos));
+    s.remove_prefix(pos + 1);
+}
+
+return tokens;
+}
+
+} // namespace internals
     
 
 bool
-deserializeCastling(const std::string& castlingStr, PositionEditor position)
+deserializeCastling(std::string_view castlingStr, PositionEditor position)
 {
     byte castlingState = 0x00;
     if (castlingStr[0] != '-') {
@@ -45,52 +64,45 @@ deserializeCastling(const std::string& castlingStr, PositionEditor position)
     return true;
 }
 
-bool deserializeBoard(const std::string& boardStr, PositionEditor position)
+bool deserializeBoard(std::string_view fen, PositionEditor position)
 {
-    std::istringstream ssboard(boardStr);
-    std::list<std::string> ranks;
-    std::string rank;
-    while (std::getline(ssboard, rank, '/')) {
-        ranks.push_back(rank);
+    std::list<std::string_view> ranks = internals::tokenize(fen, '/');
+
+    // Handle case where the last rank may contain extra info (to move, castling, etc.)
+    std::list<std::string_view> lastRank = internals::tokenize(ranks.back(), ' ');
+    if (lastRank.size() > 1) {
+        ranks.pop_back();
+        ranks.push_back(lastRank.front());
     }
 
     if (ranks.size() != 8)
         return false;
 
-    
-    auto posItr = position.begin();
+    auto boardWriter = position.begin();
     while (!ranks.empty()) {
-        const char* rdr = ranks.back().c_str();
-        u8 fileIndx = 0;
-        while (*rdr != '\0' && fileIndx < 8) {
-            char nullterminated_value[2];
-            nullterminated_value[0] = *rdr;
-            nullterminated_value[1] = '\0';
+        auto fileReader = ranks.back().begin();        
+        while (fileReader != ranks.back().end()) {
 
-            char value = nullterminated_value[0];
-
-            if (std::isdigit(value)) {
+            if (std::isdigit(*fileReader)) {
                 signed short steps = 0;
-                std::from_chars(&nullterminated_value[0], &nullterminated_value[1], steps);
+                std::from_chars(&(*fileReader), &(*fileReader) + 1, steps);
                 LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
-                posItr += steps;
-                fileIndx += steps;
+                boardWriter += steps;                
             }
-            else if (value == '/') {
-                ++posItr;
+            else if (*fileReader == '/') {
+                ++boardWriter;
 
             }
             else {
                 ChessPiece piece;
-                if (!piece.fromString(value))
+                if (!piece.fromString(*fileReader))
                     return false;
 
-                position.placePiece(piece, posItr.square());
-                ++posItr;
-                fileIndx++;
+                position.placePiece(piece, boardWriter.square());
+                ++boardWriter;
             }
 
-            ++rdr;
+            ++fileReader;
         }
 
         ranks.pop_back();
@@ -100,7 +112,7 @@ bool deserializeBoard(const std::string& boardStr, PositionEditor position)
 }
 
 bool
-deserializeToPlay(const std::string& toPlayStr, Chessboard& outputBoard)
+deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
 {
     char value = std::tolower(toPlayStr[0]);
     if (value == 'w')
@@ -114,7 +126,7 @@ deserializeToPlay(const std::string& toPlayStr, Chessboard& outputBoard)
 }
 
 bool
-deserializeEnPassant(const std::string& enPassantStr, PositionEditor position)
+deserializeEnPassant(std::string_view enPassantStr, PositionEditor position)
 {
     position.enPassant().clear();
     if (enPassantStr.size() > 1) {
@@ -125,24 +137,23 @@ deserializeEnPassant(const std::string& enPassantStr, PositionEditor position)
     return true;
 }
 
-bool deserialize(const char* input, PositionEditor outPosition)
+bool deserialize(std::string_view input, PositionEditor outPosition)
 {
     return deserializeBoard(input, outPosition);
 }
 
-bool deserialize(const char* input, Chessboard& outputBoard)
+bool deserialize(std::string_view input, Chessboard& outputBoard)
 {
-    std::istringstream ssfen(input);
-    std::list<std::string> tokens;
-    std::string token;
-    while (std::getline(ssfen, token, ' ')) {
-        tokens.push_back(token);
-    }
+    std::list<std::string_view> tokens = internals::tokenize(input, ' ');
 
     chess::ClearBoard(outputBoard);
 
-    if (tokens.size() != 6)
+    if (tokens.size() < 4 || tokens.size() > 6)
         return false;
+
+    bool containsMoveCounts = false;
+    if (tokens.size() == 6)
+        containsMoveCounts = true;   
 
     if (!deserializeBoard(tokens.front(), outputBoard.editPosition()))
         return false;
@@ -164,14 +175,71 @@ bool deserialize(const char* input, Chessboard& outputBoard)
 
     tokens.pop_front();
 
-    byte plyCount = std::atoi(&tokens.front()[0]);
+    if (containsMoveCounts == true) {
+        byte plyCount = std::atoi(&tokens.front()[0]);
+        tokens.pop_front();
+
+        byte moveCount = std::atoi(&tokens.front()[0]);
+        tokens.pop_front();
+
+        outputBoard.editState().plyCount = plyCount;
+        outputBoard.editState().moveCount = moveCount;
+    }
+
+    if (!tokens.empty())
+        return false;
+
+    return true;
+}
+
+bool deserialize(const char* input, Chessboard& outputBoard)
+{
+    std::istringstream ssfen(input);
+    std::list<std::string> tokens;
+    std::string token;
+    while (std::getline(ssfen, token, ' ')) {
+        tokens.push_back(token);
+    }
+
+    chess::ClearBoard(outputBoard);
+
+    if (tokens.size() < 4 || tokens.size() > 6)
+        return false;
+
+    bool containsMoveCounts = false;
+    if (token.size() == 6)
+        containsMoveCounts = true;    
+
+    if (!deserializeBoard(tokens.front(), outputBoard.editPosition()))
+        return false;
+
     tokens.pop_front();
 
-    byte moveCount = std::atoi(&tokens.front()[0]);
+    if (!deserializeToPlay(tokens.front(), outputBoard))
+        return false;
+
     tokens.pop_front();
 
-    outputBoard.editState().plyCount = plyCount;
-    outputBoard.editState().moveCount = moveCount;
+    if (!deserializeCastling(tokens.front(), outputBoard.editPosition()))
+        return false;
+
+    tokens.pop_front();
+
+    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition()))
+        return false;
+
+    tokens.pop_front();
+
+    if (containsMoveCounts == true) {
+        byte plyCount = std::atoi(&tokens.front()[0]);
+        tokens.pop_front();
+
+        byte moveCount = std::atoi(&tokens.front()[0]);
+        tokens.pop_front();
+
+        outputBoard.editState().plyCount = plyCount;
+        outputBoard.editState().moveCount = moveCount;
+    }
 
     if (!tokens.empty())
         return false;

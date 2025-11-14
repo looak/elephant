@@ -38,8 +38,7 @@ namespace san_parser {
     PackedMove deserialize(PositionReader context, bool whiteToMove, std::string_view san);
 
     // simplified deserialization of standard algebraic notation without position context.
-    PackedMove deserialize(const char* an);
-       
+    PackedMove deserialize(std::string_view an);
 
 } // namespace san_parser
 } // namespace io

@@ -4,6 +4,7 @@ set(EXCEPTIONS_ENABLED ON CACHE STRING "Enable exceptions" FORCE)
 
 set(LOGGING_ENABLED ON CACHE STRING "Enable logging" FORCE)
 set(DEBUG_LOGGING_ENABLED ON CACHE STRING "Enable debug logging" FORCE)
+set(OUTPUT_LOG_TO_FILE OFF CACHE STRING "Output log to file" FORCE)
 
 set(DEBUG_TRANSITION_TABLE OFF CACHE STRING "Enable debug output for transition table" FORCE)
 
