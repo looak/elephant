@@ -33,8 +33,7 @@ namespace san_parser {
     }
 
     template<Set us>
-    PackedMove identify(PositionReader position, std::string_view san) {
-
+    PackedMove identify(PositionReader position, std::string_view san, PieceType promotion) {
         auto cursor = san.begin();
         PieceType piece = parsePieceType(*cursor);
 
@@ -95,6 +94,14 @@ namespace san_parser {
         }
         else {
             for(const auto& candMove : candidateMoves) {
+                if (promotion != PieceType::NONE) {
+                    if (candMove.move.isPromotion()) {
+                        if (candMove.move.readPromoteToPieceType() == static_cast<u16>(promotion)) {
+                            return candMove.move;
+                        }
+                    }                    
+                    else continue;
+                }
                 if (source != Square::NullSQ) {
                     if (candMove.move.sourceSqr() == source) {
                         return candMove.move;
@@ -134,6 +141,21 @@ namespace san_parser {
         if (cleanSan.ends_with('+') || cleanSan.ends_with('#')) {
             cleanSan.pop_back();
         }
+
+        // handle castling
+        if (cleanSan == "O-O") {
+            if (whiteToMove)
+                return identify<Set::WHITE>(context, "Kg1", PieceType::NONE);
+            else
+                return identify<Set::BLACK>(context, "Kg8", PieceType::NONE);
+        }
+        else if (cleanSan == "O-O-O") {
+            if (whiteToMove)
+                return identify<Set::WHITE>(context, "Kc1", PieceType::NONE);
+            else
+                return identify<Set::BLACK>(context, "Kc8", PieceType::NONE);
+        }
+
         // remove capture indication
         cleanSan.erase(std::remove(cleanSan.begin(), cleanSan.end(), 'x'), cleanSan.end());
 
@@ -144,14 +166,13 @@ namespace san_parser {
         }
 
         if (whiteToMove)
-            return identify<Set::WHITE>(context, cleanSan);
+            return identify<Set::WHITE>(context, cleanSan, promotion);
         else
-            return identify<Set::BLACK>(context, cleanSan);
+            return identify<Set::BLACK>(context, cleanSan, promotion);
 
     }
 
-    PackedMove deserialize(std::string_view an)
-    {
+    PackedMove deserialize(std::string_view an) {
         std::string_view san(an);
         size_t length = san.length();        
         Square sourceSquare = parseSquare(san.substr(0, 2));
@@ -178,20 +199,3 @@ namespace san_parser {
 
 } // namespace san_parser
 } // namespace io
-
-/*
-We could look at the san in reverse, we know that the san will always end with a square notation (e.g., e4, d5, f8, etc.)
-By extracting that we can then check the board if to see if we should expect a capture, would not work with e.p. captures.
-However, we could then check the first character to see what piece we're dealing with, and by doing so we would have eliminated
-the key characters in the san and would be left with any disambiguation characters.
-
-
-who should own ambiguity resolution? san_parser or move generator?
-
-
-
-
-
-
-
-*/

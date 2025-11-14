@@ -126,10 +126,59 @@ TEST_F(SanParserFixture, CaptureMoveParsing_ShouldResolveEitherWithOrWithoutSpec
 }
 
 TEST_F(SanParserFixture, PawnPromotion) {
+    // setup
+    std::string fen = "2k1n3/4PP2/8/8/8/8/8/3K4 w - - 0 1";
+    io::fen_parser::deserialize(fen, testingPosition.edit());
+    std::string san = "f8=Q";  // Pawn promotes to Queen on
+    bool whiteToMove = true;
 
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
+    EXPECT_FALSE(move.isNull());
+    EXPECT_TRUE(move.isPromotion());
+    EXPECT_EQ(move.sourceSqr(), Square::F7);
+    EXPECT_EQ(move.targetSqr(), Square::F8);
+    EXPECT_EQ(move.readPromoteToPieceType(), static_cast<u16>(PieceType::QUEEN));
+
+    san = "xe8=R+";  // Pawn captures and promotes to Rook
+    move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
+    EXPECT_FALSE(move.isNull());
+    EXPECT_TRUE(move.isPromotion());
+    EXPECT_TRUE(move.isCapture());
+    EXPECT_EQ(move.sourceSqr(), Square::F7);
+    EXPECT_EQ(move.targetSqr(), Square::E8);
+    EXPECT_EQ(move.readPromoteToPieceType(), static_cast<u16>(PieceType::ROOK));
 }
 
 TEST_F(SanParserFixture, CastlingMoveParsing_KingSide) {
+    // setup 
+    std::string fen = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
+    io::fen_parser::deserialize(fen, testingPosition.edit());
+    testingPosition.edit().castling().grantAll();
+    std::string san = "O-O";  // King-side castling
+    bool whiteToMove = true;
+
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
+    EXPECT_FALSE(move.isNull());
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.sourceSqr(), Square::E1);
+    EXPECT_EQ(move.targetSqr(), Square::G1);
+
+    san = "O-O-O";  // Queen-side castling
+    move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
+    EXPECT_FALSE(move.isNull());
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.sourceSqr(), Square::E1);
+    EXPECT_EQ(move.targetSqr(), Square::C1);
+
+    whiteToMove = false;
+    san = "O-O#";  // Black King-side castling
+    move = io::san_parser::deserialize(testingPosition, whiteToMove, san);
+    EXPECT_FALSE(move.isNull());
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.sourceSqr(), Square::E8);
+    EXPECT_EQ(move.targetSqr(), Square::G8);
 }
 
 TEST_F(SanParserFixture, CheckingMoveParsing_ShouldIgnoreCheckIndicators) {
