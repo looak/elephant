@@ -47,8 +47,6 @@ Application::Application()
 #endif
 }
 
-
-
 void
 Application::RunUci()
 {
@@ -61,13 +59,25 @@ Application::RunUci()
 }
 
 void
-Application::Run()
+Application::Run(char* argv[])
 {
 #ifdef OUTPUT_LOG_TO_FILE
     LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
 #endif
-
     AppContext context;
+
+    if (argv != nullptr) {
+        std::ostringstream oss;
+        for (int i = 1; argv[i] != nullptr; ++i) {
+            oss << argv[i];
+            if (argv[i + 1] != nullptr)
+                oss << " ";
+        }
+        std::string commandLine = oss.str();
+        if (context.processInput(commandLine)) {
+            return;
+        }
+    }
 
     while (1) {
 

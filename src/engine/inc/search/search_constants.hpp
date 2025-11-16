@@ -32,7 +32,7 @@ static constexpr u32 reduceAfterIndex = 5;
 } // namespace lmr_params
 
 namespace quiescence_params {
-static constexpr u32 defaultMaxDepth = 12;
+static constexpr u32 defaultMaxDepth = 8;
 static constexpr u8 futilityDepthMargin = 2 + (defaultMaxDepth * .75f); // 75% of max depth + 2
 static constexpr i16 futilityMargin = 200 + piece_constants::value[queenId]; // 2 pawns + queen value
 } // namespace quiescence_params

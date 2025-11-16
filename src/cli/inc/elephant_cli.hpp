@@ -37,6 +37,6 @@ public:
     Application();
     ~Application() = default;
 
-    void Run();
+    void Run(char* argv[]);
     void RunUci();
 };

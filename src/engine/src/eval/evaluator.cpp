@@ -17,20 +17,20 @@ Evaluator::Evaluate()
     score += materialScore;
 //    LOG_DEBUG() << "Material score: " << score;
 
-    i32 tmp = EvaluatePiecePositions();
-    score += tmp;
+    // i32 tmp = EvaluatePiecePositions();
+    // score += tmp;
     // LOG_DEBUG() << "Piece position score: " << tmp;
 
     /*tmp = EvaluatePawnStructure();
     score += tmp;*/
     // LOG_DEBUG() << "Pawn structure score: " << tmp;
 
-    tmp = MopUpValue(materialScore);
-    score += tmp;
+    // tmp = MopUpValue(materialScore);
+    // score += tmp;
     // LOG_DEBUG() << "Mop up value: " << tmp;
 
-    tmp = EvaluateKingSafety();
-    score += tmp;
+    // tmp = EvaluateKingSafety();
+    // score += tmp;
     // LOG_DEBUG() << "King safety score: " << tmp;
 
     // LOG_DEBUG() << "Total score: " << score;
