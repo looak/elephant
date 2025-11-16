@@ -98,7 +98,7 @@ private:
 // --- Late Move Reduction (LMR) Policies ---
 class LMR {
 public:
-    static constexpr bool enabled = true;
+    static constexpr bool enabled = false;
     static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool isChecking) {
         return depth > lmr_params::minDepth 
         && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
@@ -129,7 +129,7 @@ public:
 
 class NMP {
 public:
-    static constexpr bool enabled = true;
+    static constexpr bool enabled = false;
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
         return !inCheck && depth >= 3 && hasNonPawnMaterial;
     }
