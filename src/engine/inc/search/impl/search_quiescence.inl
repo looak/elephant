@@ -27,7 +27,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
     if (move.isNull() || ply >= c_maxSearchDepth || (depth <= 0))
         return eval;
     
-    i16 maxEval = -c_infinity;
+    i16 bestEval = eval;
     do {
         if (context.clock.shouldStop() == true) 
             break;
@@ -35,12 +35,12 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
         MoveExecutor executor(context.position.edit());
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, ply);
-        i16 eval = -quiescence<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1);        
+        i16 qEval = -quiescence<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1);        
         context.qNodeCount++;
         executor.unmakeMove(undoState);
 
-        maxEval = std::max(maxEval, eval);
-        alpha = std::max(alpha, eval);
+        bestEval = std::max(bestEval, qEval);
+        alpha = std::max(alpha, qEval);
 
         if (beta <= alpha)
             return beta;
@@ -51,5 +51,5 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
 
     } while (move.isNull() == false);
 
-    return maxEval;
+    return bestEval;
 }

@@ -21,11 +21,14 @@ main(int argc, char* argv[])
             context.setState(std::make_unique<UciModeProcessor>());
             context.processInput("");
         }
-        //    app.RunUci();
+        else {
+            Application app;
+            app.Run(argv);
+        }        
     }
     else {
         Application app;
-        app.Run();
+        app.Run(nullptr);
     }
 
     return 0;

@@ -19,11 +19,6 @@ public:
         testingParams.ThreadCount = 1;
         //testingParams.MoveTime = 30 * 1000; // 30 seconds
 
-        testingParams.UseTranspositionTable = true;
-        testingParams.UseQuiescenceSearch = true;
-        testingParams.UseNullMovePruning = true;
-        testingParams.UseLateMoveReduction = true;        
-
     };
     virtual void TearDown(){};
 
@@ -197,8 +192,6 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 
         Search searcher(context);
 
-        testingParams.UseNullMovePruning = true;
-        testingParams.UseTranspositionTable = true;
         testingParams.SearchDepth = 10;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {

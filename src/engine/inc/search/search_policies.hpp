@@ -33,11 +33,17 @@
 class Search;
 
 namespace search_policies {
+namespace enabled_policies {
+    constexpr bool TT = true;
+    constexpr bool LMR = false;
+    constexpr bool NMP = false;
+    constexpr bool Quiescence = true;
+}
 
 // --- Transposition Table Policies ---
 class TT {
 public:
-    static constexpr bool enabled = true;
+    static constexpr bool enabled = enabled_policies::TT;
     static void assign(TranspositionTable& tt) {
         m_table = &tt;        
     }
@@ -98,7 +104,7 @@ private:
 // --- Late Move Reduction (LMR) Policies ---
 class LMR {
 public:
-    static constexpr bool enabled = false;
+    static constexpr bool enabled = enabled_policies::LMR;
     static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool isChecking) {
         return depth > lmr_params::minDepth 
         && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
@@ -129,7 +135,7 @@ public:
 
 class NMP {
 public:
-    static constexpr bool enabled = false;
+    static constexpr bool enabled = enabled_policies::NMP;
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
         return !inCheck && depth >= 3 && hasNonPawnMaterial;
     }
@@ -142,12 +148,12 @@ public:
 
 class QuiescencePolicy {
 public:
-    static constexpr bool enabled = true;
+    static constexpr bool enabled = enabled_policies::Quiescence;
     static inline u16 maxDepth = 12;
 
     static bool futile(u8 depth, i16 eval, i16 alpha) {
         return (depth < quiescence_params::futilityDepthMargin)
-        && (alpha < eval + quiescence_params::futilityMargin);
+        && (eval + quiescence_params::futilityMargin < alpha);
     }
 };
 

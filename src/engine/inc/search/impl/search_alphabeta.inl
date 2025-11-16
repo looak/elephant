@@ -78,7 +78,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     return eval;
 }
 
-
 template<Set us>
 i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove)
 {

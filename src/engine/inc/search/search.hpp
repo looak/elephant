@@ -57,11 +57,6 @@ struct SearchParameters {
 
     u32 MovesToGo = 0;
     bool Infinite = false;
-    bool UseTranspositionTable = true;    
-    bool UseQuiescenceSearch = true;
-    bool UseNullMovePruning = true;
-    bool UseLateMoveReduction = true;
-    bool UseMoveOrdering = true;
 };
 
 struct ThreadSearchContext {
