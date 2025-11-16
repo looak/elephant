@@ -56,10 +56,6 @@ protected:
         // Set a reasonable, fixed depth for all tests
         // You can't use your full time-managed search here.
         params.SearchDepth = 8; // Or 8, 12... pick one and be consistent
-        params.UseTranspositionTable = true;
-        params.UseQuiescenceSearch = true;
-        params.UseNullMovePruning = true;
-        params.UseLateMoveReduction = true;
     }
 
     SearchParameters params;
