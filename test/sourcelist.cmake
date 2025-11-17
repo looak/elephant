@@ -60,6 +60,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/castling_enpassant_test.cpp
     ${TEST_SRC_DIR}/position/chessboard_test.cpp
     ${TEST_SRC_DIR}/position/chess_positions.cpp
+    ${TEST_SRC_DIR}/position/evaluation_test.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
     ## ${TEST_SRC_DIR}/position/notation_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp

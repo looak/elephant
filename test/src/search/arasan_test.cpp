@@ -99,7 +99,7 @@ TEST_P(ArasanTacticsTest, FindBestMove) {
 INSTANTIATE_TEST_SUITE_P(
     EpdCorrectness,
     ArasanTacticsTest,
-    ::testing::ValuesIn(loadEpdFile(std::format("{}/res/arasan21.epd", ROOT_PATH))), // Adjust path
+    ::testing::ValuesIn(loadEpdFile(std::format("{}/res/arasan21.epd", ROOT_PATH))),
     [](const ::testing::TestParamInfo<EpdTestCase>& info) {
         // Clean up the ID for use as a test name
         std::string name = info.param.id;
