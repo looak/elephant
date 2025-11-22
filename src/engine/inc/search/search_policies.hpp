@@ -124,6 +124,8 @@ public:
 class MoveOrdering {
 public:
     static void push(KillerMoves& killers, PackedMove move, u32 ply) {
+        if (move.isQuiet() == false)
+            return; // Only store quiet moves as killers
         killers.push(move, ply);
     }
     static void prime(const KillerMoves& killers, MoveOrderingView& view, u32 ply) {
@@ -149,10 +151,11 @@ public:
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
-    static inline u16 maxDepth = 12;
+    static inline u16 maxDepth = 6;
 
     static bool futile(u8 depth, i16 eval, i16 alpha) {
-        return (depth < quiescence_params::futilityDepthMargin)
+        return depth > 0
+        && (depth < quiescence_params::futilityDepthMargin)
         && (eval + quiescence_params::futilityMargin < alpha);
     }
 };

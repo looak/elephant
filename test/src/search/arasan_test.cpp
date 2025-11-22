@@ -50,12 +50,13 @@ std::vector<EpdTestCase> loadEpdFile(const std::string& filePath) {
     return cases;
 }
 
-class ArasanTacticsTest : public ::testing::TestWithParam<EpdTestCase> {
+class EpdCorrectness : public ::testing::TestWithParam<EpdTestCase> {
 protected:
     void SetUp() override {
         // Set a reasonable, fixed depth for all tests
         // You can't use your full time-managed search here.
-        params.SearchDepth = 8; // Or 8, 12... pick one and be consistent
+        // params.SearchDepth = 8; // Or 8, 12... pick one and be consistent
+        params.MoveTime = 2500; // 2.5 seconds per move
     }
 
     SearchParameters params;
@@ -63,7 +64,7 @@ protected:
 };
 
 // The test itself
-TEST_P(ArasanTacticsTest, FindBestMove) {
+TEST_P(EpdCorrectness, FindBestMove) {
     EpdTestCase tc = GetParam();
     GameContext context;
     
@@ -97,9 +98,22 @@ TEST_P(ArasanTacticsTest, FindBestMove) {
 
 // 4. Instantiate the test suite
 INSTANTIATE_TEST_SUITE_P(
+    WinAtChess,
+    EpdCorrectness,    
+    ::testing::ValuesIn(loadEpdFile(std::format("{}/res/wac_new.epd", ROOT_PATH))),
+    [](const ::testing::TestParamInfo<EpdTestCase>& info) {
+        // Clean up the ID for use as a test name
+        std::string name = info.param.id;
+        name.erase(std::remove(name.begin(), name.end(), '"'), name.end());
+        std::replace(name.begin(), name.end(), '.', '_');
+        return name;
+    }
+);
+
+INSTANTIATE_TEST_SUITE_P(
+    Arasan21,
     EpdCorrectness,
-    ArasanTacticsTest,
-    ::testing::ValuesIn(loadEpdFile(std::format("{}/res/arasan21.epd", ROOT_PATH))),
+    ::testing::ValuesIn(loadEpdFile(std::format("{}/res/arasan21.epd", ROOT_PATH))),    
     [](const ::testing::TestParamInfo<EpdTestCase>& info) {
         // Clean up the ID for use as a test name
         std::string name = info.param.id;

@@ -28,11 +28,11 @@ static constexpr i16 c_drawConstant = 0;
 namespace lmr_params {
 static constexpr u32 minDepth = 3;
 static constexpr u32 earlyReductionThreshold = 8; // was 6
-static constexpr u32 reduceAfterIndex = 5;
+static constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
 } // namespace lmr_params
 
 namespace quiescence_params {
 static constexpr u32 defaultMaxDepth = 8;
-static constexpr u8 futilityDepthMargin = 2 + (defaultMaxDepth * .75f); // 75% of max depth + 2
-static constexpr i16 futilityMargin = 200 + piece_constants::value[queenId]; // 2 pawns + queen value
+static constexpr u8 futilityDepthMargin = (defaultMaxDepth * .5f); // 75% of max depth + 2
+static constexpr i16 futilityMargin = 200; // 2 pawns
 } // namespace quiescence_params

@@ -169,6 +169,14 @@ public:
 
     [[nodiscard]] ChessPiece pieceAt(Square sqr) const;
 
+    /**
+     * @brief Calculates the capture difference score for a given destination bitboard and piece type.
+     * @param dst The destination bitboard where the piece is moving to.
+     * @param pieceId The piece type ID of the moving piece.
+     * @return An optional i16 representing the capture difference score, or std::nullopt if no capture occurs. */
+    template<Set us>
+    [[nodiscard]] std::optional<i16> computeCaptureScore(Bitboard dst, u8 pieceId) const;
+
 };
 
 struct MutableImplicitPieceSquare {
@@ -328,4 +336,19 @@ constexpr Bitboard MaterialPositionMask::pawns() const {
     else {
         return m_set[1] & m_material[pawnId];
     }
+}
+
+template<Set us>
+std::optional<i16> MaterialPositionMask::computeCaptureScore(Bitboard dst, u8 pieceId) const {
+    Bitboard opposingSet = m_set[opposing_set(toSetId(us))];
+    for (u8 pieceTypes = 0; pieceTypes < 6; pieceTypes++) { // excluding king
+        Bitboard capturedPieces = dst & opposingSet & m_material[pieceTypes];
+        if (capturedPieces.empty())
+            continue;
+
+        // Most valuable victim - least valuable attacker (MVV-LVA) capture evaluation
+        return { piece_constants::value[pieceTypes] - piece_constants::value[pieceId] };        
+    }
+    
+    return std::nullopt;
 }

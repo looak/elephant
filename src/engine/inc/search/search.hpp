@@ -41,7 +41,7 @@ struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
     // 0 = infinite
     u8 SearchDepth = 24;
-    u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
+    // u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
     u16 ThreadCount = 1;
 
     // total amount of time allowed to search for a move in milliseconds.
@@ -108,6 +108,9 @@ private:
     bool tryNullMovePrune(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
     template<Set us>
     i16 nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
+
+    template<Set us>
+    u16 mostValuablePieceInPosition(PositionReader pos);
         
     void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;    
 

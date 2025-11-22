@@ -18,7 +18,7 @@
  * @file material_topology.hpp
  * @brief MaterialTopology class used by move generation to calculate threatened squares which often results in available moves.
  * Separated from position and move generation for clarity and separation of concerns. Heavy use of bitboards and bitboard 
- * operations. Doesn't hold any internal state so everything is marked as nodiscard to encourage use of the return value.
+ * operations. Doesn't hold any internal state so everything is marked as nodiscard to force use of the return value.
  * 
  * This class is templated on the Set type to allow easier use.
  *
