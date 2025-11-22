@@ -71,12 +71,13 @@ struct MoveGenParams {
 namespace move_generator_constants {
 // priority values for move generator
 // higher value means higher priority
-constexpr u16 capturePriority = 1000;
-constexpr u16 promotionPriority = 2000;
-constexpr u16 checkPriority = 900;
-constexpr u16 ttMovePriority = 4000;
-constexpr u16 pvMovePriority = 5000;
-constexpr u16 killerMovePriority = 800;
+constexpr u16 pvMovePriority = 6000;
+constexpr u16 ttMovePriority = 5000;
+constexpr u16 promotionPriority = 5000;
+constexpr u16 capturePriority = 2000; // base will be +-mvvLvaMultiplier * mvvLVA (-800 to +800 without multiplier)
+constexpr u16 killerMovePriority = 2000;
+constexpr u16 checkPriority = 1800;
+constexpr i16 mvvLvaMultiplier = 1;
 } // namespace move_generator_constants
 
 template<Set _us>
@@ -160,6 +161,11 @@ template<Set us>
 template<u8 pieceId>
 void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen)
 {
+    // TODO: we can refactors this to help move move generation to a staged approach. The api's exist to do move generation
+    // just as fast on a per-piece basis as bulk basis. Pawns might be the exception to this assumption, but I think that is OK.
+    // Currently, for rooks, we pack all rook moves into a single bitboard to then just isolate the moves per rook, we use the
+    // same attack:: calls to fetch the move from our magic tables. Instead, we should skip the isolation & bulk steps.
+    // Same goes for bishops and queens.
     const Bitboard movesbb = internalCallBulkGeneratorForPiece(pieceId, bulkMoveGen);
     if (movesbb.empty())
         return;
@@ -175,7 +181,6 @@ void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveG
         buildPackedMoveFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false);
     }
 }
-
 
 typedef MoveGenerator<Set::WHITE> WhiteMoveGen;
 typedef MoveGenerator<Set::BLACK> BlackMoveGen;

@@ -112,7 +112,7 @@ inline PieceType fromChar(char c) {
 }
 } // namespace notation
 
-constexpr signed short value[6] = { 100, 350, 350, 525, 1000, 10000 };
+constexpr u16 value[6] = { 100, 350, 350, 525, 975, 10000 };
 constexpr byte move_count[6] = { 2, 8, 4, 4, 8, 8 };
 
 constexpr bool slides[6] = {

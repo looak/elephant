@@ -3,8 +3,12 @@
 template<Set us>
 i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in alphaBeta.");   
-
+    
     PositionReader pos = context.position.read();
+    if (context.history.isRepetition(pos.hash()) == true) {
+        return -c_drawConstant;
+    }
+
     pv->length = 0;
     PackedMove bestMove = PackedMove::NullMove();
 
@@ -96,36 +100,40 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             break;
 
         PackedMove move = ordered.move;
-        u16 modifiedDepth = depth;
-        // --- Late Move Reduction ---
-        if constexpr (search_policies::LMR::enabled) {
-            if (search_policies::LMR::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
-                modifiedDepth -= search_policies::LMR::getReduction(depth);
-            }
-        }
 
+        u16 adjustedDepth = depth;
         // --- Checking Search Extensions ---
-        // modifiedDepth += move.isChecking() * 1; // Extend by 1 if the move gives check
+        adjustedDepth += static_cast<u8>(ordered.isCheck()); // Extend by 1 if the move gives check
+        u16 movingPly = ply; // this will become important once we start caring about 50-move rule.
+        i16 eval = bestEval;
 
         MoveUndoUnit undoState;
-        u16 movingPly = ply; // this will become important once we start caring about 50-move rule.
         executor.makeMove(move, undoState, movingPly);
-        context.history.push(pos.hash());        
-
-        i16 eval;
-        if (context.history.isRepetition(pos.hash()) == true) {
-            eval = -c_drawConstant;
+        context.history.push(pos.hash());
+        
+        if (index == 0) {
+            // First move: full window, full depth (no PVS, no LMR)
+            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+    
         } else {
-            eval = -alphaBeta<opposing_set<us>()>(context, modifiedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+            // All other moves: start with zero-window (PVS)
+            u16 searchDepth = adjustedDepth - 1;
+            
+            // Apply LMR if appropriate
+            // if constexpr (search_policies::LMR::enabled) {
+            //     if (search_policies::LMR::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
+            //         searchDepth -= search_policies::LMR::getReduction(depth);
+            //     }
+            // }
+            
+            // --- Scouting with zero-window ---
+            eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -alpha - 1, -alpha, ply + 1, &childPv);
+            
+            // --- Scouting failed high: Re-search with full window ---
+            if (eval > alpha && eval < beta)
+                eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -beta, -alpha, ply + 1, &childPv);
         }
-
-        if constexpr (search_policies::LMR::enabled) {
-            if (eval > alpha && modifiedDepth < depth) {
-                // Re-search at full depth
-                eval = -alphaBeta<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1, &childPv);
-            }
-        }
-
+        
         context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
@@ -147,9 +155,9 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
 
             // --- Beta Cutoff ---
             if (alpha >= beta) {
-                flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high                
+                flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
                 search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
-                return bestEval; 
+                return beta; 
             }
         }
 

@@ -211,8 +211,9 @@ void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, i32 dst
     bool orthogonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr]).empty();
     bool diagonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr]).empty();
 
-    const i32 promotionPriorityValue = move_generator_constants::promotionPriority 
-        + ((u8)move.isCapture() * move_generator_constants::capturePriority);
+    auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[dstSqr]), pawnId);
+    u16 actualCaptureValue = captureScore.has_value() ? move_generator_constants::capturePriority + captureScore.value() : 0;
+    const i32 promotionPriorityValue = move_generator_constants::promotionPriority + actualCaptureValue;
 
     move.setPromoteTo(queenId);
     PrioritizedMove queenPromote(move, 0);
@@ -274,13 +275,19 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
             move.setSource(srcSqr);
             move.setTarget(dstSqr);
 
-            prioratizedMove.priority = move_generator_constants::capturePriority;
-
+            Square dstSquare = toSquare(dstSqr);
             // if we're capturing enpassant set the enpassant flag.
             if (m_position.enPassant().readSquare() == static_cast<Square>(dstSqr))
+            {
                 move.setEnPassant(true);  // sets both capture & enpassant
+                dstSquare = m_position.enPassant().readTarget();
+            }
             else
                 move.setCapture(true);
+
+            auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSquare]), pawnId);
+            prioratizedMove.priority = move_generator_constants::capturePriority + 
+                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
 
             // if we're promoting set the promotion flag and create 4 moves.
             if (promotionMask & squareMaskTable[dstSqr]) {
@@ -353,11 +360,13 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
         PackedMove& move = prioratizedMove.move;
         move.setSource(srcSqr);
         move.setTarget(dstSqr);
-        u64 dstSqrMsk = squareMaskTable[dstSqr];
+        Bitboard dstSqrMsk(squareMaskTable[dstSqr]);
 
-        if (opMaterial & dstSqrMsk) {
+        auto captureScore = m_position.material().computeCaptureScore<us>(dstSqrMsk, kingId);
+        if (captureScore.has_value()) {
             move.setCapture(true);
-            prioratizedMove.priority = move_generator_constants::capturePriority;
+            prioratizedMove.priority = move_generator_constants::capturePriority + 
+                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
         }
 
         if (castlingRaw & 2) {
@@ -395,8 +404,9 @@ void MoveGenerator<us>::buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb
         prioratizedMove.priority = 0;
 
         if (capture) {
-            u8 recaptureBonus = ((m_position.material().combine<opposing_set<us>()>() & squareMaskTable[*dstSqr]).empty() == false) ? 2 : 1;
-            prioratizedMove.priority = move_generator_constants::capturePriority * recaptureBonus;
+            auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSqr]), pieceId);
+            prioratizedMove.priority = move_generator_constants::capturePriority + 
+                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
         }
 
         // figure out if we're checking the king.
