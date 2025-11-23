@@ -41,7 +41,7 @@ target_include_directories(${PROJECT_NAME}
   PRIVATE
     ${TEST_INC_DIR})
   
-target_link_libraries(${PROJECT_NAME} common_warnings gtest_main engine)
+target_link_libraries(${PROJECT_NAME} common_warnings gtest_main engine spdlog)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})

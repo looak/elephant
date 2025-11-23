@@ -36,7 +36,7 @@ public:
     {
         //prnt::out << "Help information for: " << args << std::endl;
         if (args.commandPtr == nullptr) {
-            prnt::out << " Elephant Gambit CLI Commands:";
+            prnt::out << " Elephant Gambit CLI Commands:" << std::endl;
             for (const auto& cmdName : CommandRegistry::instance().getCommands()) {
                 auto command = cmdName.factory();
                 if (command) {
@@ -62,13 +62,13 @@ public:
     {
         if (extended) {
             prnt::out << "\nUsage: " << HelpCommand::name() << " [<command>]" << std::endl << std::endl;
-            prnt::out << "Displays a list of all available commands or detailed help for a specific command.";
-            prnt::out << "If no command is specified, a summary of all commands is shown.";
-            prnt::out << "Options:";
-            prnt::out << "  <command>   The name of the command to get detailed help for.";
+            prnt::out << "Displays a list of all available commands or detailed help for a specific command." << std::endl;
+            prnt::out << "If no command is specified, a summary of all commands is shown." << std::endl;
+            prnt::out << "Options:" << std::endl;
+            prnt::out << "  <command>   The name of the command to get detailed help for." << std::endl;
             return;
         }
-        prnt::out << prnt::inject_line_divider(HelpCommand::name(), HelpCommand::description()); 
+        prnt::out << prnt::inject_line_divider(HelpCommand::name(), HelpCommand::description()) << std::endl;
     }
 };
 

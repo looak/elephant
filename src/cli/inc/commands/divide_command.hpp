@@ -22,14 +22,14 @@ public:
         DivideCommandArgs parsedArgs{};
 
         if (args.size() != 1) {
-            prnt::err << " Error: 'divide' command requires a depth argument.";
+            spdlog::error("'divide' command requires a depth argument.");
             return std::nullopt;
         }
         try {
             parsedArgs.depth = std::stoi(args[0]);
         }
         catch (const std::exception&) {
-            prnt::err << " Error: Invalid depth argument '" << args[0] << "'. Must be an integer.";
+            spdlog::error("Invalid depth argument '{}'. Must be an integer.", args[0]);
             return std::nullopt;
         }
         return parsedArgs;
@@ -37,7 +37,7 @@ public:
 
     bool execute(const DivideCommandArgs& args) override
     {        
-        prnt::out << " Divide command executed with depth: " << args.depth;
+        prnt::out << " Divide command executed with depth: " << args.depth << std::endl;
         PerftSearch perftSearch(*m_context);
         auto results = std::vector<DivideResult>{}; //perftSearch.Divide(m_context->readToPlay(), args.depth);
 
@@ -65,11 +65,11 @@ public:
     {    
         if (extended) {
             prnt::out << "\nUsage: " << DivideCommand::name() << " <depth>" << std::endl << std::endl;
-            prnt::out << "Divides the current position to the given depth and outputs the result for each move.";
-            prnt::out << "Maximum depth is limited to single digit, i.e. 9. Tool is most useful around 3-5 ply.";            
+            prnt::out << "Divides the current position to the given depth and outputs the result for each move." << std::endl;
+            prnt::out << "Maximum depth is limited to single digit, i.e. 9. Tool is most useful around 3-5 ply." << std::endl;            
             return;
         }
-        prnt::out << prnt::inject_line_divider(DivideCommand::name(), DivideCommand::description());
+        prnt::out << prnt::inject_line_divider(DivideCommand::name(), DivideCommand::description()) << std::endl;
     }
 };  // class DivideCommand
 

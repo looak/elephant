@@ -20,7 +20,7 @@ set_target_properties(${CLI_LIB} PROPERTIES
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF)
 
-project(ElephantCli VERSION 0.6.1)
+project(ElephantCli VERSION 0.10.1)
 set(ElephantCli_VERSION_PRERELEASE "")
 
 include(sourcelist.cmake)
@@ -43,4 +43,5 @@ target_include_directories(${CLI_LIB}
 target_link_libraries(${CLI_LIB}
     PRIVATE
         common_warnings
+        spdlog
 )

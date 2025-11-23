@@ -68,9 +68,8 @@ public:
     }
 
 	// Executes the command with the given arguments.
-	bool execute(const BenchArgs& args) override
-	{		
-        LOG_INFO() << "Starting benchmark...";
+	bool execute(const BenchArgs& args) override {		
+        spdlog::info("Starting benchmark...");
 
         Clock timer;
         timer.Start();

@@ -135,7 +135,7 @@ void UciModeProcessor::independentMode()
         std::list<std::string> tokens;
         extractArgsFromCommand(buffer, tokens);
 
-        LOG_INFO() << "From GUI: " << buffer;
+        spdlog::info("From GUI: {}", buffer);
 
         if (tokens.size() == 0)
             continue;

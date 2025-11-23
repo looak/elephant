@@ -66,11 +66,21 @@ private:
 };
 
 template<typename T>
-T fromString(const std::string& str) {
-    T value;
-    std::istringstream iss(str);
-    iss >> value;
-    return value;
+T fromString(const std::string& s) {
+    // For floats/doubles
+    if constexpr (std::is_floating_point_v<T>) {
+        size_t pos;
+        T val = std::stod(s, &pos); 
+        if (pos != s.length()) throw ephant::io_error("Trailing junk in float: " + s);
+        return val;
+    } 
+    // For integers
+    else {
+        size_t pos;
+        long long val = std::stoll(s, &pos);
+        if (pos != s.length()) throw ephant::io_error("Trailing junk in int: " + s);
+        return static_cast<T>(val);
+    }
 }
 
 class WeightStore;
@@ -141,25 +151,18 @@ private:
 
 template<typename T>
 void WeightStore::visit(Weight<T>& weight, const std::string& newValueStr) {
-    // Attempt to convert string to numeric type 
-    try {
-        weight.m_value = fromString<T>(newValueStr);
-    }
-    catch (const std::exception& e) {
-        LOG_ERROR() << "Error updating weight: " << weight.m_name << " - " << e.what() << std::endl;
-    }
+    weight.m_value = fromString<T>(newValueStr);
 }
 
 template<typename T>
 void WeightStore::visit(TaperedWeight<T>& weight, const std::string& a, const std::string& b) {
-    // Attempt to convert string to numeric type 
-    try {
-        weight.m_a = fromString<T>(a);
-        weight.m_b = fromString<T>(b);
-    }
-    catch (const std::exception& e) {
-        LOG_ERROR() << "Error updating weight: " << weight.m_name << " - " << e.what() << std::endl;
-    }
+    // might throw
+    T new_a = fromString<T>(a);
+    T new_b = fromString<T>(b);
+
+    // commit
+    weight.m_a = new_a;
+    weight.m_b = new_b;
 }
 
 // implementation

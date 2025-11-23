@@ -43,7 +43,7 @@ ChessPiece::toString() const
         retValue = ' ';
         break;
     default:
-        LOG_ERROR() << "Invalid Chess Piece;\n";
+        LOG_ERROR("Invalid Chess Piece, cannot covert to string: {}", m_internalState);
     }
 
     if (getSet() == Set::WHITE)

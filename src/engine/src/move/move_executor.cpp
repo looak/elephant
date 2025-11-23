@@ -10,7 +10,7 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
 {
     if constexpr (validation) {
         if (move.isNull()) {
-            LOG_ERROR() << "Trying to make a null move.";
+            LOG_ERROR("Trying to make a null move.");
             return;  // early exit if the move is null
         }
     }
@@ -24,7 +24,7 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     
     if constexpr (validation) {
         if (!movingPiece.isValid()) {
-            LOG_ERROR() << "Trying to make a move with an invalid piece at square " << SquareNotation(move.sourceSqr()).toString();            
+            LOG_ERROR("Trying to make a move with an invalid piece at square {}", SquareNotation(move.sourceSqr()).toString());            
             return;  // early exit if the piece is invalid
         }
     }
@@ -262,7 +262,7 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
         return;
     }
 
-    FATAL_ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
+    ASSERT(move.isCapture()); // move claims it was a capture but there was no piece at target?
 }
 
 bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)

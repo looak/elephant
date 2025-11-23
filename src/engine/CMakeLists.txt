@@ -37,4 +37,5 @@ target_include_directories(${ENGINE_LIB}
 target_link_libraries(${ENGINE_LIB}
     PRIVATE
         common_warnings
+        spdlog
 )

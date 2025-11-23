@@ -20,8 +20,8 @@ public:
     static constexpr std::string_view name() { return "print"; }    
 
     bool execute(const PrintCommandArgs& args) override
-    {
-        io::printer::position(prnt::out.stream(), readPosition());
+    {        
+        io::printer::position(prnt::out, readPosition());
         return true;
     }
 

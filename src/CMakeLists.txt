@@ -33,8 +33,9 @@ add_subdirectory("engine")
 
 target_link_libraries(${MAIN_EXE}
   PUBLIC
-  libpopcnt
+  libpopcnt  
   PRIVATE
+  spdlog
   ${CLI_LIB}
   ${ENGINE_LIB}
 )
