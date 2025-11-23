@@ -38,7 +38,7 @@ struct SquareNotation {
         m_rank(rank),
         m_sqr(static_cast<Square>((rank * 8) + file))
     {
-        FATAL_ASSERT(m_file <= 7 && m_rank <= 7);
+        ASSERT(m_file <= 7 && m_rank <= 7);
     }
 
     constexpr byte file() const { return m_file; }

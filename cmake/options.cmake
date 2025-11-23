@@ -1,22 +1,35 @@
-set(DEVELOPMENT_BUILD OFF CACHE STRING "Enable development build settings" FORCE)
-set(FATAL_ASSERTS_ENABLED OFF CACHE STRING "Enable fatal assert" FORCE)
-set(EXCEPTIONS_ENABLED ON CACHE STRING "Enable exceptions" FORCE)
+set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
+set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
-set(LOGGING_ENABLED ON CACHE STRING "Enable logging" FORCE)
-set(DEBUG_LOGGING_ENABLED ON CACHE STRING "Enable debug logging" FORCE)
-set(OUTPUT_LOG_TO_FILE ON CACHE STRING "Output log to file" FORCE)
+set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
 
-set(DEBUG_TRANSITION_TABLE OFF CACHE STRING "Enable debug output for transition table" FORCE)
+set(OUTPUT_LOG_TO_FILE ON CACHE BOOL "Output log to file" FORCE)
+set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
 
+# Map to spdlog's compile-time level
+if(${LOG_LEVEL} STREQUAL "trace")
+    set(SPDLOG_ACTIVE_LEVEL 0)
+elseif(${LOG_LEVEL} STREQUAL "debug")
+    set(SPDLOG_ACTIVE_LEVEL 1)
+elseif(${LOG_LEVEL} STREQUAL "info")
+    set(SPDLOG_ACTIVE_LEVEL 2)
+elseif(${LOG_LEVEL} STREQUAL "warn")
+    set(SPDLOG_ACTIVE_LEVEL 3)
+elseif(${LOG_LEVEL} STREQUAL "error")
+    set(SPDLOG_ACTIVE_LEVEL 4)
+elseif(${LOG_LEVEL} STREQUAL "critical")
+    set(SPDLOG_ACTIVE_LEVEL 5)
+elseif(${LOG_LEVEL} STREQUAL "off")
+    set(SPDLOG_ACTIVE_LEVEL 6)
+else()
+    message(FATAL_ERROR "Invalid LOG_LEVEL: ${LOG_LEVEL}")
+endif()
 
-set(PRECOMPILE_OPTIONS
+set(PRECOMPILE_OPTIONS    
     DEVELOPMENT_BUILD
-    FATAL_ASSERTS_ENABLED
     EXCEPTIONS_ENABLED
-    LOGGING_ENABLED
-    DEBUG_LOGGING_ENABLED
     OUTPUT_LOG_TO_FILE
-    DEBUG_TRANSITION_TABLE    
+    DEBUG_TRANSITION_TABLE
 )
 
 # Library to hold our shared compiler warning flags
@@ -42,3 +55,4 @@ endif()
 
 message(STATUS "## Warning Level: ${WARNING_LEVEL_ARGS}")
 target_compile_options(common_warnings INTERFACE ${WARNING_LEVEL_ARGS})
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_ACTIVE_LEVEL})

@@ -35,6 +35,8 @@ foreach(option IN LISTS PRECOMPILE_OPTIONS)
     endif()
 endforeach()
 
+message(STATUS "## Precompile log level: ${LOG_LEVEL}")
+
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
 foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)

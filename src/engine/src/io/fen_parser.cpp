@@ -84,7 +84,7 @@ bool deserializeBoard(std::string_view fen, PositionEditor position)
             if (std::isdigit(*fileReader)) {
                 signed short steps = 0;
                 std::from_chars(&(*fileReader), &(*fileReader) + 1, steps);
-                LOG_ERROR_EXPR(steps > 0) << "Steps can't be less than zero and should never be in this situation.";
+                THROW_EXPR(steps > 0, ephant::io_error, "Steps can't be less than zero and should never be in this situation.");
                 boardWriter += steps;                
             }
             else if (*fileReader == '/') {

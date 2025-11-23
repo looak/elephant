@@ -46,7 +46,7 @@ public:
 		m_context->Reset();
 		bool ret = io::fen_parser::deserialize(args.fen.c_str(), m_context->editChessboard());
 		if (!ret)
-			prnt::err << " Invalid FEN: " << args.fen;
+			prnt::err << " Invalid FEN: " << args.fen << std::endl;
 		return ret;
 	}
 
@@ -55,13 +55,13 @@ public:
 	{	
 		if (extended) {
 			prnt::out << "\nUsage: " << FenCommand::name() << " <fen_string>" << std::endl << std::endl;
-			prnt::out << "Sets the board to the given FEN string or outputs the FEN string for current board.";
-			prnt::out << "  An invalid FEN string will result in nothing being set.";
-			prnt::out << "Inputs:";
-			prnt::out << "  <fen_string> - Optional. FEN string to set the board to, if non provided the current board FEN will be output.";
+			prnt::out << "Sets the board to the given FEN string or outputs the FEN string for current board." << std::endl;
+			prnt::out << "  An invalid FEN string will result in nothing being set." << std::endl;
+			prnt::out << "Inputs:" << std::endl;
+			prnt::out << "  <fen_string> - Optional. FEN string to set the board to, if non provided the current board FEN will be output." << std::endl;
 			return;
 		}
-		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description());    
+		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description()) << std::endl;    
 	}
 
 };  // class FenCommand

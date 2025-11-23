@@ -27,7 +27,7 @@ namespace internals {
         return output.str();
     }
 
-    inline LoggingInternals::BasicMessage out(std::cout);
-    inline LoggingInternals::BasicMessage err(std::cerr);
+    inline std::ostream& out(std::cout);
+    inline std::ostream& err(std::cerr);
     
 }  // namespace prnt

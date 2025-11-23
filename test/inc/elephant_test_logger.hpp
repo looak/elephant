@@ -65,12 +65,7 @@ public:
             if (additionalSpaces > 0)
             {
                 id.append(additionalSpaces, ' ');
-            }
-            else
-            {                
-                // LOG_ERROR() << "Log ID '" << id << "' is too long, max length is 8 characters.";
-                // id = "";
-            }   
+            }  
             m_stream << "\u001b[32m[ " << id << " ] \u001b[0m";         
         }
         else

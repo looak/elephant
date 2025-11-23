@@ -65,7 +65,7 @@ public:
         bool setMask = (*m_set & squareMaskTable[static_cast<u8>(sqr)]) != 0;
         bool matMask = (*m_material & squareMaskTable[static_cast<u8>(sqr)]) != 0;
 
-        FATAL_ASSERT(setMask == matMask) << "Inconsistent Bitboards, these values should be the same, terminating program.";
+        ASSERT_MSG(setMask == matMask, "Inconsistent Bitboards, these values should be the same, terminating program.");
         return setMask && matMask;
     }
 
@@ -133,7 +133,7 @@ public:
     [[nodiscard]] constexpr Bitboard blackPawns() const { return pawns<Set::BLACK>(); }
 
     [[nodiscard]] constexpr Bitboard set(byte set) const {
-        FATAL_ASSERT(set < 2) << "Invalid set index: " << (int)set;
+        ASSERT_MSG(set < 2, std::format("Invalid set index: {}", (int)set));
         return m_set[set];
     }
     [[nodiscard]] constexpr Bitboard white() const { return m_set[0]; }

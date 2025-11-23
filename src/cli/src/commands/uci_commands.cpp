@@ -22,42 +22,31 @@ bool UCICommands::SetOptionCommand(std::list<std::string> args, UCI& interface)
 
 bool UCICommands::RegisterCommand(std::list<std::string>, UCI&)
 {
-    LOG_ERROR() << "Not implemented";
-    return false;
+    throw new ephant::not_implemented_exception("UCI Register command not implemented");
 }
 
-bool UCICommands::NewGameCommand(std::list<std::string>, UCI& interface)
-{
+bool UCICommands::NewGameCommand(std::list<std::string>, UCI& interface) {
     return interface.NewGame();
 }
 
-bool UCICommands::PositionCommand(std::list<std::string> args, UCI& interface)
-{   
+bool UCICommands::PositionCommand(std::list<std::string> args, UCI& interface) {   
     if (!interface.Position(args))
-    {
-        LOG_ERROR() << " Something went wrong during position command";
-        return false;
-    }
+        throw new ephant::io_error("Failed to set position in UCI Position command");
 
     return true;
 }
-bool UCICommands::GoCommand(std::list<std::string> args, UCI& interface)
-{
+bool UCICommands::GoCommand(std::list<std::string> args, UCI& interface) {
     interface.Go(args);
     return true;
 }
-bool UCICommands::BenchCommand(std::list<std::string> args, UCI& interface)
-{
+bool UCICommands::BenchCommand(std::list<std::string> args, UCI& interface) {
     return interface.Bench(args);
 }
-bool UCICommands::StopCommand(std::list<std::string>, UCI& interface)
-{
+bool UCICommands::StopCommand(std::list<std::string>, UCI& interface) {
     return interface.Stop();
 }
-bool UCICommands::PonderHitCommand(std::list<std::string>, UCI&)
-{
-    LOG_ERROR() << "Not implemented";
-    return false;
+bool UCICommands::PonderHitCommand(std::list<std::string>, UCI&) {
+    throw new ephant::not_implemented_exception("UCI PonderHit command not implemented");
 }
 
 bool UCICommands::PrintCommand(std::list<std::string>, UCI& interface)
@@ -66,10 +55,8 @@ bool UCICommands::PrintCommand(std::list<std::string>, UCI& interface)
     return true;
 }
 
-bool UCICommands::QuitCommand(std::list<std::string>, UCI& interface)
-{
+bool UCICommands::QuitCommand(std::list<std::string>, UCI& interface) {
     std::cout << "bye bye";
-
     return true;
 }
 
@@ -78,7 +65,7 @@ void UCIThreadContext::queue(std::list<std::string> args, UCICommands::UCIComman
     {
         std::lock_guard<std::mutex> lock(m_mtx);
         m_commandQueue.push([args = std::move(args), command] (UCI& _interface) {
-            LOG_DEBUG() << "executing command " << args.front();
+            LOG_TRACE("executing command {}", args.front());
             return command(args, _interface);
         });    
     }
@@ -87,40 +74,42 @@ void UCIThreadContext::queue(std::list<std::string> args, UCICommands::UCIComman
 
 void UCIThreadContext::process(std::stop_token stopToken) {
     while (!stopToken.stop_requested()) {
-        LOG_DEBUG() << "waiting for new command...";
+        LOG_TRACE("waiting for new command...");
         CommandFunction command;
         {
             std::unique_lock<std::mutex> lock(m_mtx);
-            LOG_DEBUG() << "queue size before wait: " << m_commandQueue.size();
+            LOG_TRACE("queue size before wait: {}", m_commandQueue.size());
             // wait
             m_cv.wait(lock, [this, &stopToken]()  { 
                 return !m_commandQueue.empty() || stopToken.stop_requested();
             });
 
-            LOG_DEBUG() << "woke up, queue size: " << m_commandQueue.size() 
-                        << ", stop requested: " << stopToken.stop_requested();
-
+            LOG_TRACE("woke up, queue size: {}", m_commandQueue.size());
+            LOG_TRACE("stop requested: {}", stopToken.stop_requested());
             if (stopToken.stop_requested() && m_commandQueue.empty())
                 break;
                 
             if (!m_commandQueue.empty()) {
-                LOG_DEBUG() << "about to extract command";
+                LOG_TRACE("about to extract command");
                 command = std::move(m_commandQueue.front());
-                LOG_DEBUG() << "command moved";
+                LOG_TRACE("command moved");
                 m_commandQueue.pop();
-                LOG_DEBUG() << "command popped, queue size now: " << m_commandQueue.size();
+                LOG_TRACE("command popped, queue size now: {}", m_commandQueue.size());
             }
         }
 
-        LOG_DEBUG() << "lock released, command valid: " << (command ? "yes" : "no");
-
+        LOG_TRACE("lock released, command valid: {}", (command ? "yes" : "no"));
         if (command) {
-            LOG_DEBUG() << "about to execute command";
+            LOG_TRACE("about to execute command");
+            try {
             if (command(interface) == false)       
-                LOG_ERROR() << "UCI Command failed";        
+                LOG_ERROR("UCI Command failed");
+            } catch (const std::exception& e) {
+                LOG_ERROR("Exception during UCI command execution: {}", e.what());
+            }
 
-            LOG_DEBUG() << "command execute done...";
+            LOG_TRACE("command execute done...");
         }
     }
-    LOG_DEBUG() << "worker thread exiting";
+    LOG_TRACE("worker thread exiting");
 }

@@ -67,7 +67,7 @@ bool
 UCI::SetOption(const std::list<std::string> args)
 {
     if (args.size() < 4) {
-        LOG_ERROR() << "SetOption: Not enough arguments";
+        throw new ephant::uci_command_exception("option", "Not enough arguments");        
         return false;
     }
     
@@ -86,7 +86,7 @@ UCI::SetOption(const std::list<std::string> args)
         m_context.editTranspositionTable().resize(std::stoi(*value));
     }
     else {
-        LOG_ERROR() << "Unknown option: " << *name;
+        throw new ephant::uci_command_exception("option", "Unknown option: " + *name);
         return false;
     }
 
@@ -97,7 +97,7 @@ bool
 UCI::Position(std::list<std::string> args)
 {
     if (args.size() == 0) {
-        LOG_ERROR() << "PositionCommand: No arguments";
+        throw new ephant::uci_command_exception("position", "No arguments");
         return false;
     }
 
@@ -115,8 +115,7 @@ UCI::Position(std::list<std::string> args)
             args.pop_front();
         }
 
-        if (!io::fen_parser::deserialize(fen.c_str(), m_context.editChessboard())) {
-            LOG_ERROR() << "Failed to parse fen: " << fen;
+        if (!io::fen_parser::deserialize(fen.c_str(), m_context.editChessboard())) {            
             return false;
         }
     }
@@ -135,9 +134,8 @@ UCI::Position(std::list<std::string> args)
             PackedMove move = io::san_parser::deserialize(moveStr);
             auto cp = position.pieceAt(move.sourceSqr());
 
-            if (cp == ChessPiece::None())
-            {
-                LOG_ERROR() << "Invalid move: " << moveStr;
+            if (cp == ChessPiece::None()) {
+                throw new ephant::uci_command_exception("moves", "Invalid move: " + moveStr);
                 return false;
             }
 
@@ -179,85 +177,85 @@ UCI::Go(std::list<std::string> args)
     // returns a optional, since the lambda can also fail.
     std::map<std::string, std::function<std::optional<int>(void)>> options;
     options["searchmoves"] = []() {
-        LOG_ERROR() << "Not yet implemented";
+        throw new ephant::uci_command_exception("searchmoves", "Not yet implemented");
         return std::nullopt;
         };
     options["ponder"] = []() {
-        LOG_ERROR() << "Not yet implemented";
+        throw new ephant::uci_command_exception("ponder", "Not yet implemented");
         return std::nullopt;
         };
     options["wtime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "wtime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
-            LOG_ERROR() << "No time specified";
+            throw new ephant::uci_command_exception("wtime", "No time specified");
             return std::nullopt;
         }
         searchParams.WhiteTimelimit = std::stoi(*itr);
-        LOG_DEBUG() << "wtime " << searchParams.WhiteTimelimit << "\n";
+        LOG_DEBUG("wtime {}", searchParams.WhiteTimelimit);
         return 1;
         };
     options["btime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "btime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
-            LOG_ERROR() << "No time specified";
+            throw new ephant::uci_command_exception("btime", "No time specified");
             return std::nullopt;
         }
         searchParams.BlackTimelimit = std::stoi(*itr);
-        LOG_DEBUG() << "btime " << searchParams.BlackTimelimit << "\n";
+        LOG_DEBUG("btime {}", searchParams.BlackTimelimit);
         return 1;
         };
     options["winc"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "winc");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
-            LOG_ERROR() << "No time specified";
+            throw new ephant::uci_command_exception("winc", "No time specified");
             return std::nullopt;
         }
         searchParams.WhiteTimeIncrement = std::stoi(*itr);
-        LOG_DEBUG() << "winc " << searchParams.WhiteTimeIncrement << "\n";
+        LOG_DEBUG("winc {}", searchParams.WhiteTimeIncrement);
         return 1;
         };
     options["binc"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "binc");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
-            LOG_ERROR() << "No time specified";
+            throw new ephant::uci_command_exception("binc", "No time specified");
             return std::nullopt;
         }
         searchParams.BlackTimeIncrement = std::stoi(*itr);
-        LOG_DEBUG() << "binc " << searchParams.BlackTimeIncrement << "\n";
+        LOG_DEBUG("binc {}", searchParams.BlackTimeIncrement);
         return 1;
         };
     options["movestogo"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "movestogo");
         itr++;  // increment itr should hold the value of "movestogo"
         if (itr == args.end()) {
-            LOG_ERROR() << "No movestogo specified";
+            throw new ephant::uci_command_exception("movestogo", "No movestogo specified");
             return std::nullopt;
         }
         searchParams.MovesToGo = std::stoi(*itr);
-        LOG_DEBUG() << "movestogo " << searchParams.MovesToGo << "\n";
+        LOG_DEBUG("movestogo {}", searchParams.MovesToGo);
         return 1;
         };
     options["nodes"] = []() {
-        LOG_ERROR() << "Not yet implemented";
+        throw new ephant::uci_command_exception("nodes", "Not yet implemented");
         return std::nullopt;
         };
     options["mate"] = []() {
-        LOG_ERROR() << "Not yet implemented";
+        throw new ephant::uci_command_exception("mate", "Not yet implemented");
         return std::nullopt;
         };
     options["movetime"] = [&searchParams, args]() -> std::optional<int> {
         auto itr = std::find(args.begin(), args.end(), "movetime");
         itr++;  // increment itr should hold the value of "movetime"
         if (itr == args.end()) {
-            LOG_ERROR() << "No movetime specified";
+            throw new ephant::uci_command_exception("movetime", "No movetime specified");
             return std::nullopt;
         }
         searchParams.MoveTime = std::stoi(*itr);
-        LOG_DEBUG() << "movetime " << searchParams.MoveTime << "\n";
+        LOG_DEBUG("movetime {}", searchParams.MoveTime);
         return 1;
         };
     options["infinite"] = [&searchParams]() -> std::optional<int> {
@@ -271,18 +269,18 @@ UCI::Go(std::list<std::string> args)
         auto itr = std::find(args.begin(), args.end(), "depth");
         itr++;  // increment itr should hold the value of "depth"
         if (itr == args.end()) {
-            LOG_ERROR() << "No depth specified";
+            throw new ephant::uci_command_exception("depth", "No depth specified");
             return std::nullopt;
         }
         searchParams.SearchDepth = std::stoi(*itr);
-        LOG_DEBUG() << "depth " << searchParams.SearchDepth << "\n";
+        LOG_DEBUG("depth {}", searchParams.SearchDepth);
         return 1;
         };
 
     for (auto argItr = args.begin(); argItr != args.end(); ++argItr) {
         auto itr = options.find(*argItr);
         if (itr == options.end()) {
-            LOG_ERROR() << "Unknown option: " << *argItr;
+            throw new ephant::uci_command_exception("unknown", "Unknown option: " + *argItr);
             return false;
         }
         std::optional<int> optinalResult = itr->second();
@@ -293,7 +291,7 @@ UCI::Go(std::list<std::string> args)
                 break;
         }
         else {
-            LOG_ERROR() << "Invalid option: " << *argItr;
+            throw new ephant::uci_command_exception("invalid", "Invalid option: " + *argItr);
             return false;
         }
     }
@@ -317,7 +315,7 @@ UCI::Go(std::list<std::string> args)
 
 bool UCI::Bench(std::list<std::string> args)
 {
-    LOG_INFO() << "Starting benchmark...";
+    spdlog::info("Starting benchmark...");
 
     Clock timer;
     timer.Start();

@@ -23,7 +23,7 @@ void WeightStore::book(IWeight* weight) {
 
 void WeightStore::loadFromFile(const std::string& filename) {
     if (!m_fileReader->openFile(filename)) {
-        LOG_ERROR() << "Could not open config file " << filename;
+        LOG_ERROR("Could not open config file {}", filename);
         return;
     }
 
@@ -34,6 +34,7 @@ void WeightStore::loadFromFile(const std::string& filename) {
             continue;
         }
 
+        // we assume that everything is a tapered value
         std::stringstream ss(line);
         std::string paramName, valueAStr, valueBStr;
         ss >> paramName >> valueAStr >> valueBStr;
@@ -45,13 +46,13 @@ void WeightStore::loadFromFile(const std::string& filename) {
             if (paramPtr) {
                 try {
                     paramPtr->accept(*this, std::format("{} {}", valueAStr, valueBStr));
-                    LOG_INFO() << "Set parameter '" << paramName << "' to " << valueAStr << " " << valueBStr;
+                    LOG_TRACE("Set parameter '{}' to {} {}", paramName, valueAStr, valueBStr);
                 } catch (const std::invalid_argument& e) {
-                    LOG_ERROR() << "Error setting parameter '" << paramName << "': " << e.what();
+                    LOG_ERROR("Error setting parameter '{}': {}", paramName, e.what());
                 }
             }
         } else {
-            LOG_ERROR() << "Unknown parameter in config file: " << paramName;
+            LOG_ERROR("Unknown parameter in config file: {}", paramName);
         }
     }
 }
@@ -62,7 +63,7 @@ void WeightStore::update(const std::string& name, const std::string& newValue) {
         it->second->accept(*this, newValue);
     }
     else {
-        LOG_ERROR() << "Unknown weight name: " << name;
+        LOG_ERROR("Unknown weight name: {}", name);
     }
 }
 

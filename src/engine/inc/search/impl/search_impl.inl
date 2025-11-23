@@ -32,7 +32,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
         try {
             finalResult = fut.get();            
         } catch (const std::exception& e) {
-            LOG_ERROR() << "Search thread exception: " << e.what();
+            LOG_ERROR("Search thread exception: {}", e.what());
         }
     }
 

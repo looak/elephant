@@ -94,7 +94,7 @@ public:
      * @brief unsets least signficiant bit, board can't be empty    */
     [[nodiscard]] constexpr u64 resetLsb() const
     {
-        FATAL_ASSERT(!empty());
+        ASSERT(!empty());
         return intrinsics::resetLsb(m_board);
     }
 
@@ -102,7 +102,7 @@ public:
      * @brief returns the least significant bit and unsets it, board can't be empty     */
     [[nodiscard]] constexpr u32 popLsb()
     {
-        FATAL_ASSERT(!empty());
+        ASSERT(!empty());
         u32 index = lsbIndex();
         m_board = resetLsb();
         return index;
@@ -313,7 +313,7 @@ BitboardImpl<T>::shift(u8 direction) const
         return shiftNorthWest();
     }
 
-    FATAL_ASSERT(false) << "Invalid direction";
+    ASSERT_MSG(false, "Invalid direction");
 }
 
 template<typename T>
@@ -346,7 +346,7 @@ BitboardImpl<T>::shiftRelative() const
         return shiftNorthWestRelative<us>();
     }
 
-    FATAL_ASSERT(false) << "Invalid direction";
+    ASSERT_MSG(false, "Invalid direction");
 }
 
 
