@@ -114,14 +114,14 @@ struct TTStats<true> {
         u64 s = stores.load();
         u64 o = overwrites.load();
         
-        printf("\n=== Transposition Table Statistics ===\n");
-        printf("Probes:      %llu\n", p);
-        printf("Hits:        %llu (%.2f%%)\n", h, p > 0 ? 100.0 * h / p : 0.0);
-        printf("Misses:      %llu (%.2f%%)\n", m, p > 0 ? 100.0 * m / p : 0.0);
-        printf("Collisions:  %llu\n", c);
-        printf("Stores:      %llu\n", s);
-        printf("Overwrites:  %llu (%.2f%%)\n", o, s > 0 ? 100.0 * o / s : 0.0);
-        printf("=====================================\n\n");
+        spdlog::debug("=== Transposition Table Statistics ===");
+        spdlog::debug("Probes:      {}", p);
+        spdlog::debug("Hits:        {} ({:.2f}%)", h, p > 0 ? 100.0 * h / p : 0.0);
+        spdlog::debug("Misses:      {} ({:.2f}%)", m, p > 0 ? 100.0 * m / p : 0.0);
+        spdlog::debug("Collisions:  {}", c);
+        spdlog::debug("Stores:      {}", s);
+        spdlog::debug("Overwrites:  {} ({:.2f}%)", o, s > 0 ? 100.0 * o / s : 0.0);
+        spdlog::debug("=====================================");
     }
     
     void reset() {

@@ -7,6 +7,8 @@
 #include "io/fen_parser.hpp"
 #include "io/san_parser.hpp"
 #include "search/search.hpp"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 struct EpdTestCase {
     std::string id;
@@ -49,14 +51,57 @@ std::vector<EpdTestCase> loadEpdFile(const std::string& filePath) {
     }
     return cases;
 }
-
 class EpdCorrectness : public ::testing::TestWithParam<EpdTestCase> {
 protected:
+    static std::string s_runLogFilename;
+    static bool s_loggerInitialized;
+
+    static std::string makeRunLogFilename(const char* suiteName) {
+        // timestamp or random-based name
+        auto now = std::chrono::system_clock::now();
+        auto t   = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+#ifdef _WIN32
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+        std::ostringstream oss;
+        oss << "logs/" << suiteName << "_"
+            << std::put_time(&tm, "%Y%m%d_%H%M") << ".log";
+        return oss.str();
+    }
+
+    static void ensureLoggerInitialized() {
+        if (s_loggerInitialized)
+            return;
+
+        const ::testing::TestInfo* const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        // Use the suite name to distinguish WinAtChess vs Arasan21 runs
+        std::string suiteName = test_info ? test_info->test_suite_name() : "EpdCorrectness";
+
+        s_runLogFilename = makeRunLogFilename(suiteName.c_str());
+
+        auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(s_runLogFilename, true);
+        auto logger    = std::make_shared<spdlog::logger>("engine", file_sink);
+
+        spdlog::set_default_logger(logger);
+        spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v"); // high precision for search
+        spdlog::set_level(spdlog::level::debug); // turn on the fire hose
+
+        s_loggerInitialized = true;
+    }
+
     void SetUp() override {
-        // Set a reasonable, fixed depth for all tests
-        // You can't use your full time-managed search here.
-        // params.SearchDepth = 8; // Or 8, 12... pick one and be consistent
-        params.MoveTime = 2500; // 2.5 seconds per move
+        ensureLoggerInitialized();
+        // params.SearchDepth = 10; // reasonable depth for tests
+        params.MoveTime = 1000; // 1 second per move
+    }
+    void TearDown() override {
+        // Flush and release the logger so the file is closed properly
+        spdlog::debug("-------------------------------------------------");
+     //   spdlog::shutdown(); 
     }
 
     SearchParameters params;
@@ -68,6 +113,9 @@ TEST_P(EpdCorrectness, FindBestMove) {
     EpdTestCase tc = GetParam();
     GameContext context;
     
+    spdlog::debug("Starting test case: {}", tc.id);
+    spdlog::debug("Expecting {}, fen: {}", tc.bestMoveSan, tc.fen);
+
     // 1. Set up the position
     io::fen_parser::deserialize(tc.fen.c_str(), context.editChessboard());
 
@@ -92,9 +140,24 @@ TEST_P(EpdCorrectness, FindBestMove) {
         );
     }) << "SAN parser FAILED to parse the expected move: " << tc.bestMoveSan << " for test: " << tc.id;
     
+
+    // scouting statistics logging
+    searcher.scout_search_count == 0 ? 1 : searcher.scout_search_count; // prevent div by zero
+    spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", searcher.scout_search_count, searcher.scout_re_search_count, (searcher.scout_re_search_count / searcher.scout_search_count) * 100);
+
+
+    if (expectedMove.toString() == result.move().toString()) {
+        spdlog::debug("Test ID: {} passed. Expected move: {} | Engine move: {}", tc.id, expectedMove.toString(), result.move().toString());
+    } else {
+        spdlog::error("Test ID: {} FAILED! Expected move: {} | Engine move: {}", tc.id, expectedMove.toString(), result.move().toString());
+    }        
     EXPECT_EQ(expectedMove.toString(), result.move().toString())
         << "Test ID: " << tc.id;    
 }
+
+// static definitions
+std::string EpdCorrectness::s_runLogFilename;
+bool EpdCorrectness::s_loggerInitialized = false;
 
 // 4. Instantiate the test suite
 INSTANTIATE_TEST_SUITE_P(
@@ -122,3 +185,4 @@ INSTANTIATE_TEST_SUITE_P(
         return name;
     }
 );
+

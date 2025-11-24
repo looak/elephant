@@ -20,8 +20,14 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
             if (flag == TranspositionFlag::TTF_CUT_EXACT) {
                 pv->moves[0] = bestMove;
                 pv->length = 1;
+                return ttProbeResult.value();
             }
-            return ttProbeResult.value();    
+            else if (flag == TranspositionFlag::TTF_CUT_BETA && ttProbeResult.value() >= beta) {
+                return ttProbeResult.value();
+            }
+            else if (flag == TranspositionFlag::TTF_CUT_ALPHA && ttProbeResult.value() <= alpha) {
+                return alpha;
+            }
         }
     }
 
@@ -49,7 +55,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
         pv->length = 0;
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
         } else {
             int perspective = 1 - (int)us * 2;
             Evaluator evaluator(context.position.read());
@@ -127,11 +133,14 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             // }
             
             // --- Scouting with zero-window ---
+            this->scout_search_count++;
             eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -alpha - 1, -alpha, ply + 1, &childPv);
             
             // --- Scouting failed high: Re-search with full window ---
-            if (eval > alpha && eval < beta)
+            if (eval > alpha && eval < beta) {
+                this->scout_re_search_count++;
                 eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -beta, -alpha, ply + 1, &childPv);
+            }
         }
         
         context.history.pop();
@@ -151,13 +160,13 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
                 pv->moves[0] = outMove;
                 memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
                 pv->length = childPv.length + 1;
-            }
 
-            // --- Beta Cutoff ---
-            if (alpha >= beta) {
-                flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
-                search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
-                return beta; 
+                // --- Beta Cutoff ---
+                if (alpha >= beta) {
+                    flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
+                    search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
+                    return bestEval; 
+                }
             }
         }
 
