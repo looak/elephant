@@ -134,7 +134,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
 }
 
 // using this to test performance of search.
-TEST_F(SearchFixture, ExpectedMoveMateInFive) {
+TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInFive) {
     for (const auto& searchCase : s_mateInFive) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());

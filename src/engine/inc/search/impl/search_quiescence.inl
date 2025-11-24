@@ -13,6 +13,11 @@ u16 Search::mostValuablePieceInPosition(PositionReader pos) {
 
 template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
+    ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
+    ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
+    ASSERT_MSG(alpha < beta, "Alpha must be less than beta in alphaBeta.");
+    ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
+
     Evaluator evaluator(context.position.read());
     i16 perspective = 1 - (int)us * 2;
     i16 standPat = evaluator.Evaluate() * perspective;
@@ -62,14 +67,14 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
         
         executor.unmakeMove(undoState);
 
-        if (qEval > bestEval) {            
+        if (qEval > bestEval) 
             bestEval = qEval;
-            if (qEval > alpha) {
-                alpha = qEval;
-                if (alpha >= beta)
-                    return alpha; 
-            }
-        }
+
+        if (bestEval >= beta)
+            return bestEval;
+        
+        if (bestEval > alpha)
+            alpha = bestEval;
 
         ordered = generator.pop();
     }
