@@ -17,7 +17,7 @@
 #include "defines.hpp"
 
 static constexpr u32 c_maxSearchDepth = 64;
-static constexpr i32 c_infinity = 32000;
+static constexpr i32 c_infinity = 28000;
 static constexpr i32 c_checkmateConstant = 24000;
 static constexpr i32 c_nullMoveOffset = 500;
 static constexpr i32 c_checkmateMaxDistance = 256;

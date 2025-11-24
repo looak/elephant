@@ -12,14 +12,14 @@ u16 Search::mostValuablePieceInPosition(PositionReader pos) {
 }
 
 template<Set us>
-i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply) {
+i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
     Evaluator evaluator(context.position.read());
     i16 perspective = 1 - (int)us * 2;
     i16 standPat = evaluator.Evaluate() * perspective;
 
     // Stand-pat beta cutoff
-    if (standPat >= beta)
-        return beta;
+    if (standPat >= beta && !checked)
+        return standPat;
 
     // Leaf node - return stand-pat
     if (depth <= 0 || ply >= c_maxSearchDepth)
@@ -35,7 +35,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
         alpha = standPat;
 
     // Generate captures
-    MoveGenParams genParams = MoveGenParams{ .moveFilter = MoveTypes::CAPTURES_ONLY };
+    MoveGenParams genParams = MoveGenParams{ .moveFilter = checked ? MoveTypes::ALL : MoveTypes::CAPTURES_ONLY };
     MoveGenerator<us> generator(context.position.read(), genParams);
 
     i16 bestEval = standPat;
@@ -57,7 +57,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, ply);
         
-        i16 qEval = -quiescence<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1);
+        i16 qEval = -quiescence<opposing_set<us>()>(context, depth - 1, -beta, -alpha, ply + 1, ordered.isCheck());
         context.qNodeCount++;
         
         executor.unmakeMove(undoState);
@@ -67,7 +67,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 b
             if (qEval > alpha) {
                 alpha = qEval;
                 if (alpha >= beta)
-                    return alpha; // Beta cutoff
+                    return alpha; 
             }
         }
 

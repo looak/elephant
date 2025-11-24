@@ -90,6 +90,9 @@ public:
     template<Set us>
     SearchResult go(SearchParameters params, TimeManager& clock);
 
+    // debugging parameters -- maybe we wrap these in the development_build define
+    u64 scout_search_count = 0;
+    u64 scout_re_search_count = 0;
 private:
     // start of actual search
     template<Set us>
@@ -102,7 +105,7 @@ private:
     i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
 
     template<Set us>
-    i16 quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
+    i16 quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked);
 
     template<Set us>
     bool tryNullMovePrune(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);

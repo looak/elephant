@@ -3,8 +3,8 @@ set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, wa
 
 set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
 
-set(OUTPUT_LOG_TO_FILE ON CACHE BOOL "Output log to file" FORCE)
-set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
+set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
+set(DEBUG_TRANSITION_TABLE ON CACHE BOOL "Enable debug output for transition table" FORCE)
 
 # Map to spdlog's compile-time level
 if(${LOG_LEVEL} STREQUAL "trace")
