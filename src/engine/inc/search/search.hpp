@@ -91,8 +91,8 @@ public:
     SearchResult go(SearchParameters params, TimeManager& clock);
 
     // debugging parameters -- maybe we wrap these in the development_build define
-    u64 scout_search_count = 0;
-    u64 scout_re_search_count = 0;
+    std::atomic<u64> scout_search_count = 0;
+    std::atomic<u64> scout_re_search_count = 0;
 private:
     // start of actual search
     template<Set us>

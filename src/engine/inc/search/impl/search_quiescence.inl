@@ -14,8 +14,7 @@ u16 Search::mostValuablePieceInPosition(PositionReader pos) {
 template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
-    ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
-    ASSERT_MSG(alpha < beta, "Alpha must be less than beta in alphaBeta.");
+    ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");    
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
 
     Evaluator evaluator(context.position.read());

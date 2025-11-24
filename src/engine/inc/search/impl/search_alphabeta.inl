@@ -4,7 +4,6 @@ template<Set us>
 i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
-    ASSERT_MSG(alpha < beta, "Alpha must be less than beta in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
     
     PositionReader pos = context.position.read();
@@ -59,6 +58,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
             // Start Q-Search with its *own* depth limit, configured with search params.
             return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
         } else {
+            pv->length = 0;
             int perspective = 1 - (int)us * 2;
             Evaluator evaluator(context.position.read());
             return evaluator.Evaluate() * perspective;
@@ -102,78 +102,84 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
     MoveExecutor executor(context.position.edit());
     PrioritizedMove ordered = gen.pop();
     
+    // We need to store the "Best Move Found So Far" locally to update outMove correctly
+    PackedMove intermmediateMove = PackedMove::NullMove();
+
+    u16 movingPly = ply; 
+
     do {
-        if (context.clock.shouldStop() == true) 
-            break;
+        if (context.clock.shouldStop()) break;
 
         PackedMove move = ordered.move;
-
-        u16 adjustedDepth = depth;
-        // --- Checking Search Extensions ---
-        adjustedDepth += static_cast<u8>(ordered.isCheck()); // Extend by 1 if the move gives check
-        u16 movingPly = ply; // this will become important once we start caring about 50-move rule.
-        i16 eval = bestEval;
-
+        
+        // --- Extensions ---
+        u16 adjustedDepth = depth + static_cast<u8>(ordered.isCheck());
+        
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
         context.history.push(pos.hash());
         
+        i16 eval;
+
         if (index == 0) {
-            // First move: full window, full depth (no PVS, no LMR)
+            // --- PV Search (First Move) ---
+            // Full window, full trust.
             eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -beta, -alpha, ply + 1, &childPv);
-    
         } else {
-            // All other moves: start with zero-window (PVS)
-            u16 searchDepth = adjustedDepth - 1;
-            
-            // Apply LMR if appropriate
-            // if constexpr (search_policies::LMR::enabled) {
-            //     if (search_policies::LMR::shouldReduce(depth, move, index, gen.isChecked(), ordered.isCheck())) {
-            //         searchDepth -= search_policies::LMR::getReduction(depth);
-            //     }
-            // }
-            
-            // --- Scouting with zero-window ---
+            // --- Scout Search (Subsequent Moves) ---
+            // Zero window: Try to prove move is <= alpha
             this->scout_search_count++;
-            eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -alpha - 1, -alpha, ply + 1, &childPv);
+            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -alpha - 1, -alpha, ply + 1, &childPv);
             
-            // --- Scouting failed high: Re-search with full window ---
-            if (alpha < eval && eval < beta) {
+            // --- The Re-Search Trigger ---
+            // If eval > alpha, the move is better than we thought. 
+            // We must re-search with the full window to get the exact score.
+            // (Only if it's also < beta, otherwise we just take the beta cutoff)
+            if (eval > alpha && eval < beta) {
                 this->scout_re_search_count++;
-                eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -beta, -alpha, ply + 1, &childPv);
+                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -beta, -alpha, ply + 1, &childPv);
             }
         }
-        
+
         context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
-        // --- Beta Cutoff ---
-        if (bestEval >= beta) {
-            flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
-            search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
-            return bestEval; 
-        }
-
-        // --- Alpha-Beta Logic (Fail-Soft) ---
+        // --- Update Best Score (Fail-Soft) ---
         if (eval > bestEval) {
             bestEval = eval;
-            outMove = move;
-        }
+            intermmediateMove = move; // Update local tracker
+            
+            // --- Beta Cutoff (Fail-High) ---
+            if (bestEval >= beta) {
+                flag = TranspositionFlag::TTF_CUT_BETA;
+                search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
+                outMove = intermmediateMove;
+                return bestEval;
+            }
 
-        if (bestEval > alpha) {
-            alpha = bestEval;
-            flag = TranspositionFlag::TTF_CUT_EXACT; // This is now a PV-Node
+            // --- Alpha Update (PV Node) ---
+            if (bestEval > alpha) {
+                alpha = bestEval;
+                flag = TranspositionFlag::TTF_CUT_EXACT;
+                outMove = intermmediateMove;
 
-            // Update the Principal Variation
-            pv->moves[0] = outMove;
-            memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
-            pv->length = childPv.length + 1;            
+                // Update PV
+                pv->moves[0] = intermmediateMove;
+                memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
+                pv->length = childPv.length + 1;
+            }
         }
 
         ordered = gen.pop();
         index++;
     } while (ordered.move.isNull() == false);
+
+    // Ensure outMove is set if we found *any* valid move that improved bestEval (even if it didn't beat alpha)
+    // Though usually, we only care about outMove if it beat alpha (PV) or beta (Cutoff).
+    if (intermmediateMove.isNull() == false && outMove.isNull()) {
+        outMove = intermmediateMove;
+    }
 
     return bestEval;
 }

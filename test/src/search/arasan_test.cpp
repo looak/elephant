@@ -96,7 +96,7 @@ protected:
     void SetUp() override {
         ensureLoggerInitialized();
         // params.SearchDepth = 10; // reasonable depth for tests
-        params.MoveTime = 1000; // 1 second per move
+        params.MoveTime = 4096; // 4.096 second per move
     }
     void TearDown() override {
         // Flush and release the logger so the file is closed properly
@@ -142,8 +142,10 @@ TEST_P(EpdCorrectness, FindBestMove) {
     
 
     // scouting statistics logging
-    searcher.scout_search_count == 0 ? 1 : searcher.scout_search_count; // prevent div by zero
-    spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", searcher.scout_search_count, searcher.scout_re_search_count, (searcher.scout_re_search_count / searcher.scout_search_count) * 100);
+    // fetching atomics 
+    u64 scoutCount = searcher.scout_search_count.load() == 0 ? 1 : searcher.scout_search_count.load(); // prevent div by zero
+    u64 reSearchCount = searcher.scout_re_search_count.load();
+    spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", scoutCount, reSearchCount, (reSearchCount / scoutCount) * 100);
 
 
     if (expectedMove.toString() == result.move().toString()) {

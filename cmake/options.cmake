@@ -1,6 +1,7 @@
 set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
 set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
+set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions" FORCE)
 set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
@@ -25,11 +26,12 @@ else()
     message(FATAL_ERROR "Invalid LOG_LEVEL: ${LOG_LEVEL}")
 endif()
 
-set(PRECOMPILE_OPTIONS    
+set(PRECOMPILE_OPTIONS
+    ASSERTIONS_ENABLED
+    DEBUG_TRANSITION_TABLE
     DEVELOPMENT_BUILD
     EXCEPTIONS_ENABLED
     OUTPUT_LOG_TO_FILE
-    DEBUG_TRANSITION_TABLE
 )
 
 # Library to hold our shared compiler warning flags
