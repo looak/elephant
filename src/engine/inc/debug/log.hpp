@@ -30,6 +30,8 @@
 #include <sstream>
 #include <string>
 
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+
 #define LOG_TRACE(...)    SPDLOG_TRACE(__VA_ARGS__)
 #define LOG_DEBUG(...)    SPDLOG_DEBUG(__VA_ARGS__)
 #define LOG_INFO(...)     SPDLOG_INFO(__VA_ARGS__)
@@ -144,45 +146,6 @@ private:
 
 } // namespace logging
 
-
-
-// @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
-// number if it fails.
-#if defined(ASSERTS_ENABLED)
-#define ASSERT_MSG(expr, message) \
-    if ((expr) != 0) {     \
-        int ___noop = 5;   \
-        (void)___noop;     \
-    }                      \
-    else                   \
-
-        ephant::ephsert(#expr, "[ASSERT] ", __FILENAME__, __LINE__, message)
-#else
-#define ASSERT_MSG(expr, message) \
-    switch (0)    \
-    case 0:       \
-    default:      \
-        ;
-#endif
-
-#if defined(ASSERTS_ENABLED)
-#define ASSERT(expr) \
-    if ((expr) != 0) {     \
-        int ___noop = 5;   \
-        (void)___noop;     \
-    }                      \
-    else                   \
-
-        ephant::ephsert(#expr, "[ASSERT] ", __FILENAME__, __LINE__)
-#else
-#define ASSERT(expr) \
-    switch (0)    \
-    case 0:       \
-    default:      \
-        ;
-#endif
-
-
 namespace ephant {
 class ephsert final {
 public:
@@ -197,3 +160,38 @@ public:
 };
 
 }  // namespace ephant
+
+
+// @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
+// number if it fails.
+#if defined(ASSERTIONS_ENABLED)
+#define ASSERT_MSG(expr, message) \
+    if ((expr) != 0) {     \
+        int ___noop = 5;   \
+        (void)___noop;     \
+    }                      \
+    else                   \
+        ephant::ephsert(#expr, "[ASSERT] ", __FILENAME__, __LINE__, message);
+#else
+#define ASSERT_MSG(expr, message) \
+    switch (0)    \
+    case 0:       \
+    default:      \
+        ;
+#endif
+
+#if defined(ASSERTIONS_ENABLED)
+#define ASSERT(expr) \
+    if ((expr) != 0) {     \
+        int ___noop = 5;   \
+        (void)___noop;     \
+    }                      \
+    else                   \
+        ephant::ephsert(#expr, "[ASSERT] ", __FILENAME__, __LINE__);
+#else
+#define ASSERT(expr) \
+    switch (0)    \
+    case 0:       \
+    default:      \
+        ;
+#endif
