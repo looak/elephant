@@ -46,8 +46,15 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     u64 lastIterationTimeSpan = context.clock.now();
 
     // iterative deepening loop -- might make this optional.
+    
     for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
-        SearchResult itrResult;        
+        SearchResult itrResult;
+        if (result.pvLine.length > 0) {
+            // carry over best move from previous iteration
+            itrResult.pvLine.moves[0] = result.pvLine.moves[0]; 
+            itrResult.pvLine.length = 1;
+        }
+
         itrResult.score = alphaBeta<us>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
 
         reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, lastIterationTimeSpan);

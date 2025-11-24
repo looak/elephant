@@ -2,14 +2,16 @@
 
 template<Set us>
 i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
-    THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in alphaBeta.");   
+    ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
+    ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
+    ASSERT_MSG(alpha < beta, "Alpha must be less than beta in alphaBeta.");
+    ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
     
     PositionReader pos = context.position.read();
     if (context.history.isRepetition(pos.hash()) == true) {
         return -c_drawConstant;
     }
 
-    pv->length = 0;
     PackedMove bestMove = PackedMove::NullMove();
 
     // --- Transposition Table Probe ---
@@ -75,7 +77,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     i16 eval = searchMoves<us>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
 
     // --- Store to TT ---
-    if constexpr (search_policies::TT::enabled) {        
+    if constexpr (search_policies::TT::enabled) {
         // All moves searched, no cutoff.
         search_policies::TT::update(
             pos.hash(),
@@ -89,8 +91,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
 }
 
 template<Set us>
-i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove)
-{
+i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
 
@@ -137,7 +138,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
             eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -alpha - 1, -alpha, ply + 1, &childPv);
             
             // --- Scouting failed high: Re-search with full window ---
-            if (eval > alpha && eval < beta) {
+            if (alpha < eval && eval < beta) {
                 this->scout_re_search_count++;
                 eval = -alphaBeta<opposing_set<us>()>(context, searchDepth, -beta, -alpha, ply + 1, &childPv);
             }
@@ -147,27 +148,27 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u1
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
+        // --- Beta Cutoff ---
+        if (bestEval >= beta) {
+            flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
+            search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
+            return bestEval; 
+        }
+
         // --- Alpha-Beta Logic (Fail-Soft) ---
         if (eval > bestEval) {
             bestEval = eval;
             outMove = move;
+        }
 
-            if (bestEval > alpha) {
-                alpha = bestEval;
-                flag = TranspositionFlag::TTF_CUT_EXACT; // This is now a PV-Node
+        if (bestEval > alpha) {
+            alpha = bestEval;
+            flag = TranspositionFlag::TTF_CUT_EXACT; // This is now a PV-Node
 
-                // Update the Principal Variation
-                pv->moves[0] = outMove;
-                memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
-                pv->length = childPv.length + 1;
-
-                // --- Beta Cutoff ---
-                if (alpha >= beta) {
-                    flag = TranspositionFlag::TTF_CUT_BETA; // It's a fail-high
-                    search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
-                    return bestEval; 
-                }
-            }
+            // Update the Principal Variation
+            pv->moves[0] = outMove;
+            memcpy(pv->moves + 1, childPv.moves, childPv.length * sizeof(PackedMove));
+            pv->length = childPv.length + 1;            
         }
 
         ordered = gen.pop();
