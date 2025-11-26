@@ -66,8 +66,7 @@ u64 computeBoardHash(const Chessboard& board) {
     }
 
     byte castlingState = reader.castling().read();
-
-    hash = updateCastlingHash(hash, reader.castling().read());
+    hash = updateCastlingHash(hash, castlingState);
 
 
     if (reader.enPassant()) {

@@ -16,7 +16,7 @@ const Bitboard MaterialPositionMask::combine(Set set) const
     return m_set[static_cast<i8>(set)];
 }
 
-void MaterialPositionMask::write(Bitboard mask, Set set, i8 pieceId)
+void MaterialPositionMask::write(Bitboard mask, Set set, u8 pieceId)
 {
     m_set[static_cast<i8>(set)] |= mask;
     m_material[pieceId] |= mask;
@@ -27,14 +27,14 @@ Bitboard MaterialPositionMask::read(i32 pieceId) const
     return m_material[pieceId];
 }
 
-Bitboard MaterialPositionMask::read(Set set, i8 pieceId) const
+Bitboard MaterialPositionMask::read(Set set, u8 pieceId) const
 {
     return m_material[pieceId] & m_set[static_cast<i8>(set)];
 }
 
-void MaterialPositionMask::clear(Bitboard mask, Set set, i8 pieceId)
+void MaterialPositionMask::clear(Bitboard mask, Set set, u8 pieceId)
 {
-    m_set[static_cast<i8>(set)] &= ~mask;
+    m_set[static_cast<u8>(set)] &= ~mask;
     m_material[pieceId] &= ~mask;
 }
 
@@ -50,7 +50,7 @@ void MaterialPositionMask::clear()
 ChessPiece MaterialPositionMask::pieceAt(Square sqr) const
 {
         Bitboard mask(UINT64_C(1) << (u8)sqr);
- 
+
     for (byte set = 0; set < 2; ++set) {
         if (m_set[set] & mask)
         {

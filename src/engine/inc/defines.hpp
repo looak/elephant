@@ -48,8 +48,8 @@ using i32 = std::int32_t;
 
 const u64 universe = 0xffffffffffffffffULL;
 
-#define to0x88(sqr) sqr + (sqr & ~7)
-#define fr0x88(sq0x88) (sq0x88 + (sq0x88 & 7)) >> 1
+constexpr u8 to0x88(u8 sqr) { return sqr + (sqr & ~7); }
+constexpr u8 fr0x88(u8 sq0x88) { return (sq0x88 + (sq0x88 & 7)) >> 1; }
 
 #define file_a 0
 #define file_b 1
@@ -79,10 +79,10 @@ const u64 universe = 0xffffffffffffffffULL;
 #define southwest 6
 #define northwest 7
 
-// faster divide by eight
+// faster mod by eight
 // only works on positive integers
 // acording to own tests ~3x faster than regular mod by eight.
-#define mod_by_eight(v) (v & 7)
+constexpr byte mod_by_eight(byte v) { return v & 7; }
 
 static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -126,7 +126,7 @@ constexpr Square toSquare(byte file, byte rank)  {
 #endif
 }
 
-constexpr Square toSquare(i32 index) {
+constexpr Square toSquare(u32 index) {
     return static_cast<Square>(index);
 }
 

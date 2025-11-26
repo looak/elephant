@@ -1,7 +1,7 @@
 #pragma once
 
 template<Set us>
-bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i16 beta, u16 ply) {
+bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 /*alpha   */, i16 beta, u16 ply) {
     PositionReader pos = ctx.position.read();
 
     // Safety check: Don't prune near mate scores
@@ -21,7 +21,7 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
     u64 originalHash = ctx.position.read().hash();
     ctx.position.edit().hash() = zobrist::updateBlackToMoveHash(originalHash);
 
-    u16 R = search_policies::NMP::getReduction(depth);
+    u8 R = search_policies::NMP::getReduction(depth);
     i16 nullScore = -nullmove<opposing_set<us>()>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
 
     ctx.nodeCount++;
@@ -30,7 +30,7 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u16 depth, i16 alpha, i1
 }
 
 template<Set us>
-i16 Search::nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply) {
+i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply) {
     THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");   
 
     PositionReader currentPos = context.position.read();

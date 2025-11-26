@@ -163,8 +163,8 @@ public:
 
         byte index() const { return m_index; }
         Square square() const { return static_cast<Square>(m_index); }
-        byte file() const { return mod_by_eight(m_index); }
-        byte rank() const { return m_index / 8; }
+        byte file() const { return file_of(square()); }
+        byte rank() const { return rank_of(square()); }
 
         ChessPiece get() const {
             return m_position.read().pieceAt(static_cast<Square>(m_index));

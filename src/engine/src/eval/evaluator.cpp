@@ -9,15 +9,15 @@
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
 
-i32
+i16
 Evaluator::Evaluate()
 {
-    i32 score = 0;
-    i32 materialScore = EvaluateMaterial();
+    i16 score = 0;
+    i16 materialScore = EvaluateMaterial();
     score += materialScore;
 //    LOG_DEBUG() << "Material score: " << score;
 
-    i32 tmp = EvaluatePiecePositions();
+    i16 tmp = EvaluatePiecePositions();
     score += tmp;
     // LOG_DEBUG() << "Piece position score: " << tmp;
 
@@ -40,21 +40,21 @@ Evaluator::Evaluate()
     return score;
 }
 
-i32 Evaluator::EvaluatePlus(PackedMove move)
+i16 Evaluator::EvaluatePlus(PackedMove move)
 {
     return 0;
 }
 
-i32
+i16
 Evaluator::EvaluateMaterial() const
 {
     const auto& material = m_position.material();
-    i32 score = 0;
+    i16 score = 0;
 
-    for (u32 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-        u32 pieceValue = piece_constants::value[pieceIndx];
-        i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
-        i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
+    for (u8 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
+        u16 pieceValue = piece_constants::value[pieceIndx];
+        i16 whiteCount = material.read(Set::WHITE, pieceIndx).count();
+        i16 blackCount = material.read(Set::BLACK, pieceIndx).count();
 
         score += pieceValue * whiteCount;
         score -= pieceValue * blackCount;
@@ -63,22 +63,22 @@ Evaluator::EvaluateMaterial() const
     return score;
 }
 
-i32
+i16
 Evaluator::EvaluatePiecePositions() const
 {
     const auto& material = m_position.material();
-    i32 score = 0;
+    i16 score = 0;
     float endgameCoeficient = calculateEndGameCoeficient();
 
     Bitboard whitePawns = material.read(Set::WHITE, pawnId);
     while (whitePawns.empty() == false) {
-        i32 sqr = whitePawns.popLsb();
+        i16 sqr = whitePawns.popLsb();
         score += evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
     Bitboard blackPawns = material.read(Set::BLACK, pawnId);
     while (blackPawns.empty() == false) {
-        i32 sqr = blackPawns.popLsb();
+        i16 sqr = blackPawns.popLsb();
         sqr = evaluator_data::flip(sqr);
         score -= evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
@@ -87,13 +87,13 @@ Evaluator::EvaluatePiecePositions() const
         Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
 
         while (whitePieces.empty() == false) {
-            i32 sqr = whitePieces.popLsb();
+            i16 sqr = whitePieces.popLsb();
             score += evaluator_data::pestoTables[pieceIndx][sqr];
         }
 
         Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
         while (blackPieces.empty() == false) {
-            i32 sqr = blackPieces.popLsb();
+            i16 sqr = blackPieces.popLsb();
             sqr = evaluator_data::flip(sqr);
             score -= evaluator_data::pestoTables[pieceIndx][sqr];
         }
@@ -101,13 +101,13 @@ Evaluator::EvaluatePiecePositions() const
 
     Bitboard whiteKing = material.read(Set::WHITE, kingId);
     while (whiteKing.empty() == false) {
-        i32 sqr = whiteKing.popLsb();
+        i16 sqr = whiteKing.popLsb();
         score += evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
     Bitboard blackKing = material.read(Set::BLACK, kingId);
     while (blackKing.empty() == false) {
-        i32 sqr = blackKing.popLsb();
+        i16 sqr = blackKing.popLsb();
         sqr = evaluator_data::flip(sqr);
         score -= evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
@@ -115,8 +115,8 @@ Evaluator::EvaluatePiecePositions() const
     return score;
 }
 
-i32 Evaluator::EvaluatePawnStructure() const {
-    i32 result = 0;
+i16 Evaluator::EvaluatePawnStructure() const {
+    i16 result = 0;
     float egCoeficient = calculateEndGameCoeficient();
 
     Bitboard whitePawns = m_position.material().whitePawns();
@@ -142,17 +142,17 @@ i32 Evaluator::EvaluatePawnStructure() const {
 }
 
 // idea is that keeping the pawns closer together is better.
-i32 Evaluator::EvaluatePawnManhattanDistance() const {
-    i32 result = 0;
+i16 Evaluator::EvaluatePawnManhattanDistance() const {
+    i16 result = 0;
     const auto& material = m_position.material();
     Bitboard whitePawns = material.whitePawns();
 
-    i32 distance = 0;
+    i16 distance = 0;
     while (whitePawns.empty() == false) {
-        i32 whitePawnSqr = whitePawns.popLsb();
+        i16 whitePawnSqr = whitePawns.popLsb();
         Bitboard otherPawns = material.whitePawns();
         while (otherPawns.empty() == false) {
-            i32 otherPawn = otherPawns.popLsb();
+            i16 otherPawn = otherPawns.popLsb();
             distance += board_constants::manhattanDistances[whitePawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
@@ -161,10 +161,10 @@ i32 Evaluator::EvaluatePawnManhattanDistance() const {
     distance = 0;
     Bitboard blackPawns = material.blackPawns();
     while (blackPawns.empty() == false) {
-        i32 blackPawnSqr = blackPawns.popLsb();
+        i16 blackPawnSqr = blackPawns.popLsb();
         Bitboard otherPawns = material.blackPawns();
         while (otherPawns.empty() == false) {
-            i32 otherPawn = otherPawns.popLsb();
+            i16 otherPawn = otherPawns.popLsb();
             distance += board_constants::manhattanDistances[blackPawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
@@ -173,11 +173,11 @@ i32 Evaluator::EvaluatePawnManhattanDistance() const {
     return result;
 }
 
-i32 Evaluator::EvaluateKingSafety() const {
-    static const i32 pawnWallFactor = 8;
-    static const i32 pinFactor = 12;
+i16 Evaluator::EvaluateKingSafety() const {
+    static const i16 pawnWallFactor = 8;
+    static const i16 pinFactor = 12;
     const auto& material = m_position.material();
-    i32 score = 0;
+    i16 score = 0;
     // evaluate pawn wall around king
     Bitboard whiteKing = material.whiteKing();
     Bitboard whitePawns = material.whitePawns();
@@ -209,8 +209,8 @@ i32 Evaluator::EvaluateKingSafety() const {
     return score;
 }
 
-i32 Evaluator::MopUpValue(i32 materialScore) const {
-    i32 result = 0;
+i16 Evaluator::MopUpValue(i16 materialScore) const {
+    i16 result = 0;
     result += MopUpValue<Set::WHITE>(materialScore);
     result -= MopUpValue<Set::BLACK>(-materialScore);
     return result;
@@ -218,14 +218,14 @@ i32 Evaluator::MopUpValue(i32 materialScore) const {
 
 
 template<Set us>
-i32 Evaluator::EvaluatePassedPawn() const {
-    i32 result = 0;
+i16 Evaluator::EvaluatePassedPawn() const {
+    i16 result = 0;
     Bitboard usPawns = m_position.material().pawns<us>();
     Bitboard opPawns = m_position.material().pawns<opposing_set<us>()>();
     const size_t usIndx = static_cast<size_t>(us);
 
     while (usPawns.empty() == false) {
-        i32 pawnSqr = usPawns.popLsb();
+        i16 pawnSqr = usPawns.popLsb();
         Bitboard pawnMask = squareMaskTable[pawnSqr];
 
         pawnMask = pawnMask.shiftNorthRelative<us>();
@@ -249,19 +249,19 @@ i32 Evaluator::EvaluatePassedPawn() const {
     return result;
 }
 
-template i32 Evaluator::EvaluatePassedPawn<Set::WHITE>() const;
-template i32 Evaluator::EvaluatePassedPawn<Set::BLACK>() const;
+template i16 Evaluator::EvaluatePassedPawn<Set::WHITE>() const;
+template i16 Evaluator::EvaluatePassedPawn<Set::BLACK>() const;
 
 template<Set us>
-i32 Evaluator::EvaluatePawnProtection(Bitboard pawns) const {
+i16 Evaluator::EvaluatePawnProtection(Bitboard pawns) const {
     auto guardedSquares = m_position.material().topology<us>().computeThreatenedSquaresPawnBulk();
     guardedSquares &= pawns; // guarded pawns
     return guardedSquares.count() * evaluator_data::guardedPawnScore;
 }
 
 template<Set us>
-i32 Evaluator::MopUpValue(i32 materialScore) const {
-    i32 result = 0;
+i16 Evaluator::MopUpValue(i16 materialScore) const {
+    i16 result = 0;
     const auto& material = m_position.material();
 
     if (materialScore > 2 * piece_constants::value[pawnId] && calculateEndGameCoeficient() > 0.5f)
@@ -277,8 +277,8 @@ i32 Evaluator::MopUpValue(i32 materialScore) const {
     return result;
 }
 
-template i32 Evaluator::MopUpValue<Set::WHITE>(i32) const;
-template i32 Evaluator::MopUpValue<Set::BLACK>(i32) const;
+template i16 Evaluator::MopUpValue<Set::WHITE>(i16) const;
+template i16 Evaluator::MopUpValue<Set::BLACK>(i16) const;
 
 
 float Evaluator::calculateEndGameCoeficient() const {
@@ -290,7 +290,7 @@ float Evaluator::calculateEndGameCoeficient() const {
     if (material.combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
         return 1.f;
 
-    static constexpr i32 defaultPosValueOfMaterial = piece_constants::value[0] * 16    // pawn
+    static constexpr i16 defaultPosValueOfMaterial = piece_constants::value[0] * 16    // pawn
         + piece_constants::value[1] * 4   // knight
         + piece_constants::value[2] * 4   // bishop
         + piece_constants::value[3] * 6   // rook 6 instead of 4 here to push the coeficient towards endgame a little
@@ -300,7 +300,7 @@ float Evaluator::calculateEndGameCoeficient() const {
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a
     // endgame already should just return 1.f
 
-    i32 boardMaterialCombinedValue = 0;
+    i16 boardMaterialCombinedValue = 0;
     for (u8 index = 0; index < 5; ++index) {
         boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::WHITE>(index).count();
         boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::BLACK>(index).count();

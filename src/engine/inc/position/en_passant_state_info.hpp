@@ -35,8 +35,8 @@ public:
 
     void writeSquare(Square sq)
     {
-        m_innerState = static_cast<byte>(sq);
-        m_innerState = m_innerState << 2;
+        m_innerState = *sq;
+        m_innerState = static_cast<byte>(m_innerState << 2);
         m_innerState += 1;
         // m_innerState += ((byte)set << 1);
     }

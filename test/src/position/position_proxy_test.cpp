@@ -52,13 +52,12 @@ TEST_F(PositionProxyFixture, Position_Copy)
 TEST_F(PositionProxyFixture, PositionIterator_FromA1toH8)
 {
     Chessboard board;
-    PositionReader positionReader = board.readPosition();
-    auto itr = positionReader.begin();
+    PositionReader positionReader = board.readPosition();    
 
     auto otherItr = positionReader.begin();
-    for (int r = 0; r < 8; r++) {
+    for (u8 r = 0; r < 8; r++) {
         EXPECT_EQ(r, otherItr.rank());
-        for (int f = 0; f < 8; f++) {
+        for (u8 f = 0; f < 8; f++) {
             auto notation = SquareNotation(f, r);
             Square expectedSqr = notation.toSquare();
             EXPECT_EQ(expectedSqr, otherItr.square());

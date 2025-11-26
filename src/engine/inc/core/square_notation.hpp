@@ -21,16 +21,25 @@
 // TODO: Make this a helper to enum class Square, so all it does is takes Squares and lets you extract rank/file or convert it
 // to string. We don't want to allow building Squares out of Notations since Notations are unsafe.
 
+constexpr byte file_of(Square sqr) {
+    byte indx = *sqr;
+    return mod_by_eight(indx);
+}
+
+constexpr byte rank_of(Square sqr) {
+    byte indx = *sqr;
+    return indx >> 3; // divide by 8
+}
+
 struct SquareNotation {
     SquareNotation() = default;
     constexpr SquareNotation(Square _sqr) :
-        m_file(0xF),
-        m_rank(0xF),
         m_sqr(_sqr)
     {
-        i32 indx = static_cast<i32>(m_sqr);
-        m_file = mod_by_eight(indx);
-        m_rank = indx / 8;
+        byte indx = *m_sqr;
+        ASSERT_MSG(indx <= 63, "SquareNotation :: Invalid square enum value for notation conversion.");
+        m_file = file_of(_sqr);
+        m_rank = rank_of(_sqr);
     }
 
     constexpr SquareNotation(byte file, byte rank) :

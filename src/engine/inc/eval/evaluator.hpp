@@ -37,8 +37,8 @@ class Evaluator
 public:
     Evaluator(PositionReader position) : m_position(position) {}
 
-    i32 Evaluate();
-    i32 EvaluatePlus(PackedMove move);
+    i16 Evaluate();
+    i16 EvaluatePlus(PackedMove move);
 
     /**
      * @brief Calculates the end game coeficient.
@@ -47,21 +47,21 @@ public:
     float calculateEndGameCoeficient() const;
 
 private:
-    i32 EvaluateMaterial() const;
-    i32 EvaluatePiecePositions() const;
-    i32 EvaluatePawnStructure() const;
-    i32 EvaluatePawnManhattanDistance() const;
-    i32 EvaluateKingSafety() const;
+    i16 EvaluateMaterial() const;
+    i16 EvaluatePiecePositions() const;
+    i16 EvaluatePawnStructure() const;
+    i16 EvaluatePawnManhattanDistance() const;
+    i16 EvaluateKingSafety() const;
 
-    i32 MopUpValue(i32 materialScore) const;
-
-    template<Set us>
-    i32 EvaluatePassedPawn() const;
-    template<Set us>
-    i32 EvaluatePawnProtection( Bitboard pawns) const;
+    i16 MopUpValue(i16 materialScore) const;
 
     template<Set us>
-    i32 MopUpValue(i32 materialScore) const;
+    i16 EvaluatePassedPawn() const;
+    template<Set us>
+    i16 EvaluatePawnProtection( Bitboard pawns) const;
+
+    template<Set us>
+    i16 MopUpValue(i16 materialScore) const;
 
 
     PositionProxy<PositionReadOnlyPolicy> m_position;

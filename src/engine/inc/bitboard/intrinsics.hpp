@@ -19,17 +19,16 @@
 #include "defines.hpp"
 namespace fallback {
 
-constexpr u32 index64[64] = {0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61, 54, 58, 35, 52, 50, 42,
-                             21, 44, 38, 32, 29, 23, 17, 11, 4,  62, 46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43,
-                             31, 22, 10, 45, 25, 39, 14, 33, 19, 30, 9,  24, 13, 18, 8,  12, 7,  6,  5,  63};
+constexpr u32 index64[64] = {   0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61, 54, 58, 35, 52, 50, 42,
+                                21, 44, 38, 32, 29, 23, 17, 11, 4,  62, 46, 55, 26, 59, 40, 36, 15, 53, 34, 51, 20, 43,
+                                31, 22, 10, 45, 25, 39, 14, 33, 19, 30, 9,  24, 13, 18, 8,  12, 7,  6,  5,  63  };
 
 /**
  * bitScanForward
  * @author Kim Walisch (2012)
  * @param bb bitboard to scan
  * @precondition bb != 0
- * @return index (0..63) of least significant bit
- */
+ * @return index (0..63) of least significant bit  */
 [[nodiscard]] constexpr u32
 bitScanForward(u64 bb)
 {
@@ -46,6 +45,14 @@ lsb(u64 bb)
     i64 sbb = (i64)bb;
     return (u64)(sbb & -sbb);
 }
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wsign-conversion"
+#elif defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4245) // MSVC equivalent for signed/unsigned mismatch
+#endif
+
 
 typedef u64 OneSizeFits;
 typedef u32 HotRats;
@@ -81,6 +88,12 @@ freakOut(OneSizeFits all)
     return so;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
+
 [[nodiscard]] constexpr i32
 popcount(u64 bb)
 {
@@ -105,7 +118,7 @@ lsbIndex(u64 bitboard)
 
 /**
  * Bit scan reverse    */
-[[nodiscard]] constexpr i32
+[[nodiscard]] constexpr u32
 msbIndex(u64 bitboard)
 {
     return fallback::freakOut(bitboard);

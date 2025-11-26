@@ -33,6 +33,6 @@ static constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
 
 namespace quiescence_params {
 static constexpr u32 defaultMaxDepth = 8;
-static constexpr u8 futilityDepthMargin = (defaultMaxDepth * .5f); // 75% of max depth + 2
+static constexpr u8 futilityDepthMargin = (defaultMaxDepth / 2);
 static constexpr i16 futilityMargin = 200; // 2 pawns
 } // namespace quiescence_params

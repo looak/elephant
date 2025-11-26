@@ -66,7 +66,7 @@ struct alignas(8) entry {
     PackedMove move;
     // TODO: figure out if we can make this 10-bytes
     // paddoing  -- 6 bytes
-    entry() : move(0), data(0) {}
+    entry() : data(0), move(0) {}
 };
 
 static_assert(sizeof(entry) == 16, "transposition table entry must be exactly 16 bytes");
@@ -105,6 +105,10 @@ struct TTStats<true> {
     void record_collision() { collisions.fetch_add(1, std::memory_order_relaxed); }
     void record_store() { stores.fetch_add(1, std::memory_order_relaxed); }
     void record_overwrite() { overwrites.fetch_add(1, std::memory_order_relaxed); }
+
+    constexpr double calculate_rate(u64 numerator, u64 denominator) const {
+        return denominator > 0 ? static_cast<double>(numerator) / static_cast<double>(denominator) : 0.0;
+    }
     
     void print_stats() const {
         u64 p = probes.load();
@@ -113,14 +117,18 @@ struct TTStats<true> {
         u64 c = collisions.load();
         u64 s = stores.load();
         u64 o = overwrites.load();
+
+        double missRate = calculate_rate(100 * m, p);
+        double hitRate = calculate_rate(100 * h, p);
+        double overwriteRate = calculate_rate(100 * o, s);
         
         spdlog::debug("=== Transposition Table Statistics ===");
         spdlog::debug("Probes:      {}", p);
-        spdlog::debug("Hits:        {} ({:.2f}%)", h, p > 0 ? 100.0 * h / p : 0.0);
-        spdlog::debug("Misses:      {} ({:.2f}%)", m, p > 0 ? 100.0 * m / p : 0.0);
+        spdlog::debug("Hits:        {} ({:.2f}%)", h, hitRate);
+        spdlog::debug("Misses:      {} ({:.2f}%)", m, missRate);
         spdlog::debug("Collisions:  {}", c);
         spdlog::debug("Stores:      {}", s);
-        spdlog::debug("Overwrites:  {} ({:.2f}%)", o, s > 0 ? 100.0 * o / s : 0.0);
+        spdlog::debug("Overwrites:  {} ({:.2f}%)", o, overwriteRate);
         spdlog::debug("=====================================");
     }
     
@@ -208,7 +216,7 @@ public:
     std::enable_if_t<D, double> get_hit_rate() const {
         u64 p = m_stats.probes.load();
         u64 h = m_stats.hits.load();
-        return p > 0 ? (double)h / p : 0.0;
+        return calculate_rate(h, p);
     }
 };
 

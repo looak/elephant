@@ -96,16 +96,14 @@ constexpr i8 pawn_modifier()
 
 namespace piece_constants {
 namespace notation {
-inline PieceType fromChar(char c) {
-    if (std::islower(c))
-        c = std::toupper(c);
-        
+inline PieceType fromChar(char c) {        
     switch (c) {
-        case 'K': return PieceType::KING;
-        case 'Q': return PieceType::QUEEN;
-        case 'R': return PieceType::ROOK;
-        case 'B': return PieceType::BISHOP;
-        case 'N': return PieceType::KNIGHT;
+        case 'K': case 'k': return PieceType::KING;
+        case 'Q': case 'q': return PieceType::QUEEN;
+        case 'R': case 'r': return PieceType::ROOK;
+        case 'B': case 'b': return PieceType::BISHOP;
+        case 'N': case 'n': return PieceType::KNIGHT;
+        // case 'P': case 'p': return PieceType::PAWN;
         // pawns have no letter in SAN; return sentinel if needed:
         default:  return PieceType::NR_OF_PIECES;
     }

@@ -86,24 +86,24 @@ private:
 public:
     bool empty() const;
 
-    void write(Bitboard mask, Set set, i8 pieceId);
+    void write(Bitboard mask, Set set, u8 pieceId);
     template<Set us> void write(Bitboard mask, i32 pieceId);
     template<Set us, i32 pieceId> void write(Bitboard mask);
 
     [[nodiscard]] Bitboard read(i32 pieceId) const;
-    [[nodiscard]] Bitboard read(Set set, i8 pieceId) const;
+    [[nodiscard]] Bitboard read(Set set, u8 pieceId) const;
     template<Set us, i32 pieceId> [[nodiscard]] Bitboard read() const;
-    template<Set us> [[nodiscard]] Bitboard read(i8 pieceId) const;
+    template<Set us> [[nodiscard]] Bitboard read(u8 pieceId) const;
 
     [[nodiscard]] const Bitboard combine() const;
     [[nodiscard]] const Bitboard combine(Set set) const;
     template<Set us> [[nodiscard]] constexpr Bitboard combine() const;
 
     void clear();
-    void clear(Bitboard mask, Set set, i8 pieceId);
+    void clear(Bitboard mask, Set set, u8 pieceId);
     template<Set us> void clear(Bitboard mask);
-    template<Set us> void clear(Bitboard mask, i32 pieceId);
-    template<Set us, i32 pieceId> void clear(Bitboard mask);
+    template<Set us> void clear(Bitboard mask, u8 pieceId);
+    template<Set us, u8 pieceId> void clear(Bitboard mask);
 
     template<Set us> [[nodiscard]] constexpr Bitboard king() const;
     template<Set us> [[nodiscard]] constexpr Bitboard queens() const;
@@ -195,7 +195,7 @@ struct MutableImplicitPieceSquare {
                 m_material.clear(squareMaskTable[static_cast<u8>(m_sqr)], oldPiece.getSet(), oldPiece.index());
                 m_hash = zobrist::updatePieceHash(m_hash, oldPiece, m_sqr);
             }        
-            m_material.write(squareMaskTable[static_cast<u8>(m_sqr)], piece.getSet(), piece.index());            
+            m_material.write(squareMaskTable[static_cast<u8>(m_sqr)], piece.getSet(), piece.index());
             m_hash = zobrist::updatePieceHash(m_hash, piece, m_sqr);
         }
     }
@@ -238,7 +238,7 @@ Bitboard MaterialPositionMask::read() const
 }
 
 template<Set us>
-Bitboard MaterialPositionMask::read(i8 pieceId) const
+Bitboard MaterialPositionMask::read(u8 pieceId) const
 {
     return m_material[pieceId] & m_set[static_cast<i8>(us)];
 }
@@ -260,7 +260,7 @@ void MaterialPositionMask::clear(Bitboard mask)
 }
 
 template<Set us>
-void MaterialPositionMask::clear(Bitboard mask, i32 pieceId)
+void MaterialPositionMask::clear(Bitboard mask, u8 pieceId)
 {
     if constexpr (us == Set::WHITE) {
         m_set[0] &= ~mask;
@@ -271,7 +271,7 @@ void MaterialPositionMask::clear(Bitboard mask, i32 pieceId)
     m_material[pieceId] &= ~mask;
 }
 
-template<Set us, i32 pieceId>
+template<Set us, u8 pieceId>
 void MaterialPositionMask::clear(Bitboard mask)
 {
     clear<us>(mask, pieceId);

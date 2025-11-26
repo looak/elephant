@@ -88,9 +88,8 @@ Move::readPackedMove() const
 i16
 Move::calcCaptureValue() const
 {
-    i16 victim = piece_constants::value[CapturedPiece.index()];
-    i16 attacker = piece_constants::value[Piece.index()];
-
+    i16 victim = static_cast<i16>(piece_constants::value[CapturedPiece.index()]);
+    i16 attacker = static_cast<i16>(piece_constants::value[Piece.index()]);
     return victim * 10 - attacker;
 }
 
