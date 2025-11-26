@@ -7,21 +7,21 @@ export ElephantGambit_VERSION_MINOR = 10
 export ElephantGambit_VERSION_PATCH = 0
 export ElephantGambit_VERSION = $(ElephantGambit_VERSION_MAJOR).$(ElephantGambit_VERSION_MINOR).$(ElephantGambit_VERSION_PATCH)
 
+# Versioning header and template
+VERSION_HEADER := ../src/engine/inc/elephant_gambit_config.h
+VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
+
 # Directories
+INCLUDE_PATHS := ../src/engine/inc ../src/cli/inc ../third_party/spdlog/include
+INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CSRC_DIR := ../src/cli/src
-CINC_DIR := ../src/cli/inc
 ESRC_DIR := ../src/engine/src
-INC_DIR := ../src/engine/inc 
 BUILD_DIR := ./build
 BIN_DIR := ./bin
 
 # Compiler and flags
 CXX := g++
-CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP -I$(INC_DIR) -I$(CINC_DIR)
-
-# Versioning header and template
-VERSION_HEADER := ../src/engine/inc/elephant_gambit_config.h
-VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
+CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wno-unknown-pragmas
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
