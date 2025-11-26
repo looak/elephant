@@ -48,7 +48,7 @@ foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
 endforeach()
 
 # third_party libraries
-add_subdirectory(third_party/libpopcnt) # this was used in the intrinsics, maybe we re-enable it in the future
+add_subdirectory(third_party)
 
 # defines targets and sources
 add_subdirectory(src)
