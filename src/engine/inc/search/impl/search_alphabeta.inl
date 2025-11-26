@@ -1,7 +1,7 @@
 #pragma once
 
 template<Set us>
-i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
+i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
@@ -16,7 +16,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
     // --- Transposition Table Probe ---
     TranspositionFlag flag = TranspositionFlag::TTF_NONE;
     if constexpr (search_policies::TT::enabled) {
-        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, alpha, beta, ply, flag, bestMove);
+        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, alpha, beta, flag, bestMove);
         if (ttProbeResult.has_value()) {
             if (flag == TranspositionFlag::TTF_CUT_EXACT) {
                 pv->moves[0] = bestMove;
@@ -59,9 +59,9 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
             return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
         } else {
             pv->length = 0;
-            int perspective = 1 - (int)us * 2;
+            constexpr i32 sidesPerspective = (us == Set::WHITE) ? 1 : -1;
             Evaluator evaluator(context.position.read());
-            return evaluator.Evaluate() * perspective;
+            return evaluator.Evaluate() * sidesPerspective;
         }
     }
 
@@ -83,7 +83,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
             pos.hash(),
             bestMove, // Store the best move found
             eval, // Store the best score (which is alpha if it was a PV node)
-            ply,
             depth,
             flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
     }
@@ -91,7 +90,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 be
 }
 
 template<Set us>
-i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
+i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
 

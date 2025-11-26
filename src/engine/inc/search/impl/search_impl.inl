@@ -60,9 +60,10 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, lastIterationTimeSpan);
 
         // forced mate check
-        i16 checkmateDistance = c_checkmateConstant - abs((int)itrResult.score);
+        i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);
         checkmateDistance = abs(checkmateDistance);
-        if ((u32)checkmateDistance <= c_maxSearchDepth)
+        ASSERT_MSG(checkmateDistance >= 0, "Checkmate distance should never be negative.");
+        if (static_cast<u32>(checkmateDistance) <= c_maxSearchDepth)
             itrResult.ForcedMate = true;
 
         if (itrResult.ForcedMate) {

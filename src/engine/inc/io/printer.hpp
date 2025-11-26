@@ -43,13 +43,13 @@ void bitboardOperationResult(std::ostream& output, const Bitboard& result, const
 inline std::string formatReadableNumber(u64 number) {    
     std::stringstream ss;
     if (number >= 1'000'000) { // Millions
-        double val = number / 1'000'000.0;
+        double val = static_cast<double>(number) / 1'000'000.0;
         val = std::floor(val * 100.0) / 100.0;
         ss << std::fixed << std::setprecision(2) << val << " million";
     } else { // Below 1 million
         std::string s = std::to_string(number);
-        int n = s.length();
-        int first_group_len = n % 3;
+        size_t n = s.length();
+        size_t first_group_len = n % 3;
         
         if (first_group_len == 0 && n > 0) {
             first_group_len = 3;
@@ -57,7 +57,7 @@ inline std::string formatReadableNumber(u64 number) {
         
         ss << s.substr(0, first_group_len);
         
-        for (int i = first_group_len; i < n; i += 3) {
+        for (size_t i = first_group_len; i < n; i += 3) {
             ss << " " << s.substr(i, 3);
         }
     }

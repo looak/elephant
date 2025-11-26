@@ -90,18 +90,22 @@ static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
 static constexpr u64 baseRankRelative[2] = {rank0Mask, rank7Mask};
 
 constexpr u64 constexprAbs(i64 val) {
-    return val < 0 ? -val : val;
+    u64 uval = static_cast<u64>(val);
+    // If negative, negate the UNSIGNED value.
+    // In 2's complement, -x is equivalent to (~x + 1).
+    // Unsigned negation performs exactly this operation safely.
+    return (val < 0) ? -uval : uval;
 }
 
 constexpr std::array<std::array<u64, 64>, 64>
 generateManhattanDistances() {
     std::array<std::array<u64, 64>, 64> result{};
-    for (int i = 0; i < 64; ++i)
+    for (size_t i = 0; i < 64; ++i)
     {
-        for (int j = 0; j < 64; ++j)
+        for (size_t j = 0; j < 64; ++j)
         {
-            int rankDiff = (i / 8) - (j / 8);
-            int fileDiff = (i % 8) - (j % 8);
+            i64 rankDiff = (i / 8) - (j / 8);
+            i64 fileDiff = (i % 8) - (j % 8);
             result[i][j] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
         }
     }
@@ -111,10 +115,10 @@ generateManhattanDistances() {
 
 constexpr std::array<u64, 64> generateManhattanDistanceFromCenter() {
     std::array<u64, 64> result{};
-    for (int i = 0; i < 64; ++i)
+    for (size_t i = 0; i < 64; ++i)
     {
-        int rankDiff = (i / 8) - 3;
-        int fileDiff = (i % 8) - 3;
+        i64 rankDiff = (i / 8) - 3;
+        i64 fileDiff = (i % 8) - 3;
         result[i] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
     }
 
@@ -143,7 +147,7 @@ constexpr std::array<u64, 64>
 generateSquareLookupTable()
 {
     std::array<u64, 64> result{};
-    for (int i = 0; i < 64; ++i)
+    for (size_t i = 0; i < 64; ++i)
         result[i] = UINT64_C(1) << i;
 
     return result;

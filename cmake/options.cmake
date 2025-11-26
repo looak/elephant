@@ -44,6 +44,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         "-pedantic"            # Enforce strict standard conformance
         "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
         "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
+        "-Wshadow"          # Warn on variable shadowing
+        "-Wconversion"      # Warn on type conversions that may alter a value
+        "-Wsign-conversion" # Warn on sign conversions        
+        "-Wunused-variable"     # Warn on unused variables
+        "-Wunused-parameter"    # Warn on unused parameters
     )
     message(STATUS "## Applying GCC/Clang warning flags.")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -55,6 +60,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 endif()
 
 
-message(STATUS "## Warning Level: ${WARNING_LEVEL_ARGS}")
-target_compile_options(common_warnings INTERFACE ${WARNING_LEVEL_ARGS})
+message(STATUS "## Warning Level: ${PROJECT_WARNING_FLAGS}")
+target_compile_options(common_warnings INTERFACE ${PROJECT_WARNING_FLAGS})
 add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_ACTIVE_LEVEL})

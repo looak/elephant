@@ -100,17 +100,17 @@ private:
 
     // internal seach methods
     template<Set us>
-    i16 alphaBeta(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+    i16 alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
     template<Set us>
-    i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+    i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
 
     template<Set us>
-    i16 quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked);
+    i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, bool checked);
 
     template<Set us>
-    bool tryNullMovePrune(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
+    bool tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
     template<Set us>
-    i16 nullmove(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply);
+    i16 nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
 
     template<Set us>
     u16 mostValuablePieceInPosition(PositionReader pos);

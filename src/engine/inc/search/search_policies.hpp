@@ -48,7 +48,7 @@ public:
         m_table = &tt;        
     }
 
-    static std::optional<i16> probe(u64 hash, u8 requiredDepth, i16 alpha, i16 beta, u16 ply, TranspositionFlag& flag, PackedMove& outMove) {        
+    static std::optional<i16> probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {        
         i16 score;
         u8 depth;
         if (m_table->probe(hash, outMove, score, depth, flag) == false)
@@ -84,7 +84,7 @@ public:
         return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
     }
 
-    static void update(u64 hash, PackedMove move, i16 score, i32 ply, u8 depth, TranspositionFlag flag)
+    static void update(u64 hash, PackedMove move, i16 score, u8 depth, TranspositionFlag flag)
     {
         m_table->store(hash, move, score, depth, flag);
     }
@@ -105,7 +105,7 @@ private:
 class LMR {
 public:
     static constexpr bool enabled = enabled_policies::LMR;
-    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool isChecking) {
+    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool /*isChecking */) {
         return depth > lmr_params::minDepth 
         && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
         && isChecked == false;
@@ -123,12 +123,12 @@ public:
 // --- Move Ordering Heuristics (Killers/History) Policies ---
 class MoveOrdering {
 public:
-    static void push(KillerMoves& killers, PackedMove move, u32 ply) {
+    static void push(KillerMoves& killers, PackedMove move, u16 ply) {
         if (move.isQuiet() == false)
             return; // Only store quiet moves as killers
         killers.push(move, ply);
     }
-    static void prime(const KillerMoves& killers, MoveOrderingView& view, u32 ply) {
+    static void prime(const KillerMoves& killers, MoveOrderingView& view, u16 ply) {
         killers.retrieve(ply, view.killers[0], view.killers[1]);
     }
 };
@@ -141,7 +141,7 @@ public:
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
         return !inCheck && depth >= 3 && hasNonPawnMaterial;
     }
-    static u32 getReduction(u32 depth) {
+    static u8 getReduction(u8 depth) {
         return (depth > 6) ? 3 : 2;
     }
 };

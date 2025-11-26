@@ -43,7 +43,7 @@ const std::array<std::array<u64, 1024>, 64>& getBishopAttacksTable();
 namespace internals {
 
     template<bool edge = false>
-    constexpr u64 shift(i8 direction, u64 occupancy, u64 bounds, u64 bb) {
+    constexpr u64 shift(u8 direction, u64 occupancy, u64 bounds, u64 bb) {
         u64 result = 0;
         i8 shift = shifts::shifts[direction];
         const bool right = 0 > shift ? true : false;
@@ -76,12 +76,12 @@ namespace internals {
         u64 attkMask = 0;
         u8 moveCount = piece_constants::move_count[knightId];
 
-        for (byte moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
-            byte curSqr = sqr;
+        for (u8 moveIndx = 0; moveIndx < moveCount; ++moveIndx) {
+            u8 curSqr = sqr;
             i8 dir = piece_constants::moves0x88[knightId][moveIndx];
 
             // build a 0x88 square out of current square.
-            i8 sq0x88 = to0x88(curSqr);
+            u8 sq0x88 = to0x88(curSqr);
             // do move
             sq0x88 += dir;
             if (sq0x88 & 0x88) // validate move, are we still on the board?

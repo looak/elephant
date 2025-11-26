@@ -96,7 +96,7 @@ public:
                 }
             }
             timer.Stop();
-            float elapsedSeconds = timer.getElapsedTime() / 1000.0f;
+            double elapsedSeconds = static_cast<double>(timer.getElapsedTime()) / 1000.0;
 
             std::cout << "info string " << elapsedSeconds << " seconds\n";
             std::cout << nodes << " nodes " << timer.calcNodesPerSecond(nodes) << " nps\n";

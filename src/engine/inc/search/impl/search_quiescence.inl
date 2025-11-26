@@ -3,7 +3,7 @@
 template<Set us>
 u16 Search::mostValuablePieceInPosition(PositionReader pos) {
     const auto& material = pos.material();
-    for (i8 pieceIndx = queenId; pieceIndx >= pawnId; --pieceIndx) {
+    for (u8 pieceIndx = queenId; pieceIndx >= pawnId; --pieceIndx) {
         if (material.read<us>(pieceIndx).empty() == false) {
             return piece_constants::value[pieceIndx];
         }
@@ -12,7 +12,7 @@ u16 Search::mostValuablePieceInPosition(PositionReader pos) {
 }
 
 template<Set us>
-i16 Search::quiescence(ThreadSearchContext& context, u16 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
+i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");    
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");

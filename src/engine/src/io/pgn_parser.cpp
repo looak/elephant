@@ -60,15 +60,15 @@ namespace pgn_parser {
         u32 expectedMoveNumber = 1;
 
         // Process the annotations
-        for (int i = 0; i < annotations.size();) {
+        for (size_t i = 0; i < annotations.size();) {
             char c = annotations[i];
             if (c == ' ') continue; // move past whitespaces
             if (std::isdigit(c)) {
                 // we're expecting a move number like 22. or 22...
-                u32 moveNumber = c - '0';
+                u32 moveNumber = static_cast<u32>(c - '0');
                 // Check for the full move number (could be more than one digit)
                 while (std::isdigit(annotations[++i])) {
-                    moveNumber = moveNumber * 10 + (annotations[i] - '0');
+                    moveNumber = moveNumber * 10 + static_cast<u32>(annotations[i] - '0');
                 }
                 // Now we have the full move number
                 if (moveNumber == expectedMoveNumber) {

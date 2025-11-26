@@ -147,8 +147,7 @@ Consider this flow:
 
 template<Set us>
 KingPinThreats<us> MoveGenerator<us>::computeKingPinThreats() {
-    constexpr Set op = opposing_set<us>();  
-    Square kingSqr = static_cast<Square>(m_position.material().king<us>().lsbIndex());
+    constexpr Set op = opposing_set<us>();
     Square opKingSqr = static_cast<Square>(m_position.material().king<op>().lsbIndex());
 
     KingPinThreats<us> ret;
