@@ -13,10 +13,10 @@
 #include <optional>
 #include <string>
 
-UCI::UCI() :
-    m_enabled(true),
-    m_stream(std::cout),
-    m_timeManager(SearchParameters{}, Set::WHITE)
+UCI::UCI() 
+    : m_enabled(true)
+    , m_timeManager(SearchParameters{}, Set::WHITE)
+    , m_stream(std::cout)
 {    
     std::osyncstream output(m_stream);
     output << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
@@ -83,7 +83,8 @@ UCI::SetOption(const std::list<std::string> args)
     }
     else if (name->compare("Hash") == 0) {
         m_options["Hash"] = *value;
-        m_context.editTranspositionTable().resize(std::stoi(*value));
+        size_t newSize = static_cast<size_t>(std::stoi(*value));
+        m_context.editTranspositionTable().resize(newSize);
     }
     else {
         throw new ephant::uci_command_exception("option", "Unknown option: " + *name);
@@ -166,134 +167,99 @@ UCI::Stop()
     return true;
 }
 
+
 bool
 UCI::Go(std::list<std::string> args)
 {
     SearchParameters searchParams;
     m_timeManager.reset();
 
+    // Typedef for sanity
+    using ArgIterator = std::list<std::string>::const_iterator;
+    using OptionHandler = std::function<bool(ArgIterator current, ArgIterator end)>;
+
     // some of these args have values associated with them, so when we iterate
     // over the options, some times we need to jump twice. Hence the lambda
     // returns a optional, since the lambda can also fail.
-    std::map<std::string, std::function<std::optional<int>(void)>> options;
-    options["searchmoves"] = []() {
-        throw new ephant::uci_command_exception("searchmoves", "Not yet implemented");
-        return std::nullopt;
+    std::map<std::string, OptionHandler> options;
+
+    auto parse_int = [&]<typename T>(T& target, std::function<bool()> custom_options = nullptr) {
+        return [&](ArgIterator it, ArgIterator end) -> int {
+            auto valueIt = std::next(it);
+            if (valueIt == end) {
+                throw ephant::uci_command_exception(*it, "Expected integer value but none found");
+            }
+            try {
+                i32 value = static_cast<u32>(std::stoi(*valueIt));
+                if (value < 0) {
+                    throw ephant::uci_command_exception(*it, "Negative integer value not allowed");
+                }
+                if (custom_options && !custom_options()) {
+                    throw ephant::uci_command_exception(*it, "Custom option validation failed");
+                }
+                return 1; // we consumed one additional argument
+            }
+            catch (const std::exception& e) {
+                throw ephant::uci_command_exception(*it, "Invalid integer value: " + *valueIt);                
+            }
         };
-    options["ponder"] = []() {
-        throw new ephant::uci_command_exception("ponder", "Not yet implemented");
-        return std::nullopt;
+    };
+
+    auto parse_bool = [&](bool& target, std::function<bool()> custom_options = nullptr) {
+        return [&](ArgIterator it, ArgIterator) -> int {
+            target = true;
+            if (custom_options && !custom_options()) {
+                throw ephant::uci_command_exception(*it, "Custom option validation failed");
+            }
+            return 0; // boolean flag requires no additional arguments
         };
-    options["wtime"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "wtime");
-        itr++;  // increment itr should hold the value of "movetime"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("wtime", "No time specified");
-            return std::nullopt;
-        }
-        searchParams.WhiteTimelimit = std::stoi(*itr);
-        LOG_DEBUG("wtime {}", searchParams.WhiteTimelimit);
-        return 1;
-        };
-    options["btime"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "btime");
-        itr++;  // increment itr should hold the value of "movetime"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("btime", "No time specified");
-            return std::nullopt;
-        }
-        searchParams.BlackTimelimit = std::stoi(*itr);
-        LOG_DEBUG("btime {}", searchParams.BlackTimelimit);
-        return 1;
-        };
-    options["winc"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "winc");
-        itr++;  // increment itr should hold the value of "movetime"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("winc", "No time specified");
-            return std::nullopt;
-        }
-        searchParams.WhiteTimeIncrement = std::stoi(*itr);
-        LOG_DEBUG("winc {}", searchParams.WhiteTimeIncrement);
-        return 1;
-        };
-    options["binc"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "binc");
-        itr++;  // increment itr should hold the value of "movetime"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("binc", "No time specified");
-            return std::nullopt;
-        }
-        searchParams.BlackTimeIncrement = std::stoi(*itr);
-        LOG_DEBUG("binc {}", searchParams.BlackTimeIncrement);
-        return 1;
-        };
-    options["movestogo"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "movestogo");
-        itr++;  // increment itr should hold the value of "movestogo"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("movestogo", "No movestogo specified");
-            return std::nullopt;
-        }
-        searchParams.MovesToGo = std::stoi(*itr);
-        LOG_DEBUG("movestogo {}", searchParams.MovesToGo);
-        return 1;
-        };
-    options["nodes"] = []() {
-        throw new ephant::uci_command_exception("nodes", "Not yet implemented");
-        return std::nullopt;
-        };
-    options["mate"] = []() {
-        throw new ephant::uci_command_exception("mate", "Not yet implemented");
-        return std::nullopt;
-        };
-    options["movetime"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "movetime");
-        itr++;  // increment itr should hold the value of "movetime"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("movetime", "No movetime specified");
-            return std::nullopt;
-        }
-        searchParams.MoveTime = std::stoi(*itr);
-        LOG_DEBUG("movetime {}", searchParams.MoveTime);
-        return 1;
-        };
-    options["infinite"] = [&searchParams]() -> std::optional<int> {
+    };
+
+    auto not_yet_implemented = [](ArgIterator it, ArgIterator) -> int {
+        throw ephant::uci_command_exception(*it, "Option not yet implemented");
+        return 0;
+    };
+
+
+    options["searchmoves"] = not_yet_implemented;
+    options["ponder"] = not_yet_implemented;
+    options["nodes"] = not_yet_implemented;
+    options["mate"] = not_yet_implemented;
+                
+    options["depth"] = parse_int(searchParams.SearchDepth);    
+    options["wtime"] = parse_int(searchParams.WhiteTimelimit);
+    options["btime"] = parse_int(searchParams.BlackTimelimit);
+    options["winc"] = parse_int(searchParams.WhiteTimeIncrement);
+    options["binc"] = parse_int(searchParams.BlackTimeIncrement);
+    options["movestogo"] = parse_int(searchParams.MovesToGo);
+    options["movetime"] = parse_int(searchParams.MoveTime);
+    options["infinite"] = parse_bool(searchParams.Infinite, [&searchParams]() {
         searchParams.MoveTime = 0;
         searchParams.SearchDepth = 0;
-        searchParams.Infinite = true;
-        return 0;
-        };
+        return true;
+    });
 
-    options["depth"] = [&searchParams, args]() -> std::optional<int> {
-        auto itr = std::find(args.begin(), args.end(), "depth");
-        itr++;  // increment itr should hold the value of "depth"
-        if (itr == args.end()) {
-            throw new ephant::uci_command_exception("depth", "No depth specified");
-            return std::nullopt;
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        auto handler = options.find(*it);
+        
+        if (handler == options.end()) {
+            // Standard practice: Log unknown options but don't crash/throw.
+            // GUIs often send extra junk. Be robust.
+            LOG_WARN("Unknown option ignored: {}", *it);
+            continue; 
         }
-        searchParams.SearchDepth = std::stoi(*itr);
-        LOG_DEBUG("depth {}", searchParams.SearchDepth);
-        return 1;
-        };
 
-    for (auto argItr = args.begin(); argItr != args.end(); ++argItr) {
-        auto itr = options.find(*argItr);
-        if (itr == options.end()) {
-            throw new ephant::uci_command_exception("unknown", "Unknown option: " + *argItr);
-            return false;
+        // Pass the context (current position and end) to the handler
+        int consumed = handler->second(it, args.end());
+        
+        // Safety check before advancing
+        if (std::distance(it, args.end()) <= consumed) {
+            // This theoretically shouldn't happen if the lambda checks bounds, 
+            // but trust no one.
+            break; 
         }
-        std::optional<int> optinalResult = itr->second();
-        if (optinalResult) {
-            int increments = *optinalResult;
-            argItr = std::next(argItr, increments);
-            if (argItr == args.end())
-                break;
-        }
-        else {
-            throw new ephant::uci_command_exception("invalid", "Invalid option: " + *argItr);
-            return false;
-        }
+        
+        std::advance(it, consumed);
     }
 
     Search searcher(m_context);
@@ -313,7 +279,7 @@ UCI::Go(std::list<std::string> args)
     return true;
 }
 
-bool UCI::Bench(std::list<std::string> args)
+bool UCI::Bench(std::list<std::string>)
 {
     spdlog::info("Starting benchmark...");
 
@@ -341,9 +307,10 @@ bool UCI::Bench(std::list<std::string> args)
     }
 
     timer.Stop();
-    i64 elapsedSeconds = timer.getElapsedTime() / 1000;
+    float elapsedSeconds = timer.getElapsedSeconds();
+    i64 elapsedMilliseconds = timer.getElapsedTime();
     std::cout << "info string " << elapsedSeconds << " seconds\n";
-    std::cout << nodes << " nodes " << nodes / elapsedSeconds << " nps\n";
+    std::cout << nodes << " nodes " << nodes*1000 / (u64)elapsedMilliseconds << " nps\n";
     return true;
 }
 

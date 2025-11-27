@@ -29,3 +29,8 @@ u64 Clock::calcNodesPerSecond(u64 nodes) const
     
     return (u64)((float)nodes / seconds);
 }
+
+float Clock::getElapsedSeconds() const
+{
+    return static_cast<float>(getElapsedTime()) / 1000.0f;
+}

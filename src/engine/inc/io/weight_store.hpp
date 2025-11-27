@@ -105,7 +105,11 @@ public:
     TaperedWeight(std::string name, T& a, T& b);
 
     virtual void accept(WeightStore& store, const std::string& newValue) override;
-    i32 operator*(const float& t) { return static_cast<i32>(m_a + (m_b - m_a) * t); }
+    T operator*(const float& t)  {
+        T percent = static_cast<T>(100 * t);
+        T one_hundred = 100;
+        return (m_a + (m_b - m_a) * percent / one_hundred); 
+    }
 
 private:
     friend class WeightStore;

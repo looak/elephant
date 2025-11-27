@@ -60,8 +60,8 @@ struct SearchParameters {
 };
 
 struct ThreadSearchContext {
-    ThreadSearchContext(Position position, bool whiteToMove, const TimeManager& _clock)
-        : position(position), clock(_clock) {
+    ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
+        : position(_position), clock(_clock) {
             gameState.whiteToMove = whiteToMove;
         }
     Position position;

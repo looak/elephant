@@ -297,8 +297,8 @@ struct PrioritizedMove {
         priority(0),
         check(0) {};
 
-    PrioritizedMove(PackedMove move, u16 _priority) :
-        move(move),
+    PrioritizedMove(PackedMove _move, u16 _priority) :
+        move(_move),
         priority(_priority),
         check(0) {};
 

@@ -48,7 +48,7 @@ public:
         u64 totalNodes = 0;
         u64 accumNodes = 0;
         for (const auto& result : results) {
-            u32 prettyCount = result.Result.Nodes;
+            u64 prettyCount = result.Result.Nodes;
             if (result.Result.Nodes == 0)
                 prettyCount = 1;
 

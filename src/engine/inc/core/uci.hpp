@@ -90,6 +90,7 @@ private:
     /**
      * initialize the engines options with default values    */
     void InitializeOptions();
+    
 
     bool m_enabled;
     u16 m_threadCount = 1;
