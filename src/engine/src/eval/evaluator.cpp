@@ -241,8 +241,8 @@ i16 Evaluator::EvaluatePassedPawn() const {
         if ((pawnMask & opPawns).empty()) {
             result += evaluator_data::passedPawnScore * calculateEndGameCoeficient();
             i16 pawnProtection = EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]);
-            pawnProtection *= evaluator_data::guardedPassedPawnBonus;
-            result += static_cast<i16>(pawnProtection);
+            i16 newPawnProtection = pawnProtection * evaluator_data::guardedPassedPawnBonus;
+            result += static_cast<i16>(newPawnProtection);
         }
     }
 

@@ -46,8 +46,9 @@ ChessPiece::toString() const
         LOG_ERROR("Invalid Chess Piece, cannot covert to string: {}", m_internalState);
     }
 
-    if (getSet() == Set::WHITE)
-        retValue = std::toupper((int)retValue);
+    if (getSet() == Set::WHITE) {
+        retValue = static_cast<char>(std::toupper((int)retValue));
+    }
 
     return retValue;
 }
@@ -60,7 +61,7 @@ ChessPiece::fromString(char piece)
         set = Set::WHITE;
     }
 
-    char lower = std::tolower(piece);
+    char lower = static_cast<char>(std::tolower(piece));
     PieceType type;
     switch (lower) {
     case 'p':

@@ -47,8 +47,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/io/pgn_parser.hpp
     ${ENGINE_INC_DIR}/io/printer.hpp
     ${ENGINE_INC_DIR}/io/san_parser.hpp
-    ${ENGINE_INC_DIR}/io/weight_store.hpp
-    ${ENGINE_INC_DIR}/io/weights.hpp
+    ${ENGINE_INC_DIR}/io/weight_store.hpp    
 
 ## /material/...
     ${ENGINE_INC_DIR}/material/chess_piece.hpp

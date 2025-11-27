@@ -74,12 +74,12 @@ void UciModeProcessor::extractArgsFromCommand(const std::string& buffer, std::li
     }
 }
 
-bool UciModeProcessor::processInput(AppContext& context, const std::string& line)
+bool UciModeProcessor::processInput(AppContext& context, const std::string&)
 {
     UCI interface;
     options();
     interface.Enable();
-    UCIThreadContext uciWorker(interface, 0);
+    UCIThreadContext uciWorker(interface);
 
     std::jthread uciWorkerThread([&uciWorker](std::stop_token stopToken) {        
         uciWorker.process(stopToken);
@@ -122,7 +122,7 @@ void UciModeProcessor::independentMode()
     UCI interface;
     options();
     interface.Enable();
-    UCIThreadContext uciThread(interface, 0);
+    UCIThreadContext uciThread(interface);
 
     std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
         uciThread.process(stopToken);

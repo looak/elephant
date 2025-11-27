@@ -183,18 +183,19 @@ UCI::Go(std::list<std::string> args)
     // returns a optional, since the lambda can also fail.
     std::map<std::string, OptionHandler> options;
 
-    auto parse_int = [&]<typename T>(T& target, std::function<bool()> custom_options = nullptr) {
-        return [&](ArgIterator it, ArgIterator end) -> int {
+    auto parse_int = [&]<typename T>(T& target, std::optional<std::function<bool()>> custom_options = std::nullopt) {
+        return [&target, custom_options](ArgIterator it, ArgIterator end) -> int {
             auto valueIt = std::next(it);
             if (valueIt == end) {
                 throw ephant::uci_command_exception(*it, "Expected integer value but none found");
             }
             try {
-                i32 value = static_cast<u32>(std::stoi(*valueIt));
+                i32 value = std::stoi(*valueIt);
                 if (value < 0) {
                     throw ephant::uci_command_exception(*it, "Negative integer value not allowed");
                 }
-                if (custom_options && !custom_options()) {
+                target = static_cast<T>(value);
+                if (custom_options.has_value() && custom_options.value()() == false) {
                     throw ephant::uci_command_exception(*it, "Custom option validation failed");
                 }
                 return 1; // we consumed one additional argument
@@ -205,10 +206,10 @@ UCI::Go(std::list<std::string> args)
         };
     };
 
-    auto parse_bool = [&](bool& target, std::function<bool()> custom_options = nullptr) {
-        return [&](ArgIterator it, ArgIterator) -> int {
+    auto parse_bool = [&](bool& target, std::optional<std::function<bool()>> custom_options = std::nullopt) {
+        return [&target, custom_options](ArgIterator it, ArgIterator) -> int {
             target = true;
-            if (custom_options && !custom_options()) {
+            if (custom_options.has_value() && custom_options.value()() == false) {
                 throw ephant::uci_command_exception(*it, "Custom option validation failed");
             }
             return 0; // boolean flag requires no additional arguments

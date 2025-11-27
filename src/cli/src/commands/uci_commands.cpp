@@ -55,7 +55,7 @@ bool UCICommands::PrintCommand(std::list<std::string>, UCI& interface)
     return true;
 }
 
-bool UCICommands::QuitCommand(std::list<std::string>, UCI& interface) {
+bool UCICommands::QuitCommand(std::list<std::string>, UCI&) {
     std::cout << "bye bye";
     return true;
 }
