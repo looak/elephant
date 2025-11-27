@@ -216,7 +216,7 @@ public:
     std::enable_if_t<D, double> get_hit_rate() const {
         u64 p = m_stats.probes.load();
         u64 h = m_stats.hits.load();
-        return calculate_rate(h, p);
+        return calculate_rate<D>(h, p);
     }
 };
 
