@@ -19,7 +19,7 @@ public:
     static constexpr int priority() { return 200; }
     static constexpr std::string_view name() { return "print"; }    
 
-    bool execute(const PrintCommandArgs& args) override
+    bool execute(const PrintCommandArgs&) override
     {        
         io::printer::position(prnt::out, readPosition());
         return true;

@@ -41,6 +41,8 @@ public:
      * @return elapsed time since Start() in milliseconds represented as a signed 64-bit integer.   */
     i64 getElapsedTime() const;
 
+    float getElapsedSeconds() const;
+
     u64 calcNodesPerSecond(u64 nodes) const;
 
 private:
