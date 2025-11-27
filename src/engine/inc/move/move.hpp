@@ -313,32 +313,6 @@ struct PrioritizedMove {
 };
 static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 
-
-
-struct ScoredMove {
-    ScoredMove() :
-        move(0),
-        score(0) {};
-
-    ScoredMove(PackedMove move, int _score) :
-        move(move),
-        score(_score) {};
-
-    ScoredMove(const ScoredMove& other) :
-        move(other.move),
-        score(other.score) {};
-
-    ScoredMove operator=(const ScoredMove& other)
-    {
-        move = other.move;
-        score = other.score;
-        return *this;
-    }
-
-    PackedMove move;
-    i32 score;
-};
-
 struct PrioritizedMoveComparator {
     constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
     {
