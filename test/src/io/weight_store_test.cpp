@@ -27,7 +27,7 @@ public:
     size_t line = 0;
     std::vector<std::string> lines = {
         "w3 10",
-        "weight2 2",
+        "weight2 1.5",
         ""
     };
 };
