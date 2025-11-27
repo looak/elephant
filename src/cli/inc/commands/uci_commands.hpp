@@ -78,14 +78,13 @@ using CommandFunction = std::function<bool(UCI&)>;
 struct UCIThreadContext {
 private:
     UCI& interface;
-    u32 m_id;
 
     std::mutex m_mtx;
     std::condition_variable m_cv;
     std::queue<CommandFunction> m_commandQueue;
 public:
-    UCIThreadContext(UCI& interface, u32 id)
-        : interface(interface), m_id(id) {}
+    UCIThreadContext(UCI& interface)
+        : interface(interface) {}
 
     void queue(std::list<std::string> args, UCICommands::UCICommandFunction command);
     void process(std::stop_token stopToken);

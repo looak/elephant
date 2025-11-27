@@ -67,6 +67,31 @@ void WeightStore::update(const std::string& name, const std::string& newValue) {
     }
 }
 
+void WeightStore::visit(MultiplierWeight& weight, const std::string& newValue) {
+    try {
+        // We use std::stod here because this ONLY happens at startup.
+        // Performance cost is negligible.
+        double userVal = std::stod(newValue);
+        
+        // Convert to Fixed Point: 1.5 * 1024 = 1536
+        // std::round ensures 1.0 doesn't become 0.99999 -> 1023
+        weight.m_storage = static_cast<i32>(std::round(userVal * MultiplierWeight::SCALE));
+    } catch (...) {
+        throw ephant::io_error("Invalid multiplier format: " + newValue);
+    }
+}
+
+MultiplierWeight::MultiplierWeight(std::string name, i32& storage)
+    : IWeight(std::move(name))
+    , m_storage(storage) 
+{
+    WeightStore::get()->book(this);
+}
+
+void MultiplierWeight::accept(WeightStore& store, const std::string& newValue) {
+    store.visit(*this, newValue);
+}
+
 // void WeightStore::visit(Weight<bool>& weight, const std::string& newValueStr) {
 //     // Convert string to bool (case-insensitive)
 //     weight.m_value = (newValueStr == "true" || newValueStr == "1");

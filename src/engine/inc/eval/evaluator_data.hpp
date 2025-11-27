@@ -184,7 +184,7 @@ static constexpr TaperedScore passedPawnScore{ 25, 100 };
 
 /*
 * if the passed pawn is guarded, this will be multiplied with the passedPawnScore. */
-WEIGHT(guardedPassedPawnBonus, double, 2);
+MULTIPLIER(guardedPassedPawnBonus, 2);
 
 /*
 * Idea here is that pawns that ar guarded by other pawns are stronger and more valuable.*/

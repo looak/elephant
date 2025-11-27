@@ -27,7 +27,7 @@ public:
     size_t line = 0;
     std::vector<std::string> lines = {
         "w3 10",
-        "weight2 3.14",
+        "weight2 2",
         ""
     };
 };
@@ -46,7 +46,7 @@ public:
 
 
 WEIGHT(weight1, i64, 1);
-WEIGHT(weight2, double, 0);
+MULTIPLIER(weight2, 2);
 WEIGHT(w3, i64, 1);
 
 TEST_F(WeightFixture, StoreHasWeight2) {
