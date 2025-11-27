@@ -151,9 +151,9 @@ public:
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
-    static inline u16 maxDepth = 6;
+    static inline u8 maxDepth = 6;
 
-    static bool futile(u8 depth, i16 eval, i16 alpha) {
+    static bool futile(u8 depth, i32 eval, i16 alpha) {
         return depth > 0
         && (depth < quiescence_params::futilityDepthMargin)
         && (eval + quiescence_params::futilityMargin < alpha);

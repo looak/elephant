@@ -33,13 +33,14 @@ struct TaperedScore
 
 i32 operator*(const TaperedScore& lhs, const float& rhs)
 {
-    return (i32)(lhs.midgame + (lhs.endgame - lhs.midgame) * rhs);
+    i32 result = (lhs.midgame + (lhs.endgame - lhs.midgame));        
+    return static_cast<i32>((float)result * rhs);
 }
 
 namespace evaluator_data
 {
 
-i32 flip(const i32 index) {
+u32 flip(const u32 index) {
     return index ^ 56;
 }
 

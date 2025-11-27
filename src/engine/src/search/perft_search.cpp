@@ -1,7 +1,7 @@
 #include <search/perft_search.hpp>
 
 PerftSearch::PerftSearch(GameContext& context)
-    : m_context(context), m_depth(0)
+    : m_context(context)
 {
 
 }
@@ -11,11 +11,11 @@ PerftResult PerftSearch::Run(int depth)
     if (depth <= 0) {
         return PerftResult();
     }
-    PerftResult result;
+
     typedef std::function<void(PackedMove, PerftResult&, bool)> t_accFunction;
 
     t_accFunction accumulator = [&](PackedMove move, PerftResult& result, bool leaf) {
-        result.Nodes += (int)leaf;
+        result.Nodes += static_cast<u64>(leaf);
         result.AccNodes++;
 
         if (move.isCapture()) {
@@ -36,7 +36,6 @@ PerftResult PerftSearch::Run(int depth)
         // Additional counting logic can be added here
     };
 
-    MoveGenParams params;
 
     return internalRunEntryPoint<PerftResult, t_accFunction>(depth, accumulator);    
 }

@@ -350,31 +350,22 @@ struct PerftCaseArgs {
     u8 searchDepth;
 
     // Auto-fill testId from the caller when not provided
-    PerftCaseArgs(
-        bool enabled_,
-        std::string fen_,
-        u32 expectedNodes_,
-        u8 depth_,
-        const std::source_location& loc = std::source_location::current()) :
-            testId(currentCallerName(loc)),
-            fen(std::move(fen_)),
-            expectedNodeCount(expectedNodes_),
-            searchDepth(depth_),
-            enabled(enabled_) {}
+    PerftCaseArgs(bool enabled_, std::string fen_, u32 expectedNodes_, u8 depth_, const std::source_location& loc = std::source_location::current()) 
+        : enabled(enabled_)
+        , testId(currentCallerName(loc))
+        , fen(std::move(fen_))
+        , expectedNodeCount(expectedNodes_)
+        , searchDepth(depth_)
+        {}
 
     // Explicit testId provided
-    PerftCaseArgs(
-        bool enabled_,
-        std::string testId_,
-        std::string fen_,
-        u32 expectedNodes_,
-        u8 depth_) :
-            testId(std::move(testId_)),
-            fen(std::move(fen_)),
-            expectedNodeCount(expectedNodes_),
-            searchDepth(depth_),
-            enabled(enabled_) {}
-
+    PerftCaseArgs(bool enabled_, std::string testId_, std::string fen_, u32 expectedNodes_, u8 depth_)
+        : enabled(enabled_)
+        , testId(std::move(testId_))
+        , fen(std::move(fen_))
+        , expectedNodeCount(expectedNodes_)
+        , searchDepth(depth_)
+        {}
 private:
     static std::string currentCallerName(const std::source_location& loc) {
         if (auto* info = ::testing::UnitTest::GetInstance()->current_test_info()) {

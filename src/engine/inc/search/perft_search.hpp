@@ -113,7 +113,6 @@ private:
     TResult internalRunEntryPoint(int depth, const TAccumulator& accumulator);
 
     GameContext& m_context;
-    int m_depth;
 };
 
 template<Set us, typename TResult, typename TAccumulator>

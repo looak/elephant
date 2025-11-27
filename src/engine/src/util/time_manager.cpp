@@ -2,8 +2,7 @@
 #include <search/search.hpp>
 
 TimeManager::TimeManager(const SearchParameters& params, Set perspective)
-    : m_perspective(perspective)
-    , m_isTimeManaged(true)
+    : m_isTimeManaged(true)
 {
     applyTimeSettings(params, perspective);
 }
@@ -50,12 +49,13 @@ void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspect
         }
 
          // Add increment - partial if available
-        baseTime += m_increment_ms * 0.75f;
+        baseTime += (m_increment_ms * 75) / 100; // use 75% of increment
         allocatedTime = baseTime;
     }
 
     // Safety margin to avoid time forfeits
-    allocatedTime = static_cast<u64>(allocatedTime * 0.95f);
+    u32 margin = 98; // 98% of calculated time    
+    allocatedTime = (allocatedTime * margin) / 100;
     return allocatedTime;
 }
 
@@ -70,13 +70,17 @@ bool TimeManager::continueIterativeDeepening(u64 lastIterationTimeSpan) const {
     // predicted to take more than 50% of the *total remaining time*, stop.
     // A simple prediction is that the next depth will take ~4-6x longer.
     // We'll use a factor of 4 for safety.    
-    i64 predictedTime = lastIterationTimeSpan * 4;
+    u64 predictedTime = lastIterationTimeSpan * 4;
 
     timepoint_t now = chess_time_t::now();
-    auto timeSpent = std::chrono::duration_cast<ms_t>(now - m_startTime).count();
-    auto allocatedTime = std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count();
-    const float margin = 0.95f;
-    i64 timeRemaining = (allocatedTime - timeSpent) * margin;
+    i64 timeSpent = std::chrono::duration_cast<ms_t>(now - m_startTime).count();
+    i64 allocatedTime = std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count();
+
+    if (timeSpent >= allocatedTime)
+        return false; // already out of time
+
+    const u32 margin = 95; // 95% margin to be safe
+    u64 timeRemaining = (u64)((allocatedTime - timeSpent) * margin) / 100;
 
     // If we predict the next iteration will use up more than our remaining time and a margin, stop.
     return predictedTime < timeRemaining;
@@ -91,7 +95,7 @@ void TimeManager::begin() {
     } 
     else {
         // We have time controls, calculate the stop time.
-        i64 allocation_ms = calculateSearchTime();
+        u64 allocation_ms = calculateSearchTime();
         m_endTime = m_startTime + ms_t(allocation_ms);
     }
 }

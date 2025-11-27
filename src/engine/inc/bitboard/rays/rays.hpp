@@ -69,6 +69,6 @@ constexpr std::array<std::array<u64, 64>, 64> computeRays() {
 
 } // namespace internals
 
-u64 getRay(u8 from, u8 to);
+u64 getRay(u32 from, u32 to);
 
 } // namespace ray

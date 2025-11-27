@@ -29,7 +29,7 @@ namespace san_parser {
         THROW_EXPR(file >= 'a' && file <= 'h', ephant::io_error, std::format("san_parser :: Invalid file in square notation: {}", san));
         THROW_EXPR(rank >= '1' && rank <= '8', ephant::io_error, std::format("san_parser :: Invalid rank in square notation: {}", san));
 
-        return toSquare(file - 'a', rank - '1');
+        return toSquare(static_cast<byte>(file - 'a'), static_cast<byte>(rank - '1'));
     }
 
     template<Set us>
@@ -110,13 +110,13 @@ namespace san_parser {
                 else if (disambiguationChar.has_value()) {
                     char disambig = disambiguationChar.value();
                     if (std::isdigit(disambig)) {
-                        byte rank = disambig - '1';
+                        byte rank = static_cast<byte>(disambig - '1');
                         if ((candMove.move.sourceSqr() / 8) == rank) {
                             return candMove.move;
                         }
                     }
                     else if (std::isalpha(disambig)) {
-                        byte file = disambig - 'a';
+                        byte file = static_cast<byte>(disambig - 'a');
                         if ((candMove.move.sourceSqr() % 8) == file) {
                             return candMove.move;
                         }
@@ -174,7 +174,6 @@ namespace san_parser {
 
     PackedMove deserialize(std::string_view an) {
         std::string_view san(an);
-        size_t length = san.length();        
         Square sourceSquare = parseSquare(san.substr(0, 2));
         Square targetSquare = parseSquare(san.substr(2, 2));
 

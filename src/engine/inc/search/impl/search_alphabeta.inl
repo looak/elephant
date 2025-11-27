@@ -112,7 +112,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
         PackedMove move = ordered.move;
         
         // --- Extensions ---
-        u16 adjustedDepth = depth + static_cast<u8>(ordered.isCheck());
+        u8 adjustedDepth = depth + static_cast<u8>(ordered.isCheck());
         
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
@@ -120,15 +120,19 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
         
         i16 eval;
 
+        // update depth
+        i32 nextDepth = static_cast<i32>(adjustedDepth) - 1;
+        adjustedDepth = static_cast<u8>(std::max(nextDepth, 0));
+
         if (index == 0) {
             // --- PV Search (First Move) ---
             // Full window, full trust.
-            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
         } else {
             // --- Scout Search (Subsequent Moves) ---
             // Zero window: Try to prove move is <= alpha
             this->scout_search_count++;
-            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -alpha - 1, -alpha, ply + 1, &childPv);
+            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -alpha - 1, -alpha, ply + 1, &childPv);
             
             // --- The Re-Search Trigger ---
             // If eval > alpha, the move is better than we thought. 
@@ -136,7 +140,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
             // (Only if it's also < beta, otherwise we just take the beta cutoff)
             if (eval > alpha && eval < beta) {
                 this->scout_re_search_count++;
-                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth - 1, -beta, -alpha, ply + 1, &childPv);
+                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
             }
         }
 
