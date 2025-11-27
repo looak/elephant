@@ -40,7 +40,7 @@ Evaluator::Evaluate()
     return score;
 }
 
-i16 Evaluator::EvaluatePlus(PackedMove move)
+i16 Evaluator::EvaluatePlus(PackedMove)
 {
     return 0;
 }
@@ -53,8 +53,8 @@ Evaluator::EvaluateMaterial() const
 
     for (u8 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
         u16 pieceValue = piece_constants::value[pieceIndx];
-        i16 whiteCount = material.read(Set::WHITE, pieceIndx).count();
-        i16 blackCount = material.read(Set::BLACK, pieceIndx).count();
+        i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
+        i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
 
         score += pieceValue * whiteCount;
         score -= pieceValue * blackCount;
@@ -72,28 +72,28 @@ Evaluator::EvaluatePiecePositions() const
 
     Bitboard whitePawns = material.read(Set::WHITE, pawnId);
     while (whitePawns.empty() == false) {
-        i16 sqr = whitePawns.popLsb();
+        u32 sqr = whitePawns.popLsb();
         score += evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
     Bitboard blackPawns = material.read(Set::BLACK, pawnId);
     while (blackPawns.empty() == false) {
-        i16 sqr = blackPawns.popLsb();
+        u32 sqr = blackPawns.popLsb();
         sqr = evaluator_data::flip(sqr);
         score -= evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
-    for (u32 pieceIndx = 1; pieceIndx < kingId; ++pieceIndx) {
+    for (u8 pieceIndx = 1; pieceIndx < kingId; ++pieceIndx) {
         Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
 
         while (whitePieces.empty() == false) {
-            i16 sqr = whitePieces.popLsb();
+            u32 sqr = whitePieces.popLsb();
             score += evaluator_data::pestoTables[pieceIndx][sqr];
         }
 
         Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
         while (blackPieces.empty() == false) {
-            i16 sqr = blackPieces.popLsb();
+            u32 sqr = blackPieces.popLsb();
             sqr = evaluator_data::flip(sqr);
             score -= evaluator_data::pestoTables[pieceIndx][sqr];
         }
@@ -101,13 +101,13 @@ Evaluator::EvaluatePiecePositions() const
 
     Bitboard whiteKing = material.read(Set::WHITE, kingId);
     while (whiteKing.empty() == false) {
-        i16 sqr = whiteKing.popLsb();
+        u32 sqr = whiteKing.popLsb();
         score += evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
 
     Bitboard blackKing = material.read(Set::BLACK, kingId);
     while (blackKing.empty() == false) {
-        i16 sqr = blackKing.popLsb();
+        u32 sqr = blackKing.popLsb();
         sqr = evaluator_data::flip(sqr);
         score -= evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
     }
@@ -149,10 +149,10 @@ i16 Evaluator::EvaluatePawnManhattanDistance() const {
 
     i16 distance = 0;
     while (whitePawns.empty() == false) {
-        i16 whitePawnSqr = whitePawns.popLsb();
+        u32 whitePawnSqr = whitePawns.popLsb();
         Bitboard otherPawns = material.whitePawns();
         while (otherPawns.empty() == false) {
-            i16 otherPawn = otherPawns.popLsb();
+            u32 otherPawn = otherPawns.popLsb();
             distance += board_constants::manhattanDistances[whitePawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
@@ -161,10 +161,10 @@ i16 Evaluator::EvaluatePawnManhattanDistance() const {
     distance = 0;
     Bitboard blackPawns = material.blackPawns();
     while (blackPawns.empty() == false) {
-        i16 blackPawnSqr = blackPawns.popLsb();
+        u32 blackPawnSqr = blackPawns.popLsb();
         Bitboard otherPawns = material.blackPawns();
         while (otherPawns.empty() == false) {
-            i16 otherPawn = otherPawns.popLsb();
+            u32 otherPawn = otherPawns.popLsb();
             distance += board_constants::manhattanDistances[blackPawnSqr][static_cast<size_t>(otherPawn)];
         }
     }
@@ -175,7 +175,7 @@ i16 Evaluator::EvaluatePawnManhattanDistance() const {
 
 i16 Evaluator::EvaluateKingSafety() const {
     static const i16 pawnWallFactor = 8;
-    static const i16 pinFactor = 12;
+    //static const i16 pinFactor = 12;
     const auto& material = m_position.material();
     i16 score = 0;
     // evaluate pawn wall around king
@@ -225,7 +225,7 @@ i16 Evaluator::EvaluatePassedPawn() const {
     const size_t usIndx = static_cast<size_t>(us);
 
     while (usPawns.empty() == false) {
-        i16 pawnSqr = usPawns.popLsb();
+        u32 pawnSqr = usPawns.popLsb();
         Bitboard pawnMask = squareMaskTable[pawnSqr];
 
         pawnMask = pawnMask.shiftNorthRelative<us>();
@@ -240,7 +240,9 @@ i16 Evaluator::EvaluatePassedPawn() const {
 
         if ((pawnMask & opPawns).empty()) {
             result += evaluator_data::passedPawnScore * calculateEndGameCoeficient();
-            result += EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]) * evaluator_data::guardedPassedPawnBonus;
+            i16 pawnProtection = EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]);
+            pawnProtection *= evaluator_data::guardedPassedPawnBonus;
+            result += static_cast<i16>(pawnProtection);
         }
     }
 

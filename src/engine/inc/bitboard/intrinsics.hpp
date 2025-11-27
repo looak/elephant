@@ -111,16 +111,14 @@ namespace intrinsics {
  * @param bitboard bitboard to scan
  * @returns index of least significant bit */
 [[nodiscard]] constexpr u32
-lsbIndex(u64 bitboard)
-{
+lsbIndex(u64 bitboard) {
     return fallback::bitScanForward(bitboard);
 }
 
 /**
  * Bit scan reverse    */
 [[nodiscard]] constexpr u32
-msbIndex(u64 bitboard)
-{
+msbIndex(u64 bitboard) {
     return fallback::freakOut(bitboard);
     // return __bsrq(bitboard);
 }
@@ -128,8 +126,7 @@ msbIndex(u64 bitboard)
 /**
  * Popcount    */
 [[nodiscard]] constexpr inline i32
-popcnt(u64 bitboard)
-{
+popcnt(u64 bitboard) {
     if (std::is_constant_evaluated())
         return fallback::popcount(bitboard);
 

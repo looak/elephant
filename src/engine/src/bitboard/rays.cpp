@@ -10,7 +10,7 @@ void initialize() {
 
 } // namespace internals
 
-u64 getRay(u8 from, u8 to) {
+u64 getRay(u32 from, u32 to) {
     return internals::raysTable[from][to];
 }
 

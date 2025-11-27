@@ -100,8 +100,7 @@ public:
 
     /**
      * @brief returns the least significant bit and unsets it, board can't be empty     */
-    [[nodiscard]] constexpr u32 popLsb()
-    {
+    [[nodiscard]] constexpr u32 popLsb() {
         ASSERT(!empty());
         u32 index = lsbIndex();
         m_board = resetLsb();

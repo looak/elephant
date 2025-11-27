@@ -115,15 +115,8 @@ constexpr bool operator<(Square lhs, Square rhs) {
 }
 
 constexpr Square toSquare(byte file, byte rank)  {
-#ifdef DEVELOPMENT_BUILD
-    if (file > 7 || rank > 7) {
-        throw ephant::sqr_exception(std::format("toSquare :: Invalid file or rank for square conversion. (file: {}, rank: {})", file, rank));
-    }
+    ASSERT_MSG(file <= 7 && rank <= 7, std::format("toSquare :: Invalid file or rank for square conversion. (file: {}, rank: {})", file, rank));
     return static_cast<Square>((rank * 8) + file);
-
-#else
-    return static_cast<Square>((rank * 8) + file);
-#endif
 }
 
 constexpr Square toSquare(u32 index) {

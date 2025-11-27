@@ -424,7 +424,7 @@ struct MoveUndoUnit {
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
     u64 hash;
-    short plyCount;
+    u16 plyCount;
 };
 
 #endif  // MOVE_HEADER

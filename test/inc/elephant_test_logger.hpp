@@ -61,7 +61,7 @@ public:
     {
         if (!id.empty())
         {
-            int additionalSpaces = 8 - id.size();
+            size_t additionalSpaces = 8 - id.size();
             if (additionalSpaces > 0)
             {
                 id.append(additionalSpaces, ' ');

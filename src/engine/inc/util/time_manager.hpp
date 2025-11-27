@@ -61,7 +61,6 @@ public:
 
 private:
     // --- Configuration (set at creation) ---
-    Set m_perspective;
     u32 m_timeLeft_ms;
     u32 m_increment_ms;
     u32 m_moveTime_ms;
