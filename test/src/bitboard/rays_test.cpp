@@ -2,6 +2,7 @@
 
 #include <bitboard/attacks/attacks.hpp>
 #include <bitboard/rays/rays.hpp>
+#include <core/square.hpp>
 
 // class RaysTest : public ::testing::Test {
 // protected:

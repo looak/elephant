@@ -4,7 +4,7 @@
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
 #include <core/game_context.hpp>
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"

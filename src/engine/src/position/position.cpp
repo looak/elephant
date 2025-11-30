@@ -3,7 +3,7 @@
 #include <bitboard/attacks/attacks.hpp>
 #include <bitboard/bitboard.hpp>
 #include <material/chess_piece.hpp>
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 
 #include <position/hash_zobrist.hpp>
 

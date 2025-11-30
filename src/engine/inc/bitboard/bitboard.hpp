@@ -18,7 +18,8 @@
 
 #include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
-#include <defines.hpp>
+#include <core/square.hpp>
+#include <system/platform.hpp>
 #include <material/chess_piece_defines.hpp>
 
 template<typename T>
@@ -287,28 +288,28 @@ template<typename T>
 [[nodiscard]] constexpr BitboardImpl<T>
 BitboardImpl<T>::shift(u8 direction) const
 {
-    if (direction == north) {
+    if (direction == cardinal_constants::north) {
         return shiftNorth();
     }
-    else if (direction == east) {
+    else if (direction == cardinal_constants::east) {
         return shiftEast();
     }
-    else if (direction == south) {
+    else if (direction == cardinal_constants::south) {
         return shiftSouth();
     }
-    else if (direction == west) {
+    else if (direction == cardinal_constants::west) {
         return shiftWest();
     }
-    else if (direction == northeast) {
+    else if (direction == cardinal_constants::northeast) {
         return shiftNorthEast();
     }
-    else if (direction == southeast) {
+    else if (direction == cardinal_constants::southeast) {
         return shiftSouthEast();
     }
-    else if (direction == southwest) {
+    else if (direction == cardinal_constants::southwest) {
         return shiftSouthWest();
     }
-    else if (direction == northwest) {
+    else if (direction == cardinal_constants::northwest) {
         return shiftNorthWest();
     }
 
@@ -320,28 +321,28 @@ template<Set us, u8 direction>
 [[nodiscard]] constexpr BitboardImpl<T>
 BitboardImpl<T>::shiftRelative() const
 {
-    if constexpr (direction == north) {
+    if constexpr (direction == cardinal_constants::north) {
         return shiftNorthRelative<us>();
     }
-    else if constexpr (direction == east) {
+    else if constexpr (direction == cardinal_constants::east) {
         return shiftEastRelative<us>();
     }
-    else if constexpr (direction == south) {
+    else if constexpr (direction == cardinal_constants::south) {
         return shiftSouthRelative<us>();
     }
-    else if constexpr (direction == west) {
+    else if constexpr (direction == cardinal_constants::west) {
         return shiftWestRelative<us>();
     }
-    else if constexpr (direction == northeast) {
+    else if constexpr (direction == cardinal_constants::northeast) {
         return shiftNorthEastRelative<us>();
     }
-    else if constexpr (direction == southeast) {
+    else if constexpr (direction == cardinal_constants::southeast) {
         return shiftSouthEastRelative<us>();
     }
-    else if constexpr (direction == southwest) {
+    else if constexpr (direction == cardinal_constants::southwest) {
         return shiftSouthWestRelative<us>();
     }
-    else if constexpr (direction == northwest) {
+    else if constexpr (direction == cardinal_constants::northwest) {
         return shiftNorthWestRelative<us>();
     }
 

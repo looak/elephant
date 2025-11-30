@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 
 class Position;
 struct CastlingStateInfo;

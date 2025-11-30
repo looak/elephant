@@ -193,7 +193,7 @@ TEST_F(BitboardFixture, SquareBracketOperator_WritingSpecificSquare)
 TEST_F(BitboardFixture, InclusiveFillWest_ExpectedToBeFilledFromGivenFileToWestEdge)
 {
     Bitboard bb(0x0ULL);
-    bb = bb.inclusiveFillWest(file_e);
+    bb = bb.inclusiveFillWest(coordinates::file_e);
 
     u64 expected = 0x1F1F1F1F1F1F1F1F;
     EXPECT_EQ(bb.read(), expected);
@@ -202,7 +202,7 @@ TEST_F(BitboardFixture, InclusiveFillWest_ExpectedToBeFilledFromGivenFileToWestE
 TEST_F(BitboardFixture, InclusiveFillRest_ExpectedToBeFilledFromGivenFileToEdge)
 {
     Bitboard bb(0x0ULL);
-    bb = bb.inclusiveFillEast(file_b);
+    bb = bb.inclusiveFillEast(coordinates::file_b);
     u64 expected = 0xFEFEFEFEFEFEFEFEULL;
     EXPECT_EQ(bb.read(), expected);
 
@@ -216,11 +216,11 @@ TEST_F(BitboardFixture, InclusiveFillRest_ExpectedToBeFilledFromGivenFileToEdge)
     expected = 0xFFFFFFFFFFFFFFFFULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillSouth(rank_1);
+    bb = bb.inclusiveFillSouth(coordinates::rank_1);
     expected = 0xff;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillNorth(rank_8);
+    bb = bb.inclusiveFillNorth(coordinates::rank_8);
     expected = 0xff00000000000000ULL;
     EXPECT_EQ(bb.read(), expected);
 }
@@ -229,19 +229,19 @@ TEST_F(BitboardFixture, InclusiveFillNorthEast_ExpectedToBeFilledFromGivenPositi
 {
     Bitboard bb(0x0);
 
-    bb = bb.inclusiveFillNorthEast(file_e, rank_6);
+    bb = bb.inclusiveFillNorthEast(coordinates::file_e, coordinates::rank_6);
 
     u64 expected = 0xfcf8f0e0c0800000ULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillNorthEast(file_f, rank_5);
+    bb = bb.inclusiveFillNorthEast(coordinates::file_f, coordinates::rank_5);
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillNorthEast(file_b, rank_4);
+    bb = bb.inclusiveFillNorthEast(coordinates::file_b, coordinates::rank_4);
     expected = 0xfffffffffefcf8f0ULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillNorthEast(file_h, rank_8);
+    bb = bb.inclusiveFillNorthEast(coordinates::file_h, coordinates::rank_8);
     expected = 0x8000000000000000ULL;
     EXPECT_EQ(bb.read(), expected);
 }
@@ -250,11 +250,11 @@ TEST_F(BitboardFixture, InclusiveFillSouthWest_ExpectedToBeFilledFromGivenPositi
 {
     Bitboard bb(0x0);
 
-    bb = bb.inclusiveFillSouthWest(file_c, rank_5);
+    bb = bb.inclusiveFillSouthWest(coordinates::file_c, coordinates::rank_5);
     u64 expected = 0x103070f1f3f7fULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillSouthWest(file_c, rank_2);
+    bb = bb.inclusiveFillSouthWest(coordinates::file_c, coordinates::rank_2);
     expected = 0x103070fULL;
     EXPECT_EQ(bb.read(), expected);
 }
@@ -263,15 +263,15 @@ TEST_F(BitboardFixture, InclusiveFillForwardDiagonal_ExpectedToBeFilledFromGiven
 {
     Bitboard bb(0x0ULL);
 
-    bb = bb.inclusiveFillNorthWest(file_c, rank_6);
+    bb = bb.inclusiveFillNorthWest(coordinates::file_c, coordinates::rank_6);
     u64 expected = 0x1f0f070301000000ULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillNorthWest(file_b, rank_7);
+    bb = bb.inclusiveFillNorthWest(coordinates::file_b, coordinates::rank_7);
     expected = 0x703010000000000ULL;
     EXPECT_EQ(bb.read(), expected);
 
-    bb = bb.inclusiveFillSouthEast(file_h, rank_4);
+    bb = bb.inclusiveFillSouthEast(coordinates::file_h, coordinates::rank_4);
     expected = 0x80c0e0f0ULL;
     EXPECT_EQ(bb.read(), expected);
 }

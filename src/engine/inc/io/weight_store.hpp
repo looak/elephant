@@ -21,7 +21,7 @@
 #include <string>
 #include <limits>
 
-#include "defines.hpp"
+#include <system/platform.hpp>
 
 /**
  * @file weight_store.hpp
@@ -41,6 +41,8 @@
  */
 
 constexpr int WEIGHT_SCALE = 256;
+
+// TODO: Rewrite this to only use integers, no need for templates.
 
 // ----------------------------------------------------------------------------
 // Deserialization of weight config
@@ -131,17 +133,17 @@ public:
     
     [[nodiscard]] T operator*(float phase0to1) const {
         // We accept a float 'phase' (0.0 to 1.0) for API compatibility, but immediately convert to fixed point.
-        const int phase = static_cast<int>(phase0to1 * WEIGHT_SCALE);
+        const T phase = static_cast<T>(phase0to1 * WEIGHT_SCALE);
         
         // Linear Interpolation: A + (B - A) * t
         // We use (Value * Phase) >> 8 to divide by 256
-        int result = m_a + ((static_cast<int>(m_b) - m_a) * phase) / WEIGHT_SCALE;
+        int result = m_a + ((m_b - m_a) * phase) / WEIGHT_SCALE;
         return static_cast<T>(result);
     }
 
     [[nodiscard]] T interpolate(int phase0to256) const {
         // Overload for when you already have a fixed point phase (0-256)
-        int result = m_a + ((static_cast<int>(m_b) - m_a) * phase0to256) / WEIGHT_SCALE;
+        int result = m_a + ((m_b - m_a) * phase0to256) / WEIGHT_SCALE;
         return static_cast<T>(result);
     }
 
@@ -173,30 +175,30 @@ private:
 class MultiplierWeight : public IWeight {
 public:
     // We use a larger scale (1024) for precision.
-    static constexpr i32 SCALE = 1024; 
+    static constexpr i16 SCALE = 1024; 
 
-    MultiplierWeight(std::string name, i32& storage);
+    MultiplierWeight(std::string name, i16& storage);
 
     // The Parser: Reads "1.5", stores integer
     void accept(WeightStore& store, const std::string& newValue) override;
 
     // Operator Overload
-    friend i32 operator*(i32 value, const MultiplierWeight& weight) {
+    friend i16 operator*(i16 value, const MultiplierWeight& weight) {
         // Cast to i64 to prevent overflow before division
-        return static_cast<i32>((static_cast<i64>(value) * weight.m_storage) / SCALE);
+        return static_cast<i16>((static_cast<i64>(value) * weight.m_storage) / SCALE);
     }
 
     // Commutative property (weight * value)
-    friend i32 operator*(const MultiplierWeight& weight, i32 value) {
+    friend i16 operator*(const MultiplierWeight& weight, i16 value) {
         return value * weight;
     }
 
     // Allow implicit read of the raw fixed-point value if needed
-    operator i32() const { return m_storage; }
+    operator i16() const { return m_storage; }
 
 private:
     friend class WeightStore;
-    i32& m_storage; // Reference to the actual integer variable in evaluator_data
+    i16& m_storage; // Reference to the actual integer variable in evaluator_data
 };
 
 // ----------------------------------------------------------------------------
@@ -294,5 +296,5 @@ void TaperedWeight<T>::accept(WeightStore& store, const std::string& newValue)
     TaperedWeight<type> name(STRINGIZE(name), name##_a, name##_b);
 
 #define MULTIPLIER(name, defaultValue) \
-    i32 name = static_cast<i32>(defaultValue * 1024); \
+    i16 name = static_cast<i16>(defaultValue * 1024); \
     MultiplierWeight weight_##name(STRINGIZE(name), name);

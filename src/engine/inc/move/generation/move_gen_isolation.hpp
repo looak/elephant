@@ -39,7 +39,9 @@ class PieceIsolator
 {
 public:
     PieceIsolator(PositionReader position, Bitboard moveMask, const KingPinThreats<us>& pinThreats)
-        : m_position(position), m_movesMask(moveMask), m_pinThreats(pinThreats) {}
+        : m_pinThreats(pinThreats)
+        , m_position(position)
+        , m_movesMask(moveMask) {}
     
     inline MovesMask isolate(Square src) const;
 
@@ -77,9 +79,9 @@ struct PieceIsoImpl<pawnId> {
         }
 
         Bitboard threatns;
-        if ((srcMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+        if ((srcMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::west]).empty())
             threatns |= srcMask.shiftNorthWestRelative<us>();
-        if ((srcMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+        if ((srcMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::east]).empty())
             threatns |= srcMask.shiftNorthEastRelative<us>();
 
         Bitboard isolatedbb = srcMask.shiftNorthRelative<us>();

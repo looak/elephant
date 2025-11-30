@@ -24,7 +24,7 @@
  *
  * @author Alexander Loodin Ek    */
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <material/material_mask.hpp>
 #include <position/castling_state_info.hpp>
 #include <position/en_passant_state_info.hpp>

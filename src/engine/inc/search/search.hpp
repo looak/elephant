@@ -20,7 +20,7 @@
 #include <optional>
 #include <vector>
 
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
 #include <eval/evaluator.hpp>
@@ -34,8 +34,8 @@
 #include <search/search_policies.hpp>
 #include <position/position_accessors.hpp>
 #include <position/position.hpp>
-#include <util/clock.hpp>
-#include <util/time_manager.hpp>
+#include <system/clock.hpp>
+#include <system/time_manager.hpp>
 
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.

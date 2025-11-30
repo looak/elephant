@@ -13,11 +13,11 @@ Bitboard MaterialTopology<us>::computeThreatenedSquaresPawnBulk() const {
     // special case for a file & h file, removing pawns from a & h file respectively
     // so we don't shift them "off" the board and we shift them only in one direction.
     // cache them and then we combine it with the main piecebb at the end.
-    Bitboard westFilePawns = piecebb & board_constants::boundsRelativeMasks[usIndx][west];
+    Bitboard westFilePawns = piecebb & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::west];
     piecebb &= ~westFilePawns;
     westFilePawns = westFilePawns.shiftNorthEastRelative<us>();
 
-    Bitboard eastFilePawns = piecebb & board_constants::boundsRelativeMasks[usIndx][east];
+    Bitboard eastFilePawns = piecebb & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::east];
     piecebb &= ~eastFilePawns;
     eastFilePawns = eastFilePawns.shiftNorthWestRelative<us>();
 

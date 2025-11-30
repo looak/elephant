@@ -19,51 +19,88 @@
 /**
  * @file bitboard_constants.hpp
  * @brief Defines constants and utility functions for bitboard representation in chess applications 
+ * static constexpr for header array constant
+ * inline constexpr for header non-array constants
  * 
  */
 
 #pragma once
 #include <array>
-#include "defines.hpp"
+#include <system/platform.hpp>
+#include <math/math.hpp>
+
+namespace coordinates {
+inline constexpr u8 rank_1 = 0;
+inline constexpr u8 rank_2 = 1;
+inline constexpr u8 rank_3 = 2;
+inline constexpr u8 rank_4 = 3;
+inline constexpr u8 rank_5 = 4;
+inline constexpr u8 rank_6 = 5;
+inline constexpr u8 rank_7 = 6;
+inline constexpr u8 rank_8 = 7;
+
+inline constexpr u8 file_a = 0;
+inline constexpr u8 file_b = 1;
+inline constexpr u8 file_c = 2;
+inline constexpr u8 file_d = 3;
+inline constexpr u8 file_e = 4;
+inline constexpr u8 file_f = 5;
+inline constexpr u8 file_g = 6;
+inline constexpr u8 file_h = 7;
+}
+
+
+
+namespace cardinal_constants {    
+inline constexpr u8 north = 0;
+inline constexpr u8 east = 1;
+inline constexpr u8 south = 2;
+inline constexpr u8 west = 3;
+inline constexpr u8 northeast = 4;
+inline constexpr u8 southeast = 5;
+inline constexpr u8 southwest = 6;
+inline constexpr u8 northwest = 7;
+
+} // namespace cardinal_constants
 
 namespace shifts {
-static constexpr i8 horizontal = 1;
-static constexpr i8 vertical = 8;
+inline constexpr i8 horizontal = 1;
+inline constexpr i8 vertical = 8;
 /**
  * Naming comes from forward slash and backslash relative to the set */
-static constexpr i8 forward_diagonal = 9;
-static constexpr i8 backward_diagonal = 7;
+inline constexpr i8 forward_diagonal = 9;
+inline constexpr i8 backward_diagonal = 7;
 
-constexpr std::array<i8, 8> shifts = {
-    vertical,           // lsh - north
-    horizontal,         // lsh - east
-    -vertical,           // rsh - south
-    -horizontal,         // rsh - west
-    forward_diagonal,   // lsh - northeast
-    -backward_diagonal,  // rsh - southeast
-    -forward_diagonal,   // rsh - southwest
-    backward_diagonal   // lsh - northwest
+static constexpr std::array<i8, 8> shifts = {
+    vertical,               // lsh - north
+    horizontal,             // lsh - east
+    -vertical,              // rsh - south
+    -horizontal,            // rsh - west
+    forward_diagonal,       // lsh - northeast
+    -backward_diagonal,     // rsh - southeast
+    -forward_diagonal,      // rsh - southwest
+    backward_diagonal       // lsh - northwest
 };
 }  // namespace shifts
 
 namespace board_constants {
-static constexpr u64 rank0Mask = UINT64_C(0x00000000000000FF);
-static constexpr u64 rank1Mask = UINT64_C(0x000000000000FF00);
-static constexpr u64 rank2Mask = UINT64_C(0x0000000000FF0000);
-static constexpr u64 rank3Mask = UINT64_C(0x00000000FF000000);
-static constexpr u64 rank4Mask = UINT64_C(0x000000FF00000000);
-static constexpr u64 rank5Mask = UINT64_C(0x0000FF0000000000);
-static constexpr u64 rank6Mask = UINT64_C(0x00FF000000000000);
-static constexpr u64 rank7Mask = UINT64_C(0xFF00000000000000);
+inline constexpr u64 rank0Mask = UINT64_C(0x00000000000000FF);
+inline constexpr u64 rank1Mask = UINT64_C(0x000000000000FF00);
+inline constexpr u64 rank2Mask = UINT64_C(0x0000000000FF0000);
+inline constexpr u64 rank3Mask = UINT64_C(0x00000000FF000000);
+inline constexpr u64 rank4Mask = UINT64_C(0x000000FF00000000);
+inline constexpr u64 rank5Mask = UINT64_C(0x0000FF0000000000);
+inline constexpr u64 rank6Mask = UINT64_C(0x00FF000000000000);
+inline constexpr u64 rank7Mask = UINT64_C(0xFF00000000000000);
 
-static constexpr u64 fileaMask = UINT64_C(0x0101010101010101);
-static constexpr u64 filebMask = UINT64_C(0x0202020202020202);
-static constexpr u64 filecMask = UINT64_C(0x0404040404040404);
-static constexpr u64 filedMask = UINT64_C(0x0808080808080808);
-static constexpr u64 fileeMask = UINT64_C(0x1010101010101010);
-static constexpr u64 filefMask = UINT64_C(0x2020202020202020);
-static constexpr u64 filegMask = UINT64_C(0x4040404040404040);
-static constexpr u64 filehMask = UINT64_C(0x8080808080808080);
+inline constexpr u64 fileaMask = UINT64_C(0x0101010101010101);
+inline constexpr u64 filebMask = UINT64_C(0x0202020202020202);
+inline constexpr u64 filecMask = UINT64_C(0x0404040404040404);
+inline constexpr u64 filedMask = UINT64_C(0x0808080808080808);
+inline constexpr u64 fileeMask = UINT64_C(0x1010101010101010);
+inline constexpr u64 filefMask = UINT64_C(0x2020202020202020);
+inline constexpr u64 filegMask = UINT64_C(0x4040404040404040);
+inline constexpr u64 filehMask = UINT64_C(0x8080808080808080);
 
 static constexpr u64 forwardDiagonalMasks[15] = {0x0100000000000000, 0x0201000000000000, 0x0402010000000000, 0x0804020100000000,
                                                  0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
@@ -76,8 +113,8 @@ static constexpr u64 backwardDiagonalMasks[15] = {
     0x0810204080000000, 0x1020408000000000, 0x2040800000000000, 0x4080000000000000, 0x8000000000000000,
 };
 
-static constexpr u64 darkSquares = UINT64_C(0xAA55AA55AA55AA55);
-static constexpr u64 lightSquares = UINT64_C(0x55AA55AA55AA55AA);
+inline constexpr u64 darkSquares = UINT64_C(0xAA55AA55AA55AA55);
+inline constexpr u64 lightSquares = UINT64_C(0x55AA55AA55AA55AA);
 
 static constexpr u64 rankMasks[8] = {rank0Mask, rank1Mask, rank2Mask, rank3Mask, rank4Mask, rank5Mask, rank6Mask, rank7Mask};
 
@@ -88,14 +125,6 @@ static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Ma
 
 static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
 static constexpr u64 baseRankRelative[2] = {rank0Mask, rank7Mask};
-
-constexpr u64 constexprAbs(i64 val) {
-    u64 uval = static_cast<u64>(val);
-    // If negative, negate the UNSIGNED value.
-    // In 2's complement, -x is equivalent to (~x + 1).
-    // Unsigned negation performs exactly this operation safely.
-    return (val < 0) ? -uval : uval;
-}
 
 constexpr std::array<std::array<u64, 64>, 64>
 generateManhattanDistances() {
@@ -137,10 +166,10 @@ static constexpr u64 moveMask[2] = {UINT64_C(0x10100), UINT64_C(0x101)};
 }  // namespace pawn_constants
 
 namespace king_constants {
-static constexpr u64 moveMask = UINT64_C(0x70507);
-static constexpr i32 maskOffset = 9;
-static constexpr u64 queenSideCastleMask = board_constants::filecMask;
-static constexpr u64 kingSideCastleMask = board_constants::filegMask;
+inline constexpr u64 moveMask = UINT64_C(0x70507);
+inline constexpr i32 maskOffset = 9;
+inline constexpr u64 queenSideCastleMask = board_constants::filecMask;
+inline constexpr u64 kingSideCastleMask = board_constants::filegMask;
 }  // namespace king_constants
 
 constexpr std::array<u64, 64>

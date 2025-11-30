@@ -22,7 +22,7 @@
  * 
  */
 
-#include "defines.hpp"
+#include <system/platform.hpp>
 
 
 namespace magics {

@@ -6,8 +6,8 @@
 #include <eval/evaluator.hpp>
 #include <io/fen_parser.hpp>
 #include <move/generation/move_generator.hpp>
-#include <util/clock.hpp>
-#include <debug/log.hpp>
+#include <system/clock.hpp>
+#include <diagnostics/logger.hpp>
 #include <future>
 #include <limits>
 #include <sstream>

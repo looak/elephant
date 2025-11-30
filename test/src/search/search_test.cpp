@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "elephant_test_logger.hpp"
 
-#include <util/clock.hpp>
+#include <system/clock.hpp>
 #include <io/fen_parser.hpp>
 #include <core/game_context.hpp>
 #include <search/search.hpp>

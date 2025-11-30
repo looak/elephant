@@ -5,8 +5,8 @@
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
 #include <search/search.hpp>
-#include <util/bench_positions.hpp>
-#include <util/clock.hpp>
+#include <math/bench_positions.hpp>
+#include <system/clock.hpp>
 
 struct EpdTestCase {
     std::string id;

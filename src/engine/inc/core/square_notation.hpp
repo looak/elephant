@@ -16,21 +16,13 @@
 
 #pragma once
 #include <string>
-#include <defines.hpp>
+
+#include <core/square.hpp>
+#include <diagnostics/assert.hpp>
+#include <system/platform.hpp>
 
 // TODO: Make this a helper to enum class Square, so all it does is takes Squares and lets you extract rank/file or convert it
 // to string. We don't want to allow building Squares out of Notations since Notations are unsafe.
-
-constexpr byte file_of(Square sqr) {
-    byte indx = *sqr;
-    return mod_by_eight(indx);
-}
-
-constexpr byte rank_of(Square sqr) {
-    byte indx = *sqr;
-    return indx >> 3; // divide by 8
-}
-
 struct SquareNotation {
     SquareNotation() = default;
     constexpr SquareNotation(Square _sqr) :
@@ -38,8 +30,8 @@ struct SquareNotation {
     {
         byte indx = *m_sqr;
         ASSERT_MSG(indx <= 63, "SquareNotation :: Invalid square enum value for notation conversion.");
-        m_file = file_of(_sqr);
-        m_rank = rank_of(_sqr);
+        m_file = toFile(_sqr);
+        m_rank = toRank(_sqr);
     }
 
     constexpr SquareNotation(byte file, byte rank) :

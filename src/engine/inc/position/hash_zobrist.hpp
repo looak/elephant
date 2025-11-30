@@ -15,7 +15,8 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
+#include <core/square.hpp>
 #include <functional>
 
 class Chessboard;

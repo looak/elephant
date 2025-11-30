@@ -23,7 +23,7 @@
  */
 
 #pragma once
-#include "defines.hpp"
+#include <system/platform.hpp>
 #include <position/position_accessors.hpp>
 
 #include <unordered_map>

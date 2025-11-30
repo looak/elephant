@@ -22,7 +22,7 @@
  * 
  */
 
-#include "defines.hpp"
+#include <system/platform.hpp>
 #include <io/weight_store.hpp>
 
 struct TaperedScore
@@ -172,7 +172,7 @@ const i32* pestoTables[6] = {
  * Idea here is that doubling pawns early or midgame will hurt your structure,
  * later in the game it's not as important where there are less pawns on the board.  */
  //static constexpr TaperedScore doubledPawnScore{-50, -25};
-TAPERED_WEIGHT(doubledPawnScore, i32, -50, -25);
+TAPERED_WEIGHT(doubledPawnScore, i16, -50, -25);
 
 /**
  * Idea here is that isolated pawns are bad but will be worse in the endgame.  */
@@ -188,7 +188,7 @@ MULTIPLIER(guardedPassedPawnBonus, 2);
 
 /*
 * Idea here is that pawns that ar guarded by other pawns are stronger and more valuable.*/
-WEIGHT(guardedPawnScore, i32, 8);
+WEIGHT(guardedPawnScore, i16, 8);
 
 constexpr i32 center_bias[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,

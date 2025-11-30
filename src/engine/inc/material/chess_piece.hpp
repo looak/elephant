@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <material/chess_piece_defines.hpp>
 
 struct ChessPiece {

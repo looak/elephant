@@ -261,11 +261,11 @@ void KingPinThreats<us>::compute(Square kingSquare, PositionReader position) {
         // so we don't shift them "off" the board and we shift them only in one direction.
         // cache them and then we combine it with the main piecebb at the end.
         Bitboard piecebb = kingMask;
-        Bitboard westFile = kingMask & board_constants::boundsRelativeMasks[usIndx][west];
+        Bitboard westFile = kingMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::west];
         piecebb &= ~westFile;
         westFile = westFile.shiftNorthEastRelative<us>();
 
-        Bitboard eastFile = kingMask & board_constants::boundsRelativeMasks[usIndx][east];
+        Bitboard eastFile = kingMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::east];
         piecebb &= ~eastFile;
         eastFile = eastFile.shiftNorthWestRelative<us>();
 

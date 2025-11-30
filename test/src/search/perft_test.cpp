@@ -7,7 +7,7 @@
 #include <move/generation/move_generator.hpp>
 #include <search/search.hpp>
 #include <search/perft_search.hpp>
-#include <util/clock.hpp>
+#include <system/clock.hpp>
 
 #include <future>
 #include <source_location>

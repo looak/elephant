@@ -26,7 +26,7 @@
 #include <array>
 
 #include <bitboard/attacks/attacks.hpp>
-#include "defines.hpp"
+#include <system/platform.hpp>
 
 namespace ray {
 namespace internals {

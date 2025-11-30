@@ -26,7 +26,7 @@
 
 #include <chrono>
 
-#include "defines.hpp"
+#include <system/platform.hpp>
 
 
 class Clock

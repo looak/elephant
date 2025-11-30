@@ -1,8 +1,8 @@
 ﻿#include <core/chessboard.hpp>
 #include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
-#include <defines.hpp>
-#include <debug/log.hpp>
+#include <system/platform.hpp>
+#include <diagnostics/logger.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
 #include <position/hash_zobrist.hpp>

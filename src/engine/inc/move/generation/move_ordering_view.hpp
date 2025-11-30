@@ -1,7 +1,7 @@
 #pragma once
 
 #include <move/move.hpp>
-#include <defines.hpp>
+#include <system/platform.hpp>
 
 // A plain data view into heuristics owned by the Search module.
 // This has no virtual functions and allows MoveGenerator to remain

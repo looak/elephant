@@ -64,7 +64,7 @@ Move::readPackedMove() const
     packedMove |= isCapture() << 14;
     if (isCastling()) {
         packedMove |= 1 << 13;
-        if (toFile(TargetSquare) == file_c)  // queen side castling
+        if (toFile(TargetSquare) == coordinates::file_c)  // queen side castling
             packedMove |= 1 << 12;
     }
     if (isPromotion()) {
