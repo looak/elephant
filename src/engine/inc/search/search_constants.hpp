@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include "defines.hpp"
+#include <system/platform.hpp>
 
 static constexpr u32 c_maxSearchDepth = 64;
 static constexpr i32 c_infinity = 28000;

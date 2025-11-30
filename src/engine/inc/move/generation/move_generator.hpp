@@ -121,7 +121,7 @@ Consider this flow:
     PrioritizedMove internalGenerateMoves();
     void internalGenerateMovesOrdered();
     void internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen);
-    void internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr);
+    void internalBuildPawnPromotionMoves(PackedMove move, u32 dstSqr);
     template<u8 pieceId>
     void internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveGen);
     void internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen);

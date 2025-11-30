@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include <util/static_initializer.hpp>
+#include <system/static_initializer.hpp>
 
 bool g_initialized = static_initializer::initialize();
 

@@ -1,6 +1,6 @@
 #include <string>
 #include "cli/inc/elephant_cli.hpp"
-#include "util/static_initializer.hpp"
+#include "system/static_initializer.hpp"
 #include "cli/inc/static_initializer.hpp"
 #include "elephant_gambit_config.h"
 

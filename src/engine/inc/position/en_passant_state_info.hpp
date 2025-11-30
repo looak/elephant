@@ -23,7 +23,7 @@
  */
 
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <bitboard/bitboard.hpp>
 #include <core/square_notation.hpp>
 #include <position/hash_zobrist.hpp>

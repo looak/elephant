@@ -16,22 +16,26 @@
  * along with this program.If not, see < http://www.gnu.org/licenses/>. 
  *****************************************************************************/
 
-/**
- * @file evaluation_table.hpp
- * @brief Defines an evaluation table using a hash map to store evaluation entries and their scores 
- * 
- */
-
 #pragma once
-#include <system/platform.hpp>
-#include <move/move.hpp>
+#include <type_traits>
+#include <utility>
+#include <diagnostics/assert.hpp>
+#include <core/square.hpp>
 
-#include <unordered_map>
+template <typename dst, typename src>
+constexpr dst checked_cast(src value) {
+    static_assert(std::is_integral_v<src>, "checked_cast source must be integral");
+    static_assert(std::is_integral_v<dst>, "checked_cast destination must be integral");
 
+    ASSERT_MSG(std::in_range<dst>(value), "Cast data loss detected!");
 
-struct EvaluationEntry
-{    
-    i32 score;
-};
+    return static_cast<dst>(value);
+}
 
-using EvaluationTable = std::unordered_map<uint64_t, EvaluationEntry>;
+template<typename T>
+constexpr T&
+increment(T& value) {
+    static_assert(std::is_integral<std::underlying_type_t<T>>::value, "Can't increment value");
+    ((std::underlying_type_t<T>&)value)++;
+    return value;
+}

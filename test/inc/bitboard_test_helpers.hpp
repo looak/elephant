@@ -27,15 +27,15 @@ public:
     static Bitboard buildBoardFromAscii(const std::array<std::string_view, 8>& rows)
     {
         Bitboard result;
-        for (int visualRow = 0; visualRow < 8; ++visualRow) {
-            const int rank = 7 - visualRow; // rows[0] => rank 8
-            int file = 0;
+        for (size_t visualRow = 0; visualRow < 8; ++visualRow) {
+            const size_t rank = 7 - visualRow; // rows[0] => rank 8
+            size_t file = 0;
 
             for (char ch : rows[visualRow]) {
                 if (isSetChar(ch) || isEmptyChar(ch)) {
                     if (file < 8) {
                         if (isSetChar(ch)) {
-                            const int idx = rank * 8 + file;
+                            const size_t idx = rank * 8 + file;
                             result[static_cast<Square>(idx)] = true;
                         }
                         ++file;                        

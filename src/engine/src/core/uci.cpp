@@ -4,9 +4,9 @@
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <core/game_context.hpp>
+#include <math/bench_positions.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
-#include <util/bench_positions.hpp>
 
 #include <functional>
 #include <map>

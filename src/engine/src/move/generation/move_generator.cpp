@@ -3,6 +3,7 @@
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
 #include <move/generation/move_bulk_generator.hpp>
+#include <math/cast.hpp>
 
 template<Set us>
 MoveGenerator<us>::MoveGenerator(PositionReader position, MoveGenParams& params) :
@@ -77,8 +78,7 @@ template std::vector<PrioritizedMove> MoveGenerator<Set::BLACK>::moves();
 #endif
 
 template<Set us>
-PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {
-    const size_t usIndx = static_cast<size_t>(us);
+PrioritizedMove MoveGenerator<us>::internalGenerateMoves() {    
     if (m_position.material().combine<us>().empty()) {
         // TODO: This should never happen, there will always be a king?
         m_movesGenerated = true;        
@@ -206,14 +206,15 @@ void MoveGenerator<us>::sortMoves() {
 }
 
 template<Set us>
-void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, i32 dstSqr)
-{    
-    bool orthogonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstSqr]).empty();
-    bool diagonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstSqr]).empty();
+void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, u32 dstIndex) {
 
-    auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[dstSqr]), pawnId);
-    u16 actualCaptureValue = captureScore.has_value() ? move_generator_constants::capturePriority + captureScore.value() : 0;
-    const i32 promotionPriorityValue = move_generator_constants::promotionPriority + actualCaptureValue;
+    size_t dstIndex_t = checked_cast<size_t>(dstIndex);
+    bool orthogonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[dstIndex_t]).empty();
+    bool diagonallyChecked = !(m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[dstIndex_t]).empty();
+
+    std::optional<i16> captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[dstIndex_t]), pawnId);
+    u16 actualCaptureValue = captureScore.has_value() ? move_generator_constants::capturePriority + static_cast<u16>(captureScore.value()) : 0;
+    const u16 promotionPriorityValue = move_generator_constants::promotionPriority + actualCaptureValue;
 
     move.setPromoteTo(queenId);
     PrioritizedMove queenPromote(move, 0);
@@ -245,8 +246,8 @@ void MoveGenerator<us>::internalBuildPawnPromotionMoves(PackedMove move, i32 dst
     m_moveCount++;
 }
 
-template void MoveGenerator<Set::WHITE>::internalBuildPawnPromotionMoves(PackedMove, i32);
-template void MoveGenerator<Set::BLACK>::internalBuildPawnPromotionMoves(PackedMove, i32);
+template void MoveGenerator<Set::WHITE>::internalBuildPawnPromotionMoves(PackedMove, u32);
+template void MoveGenerator<Set::BLACK>::internalBuildPawnPromotionMoves(PackedMove, u32);
 
 template<Set us>
 void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
@@ -268,16 +269,16 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
 
         auto isolated = isolator.isolate(srcSqr);
         while (isolated.captures.empty() == false) {
-            i32 dstSqr = isolated.captures.popLsb();
+            u32 dstIndex = isolated.captures.popLsb();
+            Square dstSquare = toSquare(dstIndex);
 
             PrioritizedMove prioratizedMove;
             PackedMove& move = prioratizedMove.move;
             move.setSource(srcSqr);
-            move.setTarget(dstSqr);
+            move.setTarget(dstSquare);
 
-            Square dstSquare = toSquare(dstSqr);
             // if we're capturing enpassant set the enpassant flag.
-            if (m_position.enPassant().readSquare() == static_cast<Square>(dstSqr))
+            if (m_position.enPassant().readSquare() == dstSquare)
             {
                 move.setEnPassant(true);  // sets both capture & enpassant
                 dstSquare = m_position.enPassant().readTarget();
@@ -290,12 +291,12 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
                 (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
 
             // if we're promoting set the promotion flag and create 4 moves.
-            if (promotionMask & squareMaskTable[dstSqr]) {
-                internalBuildPawnPromotionMoves(move, dstSqr);
+            if (promotionMask & squareMaskTable[checked_cast<size_t>(dstIndex)]) {
+                internalBuildPawnPromotionMoves(move, dstIndex);
             }
             else {
                 Position checkedPos;
-                checkedPos.edit().placePiece(ChessPiece(us, PieceType::PAWN), static_cast<Square>(dstSqr));
+                checkedPos.edit().placePiece(ChessPiece(us, PieceType::PAWN), static_cast<Square>(dstIndex));
                 Bitboard threat = checkedPos.read().material().topology<us>().computeThreatenedSquaresPawnBulk();
                 if (threat & m_position.material().king<opposing_set<us>()>()) {
                     prioratizedMove.setCheck(true);
@@ -307,20 +308,20 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
             }
         }
         while (isolated.quiets.empty() == false) {
-            i32 dstSqr = isolated.quiets.popLsb();
+            u32 dstIndex = isolated.quiets.popLsb();
 
             PrioritizedMove prioratizedMove;
             PackedMove& move = prioratizedMove.move;
             move.setSource(srcSqr);
-            move.setTarget(dstSqr);
+            move.setTarget(toSquare(dstIndex));
 
             // if we're promoting set the promotion flag and create 4 moves.
-            if (promotionMask & squareMaskTable[dstSqr]) {
-                internalBuildPawnPromotionMoves(move, dstSqr);
+            if (promotionMask & squareMaskTable[checked_cast<size_t>(dstIndex)]) {
+                internalBuildPawnPromotionMoves(move, dstIndex);
             }
             else {
                 Position checkedPos;
-                checkedPos.edit().placePiece(ChessPiece(us, PieceType::PAWN), static_cast<Square>(dstSqr));
+                checkedPos.edit().placePiece(ChessPiece(us, PieceType::PAWN), static_cast<Square>(dstIndex));
                 Bitboard threat = checkedPos.read().material().topology<us>().computeThreatenedSquaresPawnBulk();
                 if (threat & m_position.material().king<opposing_set<us>()>()) {
                     prioratizedMove.setCheck(true);
@@ -350,19 +351,19 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
         return;
 #endif
 
-    u32 srcSqr = m_position.material().king<us>().lsbIndex();
+    u32 srcIndex = m_position.material().king<us>().lsbIndex();
     u8 castlingRaw = m_position.castling().read() >> (setId * 2);
 
     while (movesbb.empty() == false) {
-        i32 dstSqr = movesbb.popLsb();
+        u32 dstIndex = movesbb.popLsb();
 
         PrioritizedMove prioratizedMove;
         PackedMove& move = prioratizedMove.move;
-        move.setSource(srcSqr);
-        move.setTarget(dstSqr);
-        Bitboard dstSqrMsk(squareMaskTable[dstSqr]);
+        move.setSource(toSquare(srcIndex));
+        move.setTarget(toSquare(dstIndex));
+        Bitboard dstIndexMsk(squareMaskTable[checked_cast<size_t>(dstIndex)]);
 
-        auto captureScore = m_position.material().computeCaptureScore<us>(dstSqrMsk, kingId);
+        auto captureScore = m_position.material().computeCaptureScore<us>(dstIndexMsk, kingId);
         if (captureScore.has_value()) {
             move.setCapture(true);
             prioratizedMove.priority = move_generator_constants::capturePriority + 
@@ -371,13 +372,13 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
 
         if (castlingRaw & 2) {
             u64 queenSideCastleSqrMask = king_constants::queenSideCastleMask & board_constants::baseRankRelative[setId];
-            if (dstSqrMsk & queenSideCastleSqrMask) {
+            if (dstIndexMsk & queenSideCastleSqrMask) {
                 move.setCastleQueenSide(true);
             }
         }
         if (castlingRaw & 1) {
             u64 kingSideCastleSqrMask = king_constants::kingSideCastleMask & board_constants::baseRankRelative[setId];
-            if (dstSqrMsk & kingSideCastleSqrMask) {
+            if (dstIndexMsk & kingSideCastleSqrMask) {
                 move.setCastleKingSide(true);
             }
         }
@@ -394,30 +395,30 @@ template<Set us>
 void MoveGenerator<us>::buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture)
 {
     while (movesbb.empty() == false) {
-        Square dstSqr = toSquare(movesbb.popLsb());
+        Square dstSquare = toSquare(movesbb.popLsb());
 
         PrioritizedMove prioratizedMove;
         PackedMove& move = prioratizedMove.move;
         move.setSource(srcSqr);
-        move.setTarget(dstSqr);
+        move.setTarget(dstSquare);
         move.setCapture(capture);
         prioratizedMove.priority = 0;
 
         if (capture) {
-            auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSqr]), pieceId);
+            auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSquare]), pieceId);
             prioratizedMove.priority = move_generator_constants::capturePriority + 
                 (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
         }
 
         // figure out if we're checking the king.
         if (pieceId == rookId || pieceId == queenId) {
-            if (m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[*dstSqr]) {
+            if (m_pinThreats.readOpponentOpenAngles()[0] & squareMaskTable[*dstSquare]) {
                 prioratizedMove.setCheck(true);
                 prioratizedMove.priority += move_generator_constants::checkPriority;
             }
         }
         else if (pieceId == bishopId || pieceId == queenId) {
-            if (m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[*dstSqr]) {
+            if (m_pinThreats.readOpponentOpenAngles()[1] & squareMaskTable[*dstSquare]) {
                 prioratizedMove.setCheck(true);
                 prioratizedMove.priority += move_generator_constants::checkPriority;
             }

@@ -22,7 +22,7 @@
  */
 
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <position/position.hpp>
 
 /**

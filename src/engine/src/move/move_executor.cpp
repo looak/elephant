@@ -3,7 +3,9 @@
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
 #include <core/square_notation.hpp>
+#include <math/cast.hpp>
 #include <position/hash_zobrist.hpp>
+
 
 template<bool validation>
 void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& plyCount)
@@ -82,11 +84,17 @@ void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
 
-    signed char dif = toRank(source) - toRank(target);
+    i16 dif = toRank(source) - toRank(target);
     if (abs(dif) == 2)  { // we made a enpassant move, calculate the enpassant square made available for pawn capture.
-        dif = (signed char)((float)dif * .5f);
-        Square sqr = SquareNotation(toFile(source), toRank(source) - dif).toSquare();
-        m_position.enPassant().writeSquare(sqr);
+        dif = dif / 2;
+
+        Square epSqr = Square::NullSQ;
+        if (dif < 0)
+            epSqr = shiftNorth(source);
+        else
+            epSqr = shiftSouth(source);
+        // Square sqr = SquareNotation(toFile(source), toRank(source) - checked_cast<u8>(dif)).toSquare();
+        m_position.enPassant().writeSquare(epSqr);
     }
 }
 
@@ -130,7 +138,7 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
 {
     const u8 setIndx = (u8)set;
     bool castling = false;
-    byte casltingMask = 3 << (2 * setIndx);
+    byte casltingMask = checked_cast<byte>(3 << (2 * setIndx));
     byte castlingState = m_position.castling().read();
     SquareNotation targetSquare(move.targetSqr());
     if (castlingState & casltingMask) {
@@ -297,15 +305,15 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
         SquareNotation rookSource;
         SquareNotation rookTarget;
         SquareNotation target(trgSqr);
-        if (target.file() == file_c)  // queen side
+        if (target.file() == coordinates::file_c)  // queen side
         {
-            rookSource = SquareNotation(file_a, target.rank());
-            rookTarget = SquareNotation(file_d, target.rank());
+            rookSource = SquareNotation(coordinates::file_a, target.rank());
+            rookTarget = SquareNotation(coordinates::file_d, target.rank());
         }
         else  // king side
         {
-            rookSource = SquareNotation(file_h, target.rank());
-            rookTarget = SquareNotation(file_f, target.rank());
+            rookSource = SquareNotation(coordinates::file_h, target.rank());
+            rookTarget = SquareNotation(coordinates::file_f, target.rank());
         }
         ChessPiece rook(movedPiece.getSet(), PieceType::ROOK);
         auto editor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);

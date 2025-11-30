@@ -11,7 +11,6 @@ configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/e
 
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /...
-    ${ENGINE_INC_DIR}/defines.hpp
     ${ENGINE_INC_DIR}/elephant_gambit.hpp
     ${ENGINE_INC_DIR}/elephant_gambit_config.h
 
@@ -30,12 +29,14 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /core/...
     ${ENGINE_INC_DIR}/core/chessboard.hpp
     ${ENGINE_INC_DIR}/core/game_context.hpp
+    ${ENGINE_INC_DIR}/core/square.hpp
     ${ENGINE_INC_DIR}/core/square_notation.hpp
     ${ENGINE_INC_DIR}/core/uci.hpp
 
 ## /debug/...
-    ${ENGINE_INC_DIR}/debug/elephant_exceptions.hpp
-    ${ENGINE_INC_DIR}/debug/log.hpp
+    ${ENGINE_INC_DIR}/diagnostics/assert.hpp
+    ${ENGINE_INC_DIR}/diagnostics/exceptions.hpp
+    ${ENGINE_INC_DIR}/diagnostics/logger.hpp
 
 ## /eval/...
     ${ENGINE_INC_DIR}/eval/evaluation_table.hpp
@@ -54,6 +55,11 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/material/chess_piece_defines.hpp
     ${ENGINE_INC_DIR}/material/material_mask.hpp
     ${ENGINE_INC_DIR}/material/material_topology.hpp
+
+## /math/...
+    ${ENGINE_INC_DIR}/math/bench_positions.hpp
+    ${ENGINE_INC_DIR}/math/cast.hpp
+    ${ENGINE_INC_DIR}/math/math.hpp    
 
 ## /move/...
     ${ENGINE_INC_DIR}/move/move.hpp
@@ -84,17 +90,18 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/search_results.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp
 
+## /system/...
+    ${ENGINE_INC_DIR}/system/platform.hpp
+    ${ENGINE_INC_DIR}/system/clock.hpp
+    ${ENGINE_INC_DIR}/system/time_manager.hpp
+    ${ENGINE_INC_DIR}/system/static_initializer.hpp
+
 ## /search/impl/...
     ${ENGINE_INC_DIR}/search/impl/search_impl.inl
     ${ENGINE_INC_DIR}/search/impl/search_alphabeta.inl
     ${ENGINE_INC_DIR}/search/impl/search_nullmove.inl
     ${ENGINE_INC_DIR}/search/impl/search_quiescence.inl
-
-## /util/...
-    ${ENGINE_INC_DIR}/util/bench_positions.hpp
-    ${ENGINE_INC_DIR}/util/clock.hpp
-    ${ENGINE_INC_DIR}/util/time_manager.hpp
-    ${ENGINE_INC_DIR}/util/static_initializer.hpp
+    
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -110,8 +117,8 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/core/game_context.cpp
     ${ENGINE_SRC_DIR}/core/uci.cpp
 
-## /debug/...
-    ${ENGINE_SRC_DIR}/debug/log.cpp
+## /diagnostics/...
+    ${ENGINE_SRC_DIR}/diagnostics/logger.cpp
 
 ## /eval/...
     ${ENGINE_SRC_DIR}/eval/evaluator.cpp
@@ -145,9 +152,9 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/search/perft_search.cpp
     ${ENGINE_SRC_DIR}/search/search.cpp
 
-## /util/...
-    ${ENGINE_SRC_DIR}/util/clock.cpp
-    ${ENGINE_SRC_DIR}/util/time_manager.cpp
+## /system/...
+    ${ENGINE_SRC_DIR}/system/clock.cpp
+    ${ENGINE_SRC_DIR}/system/time_manager.cpp
 )
 
 set(ENGINE_SOURCE_ALL ${ENGINE_SOURCE} ${ENGINE_SOURCE_INCLUDE})

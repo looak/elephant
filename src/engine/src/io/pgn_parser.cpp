@@ -1,6 +1,6 @@
 #include <io/pgn_parser.hpp>
 #include <io/san_parser.hpp>
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <core/game_context.hpp>
 #include <move/move_executor.hpp>
 

@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
-#include <defines.hpp>
+#include <system/platform.hpp>
 
 namespace bench {
 constexpr u32 depth = 7;

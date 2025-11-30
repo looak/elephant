@@ -1,5 +1,5 @@
 #include <io/san_parser.hpp>
-#include <debug/elephant_exceptions.hpp>
+#include <diagnostics/exceptions.hpp>
 #include <move/generation/move_generator.hpp>
 #include <position/position.hpp>
 #include <variant>

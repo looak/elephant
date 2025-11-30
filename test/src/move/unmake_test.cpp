@@ -4,7 +4,7 @@
 #include <material/chess_piece.hpp>
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>

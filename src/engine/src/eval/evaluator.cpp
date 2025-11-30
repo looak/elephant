@@ -229,12 +229,12 @@ i16 Evaluator::EvaluatePassedPawn() const {
         Bitboard pawnMask = squareMaskTable[pawnSqr];
 
         pawnMask = pawnMask.shiftNorthRelative<us>();
-        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][west]).empty())
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::west]).empty())
             pawnMask |= pawnMask.shiftWestRelative<us>();
-        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][east]).empty())
+        if ((pawnMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::east]).empty())
             pawnMask |= pawnMask.shiftEastRelative<us>();
 
-        while ((pawnMask & board_constants::boundsRelativeMasks[usIndx][north]).empty()) {
+        while ((pawnMask & board_constants::boundsRelativeMasks[usIndx][cardinal_constants::north]).empty()) {
             pawnMask |= pawnMask.shiftNorthRelative<us>();
         }
 
@@ -258,7 +258,7 @@ template<Set us>
 i16 Evaluator::EvaluatePawnProtection(Bitboard pawns) const {
     auto guardedSquares = m_position.material().topology<us>().computeThreatenedSquaresPawnBulk();
     guardedSquares &= pawns; // guarded pawns
-    return guardedSquares.count() * evaluator_data::guardedPawnScore;
+    return static_cast<i16>(guardedSquares.count()) * evaluator_data::guardedPawnScore;
 }
 
 template<Set us>

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <stack>
 
 #include <io/fen_parser.hpp>

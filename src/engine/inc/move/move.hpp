@@ -18,7 +18,7 @@
 
 #include <vector>
 
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <core/square_notation.hpp>
 #include <material/chess_piece.hpp>
 #include <position/en_passant_state_info.hpp>
@@ -308,8 +308,8 @@ struct PrioritizedMove {
     constexpr operator bool() const { return move.isNull() != true; }
 
     PackedMove move;
-    u16 priority : 15;
-    u16 check : 1;
+    i32 priority : 15;
+    bool check : 1;
 };
 static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 

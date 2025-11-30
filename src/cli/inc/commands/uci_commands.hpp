@@ -20,7 +20,7 @@
  * https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
  * @author Alexander Loodin Ek  */
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <condition_variable>
 #include <functional>
 #include <future>

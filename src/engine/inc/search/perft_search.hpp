@@ -26,7 +26,7 @@
  * depth, comparing the resulting node count against a known correct value.
  * https://www.chessprogramming.org/Perft    */
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 
 #include <core/game_context.hpp>
 #include <material/chess_piece_defines.hpp>

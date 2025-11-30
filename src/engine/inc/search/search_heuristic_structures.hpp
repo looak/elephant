@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <move/move.hpp>
 #include <search/search_constants.hpp>
 #include <vector>

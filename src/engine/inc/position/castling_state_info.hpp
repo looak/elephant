@@ -25,7 +25,7 @@
 
 #pragma once
 #include <string>
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <position/hash_zobrist.hpp>
 
 // 0x01 == K, 0x02 == Q, 0x04 == k, 0x08 == q

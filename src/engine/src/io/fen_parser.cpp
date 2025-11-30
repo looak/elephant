@@ -8,9 +8,10 @@
 
 #include <elephant_gambit.hpp>
 #include <core/chessboard.hpp>
-#include <defines.hpp>
 #include <core/game_context.hpp>
+#include <math/cast.hpp>
 #include <position/castling_state_info.hpp>
+#include <system/platform.hpp>
 
 namespace io {
 namespace fen_parser {
@@ -112,7 +113,7 @@ bool deserializeBoard(std::string_view fen, PositionEditor position)
 bool
 deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
 {
-    char value = std::tolower(toPlayStr[0]);
+    char value = (char)std::tolower(toPlayStr[0]);
     if (value == 'w')
         outputBoard.editState().whiteToMove = true;
     else if (value == 'b')
@@ -124,12 +125,11 @@ deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
 }
 
 bool
-deserializeEnPassant(std::string_view enPassantStr, PositionEditor position)
-{
+deserializeEnPassant(std::string_view enPassantStr, PositionEditor position) {
     position.enPassant().clear();
     if (enPassantStr.size() > 1) {
-        byte file = enPassantStr[0] - 'a';
-        byte rank = (byte)std::atoi(&enPassantStr[1]) - 1;
+        byte file = checked_cast<byte>(enPassantStr[0] - 'a');
+        byte rank = checked_cast<byte>(std::atoi(&enPassantStr[1]) - 1);
         position.enPassant().writeSquare(toSquare(file, rank));
     }
     return true;
@@ -174,10 +174,10 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = std::atoi(&tokens.front()[0]);
+        byte plyCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
         tokens.pop_front();
 
-        byte moveCount = std::atoi(&tokens.front()[0]);
+        byte moveCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
         tokens.pop_front();
 
         outputBoard.editState().plyCount = plyCount;
@@ -229,10 +229,10 @@ bool deserialize(const char* input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = std::atoi(&tokens.front()[0]);
+        byte plyCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
         tokens.pop_front();
 
-        byte moveCount = std::atoi(&tokens.front()[0]);
+        byte moveCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
         tokens.pop_front();
 
         outputBoard.editState().plyCount = plyCount;

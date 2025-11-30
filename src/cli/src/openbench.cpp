@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
-#include <util/clock.hpp>
-#include <util/static_initializer.hpp>
+#include <system/clock.hpp>
+#include <system/static_initializer.hpp>
 #include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>

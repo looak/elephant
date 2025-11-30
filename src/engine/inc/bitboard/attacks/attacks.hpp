@@ -25,7 +25,7 @@
 #pragma once
 
 #include <array>
-#include <defines.hpp>
+#include <system/platform.hpp>
 #include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <bitboard/attacks/magic_constants.hpp>
@@ -103,10 +103,10 @@ namespace internals {
         u64 attkMask = 0;
         const u64 sqrMask = 1ULL << sqr;
 
-        attkMask |= shift<edge>(north, occupancy, board_constants::rank7Mask, sqrMask);
-        attkMask |= shift<edge>(south, occupancy, board_constants::rank0Mask, sqrMask);
-        attkMask |= shift<edge>(east, occupancy, board_constants::filehMask, sqrMask);
-        attkMask |= shift<edge>(west, occupancy, board_constants::fileaMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::north, occupancy, board_constants::rank7Mask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::south, occupancy, board_constants::rank0Mask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::east, occupancy, board_constants::filehMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::west, occupancy, board_constants::fileaMask, sqrMask);
 
         return attkMask;
     }
@@ -117,10 +117,10 @@ namespace internals {
         u64 attkMask = 0;
         const u64 sqrMask = 1ULL << sqr;
 
-        attkMask |= shift<edge>(northeast, occupancy, board_constants::rank7Mask | board_constants::filehMask, sqrMask);
-        attkMask |= shift<edge>(southeast, occupancy, board_constants::rank0Mask | board_constants::filehMask, sqrMask);
-        attkMask |= shift<edge>(southwest, occupancy, board_constants::rank0Mask | board_constants::fileaMask, sqrMask);
-        attkMask |= shift<edge>(northwest, occupancy, board_constants::rank7Mask | board_constants::fileaMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::northeast, occupancy, board_constants::rank7Mask | board_constants::filehMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::southeast, occupancy, board_constants::rank0Mask | board_constants::filehMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::southwest, occupancy, board_constants::rank0Mask | board_constants::fileaMask, sqrMask);
+        attkMask |= shift<edge>(cardinal_constants::northwest, occupancy, board_constants::rank7Mask | board_constants::fileaMask, sqrMask);
 
         return attkMask;
     }

@@ -4,7 +4,7 @@
 #include <position/position.hpp>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
-#include <debug/elephant_exceptions.hpp>
+#include <diagnostics/exceptions.hpp>
 
 
 

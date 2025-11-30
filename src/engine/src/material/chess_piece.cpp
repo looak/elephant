@@ -1,6 +1,6 @@
 ﻿#include <material/chess_piece.hpp>
 #include <iostream>
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 
 Set
 ChessPiece::FlipSet(Set source)

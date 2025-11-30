@@ -1,4 +1,4 @@
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 
 namespace logging {
 namespace internals {
@@ -14,8 +14,6 @@ namespace internals {
         
         return filename.str();
     }
-
-    
 
 }
 }

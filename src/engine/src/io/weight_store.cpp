@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include <debug/log.hpp>
+#include <diagnostics/logger.hpp>
 
 WeightStore* WeightStore::instance = nullptr;
 
@@ -75,13 +75,13 @@ void WeightStore::visit(MultiplierWeight& weight, const std::string& newValue) {
         
         // Convert to Fixed Point: 1.5 * 1024 = 1536
         // std::round ensures 1.0 doesn't become 0.99999 -> 1023
-        weight.m_storage = static_cast<i32>(std::round(userVal * MultiplierWeight::SCALE));
+        weight.m_storage = static_cast<i16>(std::round(userVal * MultiplierWeight::SCALE));
     } catch (...) {
         throw ephant::io_error("Invalid multiplier format: " + newValue);
     }
 }
 
-MultiplierWeight::MultiplierWeight(std::string name, i32& storage)
+MultiplierWeight::MultiplierWeight(std::string name, i16& storage)
     : IWeight(std::move(name))
     , m_storage(storage) 
 {
