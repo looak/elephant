@@ -18,7 +18,7 @@ protected:
 // Constructor Tests
 TEST_F(PackedMoveTest, DefaultConstructor_CreatesNullMove)
 {
-    PackedMove move;
+    PackedMove move{};
     
     EXPECT_TRUE(move.isNull());
     EXPECT_EQ(0, move.read());

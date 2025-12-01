@@ -85,7 +85,7 @@ u64 updatePieceHash(const u64& oldHash, ChessPiece piece, Square position) {
 }
 
 u64 updateEnPassantHash(const u64& oldHash, Square position) {
-    return oldHash ^ internals::enpassant[toFile(position)];
+    return oldHash ^ internals::enpassant[to_file(position)];
 }
 
 u64 updateCastlingHash(const u64& oldHash, const u8 castlingState) {

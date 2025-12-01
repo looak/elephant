@@ -32,23 +32,30 @@ constexpr bool operator<(Square lhs, Square rhs) {
     return static_cast<byte>(lhs) < static_cast<byte>(rhs);
 }
 
-constexpr Square toSquare(byte file, byte rank)  {
+constexpr Square to_square(byte file, byte rank)  {
     ASSERT_MSG(file <= 7 && rank <= 7, std::format("toSquare :: Invalid file or rank for square conversion. (file: {}, rank: {})", file, rank));
     return static_cast<Square>((rank * 8) + file);
 }
 
 template<typename T>
-constexpr Square toSquare(T index) {
+constexpr Square to_square(T index) {
     static_assert(std::is_integral_v<T>, "toSquare source must be integral");
     ASSERT_MSG(index >= 0 && index <= 63, "toSquare :: Invalid index for square conversion.");
     return static_cast<Square>(index);
 }
+
+template<typename T = u8>
+constexpr T to_index(Square sqr) {
+    static_assert(std::is_integral_v<T>, "Square -> toIndex destination must be integral");
+    return static_cast<T>(sqr);
+}
+
 // TODO: rename these fucntions to file_of and rank_of
-constexpr u8 toFile(Square sqr) {
+constexpr u8 to_file(Square sqr) {
     return mod_by_eight(static_cast<u8>(sqr));
 }
 
-constexpr u8 toRank(Square sqr) {
+constexpr u8 to_rank(Square sqr) {
     u8 indx = static_cast<u8>(sqr);
     return indx >> 3; // divide by 8
 }
@@ -66,13 +73,13 @@ constexpr Square shiftSouth(Square sqr) {
     return static_cast<Square>(static_cast<byte>(sqr) - 8);
 }
 constexpr Square shiftEast(Square sqr) {
-    if (toFile(sqr) == 7) {
+    if (to_file(sqr) == 7) {
         ASSERT_MSG(false, "shiftEast :: Cannot shift east from file h.");
     }
     return static_cast<Square>(static_cast<byte>(sqr) + 1);
 }
 constexpr Square shiftWest(Square sqr) {
-    if (toFile(sqr) == 0) {
+    if (to_file(sqr) == 0) {
         ASSERT_MSG(false, "shiftWest :: Cannot shift west from file a.");
     }
     return static_cast<Square>(static_cast<byte>(sqr) - 1);

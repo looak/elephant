@@ -57,26 +57,23 @@ namespace transposition_table {
  *  - score     : 2 bytes
  *  - depth     : 1 byte
  *  - flags
- *      & age   : 1 byte
- */
-struct alignas(8) entry {    
+ *      & age   : 1 byte  */
+struct alignas(16) entry {    
     // Written last, read first (atomic 64-bit)
     // Layout: [32-bit key][16-bit score][8-bit depth][2-bit flags][6-bit age]
-    std::atomic<u64> data;
-    // Written first, read last (non-atomic)
-    PackedMove move;
-    // TODO: figure out if we can make this 10-bytes
-    // paddoing  -- 6 bytes
-    entry() : data(0), move(0) {}
+    // Written first, read last.
+    u64 data;
 
-    // hack to allow fill_n 0-initialize the array
-    void operator=(const int&) {
-        data.store(0, std::memory_order_relaxed);
-        move.set(0);
-    }
+    // [16-bits move]
+    // Written last, read first.
+    PackedMove move;
+
+    // paddoing  -- 6 bytes
+    u8 padding[6];
 };
 
 static_assert(sizeof(entry) == 16, "transposition table entry must be exactly 16 bytes");
+static_assert(std::is_trivial_v<entry>, "transposition table entry must be a trivial type");
 
 } // namespace transposition_table
 
@@ -150,7 +147,7 @@ struct TTStats<true> {
 template<bool Debug>
 class TranspositionTableImpl {
 private:
-    std::unique_ptr<transposition_table::entry[]> m_table;
+    std::vector<transposition_table::entry> m_table;
     size_t m_size;       // Number of entries
     size_t m_mask;       // m_size - 1, for fast modulo
     u8 m_age;       // Current age counter (0-63)
@@ -162,11 +159,11 @@ private:
     // --- Packing and Unpacking ---
     // Pack data into 64-bit atomic value
     // Layout: [32-bit key][16-bit score][8-bit depth][2-bit flags][6-bit age]
-    static u64 pack(uint32_t key, Score score, u8 depth, TranspositionFlag bound, u8 age);
+    static u64 pack(u32 key, Score score, u8 depth, TranspositionFlag bound, u8 age);
     // Unpack 64-bit data into components
-    static void unpack(u64 data, uint32_t& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age);
+    static void unpack(u64 data, u32& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age);
     // Extract just the key for fast verification
-    static uint32_t extract_key(u64 data) { return (uint32_t)(data >> 32); }    
+    static u32 extract_key(u64 data) { return (u32)(data >> 32); }    
     // Extract just the age for replacement policy
     static u8 extract_age(u64 data) { return (u8)(data & 0x3F); }    
     // Extract just the depth for replacement policy
@@ -230,45 +227,31 @@ public:
 template<bool Debug>
 TranspositionTableImpl<Debug>::TranspositionTableImpl(size_t size_mb) 
     : m_age(0) 
-{
-    size_t size_bytes = size_mb * 1024 * 1024;
-    m_size = size_bytes / sizeof(transposition_table::entry);
-    
-    // Round down to power of 2 for fast masking
-    size_t power = 0;
-    while ((1ULL << (power + 1)) <= m_size) {
-        power++;
-    }
-    m_size = 1ULL << power;
-    m_mask = m_size - 1;
-    
-    m_table = std::make_unique<transposition_table::entry[]>(m_size);
-    
-    // Zero-initialize the table
-    clear();
+{    
+    resize(size_mb);
 }
 
 template<bool Debug>
 void TranspositionTableImpl<Debug>::resize(size_t size_mb) {
     clear();
     size_t size_bytes = size_mb * 1024 * 1024;
-    size_t new_size = size_bytes / sizeof(transposition_table::entry);
+    size_t num_entries = size_bytes / sizeof(transposition_table::entry);
     
     // Round down to power of 2 for fast masking
     size_t power = 0;
-    while ((1ULL << (power + 1)) <= new_size) {
+    while ((1ULL << (power + 1)) <= num_entries) {
         power++;
     }
-    new_size = 1ULL << power;
-    m_mask = new_size - 1;
+    num_entries = 1ULL << power;
+    m_mask = num_entries - 1;
     
-    m_table = std::make_unique<transposition_table::entry[]>(new_size);
-    m_size = new_size;
+    m_table.resize(num_entries);
+    m_size = num_entries;
 }
 
 template<bool Debug>
 void TranspositionTableImpl<Debug>::clear() {
-    std::fill_n(m_table.get(), m_size * sizeof(transposition_table::entry), 0);
+    std::fill(m_table.begin(), m_table.end(), transposition_table::entry{});
     m_age = 0;
     if constexpr (Debug) {
         m_stats.reset();
@@ -283,19 +266,18 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
     
     // Get the entry index from lower bits of hash
     size_t index = hash & m_mask;
-    transposition_table::entry* entry = &m_table[index];
+    transposition_table::entry& entry = m_table[index];
     
     // Step 1: Atomically read the 64-bit data block
-    u64 data = entry->data.load(std::memory_order_acquire);
+    std::atomic_ref<u64> atomic_data(entry.data);
+    u64 data = atomic_data.load(std::memory_order_acquire);
     
-    // Step 2: Verify the hash key (upper 32 bits)
-    uint32_t stored_key = extract_key(data);
-    uint32_t search_key = (uint32_t)(hash >> 32);
-    
-    if (stored_key != search_key) {
+    // Step 2: Verify the hash key (upper 32 bits)    
+    u32 search_key = (u32)(hash >> 32);        
+    if (search_key != extract_key(data)) {
         // Key mismatch - either empty, different position, or write in progress
         if constexpr (Debug) {
-            if (stored_key != 0) {
+            if (extract_key(data) != 0) {
                 m_stats.record_collision();
             }
             m_stats.record_miss();
@@ -304,7 +286,7 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
     }
     
     // Step 3: Key matches! Now it's safe to read the move
-    move = entry->move;
+    move = entry.move;
     
     // Step 4: Unpack the data
     u8 stored_age;
@@ -321,17 +303,17 @@ template<bool Debug>
 void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound) {
     if constexpr (Debug) {
         m_stats.record_store();
-    }
-    
+    }    
     // Get the entry index from lower bits of hash
     size_t index = hash & m_mask;
-    transposition_table::entry* entry = &m_table[index];
+    transposition_table::entry& entry = m_table[index];
+    std::atomic_ref<u64> atomic_data(entry.data);
     
     // Check replacement policy
-    u64 old_data = entry->data.load(std::memory_order_relaxed);
-    uint32_t old_key = extract_key(old_data);
+    u64 old_data = atomic_data.load(std::memory_order_relaxed);
+    u32 old_key = extract_key(old_data);
     
-    if (old_key != 0 && old_key != (uint32_t)(hash >> 32)) {
+    if (old_key != 0 && old_key != (u32)(hash >> 32)) {
         // Different position - check if we should replace
         if (!should_replace(old_data, depth)) {
             return;  // Keep existing entry
@@ -342,16 +324,16 @@ void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score
     }
     
     // Step 1: Write the move (non-atomic)
-    entry->move = move;
+    entry.move = move;
     
     // Step 2: Pack and atomically write the 64-bit data block
-    uint32_t key = (uint32_t)(hash >> 32);
+    u32 key = (u32)(hash >> 32);
     u64 new_data = pack(key, score, depth, bound, m_age);
-    entry->data.store(new_data, std::memory_order_release);
+    atomic_data.store(new_data, std::memory_order_release);
 }
 
 template<bool Debug>
-u64 TranspositionTableImpl<Debug>::pack(uint32_t key, Score score, u8 depth, TranspositionFlag bound, u8 age) {
+u64 TranspositionTableImpl<Debug>::pack(u32 key, Score score, u8 depth, TranspositionFlag bound, u8 age) {
     u64 data = 0;
     data |= (u64)key << 32;                    // Bits 63-32: key
     data |= (u64)(uint16_t)score << 16;        // Bits 31-16: score
@@ -362,8 +344,8 @@ u64 TranspositionTableImpl<Debug>::pack(uint32_t key, Score score, u8 depth, Tra
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::unpack(u64 data, uint32_t& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age) {
-    key = (uint32_t)(data >> 32);
+void TranspositionTableImpl<Debug>::unpack(u64 data, u32& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age) {
+    key = (u32)(data >> 32);
     score = (Score)(uint16_t)(data >> 16);
     depth = (u8)(data >> 8);
     bound = (TranspositionFlag)((data >> 6) & 0x3);

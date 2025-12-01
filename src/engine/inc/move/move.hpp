@@ -107,8 +107,8 @@ operator^=(MoveFlag& a, MoveFlag b)
  *    15     1      1      1      1      Queen-promo capture
  * ------------------------------------------------       */
 
-constexpr u16 c_sourceSquareConstant = 0x3F;
-constexpr u16 c_targetSquareConstant = 0xfc0;
+constexpr int c_sourceSquareConstant = 0x3F;
+constexpr int c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
     QUIET_MOVES = 0,
@@ -158,8 +158,6 @@ public:
     PackedMove& operator=(const PackedMove&) = default;
     ~PackedMove() = default;
 
-
-
     [[nodiscard]] constexpr Square sourceSqr() const { return static_cast<Square>(source()); }
     [[nodiscard]] constexpr Square targetSqr() const { return static_cast<Square>(target()); }
     [[nodiscard]] constexpr i32 source() const { return m_internals & c_sourceSquareConstant; }
@@ -186,21 +184,26 @@ public:
     void set(u16 packed) { m_internals = packed; }
     [[nodiscard]] constexpr u16 read() const { return m_internals; }
 
-    inline void setSource(u16 source)
-    {
-        m_internals &= checked_cast<u16>(~c_sourceSquareConstant);
-        m_internals |= (source & c_sourceSquareConstant);
+    inline void setSource(u16 source) {
+        ASSERT(source < 64);
+        int internals = m_internals;
+        internals &= ~c_sourceSquareConstant;
+        internals |= (source & c_sourceSquareConstant);
+        m_internals = checked_cast<u16>(internals);
     }
+
     inline void setSource(Square sqr)
     {
-        u16 u16sqr = static_cast<u16>(sqr);
+        u16 u16sqr = to_index<u16>(sqr);
         setSource(u16sqr);
     }
 
-    inline void setTarget(u16 target)
-    {
-        m_internals &= checked_cast<u16>(~c_targetSquareConstant);
-        m_internals |= ((target & c_sourceSquareConstant) << 6);
+    inline void setTarget(u16 target) {
+        ASSERT(target < 64);
+        int internals = m_internals;
+        internals &= ~c_targetSquareConstant;
+        internals |= ((target & c_sourceSquareConstant) << 6);
+        m_internals = checked_cast<u16>(internals);
     }
     inline void setTarget(Square sqr)
     {
@@ -263,40 +266,11 @@ public:
     }
 
 private:
-#ifdef __clang__
-#define PUSH_DIAGNOSTIC _Pragma("clang diagnostic push")
-#define POP_DIAGNOSTIC _Pragma("clang diagnostic pop")
-#define DO_PRAGMA(x) _Pragma(#x)
-#define IGNORE_WARNING(warning) DO_PRAGMA(clang diagnostic ignored warning)
-#elif defined(__GNUC__) || defined(__GNUG__)
-#define PUSH_DIAGNOSTIC _Pragma("GCC diagnostic push")
-#define POP_DIAGNOSTIC _Pragma("GCC diagnostic pop")
-#define IGNORE_WARNING(warning) // do nothing
-#else
-#define PUSH_DIAGNOSTIC
-#define POP_DIAGNOSTIC
-#define IGNORE_WARNING(warning)
-#endif
-
-    PUSH_DIAGNOSTIC    
-        IGNORE_WARNING("-Wgnu-anonymous-struct")
-        IGNORE_WARNING("-Wnested-anon-types")
-        union {
-        u16 m_internals = 0;
-        struct {
-            u16 src : 6;
-            u16 trg : 6;
-            u16 flag : 1;
-            u16 castle : 1;
-            u16 capture : 1;
-            u16 promote : 1;
-        } m_internals_struct;
-    };
-    POP_DIAGNOSTIC
+    u16 m_internals;
 };
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
-static_assert(std::is_trivially_copyable<PackedMove>::value, "PackedMove is not trivially copyable");
+static_assert(std::is_trivial_v<PackedMove>, "PackedMove is not trivial");
 
 // TODO: this should just be an implementation detail for move generator and should not 
 // be returned outside of that context.

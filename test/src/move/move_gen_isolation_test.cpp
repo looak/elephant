@@ -236,7 +236,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_PawnCanMoveIntoBlockingCheckButNoFurther)
         piece_constants::black_pawn, Square::F7,
         piece_constants::white_rook, Square::H6);
 
-    KingPinThreats<Set::BLACK> kpt(toSquare(editor.material().blackKing().lsbIndex()), testingPosition);
+    KingPinThreats<Set::BLACK> kpt(to_square(editor.material().blackKing().lsbIndex()), testingPosition);
 
     // expected
     Bitboard expected = BitboardResultFactory::buildExpectedBoard(Square::F6); // but not F7.
@@ -272,7 +272,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_CanCaptureCheckingPiece)
         piece_constants::black_pawn, Square::F7,
         piece_constants::white_rook, Square::G6);
 
-    KingPinThreats<Set::BLACK> kpt(toSquare(editor.material().blackKing().lsbIndex()), testingPosition);
+    KingPinThreats<Set::BLACK> kpt(to_square(editor.material().blackKing().lsbIndex()), testingPosition);
 
     // expected
     Bitboard quietExpected = BitboardResultFactory::buildExpectedBoard(Square::F6); // but not F7.
@@ -309,7 +309,7 @@ TEST_F(IsolationFixture, Pawn_KingMask_CanOnlyDoubleMoveToBlockCheck)
         piece_constants::black_pawn, Square::F7,
         piece_constants::white_rook, Square::G5);
 
-    KingPinThreats<Set::BLACK> kpt(toSquare(editor.material().blackKing().lsbIndex()), testingPosition);
+    KingPinThreats<Set::BLACK> kpt(to_square(editor.material().blackKing().lsbIndex()), testingPosition);
 
     // expected
     Bitboard quietExpected = BitboardResultFactory::buildExpectedBoard(Square::F5); // but not F6;
