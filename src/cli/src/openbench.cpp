@@ -92,7 +92,12 @@ void bench() {
     timer.Stop();
     i64 elapsedSeconds = timer.getElapsedTime() / 1000;
     std::cout << "info string " << elapsedSeconds << " seconds\n";
-    std::cout << nodes << " nodes " << nodes / elapsedSeconds << " nps\n";
+    if (elapsedSeconds < 0) 
+    {
+        std::cout << "Elapsed time is negative, cannot compute nps.\n";
+        return;
+    }
+    std::cout << nodes << " nodes " << nodes / checked_cast<u64>(elapsedSeconds) << " nps\n";
 }
 
 

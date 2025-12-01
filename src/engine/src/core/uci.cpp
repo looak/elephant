@@ -7,6 +7,7 @@
 #include <math/bench_positions.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
+#include <system/clock.hpp>
 
 #include <functional>
 #include <map>

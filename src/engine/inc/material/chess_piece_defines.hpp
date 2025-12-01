@@ -23,8 +23,9 @@
  * @author Alexander Loodin Ek    */
 #pragma once
 
-#include <system/platform.hpp>
 #include <map>
+
+#include <system/platform.hpp>
 
 namespace piece_constants {
 namespace index {

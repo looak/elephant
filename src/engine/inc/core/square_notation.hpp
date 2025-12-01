@@ -28,7 +28,7 @@ struct SquareNotation {
     constexpr SquareNotation(Square _sqr) :
         m_sqr(_sqr)
     {
-        byte indx = *m_sqr;
+        [[maybe_unused]] byte indx = *m_sqr;
         ASSERT_MSG(indx <= 63, "SquareNotation :: Invalid square enum value for notation conversion.");
         m_file = toFile(_sqr);
         m_rank = toRank(_sqr);

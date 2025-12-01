@@ -45,7 +45,7 @@ namespace internals {
     template<bool edge = false>
     constexpr u64 shift(u8 direction, u64 occupancy, u64 bounds, u64 bb) {
         u64 result = 0;
-        i8 shift = shifts::shifts[direction];
+        i32 shift = shifts::shifts[direction];
         const bool right = 0 > shift ? true : false;
         shift = 0 > shift ? -shift : shift;
 

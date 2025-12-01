@@ -28,6 +28,7 @@
 #include <array>
 #include <system/platform.hpp>
 #include <math/math.hpp>
+#include <math/cast.hpp>
 
 namespace coordinates {
 inline constexpr u8 rank_1 = 0;
@@ -126,29 +127,33 @@ static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Ma
 static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
 static constexpr u64 baseRankRelative[2] = {rank0Mask, rank7Mask};
 
-constexpr std::array<std::array<u64, 64>, 64>
+constexpr std::array<std::array<i16, 64>, 64>
 generateManhattanDistances() {
-    std::array<std::array<u64, 64>, 64> result{};
-    for (size_t i = 0; i < 64; ++i)
+    std::array<std::array<i16, 64>, 64> result{};
+    for (i64 i = 0; i < 64; ++i)
     {
-        for (size_t j = 0; j < 64; ++j)
+        for (i64 j = 0; j < 64; ++j)
         {
             i64 rankDiff = (i / 8) - (j / 8);
             i64 fileDiff = (i % 8) - (j % 8);
-            result[i][j] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+
+            size_t a = checked_cast<size_t>(i);
+            size_t b = checked_cast<size_t>(j);
+            result[a][b] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
         }
     }
 
     return result;
 }
 
-constexpr std::array<u64, 64> generateManhattanDistanceFromCenter() {
-    std::array<u64, 64> result{};
-    for (size_t i = 0; i < 64; ++i)
+constexpr std::array<i16, 64> generateManhattanDistanceFromCenter() {
+    std::array<i16, 64> result{};
+    for (i64 i = 0; i < 64; ++i)
     {
         i64 rankDiff = (i / 8) - 3;
         i64 fileDiff = (i % 8) - 3;
-        result[i] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+        size_t a = checked_cast<size_t>(i);
+        result[a] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
     }
 
     return result;

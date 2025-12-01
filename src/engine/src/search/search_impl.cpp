@@ -1,4 +1,11 @@
-#pragma once
+#include <search/search.hpp>
+
+#include <core/game_context.hpp>
+
+#include <search/search_threadcontext.hpp>
+#include <search/transposition_table.hpp>
+#include <system/time_manager.hpp>
+
 #include <thread>
 #include <future>
 
@@ -38,6 +45,9 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
 
     return finalResult;
 }
+
+template SearchResult Search::go<Set::WHITE>(SearchParameters, TimeManager&);
+template SearchResult Search::go<Set::BLACK>(SearchParameters, TimeManager&);
 
 template<Set us>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
@@ -87,3 +97,6 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         search_policies::TT::printStats();
     return result;
 }
+
+template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadSearchContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadSearchContext&, SearchParameters);

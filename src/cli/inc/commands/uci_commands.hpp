@@ -83,8 +83,8 @@ private:
     std::condition_variable m_cv;
     std::queue<CommandFunction> m_commandQueue;
 public:
-    UCIThreadContext(UCI& interface)
-        : interface(interface) {}
+    UCIThreadContext(UCI& _interface)
+        : interface(_interface) {}
 
     void queue(std::list<std::string> args, UCICommands::UCICommandFunction command);
     void process(std::stop_token stopToken);

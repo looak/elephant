@@ -1,4 +1,13 @@
-#pragma once
+#include <search/search.hpp>
+
+#include <eval/evaluator.hpp>
+
+#include <move/generation/move_generator.hpp>
+#include <move/move_executor.hpp>
+
+#include <search/search_policies.hpp>
+#include <search/search_threadcontext.hpp>
+#include <system/time_manager.hpp>
 
 template<Set us>
 u16 Search::mostValuablePieceInPosition(PositionReader pos) {
@@ -10,6 +19,9 @@ u16 Search::mostValuablePieceInPosition(PositionReader pos) {
     }
     return 0; // no pieces found
 }
+
+template u16 Search::mostValuablePieceInPosition<Set::WHITE>(PositionReader);
+template u16 Search::mostValuablePieceInPosition<Set::BLACK>(PositionReader);
 
 template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, bool checked) {
@@ -80,3 +92,6 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
 
     return bestEval;
 }
+
+template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16, bool);
+template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16, bool);

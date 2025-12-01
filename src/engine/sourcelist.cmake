@@ -95,13 +95,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/system/clock.hpp
     ${ENGINE_INC_DIR}/system/time_manager.hpp
     ${ENGINE_INC_DIR}/system/static_initializer.hpp
-
-## /search/impl/...
-    ${ENGINE_INC_DIR}/search/impl/search_impl.inl
-    ${ENGINE_INC_DIR}/search/impl/search_alphabeta.inl
-    ${ENGINE_INC_DIR}/search/impl/search_nullmove.inl
-    ${ENGINE_INC_DIR}/search/impl/search_quiescence.inl
-    
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
@@ -151,6 +144,11 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ## /search/...
     ${ENGINE_SRC_DIR}/search/perft_search.cpp
     ${ENGINE_SRC_DIR}/search/search.cpp
+    ${ENGINE_SRC_DIR}/search/search_impl.cpp
+    ${ENGINE_SRC_DIR}/search/search_alphabeta.cpp
+    ${ENGINE_SRC_DIR}/search/search_nullmove.cpp
+    ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
+    ${ENGINE_SRC_DIR}/search/search_policies.cpp
 
 ## /system/...
     ${ENGINE_SRC_DIR}/system/clock.cpp

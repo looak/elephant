@@ -55,7 +55,7 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
 
 UciModeProcessor::UciModeProcessor() 
 {
-    system("cls");
+    // system("cls");
 }
 
 void UciModeProcessor::options()

@@ -298,3 +298,4 @@ void TaperedWeight<T>::accept(WeightStore& store, const std::string& newValue)
 #define MULTIPLIER(name, defaultValue) \
     i16 name = static_cast<i16>(defaultValue * 1024); \
     MultiplierWeight weight_##name(STRINGIZE(name), name);
+

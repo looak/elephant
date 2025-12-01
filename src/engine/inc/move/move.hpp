@@ -21,6 +21,7 @@
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
 #include <material/chess_piece.hpp>
+#include <math/cast.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/castling_state_info.hpp>
 
@@ -106,8 +107,8 @@ operator^=(MoveFlag& a, MoveFlag b)
  *    15     1      1      1      1      Queen-promo capture
  * ------------------------------------------------       */
 
-constexpr int c_sourceSquareConstant = 0x3F;
-constexpr int c_targetSquareConstant = 0xfc0;
+constexpr u16 c_sourceSquareConstant = 0x3F;
+constexpr u16 c_targetSquareConstant = 0xfc0;
 
 enum PackedMoveType {
     QUIET_MOVES = 0,
@@ -127,6 +128,14 @@ enum PackedMoveType {
     ROOK_PROMO_CAPTURE = 14,
     QUEEN_PROMO_CAPTURE = 15
 };
+
+constexpr u16 operator~(PackedMoveType type) {
+    return static_cast<u16>(~static_cast<u16>(type));
+}
+
+constexpr PackedMoveType operator<<(PackedMoveType type, int shift) {
+    return static_cast<PackedMoveType>(static_cast<u16>(type) << shift);
+}
 
 struct PackedMove {
 public:
@@ -179,7 +188,7 @@ public:
 
     inline void setSource(u16 source)
     {
-        m_internals &= ~c_sourceSquareConstant;
+        m_internals &= checked_cast<u16>(~c_sourceSquareConstant);
         m_internals |= (source & c_sourceSquareConstant);
     }
     inline void setSource(Square sqr)
@@ -190,7 +199,7 @@ public:
 
     inline void setTarget(u16 target)
     {
-        m_internals &= ~c_targetSquareConstant;
+        m_internals &= checked_cast<u16>(~c_targetSquareConstant);
         m_internals |= ((target & c_sourceSquareConstant) << 6);
     }
     inline void setTarget(Square sqr)
@@ -216,7 +225,7 @@ public:
     inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
     inline void setPromoteTo(u16 pieceIndx)
     {
-        m_internals &= ~(11 << 12);              // clear promotion bits
+        m_internals &= (u16)~(11 << 12);         // clear promotion bits
         m_internals |= (8 << 12);                // set promotion flag
         m_internals |= ((pieceIndx - 1) << 12);  // store piece type
     }

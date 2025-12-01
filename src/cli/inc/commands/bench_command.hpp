@@ -7,6 +7,7 @@
 #include <search/search.hpp>
 #include <math/bench_positions.hpp>
 #include <system/clock.hpp>
+#include <system/time_manager.hpp>
 
 struct EpdTestCase {
     std::string id;

@@ -1,4 +1,16 @@
-#pragma once
+#include <search/search.hpp>
+
+#include <eval/evaluator.hpp>
+
+#include <move/generation/move_generator.hpp>
+#include <move/move_executor.hpp>
+
+#include <search/search_constants.hpp>
+#include <search/search_policies.hpp>
+#include <search/search_threadcontext.hpp>
+#include <search/transposition_table.hpp>
+
+#include <system/time_manager.hpp>
 
 template<Set us>
 i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
@@ -88,6 +100,9 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     }
     return eval;
 }
+
+template i16 Search::alphaBeta<Set::WHITE>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+template i16 Search::alphaBeta<Set::BLACK>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
 
 template<Set us>
 i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
@@ -186,3 +201,6 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
 
     return bestEval;
 }
+
+template i16 Search::searchMoves<Set::WHITE>(MoveGenerator<Set::WHITE>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+template i16 Search::searchMoves<Set::BLACK>(MoveGenerator<Set::BLACK>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);

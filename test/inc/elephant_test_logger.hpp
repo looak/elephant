@@ -11,6 +11,9 @@ public:
         m_stream(stream)        
     {
     }
+    
+    MessageStream(const MessageStream&) = default;        
+    MessageStream(MessageStream&&) = default;
 
     ~MessageStream()
     { 
@@ -119,5 +122,4 @@ public:
         elephant_test::BasicMessage("\033[31m FAILED \u001b[32m")
 
 // Macro to get the underlying stream from BasicMessage for use with functions like io::printer::board()
-#define OUT_STREAM() \
-    elephant_test::BasicMessage().stream()
+#define OUT_STREAM() elephant_test::BasicMessage().stream()
