@@ -16,19 +16,21 @@
  * along with this program.If not, see < http://www.gnu.org/licenses/>. 
  *****************************************************************************/
 
-/**
- * @file evaluation_table.hpp
- * @brief Defines an evaluation table using a hash map to store evaluation entries and their scores 
- * 
- */
-
 #pragma once
+#include <core/chessboard.hpp>
+#include <search/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
-#include <unordered_map>
 
-struct EvaluationEntry
-{    
-    i32 score;
+struct ThreadSearchContext {
+    ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
+        : position(_position), clock(_clock) {
+            gameState.whiteToMove = whiteToMove;
+        }
+    Position position;
+    GameState gameState;
+    MoveHistory history;
+    MoveOrderingHeuristic moveOrdering;
+    u64 nodeCount = 0;
+    u64 qNodeCount = 0;
+    const TimeManager& clock;
 };
-
-using EvaluationTable = std::unordered_map<uint64_t, EvaluationEntry>;

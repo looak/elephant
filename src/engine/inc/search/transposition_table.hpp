@@ -26,7 +26,8 @@
 #include <system/platform.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
-#include "search_constants.hpp"
+#include <search/search_constants.hpp>
+#include "transposition_table_fwd.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -67,6 +68,12 @@ struct alignas(8) entry {
     // TODO: figure out if we can make this 10-bytes
     // paddoing  -- 6 bytes
     entry() : data(0), move(0) {}
+
+    // hack to allow fill_n 0-initialize the array
+    void operator=(const int&) {
+        data.store(0, std::memory_order_relaxed);
+        move.set(0);
+    }
 };
 
 static_assert(sizeof(entry) == 16, "transposition table entry must be exactly 16 bytes");
@@ -238,7 +245,7 @@ TranspositionTableImpl<Debug>::TranspositionTableImpl(size_t size_mb)
     m_table = std::make_unique<transposition_table::entry[]>(m_size);
     
     // Zero-initialize the table
-    std::memset(m_table.get(), 0, m_size * sizeof(transposition_table::entry));
+    clear();
 }
 
 template<bool Debug>
@@ -257,14 +264,11 @@ void TranspositionTableImpl<Debug>::resize(size_t size_mb) {
     
     m_table = std::make_unique<transposition_table::entry[]>(new_size);
     m_size = new_size;
-    
-    // Zero-initialize the table
-    std::memset(m_table.get(), 0, m_size * sizeof(transposition_table::entry));
 }
 
 template<bool Debug>
 void TranspositionTableImpl<Debug>::clear() {
-    std::memset(m_table.get(), 0, m_size * sizeof(transposition_table::entry));
+    std::fill_n(m_table.get(), m_size * sizeof(transposition_table::entry), 0);
     m_age = 0;
     if constexpr (Debug) {
         m_stats.reset();
@@ -385,10 +389,3 @@ bool TranspositionTableImpl<Debug>::should_replace(u64 oldData, u8 newDepth) con
     return false;
 }
 
-/**
- * Transposition Table Type Alias  */
-#ifdef DEBUG_TRANSITION_TABLE
-typedef TranspositionTableImpl<true> TranspositionTable;
-#else
-typedef TranspositionTableImpl<false> TranspositionTable;
-#endif

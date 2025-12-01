@@ -1,103 +1,59 @@
-// Elephant Gambit Chess Engine - a Chess AI
-// Copyright(C) 2025  Alexander Loodin Ek
+/******************************************************************************
+* Elephant Gambit Chess Engine - a Chess AI
+* Copyright(C) 2025  Alexander Loodin Ek,
+*
+* This program is free software : you can redistribute it and /or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with this program.If not, see < http://www.gnu.org/licenses/>. 
+*****************************************************************************/
 
-// This program is free software : you can redistribute it and /or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
 
-#include "search/search_constants.hpp"
-#include "search/search_heuristic_structures.hpp"
-#include "search/search_results.hpp"
-#include "search/transposition_table.hpp"
-
-#include <system/clock.hpp>
-#include "io/printer.hpp"
-#include "core/game_context.hpp"
-
 #include <optional>
-#include <stack>
-
-// TODO: Implementation here could be moved to a .cpp
+#include <search/transposition_table_fwd.hpp>
+#include <search/search_constants.hpp>
 
 // Forward-declare Search class for policy callbacks
 class Search;
 
+struct KillerMoves;
+struct MoveOrderingView;
+struct PackedMove;
+
+enum TranspositionFlag : u8;
+
+/**
+ * implements functions to support search heuristic policies, allows enabling and disabling them individually. */
+
 namespace search_policies {
 namespace enabled_policies {
-    constexpr bool TT = true;
-    constexpr bool LMR = false;
-    constexpr bool NMP = false;
-    constexpr bool Quiescence = true;
+    inline constexpr bool TT = true;
+    inline constexpr bool LMR = false;
+    inline constexpr bool NMP = false;
+    inline constexpr bool Quiescence = true;
 }
 
 // --- Transposition Table Policies ---
 class TT {
 public:
     static constexpr bool enabled = enabled_policies::TT;
-    static void assign(TranspositionTable& tt) {
-        m_table = &tt;        
-    }
-
-    static std::optional<i16> probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {        
-        i16 score;
-        u8 depth;
-        if (m_table->probe(hash, outMove, score, depth, flag) == false)
-            return std::nullopt;
-
-        if (depth < requiredDepth)
-            return std::nullopt;
-
-        // mate score is already adjusted during search, so we don't need to adjust it again here.
-
-        switch (flag) {
-            case TTF_CUT_EXACT:
-                return score;
-            case TTF_CUT_BETA:
-                if (score >= beta)
-                    return score;
-                break;
-            case TTF_CUT_ALPHA:
-                if (score <= alpha)
-                    return score;
-                break;
-            default:
-                break;
-        }
-
-        return std::nullopt;
-    }
-
-    static bool probeMove(u64 hash, PackedMove& outMove) {
-        i16 dummyScore;
-        u8 dummyDepth;
-        TranspositionFlag dummyFlag;
-        return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
-    }
-
-    static void update(u64 hash, PackedMove move, i16 score, u8 depth, TranspositionFlag flag)
-    {
-        m_table->store(hash, move, score, depth, flag);
-    }
-
-    static void printStats() 
-    {
-    #ifdef DEBUG_TRANSITION_TABLE
-        m_table->print_stats();
-    #endif
-    }
+    
+    static void assign(TranspositionTable& tt);
+    static std::optional<i16> probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
+    static bool probeMove(u64 hash, PackedMove& outMove);
+    static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, const TranspositionFlag& flag);
+    static void printStats();
 
 private:
-
     static inline TranspositionTable* m_table;
 };
 
@@ -105,32 +61,16 @@ private:
 class LMR {
 public:
     static constexpr bool enabled = enabled_policies::LMR;
-    static bool shouldReduce(u32 depth, PackedMove move, u16 index, bool isChecked, bool /*isChecking */) {
-        return depth > lmr_params::minDepth 
-        && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
-        && isChecked == false;
-        //&& isChecking == false;
-    }
 
-    static u32 getReduction(u32 depth) {
-        u32 reduction = 1;
-        if (depth > lmr_params::earlyReductionThreshold) reduction++;
-        return std::min(reduction, depth - 1); 
-    }
+    static bool shouldReduce(u32 depth, const PackedMove& move, u16 index, bool isChecked, bool /*isChecking */);
+    static u8 getReduction(u8 depth);
 };
-
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---
 class MoveOrdering {
 public:
-    static void push(KillerMoves& killers, PackedMove move, u16 ply) {
-        if (move.isQuiet() == false)
-            return; // Only store quiet moves as killers
-        killers.push(move, ply);
-    }
-    static void prime(const KillerMoves& killers, MoveOrderingView& view, u16 ply) {
-        killers.retrieve(ply, view.killers[0], view.killers[1]);
-    }
+    static void push(KillerMoves& killers, PackedMove move, u16 ply);
+    static void prime(const KillerMoves& killers, MoveOrderingView& view, u16 ply);
 };
 
 // --- Null Move Pruning (NMP) Policies ---
@@ -138,20 +78,16 @@ public:
 class NMP {
 public:
     static constexpr bool enabled = enabled_policies::NMP;
-    static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) {
-        return !inCheck && depth >= 3 && hasNonPawnMaterial;
-    }
-    static u8 getReduction(u8 depth) {
-        return (depth > 6) ? 3 : 2;
-    }
+
+    static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= 3 && hasNonPawnMaterial; }
+    static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
 };
 
 // --- Quiescence Search Policies ---
-
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
-    static inline u8 maxDepth = 6;
+    static u8 maxDepth;
 
     static bool futile(u8 depth, i32 eval, i16 alpha) {
         return depth > 0
@@ -161,7 +97,6 @@ public:
 };
 
 // --- Debug Policies ---
-
 #if defined(DEVELOPMENT_BUILD)
 class DebugEnabled {
 public:
@@ -196,24 +131,5 @@ private:
     static inline std::stack<Clock> m_searchClocks;
 };
 #endif
-
-class DebugDisabled {
-public:
-    static const Clock& pushClock() {
-        m_dummyClock.Start();
-        return m_dummyClock;
-    }
-    static u64 popClock() {
-        m_dummyClock.Stop();
-        return 0;
-    }
-
-    static void reportNps(u64, u64) {
-        // Do nothing
-    }
-
-private:
-    static inline Clock m_dummyClock;
-};
 
 } // namespace search_policies

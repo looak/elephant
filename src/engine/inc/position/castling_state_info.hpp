@@ -57,12 +57,12 @@ public:
 
     void clear() { m_innerState = NONE; }
     void revokeAll() { clear(); }
-    void revokeAllWhite() { m_innerState &= ~WHITE_ALL; }
-    void revokeAllBlack() { m_innerState &= ~BLACK_ALL; }
-    void revokeWhiteKingSide() { m_innerState &= ~WHITE_KINGSIDE; }
-    void revokeWhiteQueenSide() { m_innerState &= ~WHITE_QUEENSIDE; }
-    void revokeBlackKingSide() { m_innerState &= ~BLACK_KINGSIDE; }
-    void revokeBlackQueenSide() { m_innerState &= ~BLACK_QUEENSIDE; }
+    void revokeAllWhite() { m_innerState &= (byte)~WHITE_ALL; }
+    void revokeAllBlack() { m_innerState &= (byte)~BLACK_ALL; }
+    void revokeWhiteKingSide() { m_innerState &= (byte)~WHITE_KINGSIDE; }
+    void revokeWhiteQueenSide() { m_innerState &= (byte)~WHITE_QUEENSIDE; }
+    void revokeBlackKingSide() { m_innerState &= (byte)~BLACK_KINGSIDE; }
+    void revokeBlackQueenSide() { m_innerState &= (byte)~BLACK_QUEENSIDE; }
 
     void grantAll() { m_innerState = ALL; }
     void grantAllWhite() { m_innerState |= WHITE_ALL; }

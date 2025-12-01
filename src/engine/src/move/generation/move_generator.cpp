@@ -339,11 +339,8 @@ template void MoveGenerator<Set::WHITE>::internalGeneratePawnMoves(BulkMoveGener
 template void MoveGenerator<Set::BLACK>::internalGeneratePawnMoves(BulkMoveGenerator);
 
 template<Set us>
-void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
-{
-    const Bitboard opMaterial = m_position.material().combine<opposing_set<us>()>();
+void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen) {    
     const u8 setId = static_cast<u8>(us);
-
     Bitboard movesbb = internalCallBulkGeneratorForPiece(kingId, bulkMoveGen);
 #if defined EG_DEBUGGING || defined EG_TESTING
     // during testing and debugging king can be missing

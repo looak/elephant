@@ -16,23 +16,23 @@
 #pragma once
 #include <system/platform.hpp>
 
-static constexpr u32 c_maxSearchDepth = 64;
-static constexpr i32 c_infinity = 28000;
-static constexpr i32 c_checkmateConstant = 24000;
-static constexpr i32 c_nullMoveOffset = 500;
-static constexpr i32 c_checkmateMaxDistance = 256;
-static constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
-static constexpr i16 c_drawConstant = 0;
+inline constexpr u32 c_maxSearchDepth = 64;
+inline constexpr i32 c_infinity = 28000;
+inline constexpr i32 c_checkmateConstant = 24000;
+inline constexpr i32 c_nullMoveOffset = 500;
+inline constexpr i32 c_checkmateMaxDistance = 256;
+inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
+inline constexpr i16 c_drawConstant = 0;
 
 // late move reduction parameters
 namespace lmr_params {
-static constexpr u32 minDepth = 3;
-static constexpr u32 earlyReductionThreshold = 8; // was 6
-static constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
+inline constexpr u32 minDepth = 3;
+inline constexpr u32 earlyReductionThreshold = 8; // was 6
+inline constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
 } // namespace lmr_params
 
 namespace quiescence_params {
-static constexpr u32 defaultMaxDepth = 8;
-static constexpr u8 futilityDepthMargin = (defaultMaxDepth / 2);
-static constexpr i16 futilityMargin = 200; // 2 pawns
+inline constexpr u32 defaultMaxDepth = 8;
+inline constexpr u8 futilityDepthMargin = (defaultMaxDepth / 2);
+inline constexpr i16 futilityMargin = 200; // 2 pawns
 } // namespace quiescence_params

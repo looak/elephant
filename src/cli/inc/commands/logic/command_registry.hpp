@@ -76,7 +76,9 @@ public:
     }
 };
 
-#define REG_COMMAND(keyword, type) \
+#define REG_COMMAND(keyword, type)\
     inline void register_##type() { \
     static CommandRegistrar<type> registrar_##type(keyword, type::description(), type::priority());\
     }
+
+    

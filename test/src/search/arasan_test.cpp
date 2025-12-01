@@ -9,6 +9,7 @@
 #include "search/search.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <system/time_manager.hpp>
 
 struct EpdTestCase {
     std::string id;
@@ -166,9 +167,9 @@ INSTANTIATE_TEST_SUITE_P(
     WinAtChess,
     EpdCorrectness,    
     ::testing::ValuesIn(loadEpdFile(std::format("{}/res/wac_new.epd", ROOT_PATH))),
-    [](const ::testing::TestParamInfo<EpdTestCase>& info) {
+    [](const ::testing::TestParamInfo<EpdTestCase>& wac_info) {
         // Clean up the ID for use as a test name
-        std::string name = info.param.id;
+        std::string name = wac_info.param.id;
         name.erase(std::remove(name.begin(), name.end(), '"'), name.end());
         std::replace(name.begin(), name.end(), '.', '_');
         return name;
@@ -179,9 +180,9 @@ INSTANTIATE_TEST_SUITE_P(
     Arasan21,
     EpdCorrectness,
     ::testing::ValuesIn(loadEpdFile(std::format("{}/res/arasan21.epd", ROOT_PATH))),    
-    [](const ::testing::TestParamInfo<EpdTestCase>& info) {
+    [](const ::testing::TestParamInfo<EpdTestCase>& arasan_info) {
         // Clean up the ID for use as a test name
-        std::string name = info.param.id;
+        std::string name = arasan_info.param.id;
         name.erase(std::remove(name.begin(), name.end(), '"'), name.end());
         std::replace(name.begin(), name.end(), '.', '_');
         return name;

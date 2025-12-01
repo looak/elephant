@@ -6,6 +6,7 @@
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <search_cases.hpp>
+#include <system/time_manager.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////

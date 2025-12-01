@@ -14,28 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
-
-#include <functional>
-#include <map>
-#include <optional>
-#include <vector>
-
-#include <system/platform.hpp>
-#include <core/chessboard.hpp>
-#include <core/game_context.hpp>
-#include <eval/evaluator.hpp>
-#include <eval/evaluation_table.hpp>
-#include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
-#include <move/move_executor.hpp>
-#include <search/transposition_table.hpp>
-#include <search/search_heuristic_structures.hpp>
-#include <search/search_results.hpp>
-#include <search/search_policies.hpp>
+#include <material/chess_piece_defines.hpp>
 #include <position/position_accessors.hpp>
-#include <position/position.hpp>
-#include <system/clock.hpp>
-#include <system/time_manager.hpp>
+#include <search/search_policies.hpp>
+#include <search/search_results.hpp>
+
+// forward-declare
+struct ThreadSearchContext;
+
+class GameContext;
+template<Set us>
+class MoveGenerator;
+class TimeManager;
 
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
@@ -59,32 +49,10 @@ struct SearchParameters {
     bool Infinite = false;
 };
 
-struct ThreadSearchContext {
-    ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
-        : position(_position), clock(_clock) {
-            gameState.whiteToMove = whiteToMove;
-        }
-    Position position;
-    GameState gameState;
-    MoveHistory history;
-    MoveOrderingHeuristic moveOrdering;
-    u64 nodeCount = 0;
-    u64 qNodeCount = 0;
-    const TimeManager& clock;
-};
-
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(GameContext& context)
-        : m_transpositionTable(context.editTranspositionTable())
-        , m_gameContext(context)
-        , m_originPosition(context.readChessPosition())
-    {
-        if constexpr (search_policies::TT::enabled) {
-            search_policies::TT::assign(m_transpositionTable);
-        }
-    }
+    Search(GameContext& context);
 
     // entry point
     template<Set us>
@@ -115,16 +83,10 @@ private:
     template<Set us>
     u16 mostValuablePieceInPosition(PositionReader pos);
         
-    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;    
-
-    EvaluationTable m_evaluationTable;
+    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
+    
     TranspositionTable& m_transpositionTable;
     GameContext& m_gameContext;
 
     PositionReader m_originPosition;
 };
-
-#include <search/impl/search_impl.inl>
-#include <search/impl/search_alphabeta.inl>
-#include <search/impl/search_nullmove.inl>
-#include <search/impl/search_quiescence.inl>
