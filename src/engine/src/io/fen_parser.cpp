@@ -130,7 +130,7 @@ deserializeEnPassant(std::string_view enPassantStr, PositionEditor position) {
     if (enPassantStr.size() > 1) {
         byte file = checked_cast<byte>(enPassantStr[0] - 'a');
         byte rank = checked_cast<byte>(std::atoi(&enPassantStr[1]) - 1);
-        position.enPassant().writeSquare(toSquare(file, rank));
+        position.enPassant().writeSquare(to_square(file, rank));
     }
     return true;
 }

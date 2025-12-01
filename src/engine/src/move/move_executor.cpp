@@ -84,7 +84,7 @@ void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
 
-    i16 dif = toRank(source) - toRank(target);
+    i16 dif = to_rank(source) - to_rank(target);
     if (abs(dif) == 2)  { // we made a enpassant move, calculate the enpassant square made available for pawn capture.
         dif = dif / 2;
 
@@ -93,7 +93,7 @@ void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
             epSqr = shiftNorth(source);
         else
             epSqr = shiftSouth(source);
-        // Square sqr = SquareNotation(toFile(source), toRank(source) - checked_cast<u8>(dif)).toSquare();
+        // Square sqr = SquareNotation(to_file(source), to_rank(source) - checked_cast<u8>(dif)).toSquare();
         m_position.enPassant().writeSquare(epSqr);
     }
 }

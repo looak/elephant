@@ -29,7 +29,7 @@ namespace san_parser {
         THROW_EXPR(file >= 'a' && file <= 'h', ephant::io_error, std::format("san_parser :: Invalid file in square notation: {}", san));
         THROW_EXPR(rank >= '1' && rank <= '8', ephant::io_error, std::format("san_parser :: Invalid rank in square notation: {}", san));
 
-        return toSquare(static_cast<byte>(file - 'a'), static_cast<byte>(rank - '1'));
+        return to_square(static_cast<byte>(file - 'a'), static_cast<byte>(rank - '1'));
     }
 
     template<Set us>

@@ -174,7 +174,7 @@ void MoveGenerator<us>::internalGenerateMovesGeneric(BulkMoveGenerator bulkMoveG
 
     while (pieces.empty() == false) {
         // build source square and remove knight from cached material bitboard.
-        const Square srcSqr = toSquare(pieces.popLsb());
+        const Square srcSqr = to_square(pieces.popLsb());
         auto [isolatedMoves, isolatedCaptures] = isolator.isolate(srcSqr);
         buildPackedMoveFromBitboard(pieceId, isolatedCaptures, srcSqr, /*are captures*/ true);
         buildPackedMoveFromBitboard(pieceId, isolatedMoves, srcSqr, /*are captures*/ false);

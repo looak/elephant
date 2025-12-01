@@ -7,7 +7,7 @@
 
 template<Set us>
 MoveGenerator<us>::MoveGenerator(PositionReader position, MoveGenParams& params) :
-m_pinThreats(toSquare(position.material().king<us>().lsbIndex()), position),
+m_pinThreats(to_square(position.material().king<us>().lsbIndex()), position),
     m_position(position),   
     m_currentMoveIndx(0),
     m_moveCount(0),
@@ -264,13 +264,13 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
 
     while (pawns.empty() == false) {
         // build source square and remove pawn from pawns bitboard.
-        const Square srcSqr = toSquare(pawns.popLsb());
+        const Square srcSqr = to_square(pawns.popLsb());
         const u64 promotionMask = pawn_constants::promotionRank[usIndx];
 
         auto isolated = isolator.isolate(srcSqr);
         while (isolated.captures.empty() == false) {
             u32 dstIndex = isolated.captures.popLsb();
-            Square dstSquare = toSquare(dstIndex);
+            Square dstSquare = to_square(dstIndex);
 
             PrioritizedMove prioratizedMove;
             PackedMove& move = prioratizedMove.move;
@@ -313,7 +313,7 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
             PrioritizedMove prioratizedMove;
             PackedMove& move = prioratizedMove.move;
             move.setSource(srcSqr);
-            move.setTarget(toSquare(dstIndex));
+            move.setTarget(to_square(dstIndex));
 
             // if we're promoting set the promotion flag and create 4 moves.
             if (promotionMask & squareMaskTable[checked_cast<size_t>(dstIndex)]) {
@@ -356,8 +356,8 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
 
         PrioritizedMove prioratizedMove;
         PackedMove& move = prioratizedMove.move;
-        move.setSource(toSquare(srcIndex));
-        move.setTarget(toSquare(dstIndex));
+        move.setSource(to_square(srcIndex));
+        move.setTarget(to_square(dstIndex));
         Bitboard dstIndexMsk(squareMaskTable[checked_cast<size_t>(dstIndex)]);
 
         auto captureScore = m_position.material().computeCaptureScore<us>(dstIndexMsk, kingId);
@@ -392,7 +392,7 @@ template<Set us>
 void MoveGenerator<us>::buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb, Square srcSqr, bool capture)
 {
     while (movesbb.empty() == false) {
-        Square dstSquare = toSquare(movesbb.popLsb());
+        Square dstSquare = to_square(movesbb.popLsb());
 
         PrioritizedMove prioratizedMove;
         PackedMove& move = prioratizedMove.move;
