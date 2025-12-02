@@ -90,9 +90,9 @@ void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
 
         Square epSqr = Square::NullSQ;
         if (dif < 0)
-            epSqr = shiftNorth(source);
+            epSqr = shift_north(source);
         else
-            epSqr = shiftSouth(source);
+            epSqr = shift_south(source);
         // Square sqr = SquareNotation(to_file(source), to_rank(source) - checked_cast<u8>(dif)).toSquare();
         m_position.enPassant().writeSquare(epSqr);
     }
