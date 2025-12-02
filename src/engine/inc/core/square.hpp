@@ -50,7 +50,6 @@ constexpr T to_index(Square sqr) {
     return static_cast<T>(sqr);
 }
 
-// TODO: rename these fucntions to file_of and rank_of
 constexpr u8 to_file(Square sqr) {
     return mod_by_eight(static_cast<u8>(sqr));
 }
@@ -60,25 +59,25 @@ constexpr u8 to_rank(Square sqr) {
     return indx >> 3; // divide by 8
 }
 
-constexpr Square shiftNorth(Square sqr) {
+constexpr Square shift_north(Square sqr) {
     if (static_cast<byte>(sqr) >= 56) {
         ASSERT_MSG(false, "shiftNorth :: Cannot shift north from rank 8.");
     }
     return static_cast<Square>(static_cast<byte>(sqr) + 8);
 }
-constexpr Square shiftSouth(Square sqr) {
+constexpr Square shift_south(Square sqr) {
     if (static_cast<byte>(sqr) < 8) {
         ASSERT_MSG(false, "shiftSouth :: Cannot shift south from rank 1.");
     }
     return static_cast<Square>(static_cast<byte>(sqr) - 8);
 }
-constexpr Square shiftEast(Square sqr) {
+constexpr Square shift_east(Square sqr) {
     if (to_file(sqr) == 7) {
         ASSERT_MSG(false, "shiftEast :: Cannot shift east from file h.");
     }
     return static_cast<Square>(static_cast<byte>(sqr) + 1);
 }
-constexpr Square shiftWest(Square sqr) {
+constexpr Square shift_west(Square sqr) {
     if (to_file(sqr) == 0) {
         ASSERT_MSG(false, "shiftWest :: Cannot shift west from file a.");
     }
