@@ -17,7 +17,6 @@ INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CSRC_DIR := ../src/cli/src
 ESRC_DIR := ../src/engine/src
 BUILD_DIR := ./build
-BIN_DIR := ./bin
 
 # Compiler and flags
 CXX := g++
@@ -33,7 +32,7 @@ OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(patsubst %.cpp,%.o,$(SRC))))
 DEP := $(OBJ:.o=.d)
 
 # Executable in bin directory
-EXE_PATH := $(BIN_DIR)/$(EXE)
+EXE_PATH := $(EXE)
 
 # Phony targets
 .PHONY: all clean
@@ -47,11 +46,8 @@ all: $(EXE_PATH)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(BIN_DIR):
-	mkdir -p $(BIN_DIR)
-
 # Executable dependency on object files AND version header
-$(EXE_PATH): $(OBJ) | $(BIN_DIR)
+$(EXE_PATH): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Object file compilation rule
@@ -68,7 +64,7 @@ $(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE)
 
 # Clean rule
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR) $(VERSION_HEADER)
+	rm -rf $(BUILD_DIR) $(EXE_PATH) $(VERSION_HEADER)
 
 
 # Debug rule
