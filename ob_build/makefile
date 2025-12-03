@@ -20,7 +20,7 @@ BUILD_DIR := ./build
 
 # Compiler and flags
 CXX := g++
-CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
