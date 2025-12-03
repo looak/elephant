@@ -17,11 +17,18 @@ INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CSRC_DIR := ../src/cli/src
 ESRC_DIR := ../src/engine/src
 BUILD_DIR := ./build
+<<<<<<< HEAD
 BIN_DIR := ./bin
 
 # Compiler and flags
 CXX := g++
 CXXFLAGS := -std=c++2a -O3 -flto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+=======
+
+# Compiler and flags
+CXX := g++
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+>>>>>>> origin/refactor-major
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
@@ -33,7 +40,11 @@ OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(patsubst %.cpp,%.o,$(SRC))))
 DEP := $(OBJ:.o=.d)
 
 # Executable in bin directory
+<<<<<<< HEAD
 EXE_PATH := $(BIN_DIR)/$(EXE)
+=======
+EXE_PATH := $(EXE)
+>>>>>>> origin/refactor-major
 
 # Phony targets
 .PHONY: all clean
@@ -46,12 +57,18 @@ all: $(EXE_PATH)
 # Create directories if they don't exist
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
+<<<<<<< HEAD
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 # Executable dependency on object files AND version header
 $(EXE_PATH): $(OBJ) | $(BIN_DIR)
+=======
+
+# Executable dependency on object files AND version header
+$(EXE_PATH): $(OBJ)
+>>>>>>> origin/refactor-major
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 # Object file compilation rule
@@ -68,7 +85,11 @@ $(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE)
 
 # Clean rule
 clean:
+<<<<<<< HEAD
 	rm -rf $(BUILD_DIR) $(BIN_DIR) $(VERSION_HEADER)
+=======
+	rm -rf $(BUILD_DIR) $(EXE_PATH) $(VERSION_HEADER)
+>>>>>>> origin/refactor-major
 
 
 # Debug rule
