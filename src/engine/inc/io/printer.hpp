@@ -34,6 +34,8 @@ class Chessboard;
 namespace io {
 namespace printer {
 
+
+
 void board(std::ostream& output, const Chessboard& board);
 void position(std::ostream& output, PositionReader reader);
 void bitboard(std::ostream& output, const Bitboard& bitboard);
@@ -63,6 +65,23 @@ inline std::string formatReadableNumber(u64 number) {
     }
     
     return ss.str();
+}
+
+void uciPrinterInit();
+
+template<typename... Args>
+void uci(fmt::format_string<Args...> fmt, Args&&... args) {
+    auto logger = spdlog::get("uci");
+    if (logger) 
+        logger->info(fmt, std::forward<Args>(args)...);
+}
+
+// for critical UCI outputs, flush immediately
+inline void uci_flush() {
+    auto logger = spdlog::get("uci");
+    if (logger) {
+        logger->flush();
+    }
 }
 
 }  // namespace printer

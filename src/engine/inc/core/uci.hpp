@@ -39,7 +39,7 @@ public:
     ~UCI();
 
     void Enable();
-    bool Enabled();
+    bool Enabled() const;
     void Disable();
 
     /**
@@ -56,7 +56,7 @@ public:
      * the engine to complete its initialization.
      * The engine will always respond with "readyok" when this command is called,
      * even during an ongoing search, without interrupting the search process.  */
-    bool IsReady();
+    bool IsReady() const;
 
     /**
      * option name [name] value [value]
@@ -103,7 +103,6 @@ private:
     u16 m_threadCount = 1;
     TimeManager m_timeManager;
     GameContext m_context;
-    std::ostream& m_stream;
     std::atomic<bool> m_isSearching;
     std::future<void> m_searchFuture;
     std::unordered_map<std::string, std::string> m_options;

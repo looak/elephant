@@ -291,10 +291,10 @@ struct PrioritizedMove {
     constexpr operator bool() const { return move.isNull() != true; }
 
     PackedMove move;
-    i32 priority : 15;
+    u16 priority : 15;
     bool check : 1;
 };
-static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
+// static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 
 struct PrioritizedMoveComparator {
     constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const

@@ -1,9 +1,28 @@
 #include <io/printer.hpp>
 #include <io/fen_parser.hpp>
 #include <core/chessboard.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_sinks.h>
+#include <spdlog/async.h>
 
 namespace io {
 namespace printer {
+
+void uciPrinterInit() {
+    spdlog::init_thread_pool(8192, 1); // Queue with 8192 items and 1 backing thread.
+
+    auto stdout_sink = std::make_shared<spdlog::sinks::stdout_sink_mt>();
+    auto uci_logger = std::make_shared<spdlog::async_logger>(
+        "uci",
+        stdout_sink,
+        spdlog::thread_pool(),
+        spdlog::async_overflow_policy::block);
+
+    uci_logger->set_level(spdlog::level::info);
+    
+    uci_logger->set_pattern("%v"); // Only the message, no timestamps or levels.
+    spdlog::register_logger(uci_logger);
+}
 
 void board(std::ostream& output, const Chessboard& board) {
     io::printer::position(output, board.readPosition());

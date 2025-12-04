@@ -3,6 +3,7 @@
 #include <elephant_gambit_config.h>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
+#include <io/printer.hpp>
 #include <core/game_context.hpp>
 #include <math/bench_positions.hpp>
 #include <move/move.hpp>
@@ -17,50 +18,44 @@
 UCI::UCI() 
     : m_enabled(true)
     , m_timeManager(SearchParameters{}, Set::WHITE)
-    , m_stream(std::cout)
-{    
-    std::osyncstream output(m_stream);
-    output << "id name Elephant Gambit " << ELEPHANT_GAMBIT_VERSION_STR << "\n";
-    output << "id author Alexander Loodin Ek\n";    
+{
+    io::printer::uciPrinterInit();
+    io::printer::uci("id name Elephant Gambit {}", ELEPHANT_GAMBIT_VERSION_STR);
+    io::printer::uci("id author Alexander Loodin Ek");
     InitializeOptions();
 }
 
 UCI::~UCI() {
-    std::osyncstream output(m_stream);
-    output << "quit\n";
+    io::printer::uci("quit");
+    io::printer::uci_flush();
 }
 
-void UCI::InitializeOptions() 
-{
+void UCI::InitializeOptions() {
     SetOption({"name", "Threads", "value", "1"});
     SetOption({ "name", "Hash", "value", "8" });
 }
 
 void
-UCI::Enable()
-{
+UCI::Enable() {
     m_enabled = true;
-    std::osyncstream output(m_stream);
-    output << "uciok\n";
+    io::printer::uci("uciok");
+    io::printer::uci_flush();
 }
 
 bool
-UCI::Enabled()
-{
+UCI::Enabled() const {
     return m_enabled;
 }
 
 void
-UCI::Disable()
-{
+UCI::Disable() {
     m_enabled = false;
 }
 
 bool
-UCI::IsReady()
-{
-    std::osyncstream output(m_stream);
-    output << "readyok\n";
+UCI::IsReady() const {
+    io::printer::uci("readyok");
+    io::printer::uci_flush();
     return true;
 }
 
@@ -298,16 +293,17 @@ UCI::Go(std::list<std::string> args)
     Search searcher(m_context);
     searchParams.ThreadCount = m_threadCount;
 
-    std::osyncstream output(m_stream);
     if (m_context.readToPlay() == Set::WHITE) {
         m_timeManager.applyTimeSettings(searchParams, Set::WHITE);
         SearchResult result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
-        output << "bestmove " << result.move().toString() << "\n";
+        io::printer::uci("bestmove {}", result.move().toString());
+        io::printer::uci_flush();
     }
     else {
         m_timeManager.applyTimeSettings(searchParams, Set::BLACK);
         SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
-        output << "bestmove " << result.move().toString() << "\n";
+        io::printer::uci("bestmove {}", result.move().toString());
+        io::printer::uci_flush();
     }
 
     m_isSearching.store(false); // mark search as completed
@@ -343,9 +339,9 @@ bool UCI::Bench(std::list<std::string>)
 
     timer.Stop();
     float elapsedSeconds = timer.getElapsedSeconds();
-    i64 elapsedMilliseconds = timer.getElapsedTime();
-    std::cout << "info string " << elapsedSeconds << " seconds\n";
-    std::cout << nodes << " nodes " << nodes*1000 / (u64)elapsedMilliseconds << " nps\n";
+    i64 elapsedMilliseconds = timer.getElapsedTime();    
+    io::printer::uci("info string {} seconds", elapsedSeconds);
+    io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
     return true;
 }
 

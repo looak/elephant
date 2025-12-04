@@ -1,6 +1,7 @@
 #include <search/search.hpp>
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
+#include <io/printer.hpp>
 
 Search::Search(GameContext& context)
     : m_transpositionTable(context.editTranspositionTable())
@@ -19,13 +20,20 @@ void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u
         // found checkmate within depth.
         searchResult.ForcedMate = true;
         checkmateDistance /= 2;
-        std::cout << "info mate " << checkmateDistance << " depth " << itrDepth << " nodes " << nodes
-            << " time " << elapsedTime << " pv " << searchResult.pvLine.toString() << "\n";
-
+        io::printer::uci("info score mate {} depth {} nodes {} time {} pv {}",
+            (searchResult.score > 0 ? checkmateDistance : -checkmateDistance),
+            itrDepth,
+            nodes,
+            elapsedTime,
+            searchResult.pvLine.toString());
         return;
     }
 
     i32 centipawn = searchResult.score;
-    std::cout << "info score cp " << centipawn << " depth " << itrDepth
-        << " nodes " << nodes << " time " << elapsedTime << " pv " << searchResult.pvLine.toString() << "\n";
+    io::printer::uci("info score cp {} depth {} nodes {} time {} pv {}",
+        centipawn,
+        itrDepth,
+        nodes,
+        elapsedTime,
+        searchResult.pvLine.toString());
 }
