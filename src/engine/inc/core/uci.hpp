@@ -27,6 +27,7 @@
 #include <syncstream>
 #include <list>
 #include <unordered_map>
+#include <future>
 
 #include <core/game_context.hpp>
 #include <system/time_manager.hpp>
@@ -73,6 +74,12 @@ public:
     bool Go(std::list<std::string> args);
 
     /**
+     *  Starts calculating the best move for the current position asynchronously.     */
+    bool AsyncGo(std::list<std::string> args);
+
+    void SyncGo();
+
+    /**
      * Stops calculating the best move for the current position. If the engine
      * was  calculating a move, it will respond with "bestmove"     */
     bool Stop();
@@ -97,5 +104,7 @@ private:
     TimeManager m_timeManager;
     GameContext m_context;
     std::ostream& m_stream;
+    std::atomic<bool> m_isSearching;
+    std::future<void> m_searchFuture;
     std::unordered_map<std::string, std::string> m_options;
 };

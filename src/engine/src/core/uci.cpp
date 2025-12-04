@@ -168,6 +168,37 @@ UCI::Stop()
     return true;
 }
 
+bool
+UCI::AsyncGo(std::list<std::string> args)
+{
+    SyncGo(); // should stop any ongoing search first -- but we still check to be sure.
+
+    if (m_isSearching.load()) {
+        throw new ephant::uci_command_exception("go", "Search already in progress");
+        return false;
+    }
+    m_isSearching.store(true);
+
+    m_searchFuture = std::async(std::launch::async, [this, args]() {
+        this->Go(args);
+    });
+
+    return true;
+}
+
+void
+UCI::SyncGo()
+{
+    m_timeManager.cancel(); // Ensure any ongoing search is stopped
+    if (m_searchFuture.valid()) {
+        try{
+            m_searchFuture.get(); // wait
+        }
+        catch (const std::exception&  e) {
+            spdlog::error("Exception in async search: {}", e.what());
+        }
+    }
+}
 
 bool
 UCI::Go(std::list<std::string> args)
@@ -278,6 +309,8 @@ UCI::Go(std::list<std::string> args)
         SearchResult result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
         output << "bestmove " << result.move().toString() << "\n";
     }
+
+    m_isSearching.store(false); // mark search as completed
     return true;
 }
 

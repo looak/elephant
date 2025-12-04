@@ -29,7 +29,7 @@ public:
     bool handlesInput() { return m_currentProcessor->handlesInput(); }
 
     void setState(std::unique_ptr<ICommandProcessor> newProcessor) { m_currentProcessor = std::move(newProcessor); }
-    bool processInput(const std::string& line) { return m_currentProcessor->processInput(*this, line); }
+    bool processInput(const std::string& line) { return m_currentProcessor->processInput(this, line); }
 };
 
 class Application {
