@@ -11,7 +11,7 @@
 #include <syncstream>
 
 
-bool NormalModeProcessor::processInput(AppContext& context, const std::string& line)
+bool NormalModeProcessor::processInput(AppContext* context, const std::string& line)
 {
     // Use a string stream to easily split the line into words
     std::istringstream iss(line);
@@ -25,7 +25,7 @@ bool NormalModeProcessor::processInput(AppContext& context, const std::string& l
 
     // Special command to switch modes
     if (command_name == "uci") {        
-        context.setState(std::make_unique<UciModeProcessor>());
+        context->setState(std::make_unique<UciModeProcessor>());
         return true;
     }
 
@@ -65,7 +65,7 @@ void UciModeProcessor::options()
     } 
 }
 
-void UciModeProcessor::extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens)
+void UciModeProcessor::tokenize(const std::string& buffer, std::list<std::string>& tokens)
 {
     std::istringstream ssargs(buffer);
     std::string token;
@@ -74,81 +74,39 @@ void UciModeProcessor::extractArgsFromCommand(const std::string& buffer, std::li
     }
 }
 
-bool UciModeProcessor::processInput(AppContext& context, const std::string&)
-{
+bool UciModeProcessor::processInput(AppContext* context, const std::string&) {
     UCI interface;
     options();
     interface.Enable();
-    UCIThreadContext uciWorker(interface);
-
-    std::jthread uciWorkerThread([&uciWorker](std::stop_token stopToken) {        
-        uciWorker.process(stopToken);
-    });
     
     while (interface.Enabled()) {
         std::string buffer = "";
         std::getline(std::cin, buffer);
         std::list<std::string> tokens;
-        extractArgsFromCommand(buffer, tokens);        
+        tokenize(buffer, tokens);        
 
         if (tokens.size() == 0)
             continue;
 
         std::string commandStr = tokens.front();
         auto&& command = UCICommands::commands.find(commandStr);
+    
         if (tokens.size() > 0 && command != UCICommands::commands.end()) {
             auto token = tokens.front();
+    
             if (token == "quit" || token == "exit")
                 std::exit(0);
+    
             if (token == "normal") {
-                context.setState(std::make_unique<NormalModeProcessor>());
+                ASSERT_MSG(context != nullptr, "AppContext is null in UciModeProcessor::processInput");
+                context->setState(std::make_unique<NormalModeProcessor>());
                 return true;
             }       
-            std::osyncstream syncOut(std::cout);
-            syncOut << "queuing command: " << commandStr << "\n";
-            tokens.pop_front();  // remove command from arguments
-            uciWorker.queue(tokens, command->second);
             
-                
-        }
-    }
-
-    uciWorkerThread.request_stop();
-    return true;
-}
-
-void UciModeProcessor::independentMode()
-{
-    UCI interface;
-    options();
-    interface.Enable();
-    UCIThreadContext uciThread(interface);
-
-    std::jthread uciWorker([&uciThread](std::stop_token stopToken) {        
-        uciThread.process(stopToken);
-    });
-    
-
-    while (interface.Enabled()) {
-        std::string buffer = "";
-        std::getline(std::cin, buffer);
-        std::list<std::string> tokens;
-        extractArgsFromCommand(buffer, tokens);
-
-        spdlog::info("From GUI: {}", buffer);
-
-        if (tokens.size() == 0)
-            continue;
-
-        std::string commandStr = tokens.front();
-        auto&& command = UCICommands::commands.find(commandStr);
-        if (tokens.size() > 0 && command != UCICommands::commands.end()) {
-            auto token = tokens.front();
-            if (token == "quit" || token == "exit")
-                std::exit(0);  
-
             tokens.pop_front();  // remove command from arguments
-            uciThread.queue(tokens, command->second);
+            command->second(tokens, interface);
         }
     }
+
+    return true;
 }

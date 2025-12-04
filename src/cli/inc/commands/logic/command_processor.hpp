@@ -14,7 +14,7 @@ public:
     virtual bool handlesInput() { return false; }
     virtual ~ICommandProcessor() = default;
     // The main entry point. Returns false if the app should exit.
-    virtual bool processInput(AppContext& context, const std::string& line) = 0;
+    virtual bool processInput(AppContext* context, const std::string& line) = 0;
 };
 
 class NormalModeProcessor : public ICommandProcessor {
@@ -22,19 +22,17 @@ private:
     GameContext m_gameContext;  // Local game context for normal mode
 
 public:
-    bool processInput(AppContext& context, const std::string& line) override;
+    bool processInput(AppContext* context, const std::string& line) override;
 };
 
 class UciModeProcessor : public ICommandProcessor {
 public:
     bool handlesInput() override { return true; }
     UciModeProcessor();
-    bool processInput(AppContext& context, const std::string& line) override;
-    void independentMode();
+    bool processInput(AppContext* context, const std::string& line) override;
 
 private:
-
     void options();
-    void extractArgsFromCommand(const std::string& buffer, std::list<std::string>& tokens);   
+    void tokenize(const std::string& buffer, std::list<std::string>& tokens);   
     
 };

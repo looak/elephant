@@ -50,7 +50,16 @@ void
 Application::RunUci() {
     AppContext context;
     context.setState(std::make_unique<UciModeProcessor>());
-    context.processInput("");
+    
+    while (true) {
+        std::string buffer = "";
+        if (!std::getline(std::cin, buffer))
+            break;
+        if (buffer.empty())
+            continue;
+        if (!context.processInput(buffer))
+            break;
+    }
 }
 
 void

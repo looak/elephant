@@ -110,10 +110,13 @@ int main(int argc, char* argv[]) {
             bench();
             return 0;
         }
-    }
+    }    
+
+    spdlog::info("Starting independent UCI mode...");
+    spdlog::set_level(spdlog::level::err);
 
     UciModeProcessor processor;
-    processor.independentMode();
+    processor.processInput(nullptr, "");
 
     return 0;
 }
