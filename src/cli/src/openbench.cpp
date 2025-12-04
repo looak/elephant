@@ -6,6 +6,7 @@
 #include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
+#include <io/printer.hpp>
 #include <search/search.hpp>
 
 bool g_initialized = static_initializer::initialize();
@@ -66,6 +67,8 @@ static const std::vector<std::string> fens = {
 
 void bench() {
 
+    io::printer::uciPrinterInit();
+
     Clock timer;
     timer.Start();
     u64 nodes = 0;
@@ -77,7 +80,7 @@ void bench() {
         Search search(context);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
-        
+
         params.SearchDepth = depth;
         if (context.readToPlay() == Set::WHITE) {
             auto result = search.go<Set::WHITE>(params, tm);
