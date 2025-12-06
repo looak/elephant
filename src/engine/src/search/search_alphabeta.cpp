@@ -17,6 +17,8 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
+
+    context.debug_print_alphabeta_entry(depth, ply, alpha, beta, context.position.read().hash());
     
     PositionReader pos = context.position.read();
     if (context.history.isRepetition(pos.hash()) == true) {
@@ -39,7 +41,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
                 return ttProbeResult.value();
             }
             else if (flag == TranspositionFlag::TTF_CUT_ALPHA && ttProbeResult.value() <= alpha) {
-                return alpha;
+                return ttProbeResult.value();
             }
         }
     }
@@ -58,8 +60,10 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
 
     // --- Terminal Node ---
     if (generator.peek().isNull()) {
-        if (generator.isChecked())
+        if (generator.isChecked()){
+            ASSERT(ply < c_checkmateMaxDistance);
             return -c_checkmateConstant + (i16)ply; // Mate score adjusted by ply
+        }
         return -c_drawConstant; // Stalemate
     }
 
@@ -98,6 +102,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
             depth,
             flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
     }
+
     return eval;
 }
 
@@ -153,15 +158,22 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
             // If eval > alpha, the move is better than we thought. 
             // We must re-search with the full window to get the exact score.
             // (Only if it's also < beta, otherwise we just take the beta cutoff)
-            if (eval > alpha && eval < beta) {
-                this->scout_re_search_count++;
-                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
+            if (eval > alpha) {
+                // tighten the re-search window
+                // bestEval = std::max(eval, bestEval);            
+            
+                if (eval < beta) {
+                    this->scout_re_search_count++;
+                    eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
+                }
             }
         }
 
         context.history.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
+
+        context.debug_print_eval(move, eval, alpha, beta, depth, ply, pos.hash());
 
         // --- Update Best Score (Fail-Soft) ---
         if (eval > bestEval) {

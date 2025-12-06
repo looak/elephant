@@ -16,8 +16,10 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/async.h>
+#include <spdlog/details/thread_pool.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include <time.h>
 #include <cassert>
@@ -144,4 +146,7 @@ private:
     internals::DualStreamBuffer* m_dualBuffer;
 };
 
+#ifdef DEBUG_SEARCH_TREE
+std::shared_ptr<spdlog::logger> debug_search_logger();
+#endif
 } // namespace logging

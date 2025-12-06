@@ -84,8 +84,6 @@ enum TranspositionFlag : u8 {
     TTF_CUT_BETA = 3,
 };
 
-
-
 // ============================================================================
 // Debug Statistics (compiled out when Debug=false)
 // ============================================================================
@@ -242,7 +240,7 @@ void TranspositionTableImpl<Debug>::resize(size_t size_mb) {
     while ((1ULL << (power + 1)) <= num_entries) {
         power++;
     }
-    num_entries = 1ULL << power;
+    num_entries = (size_t)1 << power;
     m_mask = num_entries - 1;
     
     m_table.resize(num_entries);
@@ -296,6 +294,10 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
         m_stats.record_hit();
     }
     
+    // TRAP: Did we retrieve a mangled score?
+    if (score > 16000 && score < 23000) {
+         spdlog::warn("TT TRAP PROBE: Suspicious Score Retrieved! Hash:{:X} Score:{} (0x{:X})", hash, score, score);
+    }
     return true;
 }
 
@@ -303,7 +305,11 @@ template<bool Debug>
 void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound) {
     if constexpr (Debug) {
         m_stats.record_store();
-    }    
+    }
+    if (score > 16000 && score < 23000) {
+        spdlog::warn("TT TRAP STORE: Suspicious Score! Hash:{:X} Score:{} (0x{:X}) Depth:{}", hash, score, score, depth);
+    }
+
     // Get the entry index from lower bits of hash
     size_t index = hash & m_mask;
     transposition_table::entry& entry = m_table[index];

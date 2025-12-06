@@ -105,15 +105,16 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
-        // --- Alpha-Beta Evaluation ---
+        // --- Alpha-Beta Evaluation (Fail-Soft) ---
         if (eval > bestEval) {
-            bestEval = eval;            
+            bestEval = eval;     
+            
+            // --- Beta Cutoff --- 
+            if (bestEval >= beta) 
+                return bestEval;
 
             if (bestEval > alpha) 
                 alpha = bestEval;
-
-            if (alpha >= beta)                
-                return bestEval;
         }
 
         ordered = generator.pop();

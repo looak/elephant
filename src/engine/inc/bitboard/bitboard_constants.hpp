@@ -127,7 +127,7 @@ static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Ma
 static constexpr u64 enPassantRankRelative[2] = {rank3Mask, rank4Mask};
 static constexpr u64 baseRankRelative[2] = {rank0Mask, rank7Mask};
 
-constexpr std::array<std::array<i16, 64>, 64>
+consteval std::array<std::array<i16, 64>, 64>
 generateManhattanDistances() {
     std::array<std::array<i16, 64>, 64> result{};
     for (i64 i = 0; i < 64; ++i)
@@ -139,21 +139,21 @@ generateManhattanDistances() {
 
             size_t a = checked_cast<size_t>(i);
             size_t b = checked_cast<size_t>(j);
-            result[a][b] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+            result[a][b] = checked_cast<i16>(constexprAbs(rankDiff) + constexprAbs(fileDiff));
         }
     }
 
     return result;
 }
 
-constexpr std::array<i16, 64> generateManhattanDistanceFromCenter() {
+consteval std::array<i16, 64> generateManhattanDistanceFromCenter() {
     std::array<i16, 64> result{};
     for (i64 i = 0; i < 64; ++i)
     {
         i64 rankDiff = (i / 8) - 3;
         i64 fileDiff = (i % 8) - 3;
         size_t a = checked_cast<size_t>(i);
-        result[a] = constexprAbs(rankDiff) + constexprAbs(fileDiff);
+        result[a] = checked_cast<i16>(constexprAbs(rankDiff) + constexprAbs(fileDiff));
     }
 
     return result;
