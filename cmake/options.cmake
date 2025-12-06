@@ -6,6 +6,7 @@ set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
 set(DEBUG_TRANSITION_TABLE ON CACHE BOOL "Enable debug output for transition table" FORCE)
+set(DEBUG_SEARCH_TREE OFF CACHE BOOL "Enable debug file output for search tree" FORCE)
 
 # Map to spdlog's compile-time level
 if(${LOG_LEVEL} STREQUAL "trace")
@@ -32,6 +33,7 @@ set(PRECOMPILE_OPTIONS
     DEVELOPMENT_BUILD
     EXCEPTIONS_ENABLED
     OUTPUT_LOG_TO_FILE
+    DEBUG_SEARCH_TREE
 )
 
 # Library to hold our shared compiler warning flags

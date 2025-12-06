@@ -8,10 +8,19 @@
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_generator.hpp>
+#include <search/search_constants.hpp>
 
 i16
 Evaluator::Evaluate()
 {
+    auto material = m_position.material(); 
+    if (material.blackKing().count() == 0) {
+        return c_checkmateConstant;
+    }
+    else if (material.whiteKing().count() == 0) {
+        return -c_checkmateConstant;
+    }
+
     i16 score = 0;
     i16 materialScore = EvaluateMaterial();
     score += materialScore;
@@ -21,9 +30,8 @@ Evaluator::Evaluate()
     score += tmp;
     // LOG_DEBUG() << "Piece position score: " << tmp;
 
-    tmp = EvaluatePawnStructure();
-    score += tmp;
-    // LOG_DEBUG() << "Pawn structure score: " << tmp;
+    // tmp = EvaluatePawnStructure();
+    // score += tmp;
 
     tmp = MopUpValue(materialScore);
     score += tmp;

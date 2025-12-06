@@ -18,8 +18,9 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
     
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
-            [this, &params, &clock]() {
+            [this, &params, &clock, threadId]() {
             ThreadSearchContext searchContext(this->m_originPosition.copy(), us == Set::WHITE, clock);
+            searchContext.begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
             // TODO: This could be done once for all ThreadContexts.
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
@@ -27,7 +28,9 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             }
             auto result = iterativeDeepening<us>(searchContext, params);
             result.count = searchContext.nodeCount + searchContext.qNodeCount;
+            searchContext.end(threadId);
             return result;
+
         }));
     }    
 

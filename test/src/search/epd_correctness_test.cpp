@@ -92,12 +92,18 @@ protected:
         spdlog::set_level(spdlog::level::debug); // turn on the fire hose
 
         s_loggerInitialized = true;
+
+        // Trace critical constants once
+        spdlog::info("RUNTIME CONSTANTS Check:");
+        spdlog::info("  c_checkmateConstant: {}", c_checkmateConstant);
+        spdlog::info("  c_infinity: {}", c_infinity);
+        spdlog::info("  MAX_i16: {}", std::numeric_limits<i16>::max());
     }
 
     void SetUp() override {
         ensureLoggerInitialized();
         // params.SearchDepth = 10; // reasonable depth for tests
-        params.MoveTime = 4096; // 4.096 second per move
+        params.MoveTime = 1000; // 0.25 second per move
     }
     void TearDown() override {
         // Flush and release the logger so the file is closed properly
@@ -131,16 +137,32 @@ TEST_P(EpdCorrectness, FindBestMove) {
         timeManager.applyTimeSettings(params, Set::BLACK);
         result = searcher.go<Set::BLACK>(params, timeManager);
     }
-    
-    PackedMove expectedMove;
-    ASSERT_NO_THROW({
-        expectedMove = io::san_parser::deserialize(
-            context.readChessPosition(),
-            context.readToPlay() == Set::WHITE,
-            tc.bestMoveSan
-        );
-    }) << "SAN parser FAILED to parse the expected move: " << tc.bestMoveSan << " for test: " << tc.id;
-    
+
+    // 3. Parse the expected move from SAN
+    // there can be more than one "best move" in EPD.
+    std::vector<std::string> sanMoves;
+    size_t start = 0;
+    size_t end = tc.bestMoveSan.find(' ');
+    while (end != std::string::npos) {
+        sanMoves.push_back(tc.bestMoveSan.substr(start, end - start));
+        start = end + 1;
+        end = tc.bestMoveSan.find(' ', start);
+    }
+
+    sanMoves.push_back(tc.bestMoveSan.substr(start, end - start)); // last move, or first if only one.
+
+    std::vector<PackedMove> expectedMoves;
+    for (const auto& sanMove : sanMoves) {
+        PackedMove pmove;
+        ASSERT_NO_THROW({
+            pmove = io::san_parser::deserialize(
+                context.readChessPosition(),
+                context.readToPlay() == Set::WHITE,
+                sanMove
+            );
+        }) << "SAN parser FAILED to parse the expected move: " << sanMove << " for test: " << tc.id;
+        expectedMoves.push_back(pmove);
+    }
 
     // scouting statistics logging
     // fetching atomics 
@@ -148,14 +170,21 @@ TEST_P(EpdCorrectness, FindBestMove) {
     u64 reSearchCount = searcher.scout_re_search_count.load();
     spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", scoutCount, reSearchCount, (reSearchCount / scoutCount) * 100);
 
+    // 4. Check if the engine's move is among the expected moves
+    bool moveFound = false;
+    for (const auto& expectedMove : expectedMoves) {
+        if (expectedMove.toString() == result.move().toString()) {
+            moveFound = true;
+            spdlog::debug("Test ID: {} passed. Expected one of moves: {} | Engine move: {}", tc.id, tc.bestMoveSan, result.move().toString());
+            break;
+        }
+    }
 
-    if (expectedMove.toString() == result.move().toString()) {
-        spdlog::debug("Test ID: {} passed. Expected move: {} | Engine move: {}", tc.id, expectedMove.toString(), result.move().toString());
-    } else {
-        spdlog::error("Test ID: {} FAILED! Expected move: {} | Engine move: {}", tc.id, expectedMove.toString(), result.move().toString());
-    }        
-    EXPECT_EQ(expectedMove.toString(), result.move().toString())
-        << "Test ID: " << tc.id;    
+    if (moveFound == false) {        
+        spdlog::error("Test ID: {} FAILED! Expected one of moves: {} | Engine move: {}", tc.id, tc.bestMoveSan, result.move().toString());
+    }
+
+    EXPECT_TRUE(moveFound) << "Test ID: " << tc.id;    
 }
 
 // static definitions
