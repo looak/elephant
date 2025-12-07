@@ -81,6 +81,22 @@ struct ThreadSearchContext {
                 ply, (int)depth, hash, score);
         }
     }
+    
+    void scout_search() {
+        auto logger = logging::debug_search_logger();
+        if (logger) {
+            logger->debug("[TID:{:X}] Scout Search triggered.",
+                (u64)std::hash<std::thread::id>{}(std::this_thread::get_id()));
+        }
+    }
+
+    void scout_re_search() {
+        auto logger = logging::debug_search_logger();
+        if (logger) {
+            logger->debug("[TID:{:X}] Scout Re-Search triggered.",
+                (u64)std::hash<std::thread::id>{}(std::this_thread::get_id()));
+        }
+    } 
 
     void begin(int threadId, const SearchParameters& params) {
         auto logger = logging::debug_search_logger();
@@ -100,6 +116,8 @@ struct ThreadSearchContext {
     void debug_print_alphabeta_entry(u8, u16, i16, i16, u64) const {}
     void debug_print_eval(PackedMove, i16, i16, i16, u8, u16, u64) const {}
     void tt_probe_score(i16, u8, u16, u64) const {}
+    void scout_search() {}
+    void scout_re_search() {}
     void begin(int, const SearchParameters&) {}
     void end(int) {}
 #endif

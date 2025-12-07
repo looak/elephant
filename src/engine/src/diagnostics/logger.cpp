@@ -29,9 +29,9 @@ std::shared_ptr<spdlog::logger> debug_search_logger() {
 
             // --- B. Create the Sink ---
             auto file_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                "logs/search_trace.log", 
+                "logs/trace/search.log", 
                 1048576 * 50, // 50MB max file size
-                5            // 3 files (trace.log, trace.1.log, trace.2.log)
+                3            // 3 files (trace.log, trace.1.log, trace.2.log)
             );
 
             // --- C. Create the Asynchronous Logger ---
@@ -62,5 +62,5 @@ std::shared_ptr<spdlog::logger> debug_search_logger() {
 }
 }
 
-std::string logging::internals::s_logFileName = logging::internals::generateUniqueFilename("log_");
-std::string logging::internals::s_coutFileName = logging::internals::generateUniqueFilename("cout_");
+std::string logging::internals::s_logFileName = logging::internals::generateUniqueFilename("logs/log_");
+std::string logging::internals::s_coutFileName = logging::internals::generateUniqueFilename("logs/cout_");

@@ -144,28 +144,27 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
         i32 nextDepth = static_cast<i32>(adjustedDepth) - 1;
         adjustedDepth = static_cast<u8>(std::max(nextDepth, 0));
 
-        if (index == 0) {
+        if (index == 0 && depth > 0) {
             // --- PV Search (First Move) ---
             // Full window, full trust.
-            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
-        } else {
+            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);            
+        } 
+        else {
             // --- Scout Search (Subsequent Moves) ---
             // Zero window: Try to prove move is <= alpha
             this->scout_search_count++;
+            context.scout_search();
             eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -alpha - 1, -alpha, ply + 1, &childPv);
             
             // --- The Re-Search Trigger ---
             // If eval > alpha, the move is better than we thought. 
             // We must re-search with the full window to get the exact score.
-            // (Only if it's also < beta, otherwise we just take the beta cutoff)
-            if (eval > alpha) {
-                // tighten the re-search window
-                // bestEval = std::max(eval, bestEval);            
-            
-                if (eval < beta) {
-                    this->scout_re_search_count++;
-                    eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
-                }
+            // (Only if it's also < beta, otherwise we just take the beta cutoff)            
+            if (eval > alpha && eval < beta) {
+                context.scout_re_search();
+                this->scout_re_search_count++;
+                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
+                
             }
         }
 

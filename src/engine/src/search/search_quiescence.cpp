@@ -29,29 +29,40 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");    
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
 
-    Evaluator evaluator(context.position.read());
-    i16 perspective = 1 - (int)us * 2;
-    i16 standPat = evaluator.Evaluate() * perspective;
+    i16 standPat = -c_infinity;
+    bool checkExtension = false;
 
-    // Stand-pat beta cutoff
-    if (standPat >= beta && !checked)
-        return standPat;
+    if (checked == false) {
+        Evaluator evaluator(context.position.read());
+        i16 perspective = 1 - (int)us * 2;
+        standPat = evaluator.Evaluate() * perspective;
 
-    // Leaf node - return stand-pat
-    if (depth <= 0 || ply >= c_maxSearchDepth)
-        return standPat;
+        // Stand-pat beta cutoff
+        if (standPat >= beta)
+            return standPat;
+
+        if (standPat > alpha)
+            alpha = standPat;
+
+        // Leaf node - return stand-pat
+        if (depth <= 0 || ply >= c_maxSearchDepth)
+            return standPat;
+    }
+    else if (depth <= 0 || ply >= c_maxSearchDepth) {
+        // If in check and at leaf node, extend search by 1 ply
+        // BUG: this can lead to infinite extensions if not handled properly
+        checkExtension = true;
+        depth += 1;
+    }
 
     // Futility pruning
-    u16 mvValue = mostValuablePieceInPosition<opposing_set<us>()>(context.position.read());
-    if (search_policies::QuiescencePolicy::futile(depth, standPat + mvValue, alpha))
-        return standPat;
-
-    // Update alpha
-    if (standPat > alpha)
-        alpha = standPat;
+    // u16 mvValue = mostValuablePieceInPosition<opposing_set<us>()>(context.position.read());
+    // if (search_policies::QuiescencePolicy::futile(depth, standPat + mvValue, alpha))
+    //     return standPat;
 
     // Generate captures
-    MoveGenParams genParams = MoveGenParams{ .moveFilter = checked ? MoveTypes::ALL : MoveTypes::CAPTURES_ONLY };
+    MoveTypes filter = checkExtension ? MoveTypes::ALL : MoveTypes::CAPTURES_ONLY;
+    MoveGenParams genParams = MoveGenParams{ .moveFilter =  filter };
     MoveGenerator<us> generator(context.position.read(), genParams);
 
     i16 bestEval = standPat;
@@ -88,6 +99,11 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             alpha = bestEval;
 
         ordered = generator.pop();
+    }
+
+    // If we were in check, generated moves, but found NO legal moves -> Checkmate.
+    if (checked && bestEval == -c_infinity) {
+        return checked_cast<i16>(-c_checkmateConstant + ply); // Mate score
     }
 
     return bestEval;
