@@ -19,8 +19,12 @@
 #pragma once
 
 #include <optional>
+#include <stack>
+
+#include <io/printer.hpp>
 #include <search/transposition_table_fwd.hpp>
 #include <search/search_constants.hpp>
+#include <system/clock.hpp>
 
 // Forward-declare Search class for policy callbacks
 class Search;

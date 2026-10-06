@@ -6,22 +6,24 @@
 #include <math/cast.hpp>
 
 template<Set us>
-MoveGenerator<us>::MoveGenerator(PositionReader position, MoveGenParams& params) :
+MoveGenerator<us>::MoveGenerator(PositionReader position, const MoveGenParams& params) :
 m_pinThreats(to_square(position.material().king<us>().lsbIndex()), position),
     m_position(position),   
     m_currentMoveIndx(0),
     m_moveCount(0),
     m_movesGenerated(false),
-    m_stage(Stage::PV_MOVE),
     m_params(params)
 {
-    if (params.ordering == nullptr || params.ordering->pvMove == PackedMove::NullMove()) {
-        m_stage = Stage::CAPTURES;
-    }
+    // if (params.ordering == nullptr || params.ordering->pvMove == PackedMove::NullMove()) {
+    //     m_stage = Stage::CAPTURES;
+    // }
+
+    m_pieceIdFlag = params.pieceIdFlag;
 }
 
-template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, MoveGenParams&);
-template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, MoveGenParams&);
+template MoveGenerator<Set::WHITE>::MoveGenerator(PositionReader, const MoveGenParams&);
+template MoveGenerator<Set::BLACK>::MoveGenerator(PositionReader, const MoveGenParams&);
+
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::pop() {
@@ -140,20 +142,18 @@ void MoveGenerator<us>::internalGenerateMovesOrdered()
         }
     };
 
-    if (m_params.pieceIdFlag == 0) {
+    if (m_pieceIdFlag == 0) {
         return; // nothing to do
     }
-
-    u64 tmp = m_params.pieceIdFlag;
-    u32 piece = intrinsics::lsbIndex(tmp);
-    tmp = intrinsics::resetLsb(tmp);
-    m_params.pieceIdFlag = static_cast<u8>(tmp);
+    
+    u32 piece = intrinsics::lsbIndex(m_pieceIdFlag);
+    m_pieceIdFlag = intrinsics::resetLsb(m_pieceIdFlag);
 
     BulkMoveGenerator bulkMoveGen(m_position);
     generators[piece](this, bulkMoveGen);
 
     // sortMoves();
-    // m_movesGenerated = true;
+    m_movesGenerated = true;
 }
 
 template void MoveGenerator<Set::WHITE>::internalGenerateMovesOrdered();

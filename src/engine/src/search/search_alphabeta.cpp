@@ -74,10 +74,8 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
             // Start Q-Search with its *own* depth limit, configured with search params.
             return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
         } else {
-            pv->length = 0;
-            constexpr i32 sidesPerspective = (us == Set::WHITE) ? 1 : -1;
-            Evaluator evaluator(context.position.read());
-            return evaluator.Evaluate() * sidesPerspective;
+            pv->length = 0;            
+            return context.evaluate<us>();
         }
     }
 

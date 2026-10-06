@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # CMakeList.txt : Top-level CMake project file
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.14...4.0 FATAL_ERROR)
 
 include(cmake/version.cmake)
 project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)

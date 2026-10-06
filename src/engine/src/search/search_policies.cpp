@@ -90,42 +90,4 @@ void MoveOrdering::prime(const KillerMoves& killers, MoveOrderingView& view, u16
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;
 
 
-// --- Debug Policies ---
-
-#if defined(DEVELOPMENT_BUILD)
-class DebugEnabled {
-public:
-    static const Clock& pushClock() {
-        Clock clock;
-        clock.Start();
-        m_searchClocks.push(clock);
-        return m_searchClocks.top();
-    }
-
-    static void popClock() {
-        if (!m_searchClocks.empty()) {
-            Clock& clock = m_searchClocks.top();
-            clock.Stop();            
-            m_searchClocks.pop();
-        }
-    }
-
-    static void reportNps(u64 nodes, u64 qnodes) {
-        const Clock& clock = m_searchClocks.top();
-
-        std::cout << " ------------------------------ \n";
-        std::cout << " Nodes: " << io::printer::formatReadableNumber(nodes)
-                  << " QNodes: " << io::printer::formatReadableNumber(qnodes)
-                  << " Total: " << io::printer::formatReadableNumber(nodes + qnodes) << "\n";
-        std::cout << " NPS:   " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes))
-                  << " QNPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(qnodes)) << "\n";
-        std::cout << " Total NPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes + qnodes)) << "\n";
-    }
-
-private:
-    static inline std::stack<Clock> m_searchClocks;
-};
-#endif
-
-
 } // namespace search_policies

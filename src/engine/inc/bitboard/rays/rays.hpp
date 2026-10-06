@@ -67,8 +67,46 @@ constexpr std::array<std::array<u64, 64>, 64> computeRays() {
     return raysTable;
 }
 
+// Full edge-to-edge line through two aligned squares, including both squares. Empty when not aligned.
+constexpr std::array<std::array<u64, 64>, 64> computeLines() {
+    std::array<std::array<u64, 64>, 64> linesTable{};
+
+    for (u8 from = 0; from < 64; ++from) {
+        for (u8 to = 0; to < 64; ++to) {
+
+            if (from == to) {
+                linesTable[from][to] = 0;
+                continue;
+            }
+
+            u64 fromMask = 1ull << from;
+            u64 toMask = 1ull << to;
+
+            u64 result = 0;
+
+            u64 rookAttacks = attacks::internals::generateRookAttackMask<true>(from, 0);
+            u64 bishopAttacks = attacks::internals::generateBishopAttackMask<true>(from, 0);
+
+            // intersecting the empty board attacks from both squares leaves only the shared line, minus the two squares.
+            if ((rookAttacks & toMask) > 0) {
+                result = rookAttacks & attacks::internals::generateRookAttackMask<true>(to, 0);
+                result |= fromMask | toMask;
+            }
+            else if ((bishopAttacks & toMask) > 0) {
+                result = bishopAttacks & attacks::internals::generateBishopAttackMask<true>(to, 0);
+                result |= fromMask | toMask;
+            }
+
+            linesTable[from][to] = result;
+        }
+    }
+
+    return linesTable;
+}
+
 } // namespace internals
 
 u64 getRay(u32 from, u32 to);
+u64 getLine(u32 from, u32 to);
 
 } // namespace ray

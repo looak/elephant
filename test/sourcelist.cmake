@@ -54,6 +54,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/move/move_gen_isolation_test.cpp
     ${TEST_SRC_DIR}/move/move_generator_test.cpp
     ${TEST_SRC_DIR}/move/packed_move_test.cpp
+    ${TEST_SRC_DIR}/move/tusk_move_generator_test.cpp
     ${TEST_SRC_DIR}/move/unmake_test.cpp
 
 ## /position/...

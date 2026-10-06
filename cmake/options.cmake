@@ -1,4 +1,4 @@
-set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
+set(DEVELOPMENT_BUILD ON CACHE BOOL "Enable development build settings" FORCE)
 set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
 set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions" FORCE)

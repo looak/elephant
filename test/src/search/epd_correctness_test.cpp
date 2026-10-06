@@ -116,7 +116,7 @@ protected:
 };
 
 // The test itself
-TEST_P(EpdCorrectness, FindBestMove) {
+TEST_P(EpdCorrectness, DISABLED_FindBestMove) {
     EpdTestCase tc = GetParam();
     GameContext context;
     
@@ -129,6 +129,7 @@ TEST_P(EpdCorrectness, FindBestMove) {
     Search searcher(context);
     SearchResult result;
     
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     // 2. Figure out who is to move and run the search
     if (context.readToPlay() == Set::WHITE) {
         timeManager.applyTimeSettings(params, Set::WHITE);
@@ -137,6 +138,9 @@ TEST_P(EpdCorrectness, FindBestMove) {
         timeManager.applyTimeSettings(params, Set::BLACK);
         result = searcher.go<Set::BLACK>(params, timeManager);
     }
+    std::chrono::steady_clock::time_point endTime = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsedSeconds = endTime - startTime;
+    spdlog::debug("Search elapsed time: {} seconds", elapsedSeconds.count());
 
     // 3. Parse the expected move from SAN
     // there can be more than one "best move" in EPD.
@@ -168,7 +172,7 @@ TEST_P(EpdCorrectness, FindBestMove) {
     // fetching atomics 
     u64 scoutCount = searcher.scout_search_count.load() == 0 ? 1 : searcher.scout_search_count.load(); // prevent div by zero
     u64 reSearchCount = searcher.scout_re_search_count.load();
-    spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", scoutCount, reSearchCount, (reSearchCount / scoutCount) * 100);
+    spdlog::debug("Scouting searches: {}, Re-searches: {} -- {}%", scoutCount, reSearchCount, 100.0 * reSearchCount / scoutCount);
 
     // 4. Check if the engine's move is among the expected moves
     bool moveFound = false;

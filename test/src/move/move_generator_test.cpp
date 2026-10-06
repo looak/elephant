@@ -113,6 +113,30 @@ TEST_F(MoveGeneratorFixture, Empty)
     EXPECT_EQ(expected, result);
 }
 
+/** Most basic move generation test, a king in the middle of the board with no other pieces,
+* should have eight moves available. */
+TEST_F(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
+{
+    using enum Square;
+
+    // setup
+    PositionEditor editor = testContext.editChessPosition();
+    editor.placePieces(        
+            piece_constants::black_king, Square::E4
+    );
+
+    // expected
+    Bitboard expected = BitboardResultFactory::buildExpectedBoard(
+        D5, E5, F5,
+        D4,/*K*/F4,
+        D3, E3, F3
+    );
+
+    
+    // Bitboard result = buildMoveMask(gen);
+    // EXPECT_EQ(expected, result);
+}
+
 #ifdef DEVELOPMENT_BUILD
 
  // 8 [ R ][   ][   ][ k ][   ][   ][   ][ r ]

@@ -72,6 +72,11 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/move/generation/move_generator.hpp
     ${ENGINE_INC_DIR}/move/generation/move_ordering_view.hpp
 
+## /move/generation/tusk/...   new move gen
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_result.hpp
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_generator.hpp
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_params.hpp
+
 ## /position/...
     ${ENGINE_INC_DIR}/position/castling_state_info.hpp
     ${ENGINE_INC_DIR}/position/en_passant_state_info.hpp
@@ -135,6 +140,9 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ## /move/generation/...
     ${ENGINE_SRC_DIR}/move/generation/king_pin_threats.cpp
     ${ENGINE_SRC_DIR}/move/generation/move_generator.cpp
+
+## /move/generation/tusk/...   new move gen
+    ${ENGINE_SRC_DIR}/move/generation/tusk/move_generator.cpp
 
 ## /position/...
     ${ENGINE_SRC_DIR}/position/hash_zobrist.cpp

@@ -83,7 +83,7 @@ constexpr i16 mvvLvaMultiplier = 1;
 template<Set _us>
 class MoveGenerator {
 public:
-    explicit MoveGenerator(PositionReader position, MoveGenParams& params);
+    MoveGenerator(PositionReader position, const MoveGenParams& params);
 
     [[nodiscard]] PrioritizedMove pop();
     PackedMove peek();
@@ -97,13 +97,7 @@ public:
 #endif
 
 private:
-enum class Stage{
-    PV_MOVE,
-    CAPTURES,
-    KILLERS,
-    QUIETS,
-    DONE
-};
+
 
 /*
 Consider this flow:
@@ -140,8 +134,8 @@ Consider this flow:
     u32 m_currentMoveIndx;
     u32 m_moveCount;
     bool m_movesGenerated;
-    Stage m_stage;
-    MoveGenParams& m_params;
+    const MoveGenParams& m_params;
+    u64 m_pieceIdFlag;
 };
 
 

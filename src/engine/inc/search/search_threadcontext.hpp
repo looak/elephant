@@ -21,6 +21,7 @@
 #include <search/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
+#include <eval/evaluator.hpp>
 
 struct ThreadSearchContext {
     ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
@@ -34,7 +35,17 @@ struct ThreadSearchContext {
     MoveOrderingHeuristic moveOrdering;
     u64 nodeCount = 0;
     u64 qNodeCount = 0;
+    u64 evalCount = 0;
     const TimeManager& clock;
+
+    // Static eval from the side-to-move's perspective.
+    template<Set us>
+    i16 evaluate() {
+        ++evalCount;
+        constexpr i16 perspective = (us == Set::WHITE) ? 1 : -1;
+        Evaluator evaluator(position.read());
+        return evaluator.Evaluate() * perspective;
+    }
 
 #ifdef DEBUG_SEARCH_TREE
     int m_debugIndentation = 0;

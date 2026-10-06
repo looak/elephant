@@ -27,6 +27,13 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
+# Silence compiler warnings in third-party googletest sources
+foreach(gtest_target gtest gtest_main gmock gmock_main)
+    if(TARGET ${gtest_target})
+        target_compile_options(${gtest_target} PRIVATE $<IF:$<BOOL:${MSVC}>,/w,-w>)
+    endif()
+endforeach()
+
 include(sourcelist.cmake)
 
 add_executable(${PROJECT_NAME} ${TEST_SOURCE_ALL})

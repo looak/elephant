@@ -33,9 +33,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     bool checkExtension = false;
 
     if (checked == false) {
-        Evaluator evaluator(context.position.read());
-        i16 perspective = 1 - (int)us * 2;
-        standPat = evaluator.Evaluate() * perspective;
+        standPat = context.evaluate<us>();
 
         // Stand-pat beta cutoff
         if (standPat >= beta)
