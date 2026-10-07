@@ -262,11 +262,8 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
         if (capturedPiece.getType() == PieceType::ROOK)
             internalHandleRookMovedOrCaptured(move.targetSqr(), undoState);
 
-        // remove captured piece from board.
+        // remove captured piece from board, clearPiece also removes it from the hash.
         m_position.clearPiece(pieceTarget);
-
-        // remove piece from hash
-        m_position.hash() = zobrist::updatePieceHash(m_position.hash(), capturedPiece, pieceTarget);
         return;
     }
 
