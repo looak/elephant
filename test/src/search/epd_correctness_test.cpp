@@ -128,7 +128,7 @@ protected:
 };
 
 // The test itself
-TEST_P(EpdCorrectness, DISABLED_FindBestMove) {
+TEST_P(EpdCorrectness, FindBestMove) {
     EpdTestCase tc = GetParam();
     GameContext context;
     

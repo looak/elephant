@@ -2,6 +2,7 @@
 #include <position/position.hpp>
 
 #include <position/hash_zobrist.hpp>
+
 template<typename AccessType>
 template<bool validation>
 bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
@@ -33,7 +34,6 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
 
     return false;
 }
-
 
 template bool PositionProxy<PositionEditPolicy>::placePiece<true>(Piece, Square);
 template bool PositionProxy<PositionEditPolicy>::placePiece<false>(Piece, Square);
