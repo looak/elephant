@@ -34,6 +34,8 @@ bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 /*alpha   
 
     ctx.nodeCount++;
     ctx.position.edit().hash() = originalHash;
+    if (ctx.stopped)
+        return false;
     return (nullScore >= beta);
 }
 
@@ -74,7 +76,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
     u16 index = 0;
 
     do {
-        if (context.clock.shouldStop() == true) 
+        if (context.shouldStop())
             break;
 
         u8 modifiedDepth = depth;
@@ -103,6 +105,10 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
+        // the child was aborted, its score is meaningless.
+        if (context.stopped)
+            return 0;
+
         // --- Alpha-Beta Evaluation (Fail-Soft) ---
         if (eval > bestEval) {
             bestEval = eval;     
@@ -119,6 +125,9 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
         move = ordered.move;
         index++;
     } while (move.isNull() == false);
+
+    if (context.stopped)
+        return 0;
 
     return bestEval;
 }

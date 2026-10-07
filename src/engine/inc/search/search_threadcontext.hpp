@@ -21,6 +21,7 @@
 #include <search/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
+#include <system/time_manager.hpp>
 #include <eval/evaluator.hpp>
 
 struct ThreadSearchContext {
@@ -37,6 +38,25 @@ struct ThreadSearchContext {
     u64 qNodeCount = 0;
     u64 evalCount = 0;
     const TimeManager& clock;
+
+    // Set once the clock says stop. From then on every search function unwinds immediately and its return value is
+    // meaningless, callers must check stopped before trusting a score, updating alpha, pv, killers or the TT.
+    bool stopped = false;
+    // Iterative deepening disables stopping for the first iteration so there is always one complete result.
+    bool stopEnabled = true;
+
+    u32 stopCheckCounter = 0;
+
+    // Throttled, the clock is only consulted every 1024 calls.
+    bool shouldStop() {
+        if (stopped)
+            return true;
+        if (!stopEnabled)
+            return false;
+        if ((++stopCheckCounter & 1023) == 0 && clock.shouldStop())
+            stopped = true;
+        return stopped;
+    }
 
     // Static eval from the side-to-move's perspective.
     template<Set us>

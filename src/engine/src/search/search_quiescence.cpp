@@ -67,7 +67,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     PrioritizedMove ordered = generator.pop();
     
     while (!ordered.move.isNull()) {
-        if (context.clock.shouldStop())
+        if (context.shouldStop())
             break;
 
         PackedMove move = ordered.move;
@@ -87,7 +87,11 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         
         executor.unmakeMove(undoState);
 
-        if (qEval > bestEval) 
+        // the child was aborted, its score is meaningless.
+        if (context.stopped)
+            return 0;
+
+        if (qEval > bestEval)
             bestEval = qEval;
 
         if (bestEval >= beta)
@@ -98,6 +102,9 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
 
         ordered = generator.pop();
     }
+
+    if (context.stopped)
+        return 0;
 
     // If we were in check, generated moves, but found NO legal moves -> Checkmate.
     if (checked && bestEval == -c_infinity) {

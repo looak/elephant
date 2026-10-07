@@ -68,7 +68,13 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
             itrResult.pvLine.length = 1;
         }
 
+        // the first iteration always completes so there is a move to return, deeper ones may be aborted.
+        context.stopEnabled = itrDepth > 1;
         itrResult.score = alphaBeta<us>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
+
+        // aborted iteration, its score & pv can't be trusted. Keep the last complete iteration.
+        if (context.stopped)
+            break;
 
         reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, lastIterationTimeSpan);
 
@@ -89,7 +95,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         u64 iterationTimeSpan = context.clock.now() - lastIterationTimeSpan;
         lastIterationTimeSpan = context.clock.now();
 
-        if (context.clock.shouldStop() == true)
+        if (context.clock.shouldStop())
             break;
 
         if (context.clock.continueIterativeDeepening(iterationTimeSpan) == false)

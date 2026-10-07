@@ -86,9 +86,13 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         }
     }
 
-    // --- Main Search Loop ---    
+    // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
     i16 eval = searchMoves<us>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
+
+    // aborted, the score is meaningless and must not reach the TT.
+    if (context.stopped)
+        return 0;
 
     // --- Store to TT ---
     if constexpr (search_policies::TT::enabled) {
@@ -125,7 +129,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
     u16 movingPly = ply; 
 
     do {
-        if (context.clock.shouldStop()) break;
+        if (context.shouldStop()) break;
 
         PackedMove move = ordered.move;
         
@@ -170,6 +174,10 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
+        // the child was aborted, its score is meaningless. Unwind without touching alpha, pv or killers.
+        if (context.stopped)
+            return 0;
+
         context.debug_print_eval(move, eval, alpha, beta, depth, ply, pos.hash());
 
         // --- Update Best Score (Fail-Soft) ---
@@ -201,6 +209,9 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
         ordered = gen.pop();
         index++;
     } while (ordered.move.isNull() == false);
+
+    if (context.stopped)
+        return 0;
 
     // Ensure outMove is set if we found *any* valid move that improved bestEval (even if it didn't beat alpha)
     // Though usually, we only care about outMove if it beat alpha (PV) or beta (Cutoff).
