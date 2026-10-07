@@ -2,9 +2,9 @@
 
 #include <eval/evaluator.hpp>
 
-#include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 
+#include <search/search_move_source.hpp>
 #include <search/search_threadcontext.hpp>
 #include <system/time_manager.hpp>
 
@@ -49,13 +49,13 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
     PositionReader currentPos = context.position.read();
 
     // --- No-Moves Check (Mate/Stalemate) ---
-    MoveGenParams genParams;
-    MoveGenerator<us> generator(currentPos, genParams);
-    PrioritizedMove ordered = generator.pop();
+    SearchMoveSource<us> moves(currentPos);
+    moves.start(nullptr, MoveTypes::ALL);
+    PrioritizedMove ordered = moves.next();
     PackedMove move = ordered.move;
 
     if (move.isNull()) {
-        if (generator.isChecked())
+        if (moves.isChecked())
             return -c_checkmateConstant + c_nullMoveOffset;
         return -c_drawConstant; // Stalemate
     }
@@ -82,7 +82,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
         u8 modifiedDepth = depth;
         // --- Late Move Reduction if Enabled ---
         if constexpr (search_policies::LMR::enabled) {
-            if (search_policies::LMR::shouldReduce(depth, move, index, generator.isChecked(), ordered.isCheck())) {
+            if (search_policies::LMR::shouldReduce(depth, move, index, moves.isChecked(), ordered.isCheck())) {
                 modifiedDepth -= search_policies::LMR::getReduction(depth);                
             }
         }
@@ -121,7 +121,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
                 alpha = bestEval;
         }
 
-        ordered = generator.pop();
+        ordered = moves.next();
         move = ordered.move;
         index++;
     } while (move.isNull() == false);

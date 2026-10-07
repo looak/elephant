@@ -2,9 +2,9 @@
 
 #include <eval/evaluator.hpp>
 
-#include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 
+#include <search/search_move_source.hpp>
 #include <search/search_policies.hpp>
 #include <search/search_threadcontext.hpp>
 #include <system/time_manager.hpp>
@@ -32,16 +32,14 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
-    // The generator knows reliably whether we're in check (move check flags don't), the filter is read lazily on the
-    // first pop so it can be decided after construction.
-    MoveGenParams genParams;
-    MoveGenerator<us> generator(context.position.read(), genParams);
-    const bool inCheck = generator.isChecked();
+    // The move source knows whether we're in check before generating anything, the filter is decided after.
+    SearchMoveSource<us> moves(context.position.read());
+    const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;
     if (inCheck) {
         // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
-        genParams.moveFilter = MoveTypes::ALL;
+        moves.start(nullptr, MoveTypes::ALL);
     }
     else {
         const i16 standPat = context.evaluate<us>();
@@ -58,7 +56,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             return standPat;
 
         bestEval = standPat;
-        genParams.moveFilter = MoveTypes::CAPTURES_ONLY;
+        moves.start(nullptr, MoveTypes::CAPTURES_ONLY);
     }
 
     // Futility pruning
@@ -70,7 +68,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     // check, and the ply limit above.
     const u8 childDepth = (inCheck || depth == 0) ? depth : static_cast<u8>(depth - 1);
     u32 movesSearched = 0;
-    PrioritizedMove ordered = generator.pop();
+    PrioritizedMove ordered = moves.next();
 
     while (!ordered.move.isNull()) {
         if (context.shouldStop())
@@ -80,7 +78,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         
         // Skip bad captures (SEE < 0)
         // if (SEE(move) < 0) {
-        //     ordered = generator.pop();
+        //     ordered = moves.next();
         //     continue;
         // }
 
@@ -108,7 +106,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         if (bestEval > alpha)
             alpha = bestEval;
 
-        ordered = generator.pop();
+        ordered = moves.next();
     }
 
     if (context.stopped)

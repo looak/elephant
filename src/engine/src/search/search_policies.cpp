@@ -9,12 +9,32 @@
 
 namespace search_policies {
 
-// --- Transposition Table Policies ---
-void TT::assign(TranspositionTable& tt) {
-    m_table = &tt;        
+namespace {
+// Mate scores in search are relative to the root (-mate + ply). In the TT they're stored relative to the node, so a
+// position reached at a different ply reads the right distance to mate.
+i16 scoreToTT(i16 score, u16 ply) {
+    if (score >= c_checkmateMinScore)
+        return static_cast<i16>(score + ply);
+    if (score <= -c_checkmateMinScore)
+        return static_cast<i16>(score - ply);
+    return score;
 }
 
-std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {        
+i16 scoreFromTT(i16 score, u16 ply) {
+    if (score >= c_checkmateMinScore)
+        return static_cast<i16>(score - ply);
+    if (score <= -c_checkmateMinScore)
+        return static_cast<i16>(score + ply);
+    return score;
+}
+} // namespace
+
+// --- Transposition Table Policies ---
+void TT::assign(TranspositionTable& tt) {
+    m_table = &tt;
+}
+
+std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
     i16 score;
     u8 depth;
     if (m_table->probe(hash, outMove, score, depth, flag) == false)
@@ -23,7 +43,7 @@ std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, T
     if (depth < requiredDepth)
         return std::nullopt;
 
-    // mate score is already adjusted during search, so we don't need to adjust it again here.
+    score = scoreFromTT(score, ply);
 
     switch (flag) {
         case TTF_CUT_EXACT:
@@ -50,9 +70,9 @@ bool TT::probeMove(u64 hash, PackedMove& outMove) {
     return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
 }
 
-void TT::update(u64 hash, const PackedMove& move, i16 score, u8 depth, const TranspositionFlag& flag)
+void TT::update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
 {
-    m_table->store(hash, move, score, depth, flag);
+    m_table->store(hash, move, scoreToTT(score, ply), depth, flag);
 }
 
 void TT::printStats() 

@@ -44,6 +44,8 @@ namespace enabled_policies {
     inline constexpr bool LMR = false;
     inline constexpr bool NMP = false;
     inline constexpr bool Quiescence = true;
+    // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
+    inline constexpr bool TuskMoveGen = true;
 }
 
 // --- Transposition Table Policies ---
@@ -52,9 +54,10 @@ public:
     static constexpr bool enabled = enabled_policies::TT;
     
     static void assign(TranspositionTable& tt);
-    static std::optional<i16> probe(u64 hash, u16 requiredDepth, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
+    // ply converts mate scores between root relative (search) and node relative (stored).
+    static std::optional<i16> probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
     static bool probeMove(u64 hash, PackedMove& outMove);
-    static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, const TranspositionFlag& flag);
+    static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag);
     static void printStats();
 
 private:

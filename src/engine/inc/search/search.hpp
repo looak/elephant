@@ -24,7 +24,7 @@ struct ThreadSearchContext;
 
 class GameContext;
 template<Set us>
-class MoveGenerator;
+class SearchMoveSource;
 class TimeManager;
 
 struct SearchParameters {
@@ -70,7 +70,7 @@ private:
     template<Set us>
     i16 alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
     template<Set us>
-    i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+    i16 searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
 
     template<Set us>
     i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);

@@ -2,10 +2,10 @@
 
 #include <eval/evaluator.hpp>
 
-#include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 
 #include <search/search_constants.hpp>
+#include <search/search_move_source.hpp>
 #include <search/search_policies.hpp>
 #include <search/search_threadcontext.hpp>
 #include <search/transposition_table.hpp>
@@ -25,12 +25,17 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         return -c_drawConstant;
     }
 
+    // hard ply limit, killers & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
+    // depth from ever reaching 0 along a chain of checks.
+    if (ply >= c_maxSearchDepth - 1)
+        return context.evaluate<us>();
+
     PackedMove bestMove = PackedMove::NullMove();
 
     // --- Transposition Table Probe ---
     TranspositionFlag flag = TranspositionFlag::TTF_NONE;
     if constexpr (search_policies::TT::enabled) {
-        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, alpha, beta, flag, bestMove);
+        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, ply, alpha, beta, flag, bestMove);
         if (ttProbeResult.has_value()) {
             if (flag == TranspositionFlag::TTF_CUT_EXACT) {
                 pv->moves[0] = bestMove;
@@ -47,20 +52,19 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     }
 
     // --- No-Moves Check (Mate/Stalemate) ---
-    MoveGenParams genParams;
     MoveOrderingView orderingView;
 
-    // --- prime move ordering ---    
+    // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pv->length > 0) orderingView.pvMove = pv->moves[0];
     search_policies::MoveOrdering::prime(context.moveOrdering.killers, orderingView, ply);
-    genParams.ordering = &orderingView;
 
-    MoveGenerator<us> generator(pos, genParams);   
+    SearchMoveSource<us> moves(pos);
+    moves.start(&orderingView, MoveTypes::ALL);
 
     // --- Terminal Node ---
-    if (generator.peek().isNull()) {
-        if (generator.isChecked()){
+    if (moves.peek().isNull()) {
+        if (moves.isChecked()){
             ASSERT(ply < c_checkmateMaxDistance);
             return -c_checkmateConstant + (i16)ply; // Mate score adjusted by ply
         }
@@ -81,14 +85,14 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
 
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
-        if (generator.isChecked() == false && tryNullMovePrune<us>(context, depth, alpha, beta, ply)) {
+        if (moves.isChecked() == false && tryNullMovePrune<us>(context, depth, alpha, beta, ply)) {
             return beta;
         }
     }
 
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us>(generator, context, depth, alpha, beta, ply, pv, flag, bestMove);
+    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -102,6 +106,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
             bestMove, // Store the best move found
             eval, // Store the best score (which is alpha if it was a PV node)
             depth,
+            ply,
             flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
     }
 
@@ -112,7 +117,7 @@ template i16 Search::alphaBeta<Set::WHITE>(ThreadSearchContext& context, u8 dept
 template i16 Search::alphaBeta<Set::BLACK>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
 
 template<Set us>
-i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
+i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
 
@@ -121,7 +126,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
     u16 index = 0;
 
     MoveExecutor executor(context.position.edit());
-    PrioritizedMove ordered = gen.pop();
+    PrioritizedMove ordered = moves.next();
     
     // We need to store the "Best Move Found So Far" locally to update outMove correctly
     PackedMove intermmediateMove = PackedMove::NullMove();
@@ -206,7 +211,7 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
             }
         }
 
-        ordered = gen.pop();
+        ordered = moves.next();
         index++;
     } while (ordered.move.isNull() == false);
 
@@ -222,5 +227,5 @@ i16 Search::searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8
     return bestEval;
 }
 
-template i16 Search::searchMoves<Set::WHITE>(MoveGenerator<Set::WHITE>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
-template i16 Search::searchMoves<Set::BLACK>(MoveGenerator<Set::BLACK>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
