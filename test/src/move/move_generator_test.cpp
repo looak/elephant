@@ -282,7 +282,10 @@ TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
     EXPECT_TRUE(result.empty());
 }
 
-TEST_F(MoveGeneratorFixture, MoveGenerator_OrderingMoves)
+// Disabled: the legacy generator scores and sorts everything in one pass and its capture & killer priorities overlap,
+// so it doesn't produce this staged order. The same scenario is covered for tusk in
+// tusk_move_generator_test.cpp (TuskMoveGenerator.StagedOrdering), which search uses.
+TEST_F(MoveGeneratorFixture, DISABLED_MoveGenerator_OrderingMoves)
 {
     // setup
     std::string fen = "3k1r2/8/8/8/8/PPPP4/5Q2/1K6 w - - 0 1";

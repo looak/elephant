@@ -142,6 +142,46 @@ TEST(TuskMoveGenerator, CapturesOnlyFilter) {
     EXPECT_EQ(8u, count);
 }
 
+// pv, tt, captures, killers, then the remaining quiets.
+TEST(TuskMoveGenerator, StagedOrdering) {
+    GameContext context;
+    io::fen_parser::deserialize("3k1r2/8/8/8/8/PPPP4/5Q2/1K6 w - - 0 1", context.editChessboard());
+
+    PackedMove queenCapture(Square::F2, Square::F8);
+    queenCapture.setCapture(true);
+    const std::vector<PackedMove> expectedOrder = {
+        PackedMove(Square::A3, Square::A4),    // pv
+        PackedMove(Square::B3, Square::B4),    // tt
+        queenCapture,                          // the only capture
+        PackedMove(Square::C3, Square::C4),    // killer 1
+        PackedMove(Square::D3, Square::D4),    // killer 2
+    };
+
+    MoveOrderingView view;
+    view.pvMove = expectedOrder[0];
+    view.ttMove = expectedOrder[1];
+    view.killers[0] = expectedOrder[3];
+    view.killers[1] = expectedOrder[4];
+
+    PositionReader position = context.readChessPosition();
+    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = &view });
+    tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
+
+    for (const PackedMove& expected : expectedOrder) {
+        const PackedMove generated = moves.next().move;
+        EXPECT_EQ(expected.read(), generated.read()) << "expected " << expected.toString()
+            << " got " << (generated.isNull() ? std::string("null") : generated.toString());
+    }
+
+    // the remaining moves are quiets, none of the moves above again.
+    while (PrioritizedMove move = moves.next()) {
+        EXPECT_FALSE(move.move.isCapture()) << move.move.toString();
+        for (const PackedMove& handedOut : expectedOrder)
+            EXPECT_NE(handedOut.read(), move.move.read()) << move.move.toString() << " handed out twice";
+    }
+}
+
 TEST(TuskMoveGenerator, PeekDoesNotConsume) {
     GameContext context;
     io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());
