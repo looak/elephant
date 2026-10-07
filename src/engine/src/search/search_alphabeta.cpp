@@ -135,6 +135,8 @@ template<Set us>
 i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
+    // window at entry, alpha moves during the loop.
+    const bool isPV = beta - alpha > 1;
 
     i16 bestEval = -c_infinity; // Start at -infinity
     PVLine childPv;
@@ -181,7 +183,20 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // Zero window: Try to prove move is <= alpha
             this->scout_search_count++;
             context.scout_search();
-            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -alpha - 1, -alpha, ply + 1, &childPv);
+
+            // --- Late Move Reduction ---
+            // Quiet moves late in the ordering rarely matter, scout them shallower first.
+            u8 reduction = 0;
+            if constexpr (search_policies::LMR::enabled) {
+                reduction = search_policies::LMR::reduction(depth, index, isPV, search_policies::MoveOrdering::isQuiet(move),
+                    moves.isChecked(), ordered.isCheck());
+            }
+
+            eval = -alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction), -alpha - 1, -alpha, ply + 1, &childPv);
+
+            // the reduced search beat alpha, check it at full depth before trusting it.
+            if (reduction > 0 && eval > alpha && !context.stopped)
+                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -alpha - 1, -alpha, ply + 1, &childPv);
             
             // --- The Re-Search Trigger ---
             // If eval > alpha, the move is better than we thought. 

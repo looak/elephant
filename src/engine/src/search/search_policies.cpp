@@ -6,6 +6,8 @@
 #include <move/generation/move_ordering_view.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <optional>
 
 namespace search_policies {
@@ -84,18 +86,27 @@ void TT::printStats()
 }
 
 // --- Late Move Reduction (LMR) Policies ---
-bool LMR::shouldReduce(u32 depth, const PackedMove& move, u16 index, bool isChecked, bool /*isChecking */) {
-    return depth > lmr_params::minDepth 
-    && (move.isQuiet() || index > lmr_params::reduceAfterIndex)
-    && isChecked == false;
-    //&& isChecking == false;
-    }
+namespace {
+// [depth][move index], both capped at 63.
+const std::array<std::array<u8, 64>, 64> s_lmrTable = [] {
+    std::array<std::array<u8, 64>, 64> table{};
+    for (u32 depth = 1; depth < 64; ++depth)
+        for (u32 index = 1; index < 64; ++index)
+            table[depth][index] = static_cast<u8>(lmr_params::base + std::log(depth) * std::log(index) / lmr_params::divisor);
+    return table;
+}();
+} // namespace
 
-u8 LMR::getReduction(u8 depth) {
-    u8 reduction = 1;
-    if (depth > lmr_params::earlyReductionThreshold) reduction++;
-    if (depth == 0) return 0;
-    return std::min(reduction, (u8)(depth - 1));
+u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck) {
+    if (depth < lmr_params::minDepth || moveIndex < lmr_params::fullDepthMoves || !quiet || inCheck || givesCheck)
+        return 0;
+
+    i32 r = s_lmrTable[std::min<u32>(depth, 63)][std::min<u32>(moveIndex, 63)];
+    if (isPV)
+        r--;
+
+    // the reduced child is searched at depth - 1 - r, keep it out of quiescence.
+    return static_cast<u8>(std::clamp(r, 0, depth - 2));
 }
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---
