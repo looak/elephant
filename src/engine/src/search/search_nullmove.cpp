@@ -64,7 +64,7 @@ i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta
     if (depth <= 0) {
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
-            return this->quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
+            return this->quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
         } else {
             return context.evaluate<us>();
         }

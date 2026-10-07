@@ -72,7 +72,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         pv->length = 0;
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, generator.isChecked());
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
         } else {
             pv->length = 0;            
             return context.evaluate<us>();

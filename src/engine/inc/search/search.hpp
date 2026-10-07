@@ -73,7 +73,7 @@ private:
     i16 searchMoves(MoveGenerator<us>& gen, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
 
     template<Set us>
-    i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, bool checked);
+    i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
 
     template<Set us>
     bool tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
