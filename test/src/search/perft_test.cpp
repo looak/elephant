@@ -10,6 +10,7 @@
 #include <system/clock.hpp>
 
 #include <future>
+#include <format>
 #include <source_location>
 #include <thread>
 

@@ -19,6 +19,11 @@ target_include_directories(spdlog_local
     ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include
 )
 
+# fmt (bundled in spdlog) requires /utf-8 on MSVC, upstream spdlog's CMake adds this for us
+if(MSVC)
+  target_compile_options(spdlog_local INTERFACE $<$<COMPILE_LANGUAGE:CXX>:/utf-8>)
+endif()
+
 # Mark as SYSTEM to suppress warnings from third-party code
 set_target_properties(spdlog_local PROPERTIES SYSTEM ON)
 
