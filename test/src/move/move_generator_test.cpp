@@ -282,42 +282,6 @@ TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
     EXPECT_TRUE(result.empty());
 }
 
-// Disabled: the legacy generator scores and sorts everything in one pass and its capture & killer priorities overlap,
-// so it doesn't produce this staged order. The same scenario is covered for tusk in
-// tusk_move_generator_test.cpp (TuskMoveGenerator.StagedOrdering), which search uses.
-TEST_F(MoveGeneratorFixture, DISABLED_MoveGenerator_OrderingMoves)
-{
-    // setup
-    std::string fen = "3k1r2/8/8/8/8/PPPP4/5Q2/1K6 w - - 0 1";
-    io::fen_parser::deserialize(fen.c_str(), testContext.editChessboard());
-
-    std::vector<PackedMove> expectedOrder;
-
-    auto pv = expectedOrder.emplace_back(PackedMove(Square::A3, Square::A4)); // pv
-    auto tt = expectedOrder.emplace_back(PackedMove(Square::B3, Square::B4)); // tt
-    auto& queenCapture = expectedOrder.emplace_back(PackedMove(Square::F2, Square::F8)); // capture
-    queenCapture.setCapture(true);
-    auto k1 = expectedOrder.emplace_back(PackedMove(Square::C3, Square::C4));
-    auto k2 = expectedOrder.emplace_back(PackedMove(Square::D3, Square::D4));
-
-    // prime move-orderings
-    MoveOrderingView view;
-    view.pvMove = pv; // pawn to A4
-    view.ttMove = tt;
-    view.killers[0] = k1;
-    view.killers[1] = k2;
-
-    MoveGenParams params;
-    params.ordering = &view;
-
-    MoveGenerator<Set::WHITE> gen(testContext.readChessPosition(), params);
-
-    for (const auto& expectedMove : expectedOrder) {
-        auto generatedMove = gen.pop().move;
-        EXPECT_EQ(expectedMove, generatedMove);
-    }
-}
-
 #endif
 
 
