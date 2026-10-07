@@ -375,6 +375,7 @@ private:
     }
 };
 
+template<typename TMoveGen>
 PerftResult ExecutePerftCase(const std::string& fen, int atDepth)
 {
     // setup
@@ -383,9 +384,10 @@ PerftResult ExecutePerftCase(const std::string& fen, int atDepth)
 
     // do
     PerftSearch perft(context);
-    return perft.Run(atDepth);
+    return perft.Run<TMoveGen>(atDepth);
 }
 
+template<typename TMoveGen>
 PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase, int number, int total)
 {
     std::string testNumber = std::format("{}/{}", number, total);
@@ -398,9 +400,9 @@ PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase, int number, int total)
     Clock caseClock;
     caseClock.Start();
 
-    OUT_ID(testNumber) << "Running test:     " << perftCase.testId;
+    OUT_ID(testNumber) << "Running test:     " << perftCase.testId << " (" << TMoveGen::name << ")";
     caseClock.Start();
-    auto result = ExecutePerftCase(perftCase.fen, perftCase.searchDepth);
+    auto result = ExecutePerftCase<TMoveGen>(perftCase.fen, perftCase.searchDepth);
     caseClock.Stop();    
     result.NPS = caseClock.calcNodesPerSecond(result.AccNodes);
     OUT() << " Nodes: - - - - - - - " << result.Nodes << " nodes";
@@ -420,9 +422,9 @@ PerftResult ExecutePerftTestCase(PerftCaseArgs perftCase, int number, int total)
     return result;
 }
 
-TEST_F(PerftFixture, EstablishedReferencePositions)
+std::vector<PerftCaseArgs> ReferencePositionCases()
 {
-    std::vector<PerftCaseArgs> perftTestCases = {
+    return {
         { true, "illegal enpassant", "3k4/3p4/8/K1P4r/8/8/8/8 b - - 0 1", 1134888, 6 },
         { true, "illegal enpassant", "8/8/4k3/8/2p5/8/B2P2K1/8 w - - 0 1", 1015133, 6 },
         { true, "en passant capture, checks opponent", "8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1", 1440467, 6 },
@@ -439,13 +441,17 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
         { true, "stalemate and checkmate", "8/8/2k5/5q2/5n2/8/5K2/8 b - - 0 1", 23527, 4 },
         /*  This test takes a long time to run, so it is disabled by default
             https://www.chessprogramming.net/perfect-perft/ */
-        { true, "two hundred million nodes", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
+        { true, "two hundred million nodes kiwipete", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5 },
         { true, "two hundred million nodes", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 178633661, 7 },
         { false, "seven hundred million nodes", "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 706045033, 6 },
         { true, "bishop vs rook endgame", "1k6/1b6/8/8/7R/8/8/4K2R b K - 0 1", 1063513, 5 },
     };
+}
 
-    Clock clock;    
+template<typename TMoveGen>
+void RunReferencePositions(const std::vector<PerftCaseArgs>& perftTestCases)
+{
+    Clock clock;
     clock.Start();
     u64 totalNodes = 0;
     u64 totalNps = 0;
@@ -453,7 +459,7 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     int testCount = 1;
     std::vector<std::tuple<PerftResult, PerftCaseArgs>> results;
     for (auto& perftCase : perftTestCases) {
-        auto result = ExecutePerftTestCase(perftCase, testCount, static_cast<int>(perftTestCases.size()));
+        auto result = ExecutePerftTestCase<TMoveGen>(perftCase, testCount, static_cast<int>(perftTestCases.size()));
         totalNodes += result.Nodes;
         totalNps += result.NPS;
         results.push_back({ result, perftCase });
@@ -470,7 +476,7 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     u64 nps = clock.calcNodesPerSecond(totalNodes);
     i64 elapsedTime = clock.getElapsedTime();
     OUT() << "---------------------------------";
-    OUT() << " ### AGGREGATE RESULTS ###";
+    OUT() << " ### AGGREGATE RESULTS (" << TMoveGen::name << ") ###";
     OUT() << "  Total nodes:  - - - - - - - " << totalNodes << " nodes";
     OUT() << "  Total elapsed time: - - - - " << elapsedTime << " ms";
     OUT() << "  Total nodes per second: - - " << nps << " nps";
@@ -478,6 +484,61 @@ TEST_F(PerftFixture, EstablishedReferencePositions)
     OUT() << "---------------------------------";
 
     EXPECT_TRUE(testsPassed);
+}
+
+TEST_F(PerftFixture, EstablishedReferencePositions)
+{
+    RunReferencePositions<move_gen_policy::Legacy>(ReferencePositionCases());
+}
+
+TEST_F(PerftFixture, EstablishedReferencePositions_Tusk)
+{
+    RunReferencePositions<move_gen_policy::Tusk>(ReferencePositionCases());
+}
+
+// Runs every enabled reference position on both generators, verifies they agree and prints a speed comparison.
+// Cases above abMaxNodes are skipped to keep the comparison quick.
+TEST_F(PerftFixture, MoveGeneratorAB)
+{
+    constexpr u64 abMaxNodes = 500'000'000;
+    u64 totalNodes = 0;
+    i64 legacyTotalMs = 0;
+    i64 tuskTotalMs = 0;
+
+    OUT() << std::format(" {:<40} {:>10} {:>12} {:>12} {:>8}", "case", "nodes", "legacy nps", "tusk nps", "speedup");
+    for (const auto& perftCase : ReferencePositionCases()) {
+        if (!perftCase.enabled || perftCase.expectedNodeCount > abMaxNodes)
+            continue;
+
+        Clock legacyClock;
+        legacyClock.Start();
+        PerftResult legacy = ExecutePerftCase<move_gen_policy::Legacy>(perftCase.fen, perftCase.searchDepth);
+        legacyClock.Stop();
+
+        Clock tuskClock;
+        tuskClock.Start();
+        PerftResult tusk = ExecutePerftCase<move_gen_policy::Tusk>(perftCase.fen, perftCase.searchDepth);
+        tuskClock.Stop();
+
+        EXPECT_EQ(legacy.Nodes, tusk.Nodes) << " TestId: " << perftCase.testId;
+        EXPECT_EQ(legacy.Captures, tusk.Captures) << " TestId: " << perftCase.testId;
+        EXPECT_EQ(legacy.Castles, tusk.Castles) << " TestId: " << perftCase.testId;
+        EXPECT_EQ(legacy.Promotions, tusk.Promotions) << " TestId: " << perftCase.testId;
+
+        const u64 legacyNps = legacyClock.calcNodesPerSecond(legacy.AccNodes);
+        const u64 tuskNps = tuskClock.calcNodesPerSecond(tusk.AccNodes);
+        const double speedup = legacyNps > 0 ? static_cast<double>(tuskNps) / static_cast<double>(legacyNps) : 0.0;
+        OUT() << std::format(" {:<40} {:>10} {:>12} {:>12} {:>7.2f}x", perftCase.testId, tusk.Nodes, legacyNps, tuskNps, speedup);
+
+        totalNodes += tusk.AccNodes;
+        legacyTotalMs += legacyClock.getElapsedTime();
+        tuskTotalMs += tuskClock.getElapsedTime();
+    }
+
+    OUT() << "---------------------------------";
+    OUT() << " legacy: " << legacyTotalMs << " ms, tusk: " << tuskTotalMs << " ms, total nodes: " << totalNodes;
+    if (tuskTotalMs > 0)
+        OUT() << std::format(" overall speedup: {:.2f}x", static_cast<double>(legacyTotalMs) / static_cast<double>(tuskTotalMs));
 }
 
 ////////////////////////////////////////////////////////////////

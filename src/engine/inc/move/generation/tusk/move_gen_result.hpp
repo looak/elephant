@@ -30,12 +30,39 @@
 
 #include <array>
 #include <span>
+#include <type_traits>
 
 #include <material/chess_piece_defines.hpp>
 #include <move/move.hpp>
 #include <move/generation/tusk/move_gen_params.hpp>
 
 namespace tusk {
+
+// Move & ordering score as stored in a MoveGenResult. Kept trivial so the 256 entry buffer is left uninitialized,
+// only entries that are pushed are ever written.
+struct ScoredMove {
+    static constexpr u16 priorityMask = 0x7FFF;
+    static constexpr u16 checkFlag = 0x8000;
+
+    PackedMove move;
+    u16 score;  // [check x1][priority x15]
+
+    [[nodiscard]] static ScoredMove make(PackedMove move, u16 priority, bool check = false) {
+        return { move, static_cast<u16>((priority & priorityMask) | (check ? checkFlag : 0)) };
+    }
+
+    [[nodiscard]] u16 priority() const { return score & priorityMask; }
+    [[nodiscard]] bool isCheck() const { return (score & checkFlag) != 0; }
+
+    [[nodiscard]] PrioritizedMove toPrioritized() const {
+        PrioritizedMove result(move, priority());
+        result.setCheck(isCheck());
+        return result;
+    }
+};
+
+static_assert(std::is_trivial_v<ScoredMove>, "ScoredMove must stay trivial, MoveGenResult relies on it being uninitialized");
+static_assert(sizeof(ScoredMove) == 4, "ScoredMove is not 4 bytes");
 
 template<Set us>
 class MoveGenerator;
@@ -59,7 +86,7 @@ public:
     [[nodiscard]] PackedMove peek();
 
     // Moves already handed out by next(), e.g. quiets searched before a cutoff for history updates.
-    [[nodiscard]] std::span<const PrioritizedMove> searched() const {
+    [[nodiscard]] std::span<const ScoredMove> searched() const {
         return { m_moves.data(), m_current };
     }
 
@@ -72,12 +99,12 @@ private:
     friend class MoveGenerator<us>;
 
     // used by the generator to append to the current batch.
-    void push(PrioritizedMove move) { m_moves[m_end++] = move; }
+    void push(ScoredMove move) { m_moves[m_end++] = move; }
 
     // swaps the highest priority move in [m_current, m_end) into m_current.
     void pickBest();
 
-    std::array<PrioritizedMove, 256> m_moves;
+    std::array<ScoredMove, 256> m_moves;  // intentionally uninitialized, see ScoredMove
     const MoveGenerator<us>* m_generator;
     u32 m_current = 0;
     u32 m_end = 0;

@@ -6,6 +6,7 @@ PerftSearch::PerftSearch(GameContext& context)
 
 }
 
+template<typename TMoveGen>
 PerftResult PerftSearch::Run(int depth)
 {
     if (depth <= 0) {
@@ -37,8 +38,11 @@ PerftResult PerftSearch::Run(int depth)
     };
 
 
-    return internalRunEntryPoint<PerftResult, t_accFunction>(depth, accumulator);    
+    return internalRunEntryPoint<TMoveGen, PerftResult, t_accFunction>(depth, accumulator);
 }
+
+template PerftResult PerftSearch::Run<move_gen_policy::Legacy>(int);
+template PerftResult PerftSearch::Run<move_gen_policy::Tusk>(int);
 
 PerftResult PerftSearch::Deepen()
 {
@@ -48,7 +52,7 @@ PerftResult PerftSearch::Deepen()
     return PerftResult();
 }
 
-
+template<typename TMoveGen>
 std::vector<DivideResult> PerftSearch::Divide(int depth)
 {
     if (depth <= 0) {
@@ -56,7 +60,6 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
     }
 
     std::vector<DivideResult> results;
-    MoveGenParams params;
 
     typedef std::function<void(PackedMove, DivideResult::inner&, bool)> t_accFunction;
 
@@ -65,27 +68,24 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
         result.AccNodes++;
     };
 
-    auto forEachMoveLambda = [&results, depth, &accumulator, this] (PackedMove move) {        
+    auto forEachMoveLambda = [&results, depth, &accumulator, this] (PackedMove move) {
         m_context.MakeMove<true>(move);
-        auto inner = internalRunEntryPoint<DivideResult::inner, t_accFunction>(depth - 1, accumulator);
+        auto inner = internalRunEntryPoint<TMoveGen, DivideResult::inner, t_accFunction>(depth - 1, accumulator);
         inner.Nodes = inner.Nodes == 0 ? 1 : inner.Nodes;
         m_context.UnmakeMove();
 
         results.emplace_back(move, inner);
     };
 
-    
+    const PositionReader position = m_context.readChessboard().readPosition();
     if (m_context.readToPlay() == Set::WHITE) {
-        MoveGenerator<Set::WHITE> gen(m_context.readChessboard().readPosition(), params);
-        while (PrioritizedMove ordered = gen.pop()) {
-            forEachMoveLambda(ordered.move);
-        }
+        TMoveGen::template forEachMove<Set::WHITE>(position, forEachMoveLambda);
     } else {
-        MoveGenerator<Set::BLACK> gen(m_context.readChessboard().readPosition(), params);
-        while (PrioritizedMove ordered = gen.pop()) {
-            forEachMoveLambda(ordered.move);
-        }
+        TMoveGen::template forEachMove<Set::BLACK>(position, forEachMoveLambda);
     }
 
     return results;
 }
+
+template std::vector<DivideResult> PerftSearch::Divide<move_gen_policy::Legacy>(int);
+template std::vector<DivideResult> PerftSearch::Divide<move_gen_policy::Tusk>(int);

@@ -117,7 +117,7 @@ inline u8 victimAt(const MaterialPositionMask& material, u64 sqrMask) {
 }
 
 template<Set us>
-PrioritizedMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& material,
+ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& material,
                           const std::array<u64, 6>& checkSquares, const MoveOrderingView* ordering) {
     const u64 dstMask = 1ull << move.target();
     const u8 checkingPiece = move.isPromotion() ? static_cast<u8>(move.readPromoteToPieceType() - 1) : pieceId;
@@ -137,9 +137,7 @@ PrioritizedMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMas
             score += std::clamp(ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr()), 0, priority::historyMax);
     }
 
-    PrioritizedMove result(move, static_cast<u16>(std::max(score, 0)));
-    result.setCheck(check);
-    return result;
+    return ScoredMove::make(move, static_cast<u16>(std::max(score, 0)), check);
 }
 
 } // namespace
@@ -173,7 +171,7 @@ template<Set us>
 void MoveGenResult<us>::pickBest() {
     u32 best = m_current;
     for (u32 i = m_current + 1; i < m_end; ++i) {
-        if (m_moves[i].priority > m_moves[best].priority)
+        if (m_moves[i].priority() > m_moves[best].priority())
             best = i;
     }
     if (best != m_current)
@@ -216,21 +214,21 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
         if (result.m_current < result.m_end) {
             if (result.m_stage == Stage::CAPTURES || result.m_stage == Stage::QUIETS)
                 result.pickBest();
-            return result.m_moves[result.m_current++];
+            return result.m_moves[result.m_current++].toPrioritized();
         }
 
         switch (result.m_stage) {
         case Stage::PV_MOVE:
             result.m_stage = Stage::TT_MOVE;
             if (ordering != nullptr && ordering->pvMove && accepted(ordering->pvMove) && isLegal(ordering->pvMove))
-                result.push(PrioritizedMove(ordering->pvMove, priority::pvMove));
+                result.push(ScoredMove::make(ordering->pvMove, priority::pvMove));
             break;
 
         case Stage::TT_MOVE:
             result.m_stage = Stage::CAPTURES_GEN;
             if (ordering != nullptr && ordering->ttMove && ordering->ttMove != ordering->pvMove
                 && accepted(ordering->ttMove) && isLegal(ordering->ttMove))
-                result.push(PrioritizedMove(ordering->ttMove, priority::ttMove));
+                result.push(ScoredMove::make(ordering->ttMove, priority::ttMove));
             break;
 
         case Stage::CAPTURES_GEN:
@@ -252,7 +250,7 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
                     if (killer == ordering->pvMove || killer == ordering->ttMove || (i == 1 && killer == ordering->killers[0]))
                         continue;
                     if (isLegal(killer))
-                        result.push(PrioritizedMove(killer, priority::killerMove));
+                        result.push(ScoredMove::make(killer, priority::killerMove));
                 }
             }
             break;
@@ -276,7 +274,7 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
 template<Set us>
 void MoveGenerator<us>::generateUnordered(MoveGenResult<us>& result) const {
     auto sink = [&result](PackedMove move, u8) {
-        result.push(PrioritizedMove(move, 0));
+        result.push(ScoredMove::make(move, 0));
     };
     generateMoves<GenType::ALL>(sink, ~0ull);
 }

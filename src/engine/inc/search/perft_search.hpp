@@ -31,7 +31,7 @@
 #include <core/game_context.hpp>
 #include <material/chess_piece_defines.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move/generation/move_gen_policy.hpp>
 #include <move/move_executor.hpp>
 
 
@@ -82,6 +82,11 @@ struct DivideResult {
     inner Result;
 };
 
+/**
+ * @brief Perft, templated on a move generator policy (see move_gen_policy.hpp) so generators can be A/B tested:
+ *     perft.Run(depth);                           // legacy generator
+ *     perft.Run<move_gen_policy::Tusk>(depth);    // tusk generator
+ * Run & Divide are explicitly instantiated for move_gen_policy::Legacy and move_gen_policy::Tusk.   */
 class PerftSearch {
 public:
     PerftSearch(GameContext& context);
@@ -90,6 +95,7 @@ public:
      * @brief Runs the perft search to the specified depth.
      * @param depth The depth to search to.
      * @return The result of the perft search.     */    
+    template<typename TMoveGen = move_gen_policy::Legacy>
     PerftResult Run(int depth);
 
     /**
@@ -99,53 +105,51 @@ public:
     
     /**
      * @brief Divides the perft search into a node search per move at origin.
-     * @param toPlay The set to play.
      * @param atDepth The depth to divide the search at.
      * @return A vector of results from the divided searches.    */
+    template<typename TMoveGen = move_gen_policy::Legacy>
     std::vector<DivideResult> Divide(int atDepth);
     
 
 private:
-    template<Set us, typename TResult, typename TAccumulator>
+    template<Set us, typename TMoveGen, typename TResult, typename TAccumulator>
     TResult internalRun(int depth, const TAccumulator& accumulator);
 
-    template<typename TResult, typename TAccumulator>
+    template<typename TMoveGen, typename TResult, typename TAccumulator>
     TResult internalRunEntryPoint(int depth, const TAccumulator& accumulator);
 
     GameContext& m_context;
 };
 
-template<Set us, typename TResult, typename TAccumulator>
+template<Set us, typename TMoveGen, typename TResult, typename TAccumulator>
 TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
 {
-    if (depth <= 0) 
+    if (depth <= 0)
         return {};
-
-    MoveGenParams params;
-    MoveGenerator<us> gen(m_context.readChessboard().readPosition(), params);    
 
     TResult result = {};
 
-    while (PackedMove move = gen.pop().move) {
+    TMoveGen::template forEachMove<us>(m_context.readChessboard().readPosition(), [&](PackedMove move) {
         if (depth == 1) {
             accumulator(move, result, true);
+            return;
         }
 
         m_context.MakeMove<true>(move);
-        result += internalRun<opposing_set<us>(), TResult, TAccumulator>(depth - 1, accumulator);
+        result += internalRun<opposing_set<us>(), TMoveGen, TResult, TAccumulator>(depth - 1, accumulator);
         m_context.UnmakeMove();
-    }
+    });
 
     return result;
 }
 
-template<typename TResult, typename TAccumulator>
+template<typename TMoveGen, typename TResult, typename TAccumulator>
 TResult PerftSearch::internalRunEntryPoint(int depth, const TAccumulator& accumulator)
 {
     if (m_context.readToPlay() == Set::WHITE) {
-        return internalRun<Set::WHITE, TResult>(depth, accumulator);
+        return internalRun<Set::WHITE, TMoveGen, TResult>(depth, accumulator);
     } else {
-        return internalRun<Set::BLACK, TResult>(depth, accumulator);
+        return internalRun<Set::BLACK, TMoveGen, TResult>(depth, accumulator);
     }
 }
 
