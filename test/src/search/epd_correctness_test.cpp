@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cstdlib>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -102,8 +103,19 @@ protected:
 
     void SetUp() override {
         ensureLoggerInitialized();
-        // params.SearchDepth = 10; // reasonable depth for tests
-        params.MoveTime = 1000; // 0.25 second per move
+
+        // Search limits can be overridden from the environment so both modes run from the same binary:
+        //   EG_EPD_DEPTH=7      fixed depth, deterministic, no time limit
+        //   EG_EPD_MOVETIME=1000 milliseconds per position (default when neither is set)
+        const char* depthEnv = std::getenv("EG_EPD_DEPTH");
+        const char* moveTimeEnv = std::getenv("EG_EPD_MOVETIME");
+        if (depthEnv != nullptr) {
+            params.SearchDepth = static_cast<u8>(std::atoi(depthEnv));
+            params.MoveTime = 0;
+        }
+        else {
+            params.MoveTime = moveTimeEnv != nullptr ? static_cast<u32>(std::atoi(moveTimeEnv)) : 1000;
+        }
     }
     void TearDown() override {
         // Flush and release the logger so the file is closed properly
@@ -188,7 +200,9 @@ TEST_P(EpdCorrectness, DISABLED_FindBestMove) {
         spdlog::error("Test ID: {} FAILED! Expected one of moves: {} | Engine move: {}", tc.id, tc.bestMoveSan, result.move().toString());
     }
 
-    EXPECT_TRUE(moveFound) << "Test ID: " << tc.id;    
+    EXPECT_TRUE(moveFound) << "Test ID: " << tc.id
+        << "\n  Engine:   " << result.move().toString() << " score " << result.score << " nodes " << result.count
+        << "\n  PV:       " << result.pvLine.toString();
 }
 
 // static definitions
