@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 set(TEST_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(TEST_SUITE_DIR ${CMAKE_CURRENT_LIST_DIR}/suite)
 set(TEST_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -69,10 +70,16 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ## ${TEST_SRC_DIR}/position/position_test.cpp
 
 ## /search/...
-    ${TEST_SRC_DIR}/search/epd_correctness_test.cpp
-    ${TEST_SRC_DIR}/search/perft_test.cpp
     ${TEST_SRC_DIR}/search/search_test.cpp
     ## ${TEST_SRC_DIR}/search/transposition_test.cpp
 )
 
+# Long running correctness suites (perft, EPD), built into their own executable.
+set(TEST_SUITE_SOURCE ${TEST_SUITE_SOURCE}
+    ${TEST_SRC_DIR}/elephant_test.cpp
+    ${TEST_SUITE_DIR}/epd_suite_test.cpp
+    ${TEST_SUITE_DIR}/perft_test.cpp
+)
+
 set(TEST_SOURCE_ALL ${TEST_SOURCE} ${TEST_SOURCE_INCLUDE})
+set(TEST_SUITE_SOURCE_ALL ${TEST_SUITE_SOURCE} ${TEST_SOURCE_INCLUDE})
