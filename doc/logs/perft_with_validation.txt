@@ -1,0 +1,292 @@
+Note: Google Test filter = *Perft*
+[==========] Running 5 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from FenParserFixture
+[ RUN      ] FenParserFixture.PerftPositionThree
+[       OK ] FenParserFixture.PerftPositionThree (0 ms)
+[----------] 1 test from FenParserFixture (0 ms total)
+
+[----------] 1 test from BulkMoveGeneratorTestFixture
+[ RUN      ] BulkMoveGeneratorTestFixture.PerftPositionTwo_MissingSomeCaptures
+[       OK ] BulkMoveGeneratorTestFixture.PerftPositionTwo_MissingSomeCaptures (0 ms)
+[----------] 1 test from BulkMoveGeneratorTestFixture (0 ms total)
+
+[----------] 3 tests from PerftFixture
+[ RUN      ] PerftFixture.EstablishedReferencePositions
+[ 1/18     ] Running test:     illegal enpassant (legacy)
+[          ]  Nodes: - - - - - - - 1134888 nodes
+[          ]  Total nodes: - - - - 1134888 nodes
+[          ]  Nodes per second: - - 6068919 nps
+[          ]  Elapsed time: - - - - 187 ms
+[  PASSED  ] Expected nodes matched: 1134888
+[ 1/18     ] ---------------------------------
+[ 2/18     ] Running test:     illegal enpassant (legacy)
+[          ]  Nodes: - - - - - - - 1015133 nodes
+[          ]  Total nodes: - - - - 1015133 nodes
+[          ]  Nodes per second: - - 6722735 nps
+[          ]  Elapsed time: - - - - 151 ms
+[  PASSED  ] Expected nodes matched: 1015133
+[ 2/18     ] ---------------------------------
+[ 3/18     ] Running test:     en passant capture, checks opponent (legacy)
+[          ]  Nodes: - - - - - - - 1440467 nodes
+[          ]  Total nodes: - - - - 1440467 nodes
+[          ]  Nodes per second: - - 6517950 nps
+[          ]  Elapsed time: - - - - 221 ms
+[  PASSED  ] Expected nodes matched: 1440467
+[ 3/18     ] ---------------------------------
+[ 4/18     ] Running test:     short castling (legacy)
+[          ]  Nodes: - - - - - - - 661072 nodes
+[          ]  Total nodes: - - - - 661072 nodes
+[          ]  Nodes per second: - - 6610720 nps
+[          ]  Elapsed time: - - - - 100 ms
+[  PASSED  ] Expected nodes matched: 661072
+[ 4/18     ] ---------------------------------
+[ 5/18     ] Running test:     long castling (legacy)
+[          ]  Nodes: - - - - - - - 803711 nodes
+[          ]  Total nodes: - - - - 803711 nodes
+[          ]  Nodes per second: - - 6811110 nps
+[          ]  Elapsed time: - - - - 118 ms
+[  PASSED  ] Expected nodes matched: 803711
+[ 5/18     ] ---------------------------------
+[ 6/18     ] Running test:     castling rights (legacy)
+[          ]  Nodes: - - - - - - - 1274206 nodes
+[          ]  Total nodes: - - - - 1274206 nodes
+[          ]  Nodes per second: - - 11080052 nps
+[          ]  Elapsed time: - - - - 115 ms
+[  PASSED  ] Expected nodes matched: 1274206
+[ 6/18     ] ---------------------------------
+[ 7/18     ] Running test:     castling prevented (legacy)
+[          ]  Nodes: - - - - - - - 1720476 nodes
+[          ]  Total nodes: - - - - 1720476 nodes
+[          ]  Nodes per second: - - 10240929 nps
+[          ]  Elapsed time: - - - - 168 ms
+[  PASSED  ] Expected nodes matched: 1720476
+[ 7/18     ] ---------------------------------
+[ 8/18     ] Running test:     promotion out of check (legacy)
+[          ]  Nodes: - - - - - - - 3821001 nodes
+[          ]  Total nodes: - - - - 3821001 nodes
+[          ]  Nodes per second: - - 9251819 nps
+[          ]  Elapsed time: - - - - 413 ms
+[  PASSED  ] Expected nodes matched: 3821001
+[ 8/18     ] ---------------------------------
+[ 9/18     ] Running test:     discovered check (legacy)
+[          ]  Nodes: - - - - - - - 1004658 nodes
+[          ]  Total nodes: - - - - 1004658 nodes
+[          ]  Nodes per second: - - 10802774 nps
+[          ]  Elapsed time: - - - - 93 ms
+[  PASSED  ] Expected nodes matched: 1004658
+[ 9/18     ] ---------------------------------
+[ 10/18    ] Running test:     promote to give check (legacy)
+[          ]  Nodes: - - - - - - - 217342 nodes
+[          ]  Total nodes: - - - - 217342 nodes
+[          ]  Nodes per second: - - 5874108 nps
+[          ]  Elapsed time: - - - - 37 ms
+[  PASSED  ] Expected nodes matched: 217342
+[ 10/18    ] ---------------------------------
+[ 11/18    ] Running test:     under promote to give check (legacy)
+[          ]  Nodes: - - - - - - - 92683 nodes
+[          ]  Total nodes: - - - - 92683 nodes
+[          ]  Nodes per second: - - 4634150 nps
+[          ]  Elapsed time: - - - - 20 ms
+[  PASSED  ] Expected nodes matched: 92683
+[ 11/18    ] ---------------------------------
+[ 12/18    ] Running test:     self stalemate (legacy)
+[          ]  Nodes: - - - - - - - 2217 nodes
+[          ]  Total nodes: - - - - 2217 nodes
+[          ]  Nodes per second: - - 316714 nps
+[          ]  Elapsed time: - - - - 7 ms
+[  PASSED  ] Expected nodes matched: 2217
+[ 12/18    ] ---------------------------------
+[ 13/18    ] Running test:     stalemate and checkmate (legacy)
+[          ]  Nodes: - - - - - - - 567584 nodes
+[          ]  Total nodes: - - - - 567584 nodes
+[          ]  Nodes per second: - - 7883111 nps
+[          ]  Elapsed time: - - - - 72 ms
+[  PASSED  ] Expected nodes matched: 567584
+[ 13/18    ] ---------------------------------
+[ 14/18    ] Running test:     stalemate and checkmate (legacy)
+[          ]  Nodes: - - - - - - - 23527 nodes
+[          ]  Total nodes: - - - - 23527 nodes
+[          ]  Nodes per second: - - 2138818 nps
+[          ]  Elapsed time: - - - - 11 ms
+[  PASSED  ] Expected nodes matched: 23527
+[ 14/18    ] ---------------------------------
+[ 15/18    ] Running test:     two hundred million nodes (legacy)
+[          ]  Nodes: - - - - - - - 193690690 nodes
+[          ]  Total nodes: - - - - 193690690 nodes
+[          ]  Nodes per second: - - 9269271 nps
+[          ]  Elapsed time: - - - - 20896 ms
+[  PASSED  ] Expected nodes matched: 193690690
+[ 15/18    ] ---------------------------------
+[ 16/18    ] Test Disabled: two hundred million nodes
+[ 16/18    ] ---------------------------------
+[ 17/18    ] Test Disabled: seven hundred million nodes
+[ 17/18    ] ---------------------------------
+[ 18/18    ] Running test:     bishop vs rook endgame (legacy)
+[          ]  Nodes: - - - - - - - 1063513 nodes
+[          ]  Total nodes: - - - - 1063513 nodes
+[          ]  Nodes per second: - - 9247939 nps
+[          ]  Elapsed time: - - - - 115 ms
+[  PASSED  ] Expected nodes matched: 1063513
+[ 18/18    ] ---------------------------------
+[          ] ---------------------------------
+[          ]  ### AGGREGATE RESULTS (legacy) ###
+[          ]   Total nodes:  - - - - - - - 208533168 nodes
+[          ]   Total elapsed time: - - - - 22754 ms
+[          ]   Total nodes per second: - - 9164682 nps
+[          ]   Average nodes per second: - 6303951 nps
+[          ] ---------------------------------
+[       OK ] PerftFixture.EstablishedReferencePositions (22762 ms)
+[ RUN      ] PerftFixture.EstablishedReferencePositions_Tusk
+[ 1/18     ] Running test:     illegal enpassant (tusk)
+[          ]  Nodes: - - - - - - - 1134888 nodes
+[          ]  Total nodes: - - - - 1134888 nodes
+[          ]  Nodes per second: - - 7992169 nps
+[          ]  Elapsed time: - - - - 142 ms
+[  PASSED  ] Expected nodes matched: 1134888
+[ 1/18     ] ---------------------------------
+[ 2/18     ] Running test:     illegal enpassant (tusk)
+[          ]  Nodes: - - - - - - - 1015133 nodes
+[          ]  Total nodes: - - - - 1015133 nodes
+[          ]  Nodes per second: - - 8751147 nps
+[          ]  Elapsed time: - - - - 116 ms
+[  PASSED  ] Expected nodes matched: 1015133
+[ 2/18     ] ---------------------------------
+[ 3/18     ] Running test:     en passant capture, checks opponent (tusk)
+[          ]  Nodes: - - - - - - - 1440467 nodes
+[          ]  Total nodes: - - - - 1440467 nodes
+[          ]  Nodes per second: - - 8730103 nps
+[          ]  Elapsed time: - - - - 165 ms
+[  PASSED  ] Expected nodes matched: 1440467
+[ 3/18     ] ---------------------------------
+[ 4/18     ] Running test:     short castling (tusk)
+[          ]  Nodes: - - - - - - - 661072 nodes
+[          ]  Total nodes: - - - - 661072 nodes
+[          ]  Nodes per second: - - 8367999 nps
+[          ]  Elapsed time: - - - - 79 ms
+[  PASSED  ] Expected nodes matched: 661072
+[ 4/18     ] ---------------------------------
+[ 5/18     ] Running test:     long castling (tusk)
+[          ]  Nodes: - - - - - - - 803711 nodes
+[          ]  Total nodes: - - - - 803711 nodes
+[          ]  Nodes per second: - - 8642054 nps
+[          ]  Elapsed time: - - - - 93 ms
+[  PASSED  ] Expected nodes matched: 803711
+[ 5/18     ] ---------------------------------
+[ 6/18     ] Running test:     castling rights (tusk)
+[          ]  Nodes: - - - - - - - 1274206 nodes
+[          ]  Total nodes: - - - - 1274206 nodes
+[          ]  Nodes per second: - - 14002264 nps
+[          ]  Elapsed time: - - - - 91 ms
+[  PASSED  ] Expected nodes matched: 1274206
+[ 6/18     ] ---------------------------------
+[ 7/18     ] Running test:     castling prevented (tusk)
+[          ]  Nodes: - - - - - - - 1720476 nodes
+[          ]  Total nodes: - - - - 1720476 nodes
+[          ]  Nodes per second: - - 13874807 nps
+[          ]  Elapsed time: - - - - 124 ms
+[  PASSED  ] Expected nodes matched: 1720476
+[ 7/18     ] ---------------------------------
+[ 8/18     ] Running test:     promotion out of check (tusk)
+[          ]  Nodes: - - - - - - - 3821001 nodes
+[          ]  Total nodes: - - - - 3821001 nodes
+[          ]  Nodes per second: - - 12130162 nps
+[          ]  Elapsed time: - - - - 315 ms
+[  PASSED  ] Expected nodes matched: 3821001
+[ 8/18     ] ---------------------------------
+[ 9/18     ] Running test:     discovered check (tusk)
+[          ]  Nodes: - - - - - - - 1004658 nodes
+[          ]  Total nodes: - - - - 1004658 nodes
+[          ]  Nodes per second: - - 13576459 nps
+[          ]  Elapsed time: - - - - 74 ms
+[  PASSED  ] Expected nodes matched: 1004658
+[ 9/18     ] ---------------------------------
+[ 10/18    ] Running test:     promote to give check (tusk)
+[          ]  Nodes: - - - - - - - 217342 nodes
+[          ]  Total nodes: - - - - 217342 nodes
+[          ]  Nodes per second: - - 7011032 nps
+[          ]  Elapsed time: - - - - 31 ms
+[  PASSED  ] Expected nodes matched: 217342
+[ 10/18    ] ---------------------------------
+[ 11/18    ] Running test:     under promote to give check (tusk)
+[          ]  Nodes: - - - - - - - 92683 nodes
+[          ]  Total nodes: - - - - 92683 nodes
+[          ]  Nodes per second: - - 5451941 nps
+[          ]  Elapsed time: - - - - 17 ms
+[  PASSED  ] Expected nodes matched: 92683
+[ 11/18    ] ---------------------------------
+[ 12/18    ] Running test:     self stalemate (tusk)
+[          ]  Nodes: - - - - - - - 2217 nodes
+[          ]  Total nodes: - - - - 2217 nodes
+[          ]  Nodes per second: - - 316714 nps
+[          ]  Elapsed time: - - - - 7 ms
+[  PASSED  ] Expected nodes matched: 2217
+[ 12/18    ] ---------------------------------
+[ 13/18    ] Running test:     stalemate and checkmate (tusk)
+[          ]  Nodes: - - - - - - - 567584 nodes
+[          ]  Total nodes: - - - - 567584 nodes
+[          ]  Nodes per second: - - 10135428 nps
+[          ]  Elapsed time: - - - - 56 ms
+[  PASSED  ] Expected nodes matched: 567584
+[ 13/18    ] ---------------------------------
+[ 14/18    ] Running test:     stalemate and checkmate (tusk)
+[          ]  Nodes: - - - - - - - 23527 nodes
+[          ]  Total nodes: - - - - 23527 nodes
+[          ]  Nodes per second: - - 2352700 nps
+[          ]  Elapsed time: - - - - 10 ms
+[  PASSED  ] Expected nodes matched: 23527
+[ 14/18    ] ---------------------------------
+[ 15/18    ] Running test:     two hundred million nodes (tusk)
+[          ]  Nodes: - - - - - - - 193690690 nodes
+[          ]  Total nodes: - - - - 193690690 nodes
+[          ]  Nodes per second: - - 12897236 nps
+[          ]  Elapsed time: - - - - 15018 ms
+[  PASSED  ] Expected nodes matched: 193690690
+[ 15/18    ] ---------------------------------
+[ 16/18    ] Test Disabled: two hundred million nodes
+[ 16/18    ] ---------------------------------
+[ 17/18    ] Test Disabled: seven hundred million nodes
+[ 17/18    ] ---------------------------------
+[ 18/18    ] Running test:     bishop vs rook endgame (tusk)
+[          ]  Nodes: - - - - - - - 1063513 nodes
+[          ]  Total nodes: - - - - 1063513 nodes
+[          ]  Nodes per second: - - 11559924 nps
+[          ]  Elapsed time: - - - - 92 ms
+[  PASSED  ] Expected nodes matched: 1063513
+[ 18/18    ] ---------------------------------
+[          ] ---------------------------------
+[          ]  ### AGGREGATE RESULTS (tusk) ###
+[          ]   Total nodes:  - - - - - - - 208533168 nodes
+[          ]   Total elapsed time: - - - - 16456 ms
+[          ]   Total nodes per second: - - 12672167 nps
+[          ]   Average nodes per second: - 8099563 nps
+[          ] ---------------------------------
+[       OK ] PerftFixture.EstablishedReferencePositions_Tusk (16463 ms)
+[ RUN      ] PerftFixture.MoveGeneratorAB
+[          ]  case                                          nodes   legacy nps     tusk nps  speedup
+[          ]  illegal enpassant                           1134888      6036638      8344764    1.38x
+[          ]  illegal enpassant                           1015133      6905666      9063687    1.31x
+[          ]  en passant capture, checks opponent         1440467      6699846      9002919    1.34x
+[          ]  short castling                               661072      6815175      8161382    1.20x
+[          ]  long castling                                803711      6697592      8371989    1.25x
+[          ]  castling rights                             1274206     11177246     13850065    1.24x
+[          ]  castling prevented                          1720476     10364314     13654571    1.32x
+[          ]  promotion out of check                      3821001      9342301     11793213    1.26x
+[          ]  discovered check                            1004658     10575348     13953584    1.32x
+[          ]  promote to give check                        217342      5719526      6791937    1.19x
+[          ]  under promote to give check                   92683      4413476      5149056    1.17x
+[          ]  self stalemate                                 2217       316714       316714    1.00x
+[          ]  stalemate and checkmate                      567584      7775123      9957614    1.28x
+[          ]  stalemate and checkmate                       23527      2138818      2352700    1.10x
+[          ]  two hundred million nodes                 193690690      9329545     12875802    1.38x
+[          ]  bishop vs rook endgame                      1063513      9168216     11559924    1.26x
+[          ] ---------------------------------
+[          ]  legacy: 22578 ms, tusk: 16458 ms, total nodes: 208533168
+[          ]  overall speedup: 1.37x
+[       OK ] PerftFixture.MoveGeneratorAB (39061 ms)
+[----------] 3 tests from PerftFixture (78288 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 3 test suites ran. (78290 ms total)
+[  PASSED  ] 5 tests.
+Press any key to continue . . .

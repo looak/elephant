@@ -1,4 +1,4 @@
-﻿set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(ENGINE_SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(ENGINE_INC_DIR ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -10,61 +10,159 @@ endif()
 configure_file(${ENGINE_INC_DIR}/elephant_gambit_config.h.in ${ENGINE_INC_DIR}/elephant_gambit_config.h)
 
 set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
-${ENGINE_INC_DIR}/elephant_gambit.h
-${ENGINE_INC_DIR}/elephant_gambit_config.h
-${ENGINE_INC_DIR}/defines.hpp
-${ENGINE_INC_DIR}/libpopcnt.h
-${ENGINE_INC_DIR}/attacks/attacks.hpp
-${ENGINE_INC_DIR}/attacks/magic_constants.hpp
-${ENGINE_INC_DIR}/bitboard.hpp
-${ENGINE_INC_DIR}/bitboard_constants.hpp
-${ENGINE_INC_DIR}/chessboard.h
-${ENGINE_INC_DIR}/chess_piece.h
-${ENGINE_INC_DIR}/clock.hpp
-${ENGINE_INC_DIR}/evaluation_table.hpp
-${ENGINE_INC_DIR}/evaluator.h
-${ENGINE_INC_DIR}/fen_parser.h
-${ENGINE_INC_DIR}/game_context.h
-${ENGINE_INC_DIR}/hash_zorbist.h
-${ENGINE_INC_DIR}/intrinsics.hpp
-${ENGINE_INC_DIR}/king_pin_threats.hpp
-${ENGINE_INC_DIR}/log.h
-${ENGINE_INC_DIR}/move.h
-${ENGINE_INC_DIR}/notation.h
-${ENGINE_INC_DIR}/material_mask.hpp
-${ENGINE_INC_DIR}/move_generator.hpp
-${ENGINE_INC_DIR}/position.hpp
-${ENGINE_INC_DIR}/rays/rays.hpp
-${ENGINE_INC_DIR}/search.hpp
-${ENGINE_INC_DIR}/search_constants.hpp
-${ENGINE_INC_DIR}/static_initializer.hpp
-${ENGINE_INC_DIR}/transposition_table.hpp
-${ENGINE_INC_DIR}/uci.hpp
+## /...
+    ${ENGINE_INC_DIR}/elephant_gambit.hpp
+    ${ENGINE_INC_DIR}/elephant_gambit_config.h
+
+## /bitboard/...
+    ${ENGINE_INC_DIR}/bitboard/bitboard.hpp
+    ${ENGINE_INC_DIR}/bitboard/bitboard_constants.hpp
+    ${ENGINE_INC_DIR}/bitboard/intrinsics.hpp
+
+## /bitboard/attacks/...
+    ${ENGINE_INC_DIR}/bitboard/attacks/attacks.hpp
+    ${ENGINE_INC_DIR}/bitboard/attacks/magic_constants.hpp
+
+## /bitboard/rays/...
+    ${ENGINE_INC_DIR}/bitboard/rays/rays.hpp
+
+## /core/...
+    ${ENGINE_INC_DIR}/core/chessboard.hpp
+    ${ENGINE_INC_DIR}/core/game_context.hpp
+    ${ENGINE_INC_DIR}/core/square.hpp
+    ${ENGINE_INC_DIR}/core/square_notation.hpp
+    ${ENGINE_INC_DIR}/core/uci.hpp
+
+## /debug/...
+    ${ENGINE_INC_DIR}/diagnostics/assert.hpp
+    ${ENGINE_INC_DIR}/diagnostics/exceptions.hpp
+    ${ENGINE_INC_DIR}/diagnostics/logger.hpp
+
+## /eval/...
+    ${ENGINE_INC_DIR}/eval/evaluation_table.hpp
+    ${ENGINE_INC_DIR}/eval/evaluator.hpp
+    ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
+
+## /io/...
+    ${ENGINE_INC_DIR}/io/fen_parser.hpp
+    ${ENGINE_INC_DIR}/io/pgn_parser.hpp
+    ${ENGINE_INC_DIR}/io/printer.hpp
+    ${ENGINE_INC_DIR}/io/san_parser.hpp
+    ${ENGINE_INC_DIR}/io/weight_store.hpp    
+
+## /material/...
+    ${ENGINE_INC_DIR}/material/chess_piece.hpp
+    ${ENGINE_INC_DIR}/material/chess_piece_defines.hpp
+    ${ENGINE_INC_DIR}/material/material_mask.hpp
+    ${ENGINE_INC_DIR}/material/material_topology.hpp
+
+## /math/...
+    ${ENGINE_INC_DIR}/math/bench_positions.hpp
+    ${ENGINE_INC_DIR}/math/cast.hpp
+    ${ENGINE_INC_DIR}/math/math.hpp    
+
+## /move/...
+    ${ENGINE_INC_DIR}/move/move.hpp
+    ${ENGINE_INC_DIR}/move/move_executor.hpp
+
+## /move/generation/...
+    ${ENGINE_INC_DIR}/move/generation/king_pin_threats.hpp
+    ${ENGINE_INC_DIR}/move/generation/move_bulk_generator.hpp
+    ${ENGINE_INC_DIR}/move/generation/move_gen_isolation.hpp
+    ${ENGINE_INC_DIR}/move/generation/move_gen_policy.hpp
+    ${ENGINE_INC_DIR}/move/generation/move_generator.hpp
+    ${ENGINE_INC_DIR}/move/generation/move_ordering_view.hpp
+
+## /move/generation/tusk/...   new move gen
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_result.hpp
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_generator.hpp
+    ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_params.hpp
+
+## /position/...
+    ${ENGINE_INC_DIR}/position/castling_state_info.hpp
+    ${ENGINE_INC_DIR}/position/en_passant_state_info.hpp
+    ${ENGINE_INC_DIR}/position/hash_zobrist.hpp
+    ${ENGINE_INC_DIR}/position/position.hpp
+    ${ENGINE_INC_DIR}/position/position_access_policies.hpp
+    ${ENGINE_INC_DIR}/position/position_accessors.hpp
+    ${ENGINE_INC_DIR}/position/position_proxy.hpp
+
+## /search/...
+    ${ENGINE_INC_DIR}/search/perft_search.hpp
+    ${ENGINE_INC_DIR}/search/search.hpp
+    ${ENGINE_INC_DIR}/search/search_constants.hpp
+    ${ENGINE_INC_DIR}/search/search_heuristic_structures.hpp
+    ${ENGINE_INC_DIR}/search/search_move_source.hpp
+    ${ENGINE_INC_DIR}/search/search_policies.hpp    
+    ${ENGINE_INC_DIR}/search/search_results.hpp
+    ${ENGINE_INC_DIR}/search/transposition_table.hpp
+
+## /system/...
+    ${ENGINE_INC_DIR}/system/platform.hpp
+    ${ENGINE_INC_DIR}/system/clock.hpp
+    ${ENGINE_INC_DIR}/system/time_manager.hpp
+    ${ENGINE_INC_DIR}/system/static_initializer.hpp
 )
 
 set(ENGINE_SOURCE ${ENGINE_SOURCE}
-${ENGINE_SRC_DIR}/elephant_gambit.cpp
+## /...
+    ${ENGINE_SRC_DIR}/elephant_gambit.cpp
 
-${ENGINE_SRC_DIR}/attacks.cpp
-${ENGINE_SRC_DIR}/bitboard.cpp
-${ENGINE_SRC_DIR}/chessboard.cpp
-${ENGINE_SRC_DIR}/chess_piece.cpp
-${ENGINE_SRC_DIR}/clock.cpp
-${ENGINE_SRC_DIR}/evaluator.cpp
-${ENGINE_SRC_DIR}/evaluator_data.h
-${ENGINE_SRC_DIR}/fen_parser.cpp
-${ENGINE_SRC_DIR}/game_context.cpp
-${ENGINE_SRC_DIR}/hash_zorbist.cpp
-${ENGINE_SRC_DIR}/king_pin_threats.cpp
-${ENGINE_SRC_DIR}/log.cpp
-${ENGINE_SRC_DIR}/material_mask.cpp
-${ENGINE_SRC_DIR}/move.cpp
-${ENGINE_SRC_DIR}/notation.cpp
-${ENGINE_SRC_DIR}/move_generator.cpp
-${ENGINE_SRC_DIR}/position.cpp
-${ENGINE_SRC_DIR}/rays.cpp 
-${ENGINE_SRC_DIR}/search.cpp
-${ENGINE_SRC_DIR}/uci.cpp
+## /bitboard/...
+    ${ENGINE_SRC_DIR}/bitboard/attacks.cpp
+    ${ENGINE_SRC_DIR}/bitboard/rays.cpp
+
+## /core/...
+    ${ENGINE_SRC_DIR}/core/chessboard.cpp
+    ${ENGINE_SRC_DIR}/core/game_context.cpp
+    ${ENGINE_SRC_DIR}/core/uci.cpp
+
+## /diagnostics/...
+    ${ENGINE_SRC_DIR}/diagnostics/logger.cpp
+
+## /eval/...
+    ${ENGINE_SRC_DIR}/eval/evaluator.cpp
+
+## /io/...
+    ${ENGINE_SRC_DIR}/io/fen_parser.cpp
+    ${ENGINE_SRC_DIR}/io/pgn_parser.cpp
+    ${ENGINE_SRC_DIR}/io/printer.cpp
+    ${ENGINE_SRC_DIR}/io/san_parser.cpp
+    ${ENGINE_SRC_DIR}/io/weight_store.cpp
+
+## /material/...
+    ${ENGINE_SRC_DIR}/material/chess_piece.cpp
+    ${ENGINE_SRC_DIR}/material/material_mask.cpp
+    ${ENGINE_SRC_DIR}/material/material_topology.cpp
+
+## /move/...
+    ${ENGINE_SRC_DIR}/move/move.cpp
+    ${ENGINE_SRC_DIR}/move/move_executor.cpp
+
+## /move/generation/...
+    ${ENGINE_SRC_DIR}/move/generation/king_pin_threats.cpp
+    ${ENGINE_SRC_DIR}/move/generation/move_generator.cpp
+
+## /move/generation/tusk/...   new move gen
+    ${ENGINE_SRC_DIR}/move/generation/tusk/move_generator.cpp
+
+## /position/...
+    ${ENGINE_SRC_DIR}/position/hash_zobrist.cpp
+    ${ENGINE_SRC_DIR}/position/position.cpp
+    ${ENGINE_SRC_DIR}/position/position_proxy.cpp
+
+## /search/...
+    ${ENGINE_SRC_DIR}/search/perft_search.cpp
+    ${ENGINE_SRC_DIR}/search/search.cpp
+    ${ENGINE_SRC_DIR}/search/search_impl.cpp
+    ${ENGINE_SRC_DIR}/search/search_alphabeta.cpp
+    ${ENGINE_SRC_DIR}/search/search_nullmove.cpp
+    ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
+    ${ENGINE_SRC_DIR}/search/search_policies.cpp
+
+## /system/...
+    ${ENGINE_SRC_DIR}/system/clock.cpp
+    ${ENGINE_SRC_DIR}/system/time_manager.cpp
 )
 
 set(ENGINE_SOURCE_ALL ${ENGINE_SOURCE} ${ENGINE_SOURCE_INCLUDE})

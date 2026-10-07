@@ -1,22 +1,58 @@
-#!/usr/bin/env py
+#!/bin/sh
+# Adds a "bench <nodes> nodes" line from doc/bench-result to the commit message, OpenBench reads the bench from there.
+#
+# This tracked copy is the source, git runs it from .git/hooks. Install or update once per clone, from the repo root:
+#   cp hooks/prepare-commit-msg .git/hooks/ && chmod +x .git/hooks/prepare-commit-msg
+# Refresh after any change that affects search, from ob_build:   ./elephant_ob bench | tail -1 > ../doc/bench-result
 
-import sys, os, re
-from subprocess import check_output
+msg_file="$1"
+commit_type="$2"   # message, template, merge, squash, or commit (amend / -c / -C)
 
-# Collect the parameters
-commit_msg_filepath = sys.argv[1]
-if len(sys.argv) > 2:
-    commit_type = sys.argv[2]
-else:
-    commit_type = ''
-if len(sys.argv) > 3:
-    commit_hash = sys.argv[3]
-else:
-    commit_hash = ''
+# merges and squashes aren't benched.
+case "$commit_type" in
+    merge|squash) exit 0 ;;
+esac
 
-print("prepare-commit-msg: File: %s\nType: %s\nHash: %s" % (commit_msg_filepath, commit_type, commit_hash))
+bench_file="$(git rev-parse --show-toplevel)/doc/bench-result"
+[ -f "$bench_file" ] || exit 0
 
-with open('doc/bench-result', 'r') as f:
-    bench_result = f.read()
-    with open(commit_msg_filepath, 'a') as f:
-        f.write("\n\nbench %s" % bench_result)
+# first number in the file is the node count, e.g. "48460682 nodes 3727744 nps".
+nodes=$(grep -o '[0-9][0-9]*' "$bench_file" | head -n 1)
+[ -n "$nodes" ] || exit 0
+
+# Any existing bench line is replaced (amend). The bench line isn't a "Key: value" trailer, so it goes in its own
+# paragraph before the trailer block (Co-Authored-By etc.), otherwise git no longer reads the trailers.
+tmp_file="$msg_file.bench"
+awk -v bench="bench $nodes nodes" '
+    /^bench [0-9]+ nodes[[:space:]]*$/ { next }
+    # collapse the blank lines a removed bench line leaves behind.
+    /^[[:space:]]*$/ && n > 0 && lines[n] ~ /^[[:space:]]*$/ { next }
+    { lines[++n] = $0 }
+    END {
+        # last line of content, comment lines from the editor template stay where they are.
+        last = n
+        while (last > 0 && (lines[last] ~ /^#/ || lines[last] ~ /^[[:space:]]*$/)) last--
+
+        # first line of the last paragraph, a trailer block only if every line is a trailer and it isnt the subject.
+        first = last
+        while (first > 1 && lines[first - 1] !~ /^[[:space:]]*$/) first--
+        trailers = first > 1
+        for (i = first; i <= last && trailers; i++)
+            if (lines[i] !~ /^[A-Za-z0-9-]+: /) trailers = 0
+
+        if (trailers) {
+            for (i = 1; i < first; i++) print lines[i]
+            print bench
+            print ""
+            for (i = first; i <= n; i++) print lines[i]
+        } else {
+            for (i = 1; i <= last; i++) print lines[i]
+            if (last > 0) print ""
+            print bench
+            # what follows the content is editor comments, keep them one blank line below.
+            for (i = last + 1; i <= n && lines[i] ~ /^[[:space:]]*$/; i++) ;
+            if (i <= n) print ""
+            for (; i <= n; i++) print lines[i]
+        }
+    }
+' "$msg_file" > "$tmp_file" && mv "$tmp_file" "$msg_file"

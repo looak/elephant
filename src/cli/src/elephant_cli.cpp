@@ -1,90 +1,104 @@
 ﻿// ElephantGambit.cpp : Defines the entry point for the application.
 //
-#include "elephant_cli.h"
-#include "commands.h"
-#include "commands_uci.h"
-#include "commands_utils.h"
+#include "elephant_cli.hpp"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
-#include "game_context.h"
-#include "log.h"
+#include <core/game_context.hpp>
+#include <diagnostics/logger.hpp>
 
+#include "commands/command_api.hpp"
+#include "commands/logic/command_registry.hpp"
+#include "printer/printer.hpp"
+
+#include <spdlog/spdlog.h>
 #include <iostream>
 #include <list>
 #include <sstream>
 #include <string>
 
+Application::Application() { 
+    
+    prnt::out << " "<< std::endl;
+    prnt::out << "           88                        88" << std::endl;
+    prnt::out << "           88                        88                                   ,d" << std::endl;
+    prnt::out << "           88                        88                                   88" << std::endl;
+    prnt::out << " ,adPPYba, 88  ,adPPYba, 8b,dPPYba,  88,dPPYba,  ,adPPYYba, 8b,dPPYba,  MM88MMM" << std::endl;
+    prnt::out << "a8P_____88 88 a8P_____88 88P'    *8a 88P'    *8a **     `Y8 88P'   `*8a   88" << std::endl;
+    prnt::out << "8PP******* 88 8PP******* 88       d8 88       88 ,adPPPPP88 88       88   88" << std::endl;
+    prnt::out << "*8b,   ,aa 88 *8b,   ,aa 88b,   ,a8* 88       88 88,    ,88 88       88   88," << std::endl;
+    prnt::out << " `*Ybbd8*' 88  `*Ybbd8*' 88`YbbdP*'  88       88 `*8bbdP*Y8 88       88   *Y888" << std::endl;
+    prnt::out << "                         88" << std::endl;
+    prnt::out << "                         88                                               *j*m" << std::endl;
+    prnt::out << "\n                                                            a uci chess engine" << std::endl;
+    prnt::out << "                                                                     v: " << ELEPHANT_GAMBIT_VERSION_STR << std::endl;
+    prnt::out << "                                                                      " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
 
-
-Application::Application()
-{
-    MESSAGE() << "           88                        88";
-    MESSAGE() << "           88                        88                                   ,d";
-    MESSAGE() << "           88                        88                                   88";
-    MESSAGE() << " ,adPPYba, 88  ,adPPYba, 8b,dPPYba,  88,dPPYba,  ,adPPYYba, 8b,dPPYba,  MM88MMM";
-    MESSAGE() << "a8P_____88 88 a8P_____88 88P'    *8a 88P'    *8a **     `Y8 88P'   `*8a   88";
-    MESSAGE() << "8PP******* 88 8PP******* 88       d8 88       88 ,adPPPPP88 88       88   88";
-    MESSAGE() << "*8b,   ,aa 88 *8b,   ,aa 88b,   ,a8* 88       88 88,    ,88 88       88   88,";
-    MESSAGE() << " `*Ybbd8*' 88  `*Ybbd8*' 88`YbbdP*'  88       88 `*8bbdP*Y8 88       88   *Y888";
-    MESSAGE() << "                         88";
-    MESSAGE() << "                         88                                               *j*m";
-    MESSAGE() << "\n                                                            a uci chess engine";
-    MESSAGE() << "                                                                      v: " << ELEPHANT_GAMBIT_VERSION_STR;
-
-#ifdef EG_DEBUGGING
-    MESSAGE() << "\nEG_DEBUGGING\n v: ";
-    MESSAGE() << ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;
-    MESSAGE() << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX;
+#ifdef DEVELOPMENT_BUILD
+    prnt::out << "---------DEVELOPMENT BUILD---------" << std::endl;
+    prnt::out << " versions numbers:" << std::endl;
+    prnt::out << " engine: " << ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX << std::endl;
+    prnt::out << "    cli: " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX << std::endl;
+    prnt::out << "    git: " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
+    prnt::out << " timestamps:" << std::endl;
+    prnt::out << "  cmake:  " << ELEPHANT_GAMBIT_BUILD_TIMESTAMP << std::endl;
+    prnt::out << "  binary: " << __DATE__ << " at " << __TIME__ << std::endl;
+    prnt::out << "----------------------------------" << std::endl;
 #endif
 }
 
 void
-Application::RunUci()
-{
-#ifdef OUTPUT_LOG_TO_FILE
-    LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
-#endif
-    UCICommands::UCIEnable();
+Application::RunUci() {
+    AppContext context;
+    context.setState(std::make_unique<UciModeProcessor>());
+    
+    while (true) {
+        std::string buffer = "";
+        if (!std::getline(std::cin, buffer))
+            break;
+        if (buffer.empty())
+            continue;
+        if (!context.processInput(buffer))
+            break;
+    }
 }
 
 void
-Application::Run()
-{
-#ifdef OUTPUT_LOG_TO_FILE
-    LoggingInternals::ScopedDualRedirect redirect_cout(std::cout, LoggingInternals::LogHelpers::readOutputFilename());
-#endif
+Application::Run(char* argv[]) {
+    AppContext context;
 
-    GameContext context;
+    if (argv != nullptr) {
+        std::ostringstream oss;
+        for (int i = 1; argv[i] != nullptr; ++i) {
+            oss << argv[i];
+            if (argv[i + 1] != nullptr)
+                oss << " ";
+        }
+        std::string commandLine = oss.str();
+        if (context.processInput(commandLine)) {
+            return;
+        }
+    }
 
     while (1) {
-        std::cout << " > ";
-        std::string buffer = "";
-        std::getline(std::cin, buffer);
-        std::list<std::string> tokens;
-        extractArgsFromCommand(buffer, tokens);
 
-        if (tokens.size() == 0)
-            continue;
-
-        auto&& command = CliCommands::options.find(tokens.front());
-        if (tokens.size() > 0 && command != CliCommands::options.end()) {
-            auto token = tokens.front();
-            tokens.pop_front();  // remove command from tokens.
-
-            bool commandResult = command->second.first(tokens, context);
-            if (commandResult == false) {
-                command->second.second(token);
-                std::cout << std::endl;
-            }
-        }
-        else if (tokens.size() == 1) {
-            // attempt to make a move with token
-            auto moveCommand = CliCommands::options.find("move");
-            moveCommand->second.first(tokens, context);
-        }
+        if (context.handlesInput())
+            context.processInput("");
         else {
-            std::string invalidInput = tokens.size() > 0 ? tokens.front() : "Not a Value!";
-            std::cout << " Invalid command: " << invalidInput << ", help for all commands!" << std::endl;
+            std::cout << " > ";
+            std::string buffer = "";
+
+            if (!std::getline(std::cin, buffer))
+                break;
+
+            if (buffer.empty())
+                continue;
+
+            if (context.processInput(buffer)) {
+                continue;
+            }
+            else {
+                break;
+            }
         }
     }
 }
