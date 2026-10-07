@@ -35,7 +35,7 @@ void WeightStore::loadFromFile(const std::string& filename) {
             continue;
         }
 
-        // we assume that everything is a tapered value
+        // Parse the line: paramName [value] [valueB]
         std::stringstream ss(line);
         std::string paramName, valueAStr, valueBStr;
         ss >> paramName >> valueAStr >> valueBStr;
@@ -46,8 +46,15 @@ void WeightStore::loadFromFile(const std::string& filename) {
             IWeight* paramPtr = it->second;
             if (paramPtr) {
                 try {
-                    paramPtr->accept(*this, std::format("{} {}", valueAStr, valueBStr));
-                    LOG_TRACE("Set parameter '{}' to {} {}", paramName, valueAStr, valueBStr);
+                    // If valueBStr is provided, it's a tapered weight; pass both values
+                    // Otherwise, pass just the first value
+                    if (!valueBStr.empty()) {
+                        paramPtr->accept(*this, std::format("{} {}", valueAStr, valueBStr));
+                        LOG_TRACE("Set parameter '{}' to {} {}", paramName, valueAStr, valueBStr);
+                    } else {
+                        paramPtr->accept(*this, valueAStr);
+                        LOG_TRACE("Set parameter '{}' to {}", paramName, valueAStr);
+                    }
                 } catch (const std::invalid_argument& e) {
                     LOG_ERROR("Error setting parameter '{}': {}", paramName, e.what());
                 }

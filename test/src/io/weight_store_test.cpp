@@ -46,7 +46,7 @@ public:
 
 
 WEIGHT(weight1, i64, 1);
-MULTIPLIER(weight2, 2);
+MULTIPLIER(weight2, 0);
 WEIGHT(w3, i64, 1);
 
 TEST_F(WeightFixture, StoreHasWeight2) {
@@ -62,7 +62,7 @@ TEST_F(WeightFixture, StoreHasWeight1) {
     WeightStore::get()->loadFromFile("test");
 
     EXPECT_EQ(10, w3);
-    EXPECT_EQ(3.14, weight2);
+    EXPECT_EQ(1536, weight2);  // 1.5 * 1024 (fixed-point representation)
 }
 
 TEST_F(WeightFixture, UnknownWeightInFile_ExpectErrorButContinue) {

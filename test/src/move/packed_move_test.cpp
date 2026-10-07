@@ -213,7 +213,7 @@ TEST_F(PackedMoveTest, EqualityOperator_DifferentMoves)
 
 TEST_F(PackedMoveTest, BoolOperator_NullAndValidMoves)
 {
-    PackedMove nullMove;
+    PackedMove nullMove = PackedMove::NullMove();
     PackedMove validMove(Square::A1, Square::A2);
     
     EXPECT_FALSE(nullMove);
