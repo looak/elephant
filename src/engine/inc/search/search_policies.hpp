@@ -19,6 +19,7 @@
 #pragma once
 
 #include <optional>
+#include <span>
 #include <stack>
 
 #include <io/printer.hpp>
@@ -30,6 +31,7 @@
 class Search;
 
 struct KillerMoves;
+struct MoveOrderingHeuristic;
 struct MoveOrderingView;
 struct PackedMove;
 
@@ -76,8 +78,12 @@ public:
 // --- Move Ordering Heuristics (Killers/History) Policies ---
 class MoveOrdering {
 public:
-    static void push(KillerMoves& killers, PackedMove move, u16 ply);
-    static void prime(const KillerMoves& killers, MoveOrderingView& view, u16 ply);
+    // quiet for move ordering, everything that lands in the quiet stage: no captures or promotions, castling included.
+    static bool isQuiet(PackedMove move);
+
+    // Killer & history update when a quiet move fails high, quietsTried are the quiets searched before it at this node.
+    static void updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
+    static void prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply);
 };
 
 // --- Null Move Pruning (NMP) Policies ---

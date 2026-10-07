@@ -1,5 +1,8 @@
 #include <search/search.hpp>
 
+#include <array>
+#include <span>
+
 #include <eval/evaluator.hpp>
 
 #include <move/move_executor.hpp>
@@ -67,7 +70,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pv->length > 0) orderingView.pvMove = pv->moves[0];
-    search_policies::MoveOrdering::prime(context.moveOrdering.killers, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.moveOrdering, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -143,6 +146,11 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     // We need to store the "Best Move Found So Far" locally to update outMove correctly
     PackedMove intermmediateMove = PackedMove::NullMove();
 
+    // quiets searched without failing high, they get a history malus if a later quiet does. Beyond the buffer they're
+    // simply not penalised.
+    std::array<PackedMove, 64> quietsTried;
+    u16 quietCount = 0;
+
     u16 movingPly = ply; 
 
     do {
@@ -205,7 +213,9 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // --- Beta Cutoff (Fail-High) ---
             if (bestEval >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA;
-                search_policies::MoveOrdering::push(context.moveOrdering.killers, move, ply);
+                if (search_policies::MoveOrdering::isQuiet(move))
+                    search_policies::MoveOrdering::updateQuietCutoff(context.moveOrdering, us, move,
+                        std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
                 outMove = intermmediateMove;
                 return bestEval;
             }
@@ -222,6 +232,9 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
                 pv->length = childPv.length + 1;
             }
         }
+
+        if (quietCount < quietsTried.size() && search_policies::MoveOrdering::isQuiet(move))
+            quietsTried[quietCount++] = move;
 
         ordered = moves.next();
         index++;

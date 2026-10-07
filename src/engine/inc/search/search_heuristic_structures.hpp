@@ -16,7 +16,11 @@
 #pragma once
 #include <system/platform.hpp>
 #include <move/move.hpp>
+#include <move/generation/move_ordering_view.hpp>
 #include <search/search_constants.hpp>
+
+#include <array>
+#include <cstdlib>
 #include <vector>
 
 struct MoveHistory {
@@ -78,7 +82,21 @@ struct KillerMoves {
     }
 };
 
+// History heuristic: quiet moves that caused beta cutoffs, indexed [side][from][to] the way MoveOrderingView reads it.
+struct HistoryTable {
+    std::array<i32, 2 * 64 * 64> table{};
+
+    const i32* data() const { return table.data(); }
+
+    // Gravity update, the bonus shrinks as the entry nears the bound so scores stay within [-max, max] and recent
+    // cutoffs outweigh old ones. A negative bonus is a malus.
+    void update(Set side, PackedMove move, i32 bonus) {
+        i32& entry = table[static_cast<u32>(side) * 64 * 64 + static_cast<u32>(move.sourceSqr()) * 64 + static_cast<u32>(move.targetSqr())];
+        entry += bonus - entry * std::abs(bonus) / MoveOrderingView::historyMax;
+    }
+};
+
 struct MoveOrderingHeuristic {
     KillerMoves killers;
-    //i32 score;
+    HistoryTable history;
 };

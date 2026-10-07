@@ -5,6 +5,7 @@
 
 #include <move/generation/move_ordering_view.hpp>
 
+#include <algorithm>
 #include <optional>
 
 namespace search_policies {
@@ -98,13 +99,24 @@ u8 LMR::getReduction(u8 depth) {
 }
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---
-void MoveOrdering::push(KillerMoves& killers, PackedMove move, u16 ply) {
-        if (move.isQuiet() == false)
-            return; // Only store quiet moves as killers
-        killers.push(move, ply);
+bool MoveOrdering::isQuiet(PackedMove move) {
+    return !move.isCapture() && !move.isPromotion();
 }
-void MoveOrdering::prime(const KillerMoves& killers, MoveOrderingView& view, u16 ply) {
-        killers.retrieve(ply, view.killers[0], view.killers[1]);
+
+void MoveOrdering::updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
+    // killers keep their original rule, castling isn't one.
+    if (move.isQuiet())
+        heuristic.killers.push(move, ply);
+
+    const i32 bonus = std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
+    heuristic.history.update(us, move, bonus);
+    for (PackedMove tried : quietsTried)
+        heuristic.history.update(us, tried, -bonus);
+}
+
+void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply) {
+    heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
+    view.history = heuristic.history.data();
 }
 
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;

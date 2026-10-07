@@ -30,6 +30,13 @@ inline constexpr u32 earlyReductionThreshold = 8; // was 6
 inline constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
 } // namespace lmr_params
 
+// history heuristic parameters
+namespace history_params {
+// bonus for a quiet cutoff move is depth * depth * scale up to maxBonus, the quiets tried before it get the same malus.
+inline constexpr i32 bonusScale = 32;
+inline constexpr i32 maxBonus = 2048;
+} // namespace history_params
+
 // null move pruning parameters
 namespace nmp_params {
 inline constexpr u8 minDepth = 3;
