@@ -7,6 +7,9 @@
 // This has no virtual functions and allows MoveGenerator to remain
 // decoupled and fast.
 struct MoveOrderingView {
+    // history scores stay within [-historyMax, historyMax].
+    static constexpr i32 historyMax = 0x3FFF;
+
     PackedMove pvMove = PackedMove::NullMove();
     PackedMove ttMove = PackedMove::NullMove();
     PackedMove killers[2];    

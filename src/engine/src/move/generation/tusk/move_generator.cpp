@@ -21,7 +21,8 @@ constexpr u16 pvMove = 0x7FFF;
 constexpr u16 ttMove = 0x7FFE;
 constexpr u16 killerMove = 0x7FFD;
 constexpr u16 givesCheck = 0x4000;  // quiets, added on top of history
-constexpr i32 historyMax = 0x3FFF;
+// history in [-max, max] is mapped onto [0, max] so it stays below givesCheck and moves that keep failing sink.
+constexpr i32 historyMax = MoveOrderingView::historyMax;
 } // namespace priority
 
 constexpr u64 fileA = board_constants::fileaMask;
@@ -134,7 +135,8 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
         if (check)
             score += priority::givesCheck;
         if (ordering != nullptr)
-            score += std::clamp(ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr()), 0, priority::historyMax);
+            score += (std::clamp(ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr()), -priority::historyMax, priority::historyMax)
+                      + priority::historyMax) / 2;
     }
 
     return ScoredMove::make(move, static_cast<u16>(std::max(score, 0)), check);

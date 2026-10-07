@@ -25,10 +25,20 @@ inline constexpr i16 c_drawConstant = 0;
 
 // late move reduction parameters
 namespace lmr_params {
-inline constexpr u32 minDepth = 3;
-inline constexpr u32 earlyReductionThreshold = 8; // was 6
-inline constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
+inline constexpr u8 minDepth = 3;
+// moves before this index are searched at full depth, covers the pv/tt move and usually the killers.
+inline constexpr u16 fullDepthMoves = 3;
+// reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
+inline constexpr double base = 0.75;
+inline constexpr double divisor = 2.25;
 } // namespace lmr_params
+
+// history heuristic parameters
+namespace history_params {
+// bonus for a quiet cutoff move is depth * depth * scale up to maxBonus, the quiets tried before it get the same malus.
+inline constexpr i32 bonusScale = 32;
+inline constexpr i32 maxBonus = 2048;
+} // namespace history_params
 
 // null move pruning parameters
 namespace nmp_params {
