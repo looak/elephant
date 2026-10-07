@@ -26,7 +26,7 @@ struct BenchArgs {
 
 class BenchCommand : public Command<BenchArgs, true> {
 public:
-	static constexpr std::string_view description() { return "Runs bench on predefined positions."; }
+	static constexpr std::string_view description() { return "Run a benchmark on predefined positions."; }
 	static constexpr int priority() { return 50; }
 	static constexpr std::string_view name() { return "bench"; }
 

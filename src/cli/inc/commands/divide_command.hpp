@@ -13,7 +13,7 @@ struct DivideCommandArgs
 
 class DivideCommand : public Command<DivideCommandArgs, true> {
 public:
-	static constexpr std::string_view description() { return "Divides the current position to a given depth."; }
+	static constexpr std::string_view description() { return "Run divide on the current position to a given depth."; }
 	static constexpr int priority() { return 50; }
 	static constexpr std::string_view name() { return "divide"; }
 
@@ -39,7 +39,7 @@ public:
     {        
         prnt::out << " Divide command executed with depth: " << args.depth << std::endl;
         PerftSearch perftSearch(*m_context);
-        auto results = std::vector<DivideResult>{}; //perftSearch.Divide(m_context->readToPlay(), args.depth);
+        auto results = perftSearch.Divide(args.depth);
 
         std::sort(results.begin(), results.end(), [](const DivideResult& a, const DivideResult& b) {
             return a.Move.source() < b.Move.source();
@@ -65,11 +65,11 @@ public:
     {    
         if (extended) {
             prnt::out << "\nUsage: " << DivideCommand::name() << " <depth>" << std::endl << std::endl;
-            prnt::out << "Divides the current position to the given depth and outputs the result for each move." << std::endl;
+            prnt::out << "Run divide on the current position to the given depth and output the result for each move." << std::endl;
             prnt::out << "Maximum depth is limited to single digit, i.e. 9. Tool is most useful around 3-5 ply." << std::endl;            
             return;
         }
-        prnt::out << prnt::inject_line_divider(DivideCommand::name(), DivideCommand::description()) << std::endl;
+        prnt::out << prnt::inject_line_divider(DivideCommand::name(), DivideCommand::description());
     }
 };  // class DivideCommand
 

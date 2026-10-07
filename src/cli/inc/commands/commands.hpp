@@ -6,3 +6,6 @@
 #include "print_command.hpp"
 #include "divide_command.hpp"
 #include "move_command.hpp"
+#include "perft_command.hpp"
+#include "search_command.hpp"
+#include "evaluate_command.hpp"

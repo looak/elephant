@@ -8,7 +8,7 @@
 
 class NewGameCommand : public CommandNoArgs<true> {
 public:
-    static constexpr std::string_view description() { return "Resets chessboard into default starting position."; }
+    static constexpr std::string_view description() { return "Start a new game from the default position."; }
     static constexpr int priority() { return 1; }
     static constexpr std::string_view name() { return "new"; }
 
@@ -25,7 +25,7 @@ public:
     { 
         if (extended) {
             prnt::out << "\nUsage: " << NewGameCommand::name() << "\n";
-            prnt::out << "Resets the chessboard to the standard starting position for a new game.";
+            prnt::out << "Start a new game from the standard starting position.";
             prnt::out << "This command clears the current game state and prepares the engine for a fresh game.";
             prnt::out << "No additional arguments are required or accepted.";
             return;

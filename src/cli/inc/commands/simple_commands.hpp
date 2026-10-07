@@ -9,7 +9,7 @@
 
 class AboutCommand: public CommandNoArgs<> {
 public:
-    static constexpr std::string_view description() { return "Outputs info about this chess engine."; }
+    static constexpr std::string_view description() { return "Show information about this chess engine."; }
     static constexpr int priority() { return 100; }
     static constexpr std::string_view name() { return "about"; }
 
@@ -31,7 +31,7 @@ public:
     { 
         if (extended) {
             prnt::out << "\nUsage: " << AboutCommand::name() << std::endl << std::endl;
-            prnt::out << "Outputs information about the Elephant Gambit chess engine.";
+            prnt::out << "Show information about the Elephant Gambit chess engine.";
             prnt::out << "No additional arguments are required or accepted.";
             return;
         }
@@ -45,7 +45,7 @@ REG_COMMAND(AboutCommand::name(), AboutCommand);
 
 class ExitCommand : public CommandNoArgs<> {
     public:
-    static constexpr std::string_view description() { return "Shuts down the CLI & Engine."; }
+    static constexpr std::string_view description() { return "Exit the CLI and engine."; }
     static constexpr int priority() { return 200; }
     static constexpr std::string_view name() { return "exit"; }
     // Executes the command with the given arguments.
@@ -60,7 +60,7 @@ class ExitCommand : public CommandNoArgs<> {
     { 
         if (extended) {
             prnt::out << "\nUsage: " << ExitCommand::name() << std::endl << std::endl;
-            prnt::out << "This command will terminate the application immediately.";
+            prnt::out << "Exit the application immediately.";
             prnt::out << "No additional arguments are required or accepted.";
             return;
         }

@@ -30,7 +30,7 @@ struct MoveCommandArgs
 
 class MoveCommand : public Command<MoveCommandArgs, true> {
 public:
-    static constexpr std::string_view description() { return "Makes a move in the current game."; }
+    static constexpr std::string_view description() { return "Play a move in the current game."; }
     static constexpr int priority() { return 150; }
     static constexpr std::string_view name() { return "move"; }
 
@@ -71,7 +71,7 @@ public:
     {
         if (extended) {
             prnt::out << "\nUsage: " << MoveCommand::name() << " <move>" << std::endl << std::endl;
-            prnt::out << "Makes a move in the current game. The move should be specified in standard algebraic notation.";
+            prnt::out << "Play a move in the current game. The move should be specified in standard algebraic notation.";
             return;
         }
         prnt::out << prnt::inject_line_divider(MoveCommand::name(), MoveCommand::description());

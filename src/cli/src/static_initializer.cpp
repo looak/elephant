@@ -18,6 +18,9 @@ bool static_initialize()
     register_PrintCommand();
     register_DivideCommand();
     register_MoveCommand();
+    register_PerftCommand();
+    register_SearchCommand();
+    register_EvaluateCommand();
 	
 	return true;
 }

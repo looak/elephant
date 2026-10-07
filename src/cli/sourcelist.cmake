@@ -23,9 +23,12 @@ ${INC_DIR}/commands/fen_command.hpp
 ${INC_DIR}/commands/help_command.hpp
 ${INC_DIR}/commands/move_command.hpp
 ${INC_DIR}/commands/new_game_command.hpp
+${INC_DIR}/commands/perft_command.hpp
 ${INC_DIR}/commands/print_command.hpp
+${INC_DIR}/commands/search_command.hpp
 ${INC_DIR}/commands/simple_commands.hpp
 ${INC_DIR}/commands/uci_commands.hpp
+${INC_DIR}/commands/evaluate_command.hpp
 
 ${INC_DIR}/printer/printer.hpp
 
@@ -39,5 +42,4 @@ ${SRC_DIR}/commands/uci_commands.cpp
 
 ${SRC_DIR}/static_initializer.cpp
 )
-
 

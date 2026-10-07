@@ -10,6 +10,36 @@
 #include <thread>
 #include <syncstream>
 
+namespace {
+bool looksLikeSanMove(const std::string& token)
+{
+    if (token.empty()) {
+        return false;
+    }
+
+    if (token == "O-O" || token == "O-O-O" || token == "0-0" || token == "0-0-0") {
+        return true;
+    }
+
+    if (token.length() < 2 || token.length() > 7) {
+        return false;
+    }
+
+    const std::string_view allowed = "KQRBNabcdefgh12345678x=+#-";
+    if (allowed.find(token.front()) == std::string_view::npos) {
+        return false;
+    }
+
+    for (const char c : token) {
+        if (allowed.find(c) == std::string_view::npos) {
+            return false;
+        }
+    }
+
+    return true;
+}
+}  // namespace
+
 
 bool NormalModeProcessor::processInput(AppContext* context, const std::string& line)
 {
@@ -30,12 +60,19 @@ bool NormalModeProcessor::processInput(AppContext* context, const std::string& l
     }
 
     // Find and execute the command.
+    bool fallbackToMove = false;
     auto command = CommandRegistry::instance().createCommand(command_name);
 
     // Handle unrecognized commands gracefully
-    if (command == nullptr) {
+    if (command == nullptr && looksLikeSanMove(command_name)) {
         command = CommandRegistry::instance().createCommand("move");        
         args.push_back(command_name);  // treat the command as a SAN move argument
+        fallbackToMove = true;
+    }
+
+    if (command == nullptr) {
+        prnt::err << "Error: Unknown command '" << command_name << "'" << std::endl;
+        return true;
     }
 
     // Collect the arguments for the command    
@@ -46,8 +83,8 @@ bool NormalModeProcessor::processInput(AppContext* context, const std::string& l
 
     // The command is created, used, and then destroyed here.
     command->setContext(&m_gameContext);
-    if (command->run(args) > 0) {
-        prnt::err << "Error: Unknown command '" << command_name << "'";
+    if (command->run(args) > 0 && fallbackToMove) {
+        prnt::err << "Error: Unknown command '" << command_name << "'" << std::endl;
     }
 
     return true;

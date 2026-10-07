@@ -11,7 +11,7 @@ struct HelpCommandArgs
 
 class HelpCommand : public Command<HelpCommandArgs> {
 public:
-    static constexpr std::string_view description() { return "Displays list of commands. optioanl arg <cmd>"; }
+    static constexpr std::string_view description() { return "Show available commands, or detailed help for <command>."; }
     static constexpr int priority() { return 100; }
     static constexpr std::string_view name() { return "help"; }
 
@@ -41,6 +41,7 @@ public:
                 auto command = cmdName.factory();
                 if (command) {
                     command->help();
+                    prnt::out << std::endl;
                 }
             }
         }
@@ -62,13 +63,13 @@ public:
     {
         if (extended) {
             prnt::out << "\nUsage: " << HelpCommand::name() << " [<command>]" << std::endl << std::endl;
-            prnt::out << "Displays a list of all available commands or detailed help for a specific command." << std::endl;
+            prnt::out << "Show all available commands or detailed help for a specific command." << std::endl;
             prnt::out << "If no command is specified, a summary of all commands is shown." << std::endl;
             prnt::out << "Options:" << std::endl;
             prnt::out << "  <command>   The name of the command to get detailed help for." << std::endl;
             return;
         }
-        prnt::out << prnt::inject_line_divider(HelpCommand::name(), HelpCommand::description()) << std::endl;
+        prnt::out << prnt::inject_line_divider(HelpCommand::name(), HelpCommand::description());
     }
 };
 

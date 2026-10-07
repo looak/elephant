@@ -14,7 +14,7 @@ struct FenCommandArgs
 static constexpr bool needs_context = true;
 class FenCommand : public Command<FenCommandArgs, needs_context> {
 public:
-	static constexpr std::string_view description() { return "Sets the board to the given FEN string or outputs the FEN string for current board."; }
+	static constexpr std::string_view description() { return "Set the board from a FEN string, or show the current board FEN."; }
 	static constexpr int priority() { return 50; }
 	static constexpr std::string_view name() { return "fen"; }
 
@@ -55,13 +55,13 @@ public:
 	{	
 		if (extended) {
 			prnt::out << "\nUsage: " << FenCommand::name() << " <fen_string>" << std::endl << std::endl;
-			prnt::out << "Sets the board to the given FEN string or outputs the FEN string for current board." << std::endl;
+			prnt::out << "Set the board from a FEN string, or show the current board FEN." << std::endl;
 			prnt::out << "  An invalid FEN string will result in nothing being set." << std::endl;
 			prnt::out << "Inputs:" << std::endl;
-			prnt::out << "  <fen_string> - Optional. FEN string to set the board to, if non provided the current board FEN will be output." << std::endl;
+			prnt::out << "  <fen_string> - Optional. FEN string to set the board to; if not provided, the current board FEN is output." << std::endl;
 			return;
 		}
-		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description()) << std::endl;    
+		prnt::out << prnt::inject_line_divider(FenCommand::name(), FenCommand::description());
 	}
 
 };  // class FenCommand

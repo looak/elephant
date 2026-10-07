@@ -100,6 +100,7 @@ public:
 
 protected:
     PositionReader readPosition() const { return m_context->readChessPosition(); }
+    const GameContext& readContext() const { return *m_context; }
 
 private:
     GameContext* m_context = nullptr;
