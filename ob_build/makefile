@@ -3,7 +3,7 @@ EXE ?= elephant_ob
 
 # Versioning
 export ElephantGambit_VERSION_MAJOR = 0
-export ElephantGambit_VERSION_MINOR = 10
+export ElephantGambit_VERSION_MINOR = 11
 export ElephantGambit_VERSION_PATCH = 0
 export ElephantGambit_VERSION = $(ElephantGambit_VERSION_MAJOR).$(ElephantGambit_VERSION_MINOR).$(ElephantGambit_VERSION_PATCH)
 
