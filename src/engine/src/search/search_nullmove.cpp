@@ -1,136 +1,84 @@
 #include <search/search.hpp>
 
-#include <eval/evaluator.hpp>
+#include <position/hash_zobrist.hpp>
 
-#include <move/move_executor.hpp>
-
-#include <search/search_move_source.hpp>
 #include <search/search_threadcontext.hpp>
-#include <system/time_manager.hpp>
 
+// Null Move Pruning: pass the move and search the opponent's reply with a reduced, null window search. If we still
+// fail high after giving the opponent a free move, the position is good enough that a full search would too.
+// Called at non-PV nodes that aren't in check.
 template<Set us>
-bool Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 /*alpha   */, i16 beta, u16 ply) {
-    PositionReader pos = ctx.position.read();
+std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply) {
+    // never two null moves in a row, the second would just hand the move back.
+    if (ctx.nullMoveAt[ply - 1])
+        return std::nullopt;
 
-    // Safety check: Don't prune near mate scores
-    if (beta >= c_checkmateConstant - 100 || beta <= -c_checkmateConstant + 100) {
-        return false;
-    }
-    
-    // Check if we have any pieces besides the king and pawns - trying to identify zugzwang positions to avoid pruning them.
+    // inside a verification search the verified side doesn't null move until nmpMinPly.
+    constexpr bool white = us == Set::WHITE;
+    if (ply < ctx.nmpMinPly && ctx.nmpColorWhite == white)
+        return std::nullopt;
+
+    // near mate a free move can hide the mating line.
+    if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
+        return std::nullopt;
+
+    // with only king and pawns zugzwang is common and passing would be better than any real move.
+    PositionReader pos = ctx.position.read();
     const auto& mat = pos.material();
     Bitboard pieces = mat.knights<us>() | mat.bishops<us>() | mat.rooks<us>() | mat.queens<us>();
-    
-    if (!search_policies::NMP::shouldPrune(depth, false, !pieces.empty())) {
-        return false;
-    }
+    if (!search_policies::NMP::shouldPrune(depth, false, !pieces.empty()))
+        return std::nullopt;
 
-    // TODO: consider adding makeNullMove to move executor.
-    u64 originalHash = ctx.position.read().hash();
-    ctx.position.edit().hash() = zobrist::updateBlackToMoveHash(originalHash);
+    // only worth trying when we're already at or above beta.
+    if (ctx.evaluate<us>() < beta)
+        return std::nullopt;
 
-    u8 R = search_policies::NMP::getReduction(depth);
-    i16 nullScore = -nullmove<opposing_set<us>()>(ctx, depth - 1 - R, -beta, -beta + 1, ply + 1);
+    // --- make null move ---
+    // flip the side to move, an en passant capture isn't available to the opponent anymore.
+    auto editor = ctx.position.edit();
+    const u64 originalHash = pos.hash();
+    const byte originalEnPassant = editor.enPassant().read();
+    editor.enPassant().clear();
+    editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
+    ctx.history.push(pos.hash());
+    ctx.nullMoveAt[ply] = true;
 
+    const u8 R = search_policies::NMP::getReduction(depth);
+    const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;
+    PVLine nullPv;
+    i16 nullScore = -alphaBeta<opposing_set<us>()>(ctx, nullDepth, -beta, -beta + 1, ply + 1, &nullPv);
+
+    // --- unmake null move ---
+    ctx.nullMoveAt[ply] = false;
+    ctx.history.pop();
+    if (originalEnPassant)
+        editor.enPassant().write(originalEnPassant);
+    editor.hash() = originalHash;
     ctx.nodeCount++;
-    ctx.position.edit().hash() = originalHash;
-    if (ctx.stopped)
-        return false;
-    return (nullScore >= beta);
+
+    if (ctx.stopped || nullScore < beta)
+        return std::nullopt;
+
+    // a mate found after a free move isn't proven, cut with beta instead.
+    const i16 cutScore = nullScore >= c_checkmateMinScore ? beta : nullScore;
+
+    // shallow fail highs are trusted, as are those inside another verification.
+    if (!search_policies::NMP::shouldVerify(depth) || ctx.nmpMinPly != 0)
+        return cutScore;
+
+    // --- verification ---
+    // Search the same node at the null move's depth without null moves for us, so a zugzwang where passing is the
+    // best "move" has to show up as a real fail high.
+    ctx.nmpMinPly = static_cast<u16>(ply + 3 * nullDepth / 4);
+    ctx.nmpColorWhite = white;
+    PVLine verifyPv;
+    i16 verifyScore = alphaBeta<us>(ctx, nullDepth, beta - 1, beta, ply, &verifyPv);
+    ctx.nmpMinPly = 0;
+
+    if (ctx.stopped || verifyScore < beta)
+        return std::nullopt;
+    return cutScore;
 }
 
-template<> bool Search::tryNullMovePrune<Set::WHITE>(ThreadSearchContext& ctx, u8 depth, i16 alpha, i16 beta, u16 ply);
-template<> bool Search::tryNullMovePrune<Set::BLACK>(ThreadSearchContext& ctx, u8 depth, i16 alpha, i16 beta, u16 ply);
-
-template<Set us>
-i16 Search::nullmove(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply) {
-    THROW_EXPR(depth >= 0, ephant::search_exception, "Depth cannot be negative in recursiveAlphaBetaNegamax.");   
-
-    PositionReader currentPos = context.position.read();
-
-    // --- No-Moves Check (Mate/Stalemate) ---
-    SearchMoveSource<us> moves(currentPos);
-    moves.start(nullptr, MoveTypes::ALL);
-    PrioritizedMove ordered = moves.next();
-    PackedMove move = ordered.move;
-
-    if (move.isNull()) {
-        if (moves.isChecked())
-            return -c_checkmateConstant + c_nullMoveOffset;
-        return -c_drawConstant; // Stalemate
-    }
-
-    // --- Leaf Node Check ---
-    if (depth <= 0) {
-        if constexpr (search_policies::QuiescencePolicy::enabled) {
-            // Start Q-Search with its *own* depth limit, configured with search params.
-            return this->quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
-        } else {
-            return context.evaluate<us>();
-        }
-    }
-
-    // --- Main Search Loop ---
-    i16 bestEval = -c_infinity; // Start at -infinity
-    MoveExecutor executor(context.position.edit());
-    u16 index = 0;
-
-    do {
-        if (context.shouldStop())
-            break;
-
-        u8 modifiedDepth = depth;
-        // --- Late Move Reduction if Enabled ---
-        if constexpr (search_policies::LMR::enabled) {
-            if (search_policies::LMR::shouldReduce(depth, move, index, moves.isChecked(), ordered.isCheck())) {
-                modifiedDepth -= search_policies::LMR::getReduction(depth);                
-            }
-        }
-
-        MoveUndoUnit undoState;
-        u16 movingPly = ply;
-        executor.makeMove(move, undoState, movingPly);
-        context.history.push(currentPos.hash());
-
-        i16 eval;
-        if (context.history.isRepetition(currentPos.hash()) == true) {
-            eval = -c_drawConstant;
-        } else {
-            eval = -nullmove<opposing_set<us>()>(context, (u8)(modifiedDepth - 1), -beta, -alpha, ply + 1);
-        }
-
-        // TODO: Evaluate if we need to re-search within the NullMoveReduction because of LMR.
-
-        context.history.pop();
-        executor.unmakeMove(undoState);
-        context.nodeCount++;
-
-        // the child was aborted, its score is meaningless.
-        if (context.stopped)
-            return 0;
-
-        // --- Alpha-Beta Evaluation (Fail-Soft) ---
-        if (eval > bestEval) {
-            bestEval = eval;     
-            
-            // --- Beta Cutoff --- 
-            if (bestEval >= beta) 
-                return bestEval;
-
-            if (bestEval > alpha) 
-                alpha = bestEval;
-        }
-
-        ordered = moves.next();
-        move = ordered.move;
-        index++;
-    } while (move.isNull() == false);
-
-    if (context.stopped)
-        return 0;
-
-    return bestEval;
-}
-
-template i16 Search::nullmove<Set::WHITE>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
-template i16 Search::nullmove<Set::BLACK>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
+template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply);
+template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply);

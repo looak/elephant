@@ -19,7 +19,6 @@
 inline constexpr u32 c_maxSearchDepth = 64;
 inline constexpr i32 c_infinity = 28000;
 inline constexpr i32 c_checkmateConstant = 24000;
-inline constexpr i32 c_nullMoveOffset = 500;
 inline constexpr i32 c_checkmateMaxDistance = 256;
 inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 inline constexpr i16 c_drawConstant = 0;
@@ -30,6 +29,14 @@ inline constexpr u32 minDepth = 3;
 inline constexpr u32 earlyReductionThreshold = 8; // was 6
 inline constexpr u32 reduceAfterIndex = 2; // pv & tt moves excluded from lmr
 } // namespace lmr_params
+
+// null move pruning parameters
+namespace nmp_params {
+inline constexpr u8 minDepth = 3;
+// null move fail highs from this depth up are verified with a reduced normal search before cutting, guards against
+// zugzwang where passing is better than any real move.
+inline constexpr u8 verificationDepth = 6;
+} // namespace nmp_params
 
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;

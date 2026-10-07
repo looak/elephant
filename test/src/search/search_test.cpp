@@ -193,7 +193,9 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 
         Search searcher(context);
 
-        testingParams.SearchDepth = 10;
+        // d4e3 needs a full depth 9 search without pruning. Null move reductions take about one ply off the lines
+        // that matter, depth 11 keeps the same margin.
+        testingParams.SearchDepth = 11;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);

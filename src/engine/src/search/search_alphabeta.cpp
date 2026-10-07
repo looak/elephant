@@ -20,6 +20,10 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
 
     context.debug_print_alphabeta_entry(depth, ply, alpha, beta, context.position.read().hash());
     
+    // PVS searches everything off the principal variation with a null window, so a wider window means a PV node.
+    // The root is always a PV node. Pruning and TT cutoffs are only safe at non-PV nodes.
+    const bool isPV = beta - alpha > 1;
+
     PositionReader pos = context.position.read();
     if (context.history.isRepetition(pos.hash()) == true) {
         return -c_drawConstant;
@@ -44,19 +48,16 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- Transposition Table Probe ---
     TranspositionFlag flag = TranspositionFlag::TTF_NONE;
     if constexpr (search_policies::TT::enabled) {
+        // probe only returns a score when the entry is deep enough and its bound allows a cutoff with this window.
+        // bestMove is set on any hit, also when the entry is too shallow to cut.
         std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, ply, alpha, beta, flag, bestMove);
-        if (ttProbeResult.has_value()) {
-            if (flag == TranspositionFlag::TTF_CUT_EXACT) {
-                pv->moves[0] = bestMove;
-                pv->length = 1;
-                return ttProbeResult.value();
-            }
-            else if (flag == TranspositionFlag::TTF_CUT_BETA && ttProbeResult.value() >= beta) {
-                return ttProbeResult.value();
-            }
-            else if (flag == TranspositionFlag::TTF_CUT_ALPHA && ttProbeResult.value() <= alpha) {
-                return ttProbeResult.value();
-            }
+
+        // No cutoffs at PV nodes, the stored score may come from an earlier search or another path with different
+        // repetitions. At the root it would also play the stored move without searching it. The TT move still
+        // orders first below.
+        if (!isPV && ttProbeResult.has_value()) {
+            pv->length = 0;
+            return ttProbeResult.value();
         }
     }
 
@@ -93,8 +94,11 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
 
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
-        if (moves.isChecked() == false && tryNullMovePrune<us>(context, depth, alpha, beta, ply)) {
-            return beta;
+        if (!isPV && moves.isChecked() == false) {
+            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, depth, beta, ply)) {
+                pv->length = 0;
+                return nullScore.value();
+            }
         }
     }
 

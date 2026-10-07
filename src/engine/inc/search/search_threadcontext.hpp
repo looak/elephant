@@ -17,7 +17,10 @@
  *****************************************************************************/
 
 #pragma once
+#include <array>
+
 #include <core/chessboard.hpp>
+#include <search/search_constants.hpp>
 #include <search/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
@@ -34,6 +37,12 @@ struct ThreadSearchContext {
     GameState gameState;
     MoveHistory history;
     MoveOrderingHeuristic moveOrdering;
+    // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
+    // straight back.
+    std::array<bool, c_maxSearchDepth> nullMoveAt{};
+    // While a null move fail high is verified, nmpColor doesn't null move before nmpMinPly.
+    u16 nmpMinPly = 0;
+    bool nmpColorWhite = false;
     u64 nodeCount = 0;
     u64 qNodeCount = 0;
     u64 evalCount = 0;
