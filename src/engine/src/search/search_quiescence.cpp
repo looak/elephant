@@ -84,7 +84,9 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
 
         MoveExecutor executor(context.position.edit());
         MoveUndoUnit undoState;
-        executor.makeMove(move, undoState, ply);
+        // makeMove updates its ply argument as the fifty move counter (reset on captures), never hand it the search ply.
+        u16 fiftyMoveCounter = ply;
+        executor.makeMove(move, undoState, fiftyMoveCounter);
         
         i16 qEval = -quiescence<opposing_set<us>()>(context, childDepth, -beta, -alpha, ply + 1);
         context.qNodeCount++;

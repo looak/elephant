@@ -14,14 +14,17 @@ Search::Search(GameContext& context)
 }
 
 void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const {
-    u32 checkmateDistance = static_cast<u32>(c_checkmateConstant - abs(searchResult.score));
+    // mate scores are +-(checkmate - matePly) with the root at ply 1, so plies from the root position is distance - 1.
+    const i32 checkmateDistance = c_checkmateConstant - abs(searchResult.score);
 
-    if (checkmateDistance <= c_maxSearchDepth) {
+    if (checkmateDistance <= static_cast<i32>(c_maxSearchDepth)) {
         // found checkmate within depth.
         searchResult.ForcedMate = true;
-        checkmateDistance /= 2;
+        // UCI reports moves, not plies. Mating takes (plies + 1) / 2 of our moves, being mated plies / 2 of theirs.
+        const i32 plies = checkmateDistance - 1;
+        const i32 mateInMoves = searchResult.score > 0 ? (plies + 1) / 2 : -(plies / 2);
         io::printer::uci("info score mate {} depth {} nodes {} time {} pv {}",
-            (searchResult.score > 0 ? checkmateDistance : -checkmateDistance),
+            mateInMoves,
             itrDepth,
             nodes,
             elapsedTime,
