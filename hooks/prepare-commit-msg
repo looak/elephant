@@ -1,22 +1,25 @@
-#!/usr/bin/env py
+#!/bin/sh
+# Appends "Bench: <nodes>" from doc/bench-result to the commit message, OpenBench reads the bench from there.
+#
+# Install once per clone:   git config core.hooksPath hooks
+# Refresh after any change that affects search, from ob_build:   ./elephant_ob bench | tail -1 > ../doc/bench-result
 
-import sys, os, re
-from subprocess import check_output
+msg_file="$1"
+commit_type="$2"   # message, template, merge, squash, or commit (amend / -c / -C)
 
-# Collect the parameters
-commit_msg_filepath = sys.argv[1]
-if len(sys.argv) > 2:
-    commit_type = sys.argv[2]
-else:
-    commit_type = ''
-if len(sys.argv) > 3:
-    commit_hash = sys.argv[3]
-else:
-    commit_hash = ''
+# merges and squashes aren't benched.
+case "$commit_type" in
+    merge|squash) exit 0 ;;
+esac
 
-print("prepare-commit-msg: File: %s\nType: %s\nHash: %s" % (commit_msg_filepath, commit_type, commit_hash))
+bench_file="$(git rev-parse --show-toplevel)/doc/bench-result"
+[ -f "$bench_file" ] || exit 0
 
-with open('doc/bench-result', 'r') as f:
-    bench_result = f.read()
-    with open(commit_msg_filepath, 'a') as f:
-        f.write("\n\nbench %s" % bench_result)
+# first number in the file is the node count, e.g. "48460682 nodes 3727744 nps".
+nodes=$(grep -o '[0-9][0-9]*' "$bench_file" | head -n 1)
+[ -n "$nodes" ] || exit 0
+
+# don't add it twice, an amend or a message that already has one keeps it.
+grep -qi '^bench[: ]' "$msg_file" && exit 0
+
+printf '\nBench: %s\n' "$nodes" >> "$msg_file"
