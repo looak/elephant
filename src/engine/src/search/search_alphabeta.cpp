@@ -30,6 +30,15 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
+    // Knows whether we're in check before generating anything, start() is called once ordering is primed below.
+    SearchMoveSource<us> moves(pos);
+
+    // --- Check Extension ---
+    // Search one ply deeper when in check so forcing sequences aren't cut off at the horizon. Covers direct and
+    // discovered checks alike. Done before the TT probe so stored and probed depths agree.
+    if (moves.isChecked())
+        depth++;
+
     PackedMove bestMove = PackedMove::NullMove();
 
     // --- Transposition Table Probe ---
@@ -59,7 +68,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if (pv->length > 0) orderingView.pvMove = pv->moves[0];
     search_policies::MoveOrdering::prime(context.moveOrdering.killers, orderingView, ply);
 
-    SearchMoveSource<us> moves(pos);
     moves.start(&orderingView, MoveTypes::ALL);
 
     // --- Terminal Node ---
@@ -138,9 +146,9 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
 
         PackedMove move = ordered.move;
         
-        // --- Extensions ---
-        u8 adjustedDepth = depth + static_cast<u8>(ordered.isCheck());
-        
+        // check extensions happen in the child, at alphaBeta entry when it's in check.
+        u8 adjustedDepth = depth;
+
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
         context.history.push(pos.hash());
