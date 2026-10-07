@@ -3,6 +3,7 @@
 #include <diagnostics/assert.hpp>
 #include <system/platform.hpp>
 #include <math/math.hpp>
+#include <format>
 
 enum class Square : uint8_t {
     A1, B1, C1, D1, E1, F1, G1, H1,

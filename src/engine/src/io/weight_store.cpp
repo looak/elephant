@@ -1,6 +1,7 @@
 #include <io/weight_store.hpp>
 
 #include <iostream>
+#include <format>
 
 #include <diagnostics/logger.hpp>
 

@@ -1,3 +1,4 @@
+#include <format>
 #include <string>
 #include "cli/inc/elephant_cli.hpp"
 #include "system/static_initializer.hpp"

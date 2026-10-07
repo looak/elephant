@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <cstdlib>
 #include <fstream>
+#include <format>
 #include <string>
 #include <vector>
 #include "elephant_gambit_config.h"

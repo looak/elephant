@@ -27,6 +27,7 @@
 #include <material/chess_piece.hpp>
 #include <material/material_topology.hpp>
 #include <position/hash_zobrist.hpp>
+#include <format>
 
 struct MutableMaterialProxySquare {
 public:

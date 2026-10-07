@@ -3,6 +3,7 @@
 #include <move/generation/move_generator.hpp>
 #include <position/position.hpp>
 #include <variant>
+#include <format>
 
 namespace io {
 namespace san_parser {
