@@ -42,7 +42,7 @@ namespace search_policies {
 namespace enabled_policies {
     inline constexpr bool TT = true;
     inline constexpr bool LMR = false;
-    inline constexpr bool NMP = false;
+    inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
@@ -86,8 +86,9 @@ class NMP {
 public:
     static constexpr bool enabled = enabled_policies::NMP;
 
-    static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= 3 && hasNonPawnMaterial; }
+    static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= nmp_params::minDepth && hasNonPawnMaterial; }
     static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
+    static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
 };
 
 // --- Quiescence Search Policies ---
