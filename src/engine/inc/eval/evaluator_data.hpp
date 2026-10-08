@@ -33,8 +33,8 @@ struct TaperedScore
 
 i32 operator*(const TaperedScore& lhs, const float& rhs)
 {
-    i32 result = (lhs.midgame + (lhs.endgame - lhs.midgame));        
-    return static_cast<i32>((float)result * rhs);
+    // rhs is the endgame coefficient, 0 is midgame and 1 is endgame.
+    return lhs.midgame + static_cast<i32>((float)(lhs.endgame - lhs.midgame) * rhs);
 }
 
 namespace evaluator_data
