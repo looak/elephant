@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -93,14 +94,16 @@ void bench() {
     }
 
     timer.Stop();
-    i64 elapsedSeconds = timer.getElapsedTime() / 1000;
-    std::cout << "info string " << elapsedSeconds << " seconds\n";
-    if (elapsedSeconds < 0) 
+    // milliseconds, a bench under a second divided by whole seconds would divide by zero.
+    i64 elapsedMs = timer.getElapsedTime();
+    std::cout << "info string " << elapsedMs << " ms\n";
+    if (elapsedMs < 0)
     {
         std::cout << "Elapsed time is negative, cannot compute nps.\n";
         return;
     }
-    std::cout << nodes << " nodes " << nodes / checked_cast<u64>(elapsedSeconds) << " nps\n";
+    const u64 nps = nodes * 1000 / std::max<u64>(checked_cast<u64>(elapsedMs), 1);
+    std::cout << nodes << " nodes " << nps << " nps\n";
 }
 
 
