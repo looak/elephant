@@ -46,40 +46,42 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 ## Performance
 
-| Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org]([lichess-link]) |
+| Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org][lichess-link] |
 |:-------:|:---:|:---:|:---:|:---:|
-|[future]([future-link])|~19.5 million| N/A | ~1.65 million | testing |
-|[v0.7.0]([v0.7.0-link])|~19.5 million| N/A | ~1.65 million | ~1600 elo |
-|[v0.6.5]([v0.6.5-link])|~16.45 million| N/A | ~1.24 million | ~1500 elo |
-|[v0.6.1]([v0.6.0-link])|~20 million| N/A | ~1.97 million | N/A |
+|[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | testing |
+|[v0.7.0][v0.7.0-link]|~19.5 million| N/A | ~1.65 million | ~1600 elo |
+|[v0.6.5][v0.6.5-link]|~16.45 million| N/A | ~1.24 million | ~1500 elo |
+|[v0.6.1][v0.6.0-link]|~20 million| N/A | ~1.97 million | N/A |
 |v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
-|[v0.4.0]([v0.4.0-link])|~5 million|~110 million best case | ~600k | ~1350 elo |
-|[v0.2.0-alpha.1]([v0.2.0-alpha.1-link])| ~4 million | ~35 million best case | ~250k | ~1350 elo |
+|[v0.4.0][v0.4.0-link]|~5 million|~110 million best case | ~600k | ~1350 elo |
+|[v0.2.0-alpha.1][v0.2.0-alpha.1-link]| ~4 million | ~35 million best case | ~250k | ~1350 elo |
 
-*all performance numbers are from running on my local machine, AMD Ryzen 9 5950x*
+*moves p/s is perft from the start position, nodes p/s is search from the start position. v0.13.3 is measured on an AMD Ryzen 9 9900X, earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
+
+v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link].
 
 
 ## Features
 
 * Engine:
-    * bitboards
+    * bitboards with magic bitboard sliding attacks
+    * staged legal move generation
 
 * Search:
-    * alpha beta neg max
-    * quiescence search
+    * negamax alpha-beta with principal variation search
+    * iterative deepening
     * transposition table
-    * pv priority
-    * killer heuristic
-    * late move reduction
-    * null move pruning
+    * quiescence search with delta pruning
+    * check extensions
+    * null move pruning with verification
+    * late move reductions
+    * reverse futility pruning
+    * futility pruning
+    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic
 
 * Evaluation:
-    * material
-    * position tables
-    * tapered position evaluation
-    * king safety
-    * passed pawn
-    * mop-up
+    * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase
+    * mop-up for converting won endgames
 
 * API:
     * "user friendly" cli interface
@@ -88,8 +90,12 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 ## Goals & todo
 
-* multi threaded search
-* reach elo 2000
+* evaluation: passed pawns, pawn structure and king safety, Texel tuning
+* search: static exchange evaluation, aspiration windows, late move pruning
+* time management with soft & hard limits
+* multi threaded search (lazy SMP)
+* a terminal UI
+* ~~reach elo 2000~~
 
 * github.io page?
 
@@ -140,16 +146,33 @@ $ make
 
 ## Running Elephant Gambit
 
-Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0]([v0.4.0-link]) supports [UCI protocol]([uci-link]) and you can interface it with your Chess GUI of choice. Personally, I have been using [Arena](http://www.playwitharena.de/) & [CuteChess](https://cutechess.com/). Every so often I'll host the engine locally and one can play against it on [lichess.org]([lichess-link]).
+Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0][v0.4.0-link] supports [UCI protocol][uci-link] and you can interface it with your Chess GUI of choice. Personally, I have been using [Arena](http://www.playwitharena.de/) & [CuteChess](https://cutechess.com/). Every so often I'll host the engine locally and one can play against it on [lichess.org][lichess-link].
 
 ## Running the tests
 
-Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`.
+Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft and EPD (Win at Chess, Arasan) suites.
 
+Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
+
+### Bench
+
+OpenBench reads the bench, a node count from a fixed set of searches, from the newest commit's message as `bench <nodes> nodes`. The `hooks/prepare-commit-msg` hook adds it. When a commit changes the engine it builds with `ob_build/makefile` and g++, like OpenBench does, and runs the bench, through WSL on Windows. Other commits reuse the previous bench. Other compilers give different node counts, so the bench always comes from g++.
+
+Install the hook once per clone, from the repository root:
+
+```bash
+cp hooks/prepare-commit-msg .git/hooks/ && chmod +x .git/hooks/prepare-commit-msg
+```
+
+`ELEPHANT_BENCH=force git commit ...` runs the bench even when no engine file changed, `ELEPHANT_BENCH=skip` leaves it out.
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/looak/elephant/tags). 
+We use [SemVer](http://semver.org/) for versioning. The version is written in one place, `version.txt`.
+
+Work happens in cycles focused on one area. A cycle bumps the minor version and labels it with the area, every change in it bumps the patch: `0.13.1-search`, `0.13.2-search`, ... A cycle ends with a release that drops the label, `0.13.3`. The engine reports the full version in its UCI name, `id name Elephant Gambit 0.13.3`.
+
+For the versions available, see the [tags on this repository](https://github.com/looak/elephant/tags). 
 
 ## Authors
 
@@ -165,7 +188,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
-[future-link]           https://github.com/looak/elephant/tree/future
+[v0.13.3-link]:         https://github.com/looak/elephant/releases/tag/0.13.3
 [v0.7.0-link]:          https://github.com/looak/elephant/releases/tag/0.7.0
 [v0.6.5-link]:          https://github.com/looak/elephant/releases/tag/0.6.5
 [v0.6.0-link]:          https://github.com/looak/elephant/releases/tag/0.6.1
