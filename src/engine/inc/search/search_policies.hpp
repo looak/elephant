@@ -31,6 +31,7 @@
 class Search;
 
 struct KillerMoves;
+struct MaterialPositionMask;
 struct MoveOrderingHeuristic;
 struct MoveOrderingView;
 struct PackedMove;
@@ -46,6 +47,9 @@ namespace enabled_policies {
     inline constexpr bool LMR = true;
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
+    inline constexpr bool DeltaPruning = true;
+    inline constexpr bool FutilityPruning = true;
+    inline constexpr bool RFP = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -98,17 +102,42 @@ public:
     static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
 };
 
+// --- Reverse Futility Pruning (RFP) Policies ---
+class RFP {
+public:
+    static constexpr bool enabled = enabled_policies::RFP;
+
+    // True when the static eval beats beta by a depth scaled margin at a shallow non-PV node, the node returns its
+    // static eval without searching. Never in check or with beta at a mate score.
+    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
+};
+
+// --- Futility Pruning Policies ---
+class Futility {
+public:
+    static constexpr bool enabled = enabled_policies::FutilityPruning;
+
+    // True when the static eval is so far below alpha at a shallow non-PV node that a quiet move isn't expected to
+    // reach it. Never in check or with alpha at a mate score.
+    static bool nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha);
+    // At a futile node quiet moves that don't give check are skipped, captures & promotions are still searched. The
+    // first move is always searched so the node has a score.
+    static bool skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
+};
+
 // --- Quiescence Search Policies ---
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
+    static constexpr bool deltaPruning = enabled_policies::DeltaPruning;
     static u8 maxDepth;
 
-    static bool futile(u8 depth, i32 eval, i16 alpha) {
-        return depth > 0
-        && (depth < quiescence_params::futilityDepthMargin)
-        && (eval + quiescence_params::futilityMargin < alpha);
-    }
+    // Delta pruning, standing pat plus the material a capture can win and a margin still doesn't reach alpha.
+    // Only when not in check, evasions are all searched.
+    // Node: even winning the opponent's most valuable piece, or promoting, isn't enough. Nothing here is worth searching.
+    static bool deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha);
+    // Move: this capture (or promotion) alone isn't enough, skip it.
+    static bool deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha);
 };
 
 // --- Debug Policies ---

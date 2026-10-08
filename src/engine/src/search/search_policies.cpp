@@ -3,6 +3,10 @@
 #include <search/search_heuristic_structures.hpp>
 #include <search/transposition_table.hpp>
 
+#include <bitboard/bitboard_constants.hpp>
+#include <material/chess_piece.hpp>
+#include <material/material_mask.hpp>
+#include <move/move.hpp>
 #include <move/generation/move_ordering_view.hpp>
 
 #include <algorithm>
@@ -130,7 +134,70 @@ void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingVie
     view.history = heuristic.history.data();
 }
 
+// --- Reverse Futility Pruning (RFP) Policies ---
+bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
+    if (isPV || inCheck || depth > rfp_params::maxDepth)
+        return false;
+    if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
+        return false;
+
+    return staticEval - rfp_params::margin * depth >= beta;
+}
+
+// --- Futility Pruning Policies ---
+bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
+    if (isPV || inCheck || depth > futility_params::maxDepth)
+        return false;
+    if (alpha >= c_checkmateMinScore || alpha <= -c_checkmateMinScore)
+        return false;
+
+    const i32 margin = futility_params::base + futility_params::perDepth * depth;
+    return staticEval + margin <= alpha;
+}
+
+bool Futility::skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
+    return futileNode && moveIndex > 0 && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;
+
+// --- Quiescence Search Policies ---
+namespace {
+// a promotion's gain on top of anything it captures.
+constexpr i32 c_promotionGain = piece_constants::value[queenId] - piece_constants::value[pawnId];
+
+bool deltaPrune(i32 standPat, i32 gain, i16 alpha) {
+    return standPat + gain + quiescence_params::deltaMargin < alpha;
+}
+
+i32 mostValuablePiece(const MaterialPositionMask& material, Set set) {
+    // signed, an unsigned index would wrap past the pawn when only the king is left.
+    for (i32 pieceIndx = queenId; pieceIndx >= pawnId; --pieceIndx) {
+        if (material.read(set, static_cast<u8>(pieceIndx)).empty() == false)
+            return piece_constants::value[pieceIndx];
+    }
+    return 0;
+}
+} // namespace
+
+bool QuiescencePolicy::deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha) {
+    const Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
+    const u64 seventhRank = board_constants::rankMasks[us == Set::WHITE ? 6 : 1];
+    const bool canPromote = (material.read(us, pawnId) & seventhRank).empty() == false;
+
+    const i32 bestGain = mostValuablePiece(material, them) + (canPromote ? c_promotionGain : 0);
+    return deltaPrune(standPat, bestGain, alpha);
+}
+
+bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha) {
+    // an empty target is en passant or a quiet promotion, counted as a pawn, erring on the safe side.
+    const ChessPiece victim = material.pieceAt(move.targetSqr());
+    i32 gain = victim.isValid() ? piece_constants::value[victim.index()] : piece_constants::value[pawnId];
+    if (move.isPromotion())
+        gain += c_promotionGain;
+
+    return deltaPrune(standPat, gain, alpha);
+}
 
 
 } // namespace search_policies

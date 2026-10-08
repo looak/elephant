@@ -14,16 +14,19 @@ export ElephantGambit_VERSION_PRERELEASE = $(patsubst $(VERSION_CORE)%,%,$(VERSI
 GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo nogit)
 BUILD_TIMESTAMP := $(shell date '+%b %d %Y at %H:%M:%S')
 
-# Versioning header and template
-VERSION_HEADER := ../src/engine/inc/elephant_gambit_config.h
-VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
-
 # Directories
-INCLUDE_PATHS := ../src/engine/inc ../src/cli/inc ../third_party/spdlog/include
-INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
+BUILD_DIR := ./build
 CSRC_DIR := ../src/cli/src
 ESRC_DIR := ../src/engine/src
-BUILD_DIR := ./build
+
+# Versioning header and template. The header goes in the build directory, the CMake build writes its own next to the
+# template and the two would overwrite each other. Its include path comes first so this one is found.
+VERSION_HEADER_DIR := $(BUILD_DIR)/gen
+VERSION_HEADER := $(VERSION_HEADER_DIR)/elephant_gambit_config.h
+VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
+
+INCLUDE_PATHS := $(VERSION_HEADER_DIR) ../src/engine/inc ../src/cli/inc ../third_party/spdlog/include
+INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 
 # Compiler and flags
 CXX := g++
@@ -62,6 +65,7 @@ $(BUILD_DIR)/%.o: ../%.cpp $(VERSION_HEADER)
 
 # Version header generation rule (simplified for readability)
 $(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE) $(VERSION_FILE)
+	@mkdir -p $(dir $@)
 	sed -e 's/@ElephantGambit_VERSION_MAJOR@/$(ElephantGambit_VERSION_MAJOR)/g' \
 		-e 's/@ElephantGambit_VERSION_MINOR@/$(ElephantGambit_VERSION_MINOR)/g' \
 		-e 's/@ElephantGambit_VERSION_PATCH@/$(ElephantGambit_VERSION_PATCH)/g' \

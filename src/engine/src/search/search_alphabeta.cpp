@@ -95,19 +95,38 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         }
     }
 
+    // --- Static Eval ---
+    // Only the pruning at non-PV nodes uses it, and it means nothing in check.
+    const bool inCheck = moves.isChecked();
+    const i16 staticEval = (isPV || inCheck) ? -c_infinity : context.evaluate<us>();
+
+    // --- Reverse Futility Pruning ---
+    if constexpr (search_policies::RFP::enabled) {
+        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta)) {
+            pv->length = 0;
+            return staticEval;
+        }
+    }
+
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
-        if (!isPV && moves.isChecked() == false) {
-            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, depth, beta, ply)) {
+        if (!isPV && !inCheck) {
+            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, depth, beta, ply, staticEval)) {
                 pv->length = 0;
                 return nullScore.value();
             }
         }
     }
 
+    // --- Futility Pruning ---
+    // decided per node, searchMoves skips the quiet moves.
+    bool futile = false;
+    if constexpr (search_policies::Futility::enabled)
+        futile = search_policies::Futility::nodeIsFutile(isPV, inCheck, depth, staticEval, alpha);
+
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove);
+    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -132,7 +151,7 @@ template i16 Search::alphaBeta<Set::WHITE>(ThreadSearchContext& context, u8 dept
 template i16 Search::alphaBeta<Set::BLACK>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
 
 template<Set us>
-i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove) {
+i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -159,7 +178,15 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         if (context.shouldStop()) break;
 
         PackedMove move = ordered.move;
-        
+
+        // --- Futility Pruning ---
+        // skipped quiets weren't searched, they get no history malus either.
+        if (search_policies::Futility::skipMove(futile, index, move, ordered.isCheck())) {
+            ordered = moves.next();
+            index++;
+            continue;
+        }
+
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
 
@@ -267,5 +294,5 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     return bestEval;
 }
 
-template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
-template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);

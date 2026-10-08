@@ -48,8 +48,24 @@ inline constexpr u8 minDepth = 3;
 inline constexpr u8 verificationDepth = 6;
 } // namespace nmp_params
 
+// futility pruning parameters
+namespace futility_params {
+// quiet moves are skipped at nodes up to this depth when the static eval is this far below alpha.
+inline constexpr u8 maxDepth = 3;
+// margin = base + perDepth * depth.
+inline constexpr i16 base = 100;
+inline constexpr i16 perDepth = 100;
+} // namespace futility_params
+
+// reverse futility pruning parameters
+namespace rfp_params {
+// nodes up to this depth return when the static eval beats beta by margin * depth.
+inline constexpr u8 maxDepth = 6;
+inline constexpr i16 margin = 80;
+} // namespace rfp_params
+
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
-inline constexpr u8 futilityDepthMargin = (defaultMaxDepth / 2);
-inline constexpr i16 futilityMargin = 200; // 2 pawns
+// delta pruning, slack on top of the material a capture can win before it's judged hopeless.
+inline constexpr i16 deltaMargin = 200; // 2 pawns
 } // namespace quiescence_params
