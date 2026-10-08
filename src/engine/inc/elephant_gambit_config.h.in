@@ -20,8 +20,11 @@
 #define ELEPHANT_GAMBIT_VERSION_PATCH @ElephantGambit_VERSION_PATCH@
 
 #define ELEPHANT_GAMBIT_VERSION_STR "@ElephantGambit_VERSION@"
+// pre-release & suffix include their leading dash, "-eval" & "-dbg", or are empty.
 #define ELEPHANT_GAMBIT_VERSION_SUFFIX "@ElephantGambit_VERSION_SUFFIX@"
 #define ELEPHANT_GAMBIT_VERSION_PRERELEASE "@ElephantGambit_VERSION_PRERELEASE@"
+// e.g. 0.12.1-eval, the version as written in version.txt plus -dbg for debug builds.
+#define ELEPHANT_GAMBIT_VERSION_FULL ELEPHANT_GAMBIT_VERSION_STR ELEPHANT_GAMBIT_VERSION_PRERELEASE ELEPHANT_GAMBIT_VERSION_SUFFIX
 
 #define ELEPHANT_GAMBIT_GIT_HASH "@VAR_ELEPHANT_GIT_HASH@"
 #define ELEPHANT_GAMBIT_BUILD_TIMESTAMP "@VAR_ELEPHANT_BUILD_TIMESTAMP@"

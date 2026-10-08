@@ -20,7 +20,7 @@ UCI::UCI()
     , m_timeManager(SearchParameters{}, Set::WHITE)
 {
     io::printer::uciPrinterInit();
-    io::printer::uci("id name Elephant Gambit {}", ELEPHANT_GAMBIT_VERSION_STR);
+    io::printer::uci("id name Elephant Gambit {}", ELEPHANT_GAMBIT_VERSION_FULL);
     io::printer::uci("id author Alexander Loodin Ek");
     InitializeOptions();
 }

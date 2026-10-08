@@ -1,11 +1,18 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
 EXE ?= elephant_ob
 
-# Versioning
-export ElephantGambit_VERSION_MAJOR = 0
-export ElephantGambit_VERSION_MINOR = 11
-export ElephantGambit_VERSION_PATCH = 0
-export ElephantGambit_VERSION = $(ElephantGambit_VERSION_MAJOR).$(ElephantGambit_VERSION_MINOR).$(ElephantGambit_VERSION_PATCH)
+# Versioning, read from ../version.txt (major.minor.patch[-label]), the only place the version is written.
+VERSION_FILE := ../version.txt
+VERSION_FULL := $(shell head -n 1 $(VERSION_FILE) | tr -d '\r[:space:]')
+VERSION_CORE := $(firstword $(subst -, ,$(VERSION_FULL)))
+export ElephantGambit_VERSION_MAJOR = $(word 1,$(subst ., ,$(VERSION_CORE)))
+export ElephantGambit_VERSION_MINOR = $(word 2,$(subst ., ,$(VERSION_CORE)))
+export ElephantGambit_VERSION_PATCH = $(word 3,$(subst ., ,$(VERSION_CORE)))
+export ElephantGambit_VERSION = $(VERSION_CORE)
+# includes the leading dash, "-eval", or empty for a release.
+export ElephantGambit_VERSION_PRERELEASE = $(patsubst $(VERSION_CORE)%,%,$(VERSION_FULL))
+GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo nogit)
+BUILD_TIMESTAMP := $(shell date '+%b %d %Y at %H:%M:%S')
 
 # Versioning header and template
 VERSION_HEADER := ../src/engine/inc/elephant_gambit_config.h
@@ -54,11 +61,15 @@ $(BUILD_DIR)/%.o: ../%.cpp $(VERSION_HEADER)
 -include $(DEP)
 
 # Version header generation rule (simplified for readability)
-$(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE)
+$(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE) $(VERSION_FILE)
 	sed -e 's/@ElephantGambit_VERSION_MAJOR@/$(ElephantGambit_VERSION_MAJOR)/g' \
 		-e 's/@ElephantGambit_VERSION_MINOR@/$(ElephantGambit_VERSION_MINOR)/g' \
 		-e 's/@ElephantGambit_VERSION_PATCH@/$(ElephantGambit_VERSION_PATCH)/g' \
 		-e 's/@ElephantGambit_VERSION@/$(ElephantGambit_VERSION)/g' \
+		-e 's/@ElephantGambit_VERSION_PRERELEASE@/$(ElephantGambit_VERSION_PRERELEASE)/g' \
+		-e 's/@ElephantGambit_VERSION_SUFFIX@//g' \
+		-e 's/@VAR_ELEPHANT_GIT_HASH@/$(GIT_HASH)/g' \
+		-e 's/@VAR_ELEPHANT_BUILD_TIMESTAMP@/$(BUILD_TIMESTAMP)/g' \
 		$< > $@
 
 # Clean rule

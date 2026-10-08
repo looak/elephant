@@ -19,9 +19,9 @@ cmake_minimum_required(VERSION 3.14...4.0 FATAL_ERROR)
 
 include(cmake/version.cmake)
 project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)
-set(ElephantGambit_VERSION_PRERELEASE "")
+set(ElephantGambit_VERSION_PRERELEASE "${VAR_ELEPHANT_VERSION_PRERELEASE}")
 set(ElephantGambit_VERSION_SUFFIX "")
-message(STATUS "## Elephant Gambit version: ${ElephantGambit_VERSION}")
+message(STATUS "## Elephant Gambit version: ${VAR_ELEPHANT_VERSION_FULL}")
 
 include(GNUInstallDirs)
 include(cmake/options.cmake)

@@ -30,13 +30,13 @@ Application::Application() {
     prnt::out << "                         88" << std::endl;
     prnt::out << "                         88                                               *j*m" << std::endl;
     prnt::out << "\n                                                            a uci chess engine" << std::endl;
-    prnt::out << "                                                                     v: " << ELEPHANT_GAMBIT_VERSION_STR << std::endl;
+    prnt::out << "                                                                     v: " << ELEPHANT_GAMBIT_VERSION_FULL << std::endl;
     prnt::out << "                                                                      " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
 
 #ifdef DEVELOPMENT_BUILD
     prnt::out << "---------DEVELOPMENT BUILD---------" << std::endl;
     prnt::out << " versions numbers:" << std::endl;
-    prnt::out << " engine: " << ELEPHANT_GAMBIT_VERSION_STR << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX << std::endl;
+    prnt::out << " engine: " << ELEPHANT_GAMBIT_VERSION_FULL << std::endl;
     prnt::out << "    cli: " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX << std::endl;
     prnt::out << "    git: " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
     prnt::out << " timestamps:" << std::endl;

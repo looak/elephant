@@ -17,9 +17,8 @@ public:
     bool execute() override
     {
         prnt::out << " Elephant Gambit Open Source Chess Engine 2021-2025";
-        prnt::out << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << "-" << ELEPHANT_CLI_VERSION_PRERELEASE
-                    << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_STR << "-"
-                    << ELEPHANT_GAMBIT_VERSION_PRERELEASE << ELEPHANT_GAMBIT_VERSION_SUFFIX;
+        prnt::out << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE
+                    << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_FULL;
         prnt::out << " Source: https://github.com/looak/elephant current git hash: " << ELEPHANT_GAMBIT_GIT_HASH;
         prnt::out << " Author: Alexander Loodin Ek";
         prnt::out << " Contact: alexander.loodin.ek(at)gmail.com";
