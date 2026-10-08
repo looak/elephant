@@ -1,25 +1,25 @@
 /******************************************************************************
  * Elephant Gambit Chess Engine - a Chess AI
  * Copyright(C) 2025  Alexander Loodin Ek
- * 
+ *
  * This program is free software : you can redistribute it and /or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program.If not, see < http://www.gnu.org/licenses/>. 
+ * along with this program.If not, see < http://www.gnu.org/licenses/>.
  *****************************************************************************/
 
 /**
  * @file evaluator_data.hpp
- * @brief Defines data structures and constants for evaluating chess piece positions and scores 
- * 
+ * @brief Defines data structures and constants for evaluating chess piece positions and scores
+ *
  */
 
 #include <system/platform.hpp>
@@ -44,128 +44,159 @@ u32 flip(const u32 index) {
     return index ^ 56;
 }
 
-#define TS(x,y) TaperedScore{x,y}
+/**
+ * PeSTO's material values and piece/sq tables, Texel tuned by Ronald Friederich for PeSTO (values from Rofchade).
+ * https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function
+ * Material and tables were tuned together, the eval uses these values and not piece_constants::value.
+ *
+ * The tables are kept as published: from white's point of view with A8 at index 0, rank 8 on the top row. Our squares
+ * have A1 at 0, so a white piece reads the table at flip(sqr) and a black piece at sqr. */
+constexpr i32 pestoMaterial_mg[6] = { 82, 337, 365, 477, 1025, 0 };
+constexpr i32 pestoMaterial_eg[6] = { 94, 281, 297, 512,  936, 0 };
 
-/* piece/sq tables */
-constexpr i32 pawnPositionTable_mg[64] = {
+// game phase each piece adds, 24 with all pieces on the board. Promotions can push it past, it's capped there.
+constexpr i32 gamePhaseIncrement[6] = { 0, 1, 1, 2, 4, 0 };
+constexpr i32 maxGamePhase = 24;
+
+constexpr i32 pestoPawn_mg[64] = {
     //   A    B    C    D    E    F    G    H
-         0,   0,   0,   0,   0,   0,   0,   0,   // 1
-        15,  10,   5,   0,   0,   5,  10,  15,   // 2
-        -5,   0,  10,  14,  14,  10,   0,  -5,   // 3
-         0,   0,  10,  16,  16,  10,   0,   0,   // 4
-         0,   0,   5,  10,  10,   5,   0,   0,   // 5
-        10,  10,  10,  20,  20,  10,  10,  10,   // 6
-        30,  20,  20,  30,  30,  20,  20,  30,   // 7
-         0,   0,   0,   0,   0,   0,   0,   0    // 8
+      0,   0,   0,   0,   0,   0,  0,   0,   // 8
+     98, 134,  61,  95,  68, 126, 34, -11,   // 7
+     -6,   7,  26,  31,  65,  56, 25, -20,   // 6
+    -14,  13,   6,  21,  23,  12, 17, -23,   // 5
+    -27,  -2,  -5,  12,  17,   6, 10, -25,   // 4
+    -26,  -4,  -4, -10,   3,   3, 33, -12,   // 3
+    -35,  -1, -20, -23, -15,  24, 38, -22,   // 2
+      0,   0,   0,   0,   0,   0,  0,   0,   // 1
 };
 
-/* piece/sq tables */
-constexpr i32 pawnPositionTable_eg[64] = {
-    //   A    B    C    D    E    F    G    H
-         0,   0,   0,   0,   0,   0,   0,   0,   // 1
-         0,   0,  -5, -10, -10,  -5,   0,   0,   // 2
-         0,   0,  10,  10,  10,  10,   0,   0,   // 3
-         0,   0,  10,  16,  16,  10,   0,   0,   // 4
-         8,   8,   8,  16,  16,   8,   8,   8,   // 5
-        42,  42,  42,  42,  42,  42,  42,  42,   // 6
-        64,  64,  64,  64,  64,  64,  64,  64,   // 7
-         0,   0,   0,   0,   0,   0,   0,   0    // 8
+constexpr i32 pestoPawn_eg[64] = {
+      0,   0,   0,   0,   0,   0,   0,   0,
+    178, 173, 158, 134, 147, 132, 165, 187,
+     94, 100,  85,  67,  56,  53,  82,  84,
+     32,  24,  13,   5,  -2,   4,  17,  17,
+     13,   9,  -3,  -7,  -7,  -8,   3,  -1,
+      4,   7,  -6,   1,   0,  -5,  -1,  -8,
+     13,   8,   8,  10,  13,   0,   2,  -7,
+      0,   0,   0,   0,   0,   0,   0,   0,
 };
 
-constexpr TaperedScore pawnPositionTaperedScoreTable[64] = {
-    TS(pawnPositionTable_mg[0], pawnPositionTable_eg[0]),  TS(pawnPositionTable_mg[1], pawnPositionTable_eg[1]),   TS(pawnPositionTable_mg[2], pawnPositionTable_eg[2]),   TS(pawnPositionTable_mg[3], pawnPositionTable_eg[3]),   TS(pawnPositionTable_mg[4], pawnPositionTable_eg[4]),   TS(pawnPositionTable_mg[5], pawnPositionTable_eg[5]),   TS(pawnPositionTable_mg[6], pawnPositionTable_eg[6]),   TS(pawnPositionTable_mg[7], pawnPositionTable_eg[7]),
-    TS(pawnPositionTable_mg[8], pawnPositionTable_eg[8]),  TS(pawnPositionTable_mg[9], pawnPositionTable_eg[9]),   TS(pawnPositionTable_mg[10], pawnPositionTable_eg[10]), TS(pawnPositionTable_mg[11], pawnPositionTable_eg[11]), TS(pawnPositionTable_mg[12], pawnPositionTable_eg[12]), TS(pawnPositionTable_mg[13], pawnPositionTable_eg[13]), TS(pawnPositionTable_mg[14], pawnPositionTable_eg[14]), TS(pawnPositionTable_mg[15], pawnPositionTable_eg[15]),
-    TS(pawnPositionTable_mg[16], pawnPositionTable_eg[16]), TS(pawnPositionTable_mg[17], pawnPositionTable_eg[17]),  TS(pawnPositionTable_mg[18], pawnPositionTable_eg[18]), TS(pawnPositionTable_mg[19], pawnPositionTable_eg[19]), TS(pawnPositionTable_mg[20], pawnPositionTable_eg[20]), TS(pawnPositionTable_mg[21], pawnPositionTable_eg[21]), TS(pawnPositionTable_mg[22], pawnPositionTable_eg[22]), TS(pawnPositionTable_mg[23], pawnPositionTable_eg[23]),
-    TS(pawnPositionTable_mg[24], pawnPositionTable_eg[24]), TS(pawnPositionTable_mg[25], pawnPositionTable_eg[25]),  TS(pawnPositionTable_mg[26], pawnPositionTable_eg[26]), TS(pawnPositionTable_mg[27], pawnPositionTable_eg[27]), TS(pawnPositionTable_mg[28], pawnPositionTable_eg[28]), TS(pawnPositionTable_mg[29], pawnPositionTable_eg[29]), TS(pawnPositionTable_mg[30], pawnPositionTable_eg[30]), TS(pawnPositionTable_mg[31], pawnPositionTable_eg[31]),
-    TS(pawnPositionTable_mg[32], pawnPositionTable_eg[32]), TS(pawnPositionTable_mg[33], pawnPositionTable_eg[33]),  TS(pawnPositionTable_mg[34], pawnPositionTable_eg[34]), TS(pawnPositionTable_mg[35], pawnPositionTable_eg[35]), TS(pawnPositionTable_mg[36], pawnPositionTable_eg[36]), TS(pawnPositionTable_mg[37], pawnPositionTable_eg[37]), TS(pawnPositionTable_mg[38], pawnPositionTable_eg[38]), TS(pawnPositionTable_mg[39], pawnPositionTable_eg[39]),
-    TS(pawnPositionTable_mg[40], pawnPositionTable_eg[40]), TS(pawnPositionTable_mg[41], pawnPositionTable_eg[41]),  TS(pawnPositionTable_mg[42], pawnPositionTable_eg[42]), TS(pawnPositionTable_mg[43], pawnPositionTable_eg[43]), TS(pawnPositionTable_mg[44], pawnPositionTable_eg[44]), TS(pawnPositionTable_mg[45], pawnPositionTable_eg[45]), TS(pawnPositionTable_mg[46], pawnPositionTable_eg[46]), TS(pawnPositionTable_mg[47], pawnPositionTable_eg[47]),
-    TS(pawnPositionTable_mg[48], pawnPositionTable_eg[48]), TS(pawnPositionTable_mg[49], pawnPositionTable_eg[49]),  TS(pawnPositionTable_mg[50], pawnPositionTable_eg[50]), TS(pawnPositionTable_mg[51], pawnPositionTable_eg[51]), TS(pawnPositionTable_mg[52], pawnPositionTable_eg[52]), TS(pawnPositionTable_mg[53], pawnPositionTable_eg[53]), TS(pawnPositionTable_mg[54], pawnPositionTable_eg[54]), TS(pawnPositionTable_mg[55], pawnPositionTable_eg[55]),
-    TS(pawnPositionTable_mg[56], pawnPositionTable_eg[56]), TS(pawnPositionTable_mg[57], pawnPositionTable_eg[57]),  TS(pawnPositionTable_mg[58], pawnPositionTable_eg[58]), TS(pawnPositionTable_mg[59], pawnPositionTable_eg[59]), TS(pawnPositionTable_mg[60], pawnPositionTable_eg[60]), TS(pawnPositionTable_mg[61], pawnPositionTable_eg[61]), TS(pawnPositionTable_mg[62], pawnPositionTable_eg[62]), TS(pawnPositionTable_mg[63], pawnPositionTable_eg[63])
+constexpr i32 pestoKnight_mg[64] = {
+    -167, -89, -34, -49,  61, -97, -15, -107,
+     -73, -41,  72,  36,  23,  62,   7,  -17,
+     -47,  60,  37,  65,  84, 129,  73,   44,
+      -9,  17,  19,  53,  37,  69,  18,   22,
+     -13,   4,  16,  13,  28,  19,  21,   -8,
+     -23,  -9,  12,  10,  19,  17,  25,  -16,
+     -29, -53, -12,  -3,  -1,  18, -14,  -19,
+    -105, -21, -58, -33, -17, -28, -19,  -23,
 };
 
-constexpr i32 knightPositionTable[64] = {
-   -50, -25, -15, -15, -15, -15, -25, -50,
-   -40, -20,   0, -10, -10,   0, -20, -40,
-   -30,   5,  10,  15,  15,  10,   5, -30,
-   -30,   0,  15,  20,  20,  15,   0, -30,
-   -30,   5,  15,  20,  20,  15,   5, -30,
-   -30,   0,  10,  15,  15,  10,   0, -30,
-   -40, -20,   0,   0,   0,   0, -20, -40,
-   -50, -40, -20, -20, -20, -20, -40, -50
+constexpr i32 pestoKnight_eg[64] = {
+    -58, -38, -13, -28, -31, -27, -63, -99,
+    -25,  -8, -25,  -2,  -9, -25, -24, -52,
+    -24, -20,  10,   9,  -1,  -9, -19, -41,
+    -17,   3,  22,  22,  22,  11,   8, -18,
+    -18,  -6,  16,  25,  16,  17,   4, -18,
+    -23,  -3,  -1,  15,  10,  -3, -20, -22,
+    -42, -20, -10,  -5,  -2, -20, -23, -44,
+    -29, -51, -23, -15, -22, -18, -50, -64,
 };
 
-constexpr i32 bishopPositionTable[64] = {
-   -20, -10, -10, -10, -10, -10, -10, -20,
-   -10,   5,   0,   0,   0,   0,   5, -10,
-   -10,  10,  10,  10,  10,  10,  10, -10,
-   -10,   0,  10,  20,  20,  10,   0, -10,
-   -10,   5,   5,  20,  20,   5,   5, -10,
-   -10,   0,   5,  10,  10,   5,   0, -10,
-   -10,   5,   0,   0,   0,   0,   5, -10,
-   -20, -10, -10, -10, -10, -10, -10, -20
+constexpr i32 pestoBishop_mg[64] = {
+    -29,   4, -82, -37, -25, -42,   7,  -8,
+    -26,  16, -18, -13,  30,  59,  18, -47,
+    -16,  37,  43,  40,  35,  50,  37,  -2,
+     -4,   5,  19,  50,  37,  37,   7,  -2,
+     -6,  13,  13,  26,  34,  12,  10,   4,
+      0,  15,  15,  15,  14,  27,  18,  10,
+      4,  15,  16,   0,   7,  21,  33,   1,
+    -33,  -3, -14, -21, -13, -12, -39, -21,
 };
 
-constexpr i32 rookPositionTable[64] = {
-     0,   0,   5,   5,   5,   5,   0,   0,
-    -5,   0,   5,  10,  10,   5,   0,  -5,
-    -5,   0,   5,  10,  10,   5,   0,  -5,
-    -5,   0,   5,  10,  10,   5,   0,  -5,
-    -5,   0,   5,  10,  10,   5,   0,  -5,
-    -5,   0,   5,  10,  10,   5,   0,  -5,
-    15,  20,  20,  25,  25,  20,  20,  15,
-    20,  25,  25,  35,  35,  25,  25,  20,
+constexpr i32 pestoBishop_eg[64] = {
+    -14, -21, -11,  -8, -7,  -9, -17, -24,
+     -8,  -4,   7, -12, -3, -13,  -4, -14,
+      2,  -8,   0,  -1, -2,   6,   0,   4,
+     -3,   9,  12,   9, 14,  10,   3,   2,
+     -6,   3,  13,  19,  7,  10,  -3,  -9,
+    -12,  -3,   8,  10, 13,   3,  -7, -15,
+    -14, -18,  -7,  -1,  4,  -9, -15, -27,
+    -23,  -9, -23,  -5, -9, -16,  -5, -17,
 };
 
-constexpr i32 queenPositionTable[64] = {
-   -20, -10, -10, -5, -5, -10, -10, -20,
-   -10,   0,   0,  0,  0,  0,  0, -10,
-   -10,   0,  15, 15, 15, 15,  0, -10,
-    -5,   0,  15, 20, 20, 15,  0,  -5,
-     0,   0,  15, 20, 20, 15,  0,  -5,
-   -10,   5,  15, 15, 15, 15,  0, -10,
-   -10,   0,   5,  0,  0,  0,  0, -10
+constexpr i32 pestoRook_mg[64] = {
+     32,  42,  32,  51, 63,  9,  31,  43,
+     27,  32,  58,  62, 80, 67,  26,  44,
+     -5,  19,  26,  36, 17, 45,  61,  16,
+    -24, -11,   7,  26, 24, 35,  -8, -20,
+    -36, -26, -12,  -1,  9, -7,   6, -23,
+    -45, -25, -16, -17,  3,  0,  -5, -33,
+    -44, -16, -20,  -9, -1, 11,  -6, -71,
+    -19, -13,   1,  17, 16,  7, -37, -26,
 };
 
-constexpr i32 kingPositionTable_mg[64] = {
-     20,  30,  10,   0,   0,  10,  30,  20,
-     20,  20,   0,   0,   0,   0,  20,  20,
-    -10, -20, -20, -20, -20, -20, -20, -10,
-    -20, -30, -30, -40, -40, -30, -30, -20,
-    -30, -40, -40, -50, -50, -40, -40, -30,
-    -30, -40, -40, -50, -50, -40, -40, -30,
-    -20, -30, -30, -40, -40, -30, -30, -20,
-    -10, -20, -20, -20, -20, -20, -20, -10
+constexpr i32 pestoRook_eg[64] = {
+    13, 10, 18, 15, 12,  12,   8,   5,
+    11, 13, 13, 11, -3,   3,   8,   3,
+     7,  7,  7,  5,  4,  -3,  -5,  -3,
+     4,  3, 13,  1,  2,   1,  -1,   2,
+     3,  5,  8,  4, -5,  -6,  -8, -11,
+    -4,  0, -5, -1, -7, -12,  -8, -16,
+    -6, -6,  0,  2, -9,  -9, -11,  -3,
+    -9,  2,  3, -1, -5, -13,   4, -20,
 };
 
-constexpr i32 kingPositionTable_eg[64] = {
-    -30, -20, -10, -10, -10, -10, -20, -30,
-    -20, -10, -10, -10, -10, -10, -10, -20,
-    -10,   5,   5,   5,   5,   5,   5, -10,
-    -10,   5,  15,  20,  20,  15,   5, -10,
-    -10,   5,  15,  20,  20,  15,   5, -10,
-    -10,   5,   5,   5,   5,   5,   5, -10,
-    -20, -10, -10, -10, -10, -10, -10, -20,
-    -30, -20, -10, -10, -10, -10, -20, -30,
+constexpr i32 pestoQueen_mg[64] = {
+    -28,   0,  29,  12,  59,  44,  43,  45,
+    -24, -39,  -5,   1, -16,  57,  28,  54,
+    -13, -17,   7,   8,  29,  56,  47,  57,
+    -27, -27, -16, -16,  -1,  17,  -2,   1,
+     -9, -26,  -9, -10,  -2,  -4,   3,  -3,
+    -14,   2, -11,  -2,  -5,   2,  14,   5,
+    -35,  -8,  11,   2,   8,  15,  -3,   1,
+     -1, -18,  -9,  10, -15, -25, -31, -50,
 };
 
-constexpr TaperedScore kingPositionTaperedScoreTable[64] = {
-    TS(kingPositionTable_mg[0], kingPositionTable_eg[0]),  TS(kingPositionTable_mg[1], kingPositionTable_eg[1]),   TS(kingPositionTable_mg[2], kingPositionTable_eg[2]),   TS(kingPositionTable_mg[3], kingPositionTable_eg[3]),   TS(kingPositionTable_mg[4], kingPositionTable_eg[4]),   TS(kingPositionTable_mg[5], kingPositionTable_eg[5]),   TS(kingPositionTable_mg[6], kingPositionTable_eg[6]),   TS(kingPositionTable_mg[7], kingPositionTable_eg[7]),
-    TS(kingPositionTable_mg[8], kingPositionTable_eg[8]),  TS(kingPositionTable_mg[9], kingPositionTable_eg[9]),   TS(kingPositionTable_mg[10], kingPositionTable_eg[10]), TS(kingPositionTable_mg[11], kingPositionTable_eg[11]), TS(kingPositionTable_mg[12], kingPositionTable_eg[12]), TS(kingPositionTable_mg[13], kingPositionTable_eg[13]), TS(kingPositionTable_mg[14], kingPositionTable_eg[14]), TS(kingPositionTable_mg[15], kingPositionTable_eg[15]),
-    TS(kingPositionTable_mg[16], kingPositionTable_eg[16]), TS(kingPositionTable_mg[17], kingPositionTable_eg[17]),  TS(kingPositionTable_mg[18], kingPositionTable_eg[18]), TS(kingPositionTable_mg[19], kingPositionTable_eg[19]), TS(kingPositionTable_mg[20], kingPositionTable_eg[20]), TS(kingPositionTable_mg[21], kingPositionTable_eg[21]), TS(kingPositionTable_mg[22], kingPositionTable_eg[22]), TS(kingPositionTable_mg[23], kingPositionTable_eg[23]),
-    TS(kingPositionTable_mg[24], kingPositionTable_eg[24]), TS(kingPositionTable_mg[25], kingPositionTable_eg[25]),  TS(kingPositionTable_mg[26], kingPositionTable_eg[26]), TS(kingPositionTable_mg[27], kingPositionTable_eg[27]), TS(kingPositionTable_mg[28], kingPositionTable_eg[28]), TS(kingPositionTable_mg[29], kingPositionTable_eg[29]), TS(kingPositionTable_mg[30], kingPositionTable_eg[30]), TS(kingPositionTable_mg[31], kingPositionTable_eg[31]),
-    TS(kingPositionTable_mg[32], kingPositionTable_eg[32]), TS(kingPositionTable_mg[33], kingPositionTable_eg[33]),  TS(kingPositionTable_mg[34], kingPositionTable_eg[34]), TS(kingPositionTable_mg[35], kingPositionTable_eg[35]), TS(kingPositionTable_mg[36], kingPositionTable_eg[36]), TS(kingPositionTable_mg[37], kingPositionTable_eg[37]), TS(kingPositionTable_mg[38], kingPositionTable_eg[38]), TS(kingPositionTable_mg[39], kingPositionTable_eg[39]),
-    TS(kingPositionTable_mg[40], kingPositionTable_eg[40]), TS(kingPositionTable_mg[41], kingPositionTable_eg[41]),  TS(kingPositionTable_mg[42], kingPositionTable_eg[42]), TS(kingPositionTable_mg[43], kingPositionTable_eg[43]), TS(kingPositionTable_mg[44], kingPositionTable_eg[44]), TS(kingPositionTable_mg[45], kingPositionTable_eg[45]), TS(kingPositionTable_mg[46], kingPositionTable_eg[46]), TS(kingPositionTable_mg[47], kingPositionTable_eg[47]),
-    TS(kingPositionTable_mg[48], kingPositionTable_eg[48]), TS(kingPositionTable_mg[49], kingPositionTable_eg[49]),  TS(kingPositionTable_mg[50], kingPositionTable_eg[50]), TS(kingPositionTable_mg[51], kingPositionTable_eg[51]), TS(kingPositionTable_mg[52], kingPositionTable_eg[52]), TS(kingPositionTable_mg[53], kingPositionTable_eg[53]), TS(kingPositionTable_mg[54], kingPositionTable_eg[54]), TS(kingPositionTable_mg[55], kingPositionTable_eg[55]),
-    TS(kingPositionTable_mg[56], kingPositionTable_eg[56]), TS(kingPositionTable_mg[57], kingPositionTable_eg[57]),  TS(kingPositionTable_mg[58], kingPositionTable_eg[58]), TS(kingPositionTable_mg[59], kingPositionTable_eg[59]), TS(kingPositionTable_mg[60], kingPositionTable_eg[60]), TS(kingPositionTable_mg[61], kingPositionTable_eg[61]), TS(kingPositionTable_mg[62], kingPositionTable_eg[62]), TS(kingPositionTable_mg[63], kingPositionTable_eg[63])
+constexpr i32 pestoQueen_eg[64] = {
+     -9,  22,  22,  27,  27,  19,  10,  20,
+    -17,  20,  32,  41,  58,  25,  30,   0,
+    -20,   6,   9,  49,  47,  35,  19,   9,
+      3,  22,  24,  45,  57,  40,  57,  36,
+    -18,  28,  19,  47,  31,  34,  39,  23,
+    -16, -27,  15,   6,   9,  17,  10,   5,
+    -22, -23, -30, -16, -16, -23, -36, -32,
+    -33, -28, -22, -43,  -5, -32, -20, -41,
 };
 
-const i32* pestoTables[6] = {
-    pawnPositionTable_eg,
-    knightPositionTable,
-    bishopPositionTable,
-    rookPositionTable,
-    queenPositionTable,
-    kingPositionTable_eg
+constexpr i32 pestoKing_mg[64] = {
+    -65,  23,  16, -15, -56, -34,   2,  13,
+     29,  -1, -20,  -7,  -8,  -4, -38, -29,
+     -9,  24,   2, -16, -20,   6,  22, -22,
+    -17, -20, -12, -27, -30, -25, -14, -36,
+    -49,  -1, -27, -39, -46, -44, -33, -51,
+    -14, -14, -22, -46, -44, -30, -15, -27,
+      1,   7,  -8, -64, -43, -16,   9,   8,
+    -15,  36,  12, -54,   8, -28,  24,  14,
+};
+
+constexpr i32 pestoKing_eg[64] = {
+    -74, -35, -18, -18, -11,  15,   4, -17,
+    -12,  17,  14,  17,  17,  38,  23,  11,
+     10,  17,  23,  15,  20,  45,  44,  13,
+     -8,  22,  24,  27,  26,  33,  26,   3,
+    -18,  -4,  21,  24,  27,  23,   9, -11,
+    -19,  -3,  11,  21,  23,  16,   7,  -9,
+    -27, -11,   4,  13,  14,   4,  -5, -17,
+    -53, -34, -21, -11, -28, -14, -24, -43
+};
+
+constexpr const i32* pestoTables_mg[6] = {
+    pestoPawn_mg, pestoKnight_mg, pestoBishop_mg, pestoRook_mg, pestoQueen_mg, pestoKing_mg
+};
+
+constexpr const i32* pestoTables_eg[6] = {
+    pestoPawn_eg, pestoKnight_eg, pestoBishop_eg, pestoRook_eg, pestoQueen_eg, pestoKing_eg
 };
 
 /**
