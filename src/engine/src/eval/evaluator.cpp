@@ -1,5 +1,7 @@
 #include <eval/evaluator.hpp>
 
+#include <algorithm>
+
 #include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <material/chess_piece.hpp>
@@ -21,19 +23,17 @@ Evaluator::Evaluate()
         return -c_checkmateConstant;
     }
 
-    i16 score = 0;
+    // material and piece positions, PeSTO's tables carry their own material values.
+    i16 score = EvaluatePesto();
+    // LOG_DEBUG() << "PeSTO score: " << score;
+
+    // piece_constants material, only decides whether mop up applies.
     i16 materialScore = EvaluateMaterial();
-    score += materialScore;
-//    LOG_DEBUG() << "Material score: " << score;
 
-    i16 tmp = EvaluatePiecePositions();
-    score += tmp;
-    // LOG_DEBUG() << "Piece position score: " << tmp;
-
-    // tmp = EvaluatePawnStructure();
+    // i16 tmp = EvaluatePawnStructure();
     // score += tmp;
 
-    tmp = MopUpValue(materialScore);
+    i16 tmp = MopUpValue(materialScore);
     score += tmp;
     // LOG_DEBUG() << "Mop up value: " << tmp;
 
@@ -72,55 +72,49 @@ Evaluator::EvaluateMaterial() const
 }
 
 i16
-Evaluator::EvaluatePiecePositions() const
+Evaluator::EvaluatePesto() const
 {
     const auto& material = m_position.material();
-    i16 score = 0;
-    float endgameCoeficient = calculateEndGameCoeficient();
+    i32 mg = 0;
+    i32 eg = 0;
 
-    Bitboard whitePawns = material.read(Set::WHITE, pawnId);
-    while (whitePawns.empty() == false) {
-        u32 sqr = whitePawns.popLsb();
-        score += evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
-    }
+    for (u8 pieceIndx = 0; pieceIndx < 6; ++pieceIndx) {
+        const i32* tableMg = evaluator_data::pestoTables_mg[pieceIndx];
+        const i32* tableEg = evaluator_data::pestoTables_eg[pieceIndx];
+        const i32 materialMg = evaluator_data::pestoMaterial_mg[pieceIndx];
+        const i32 materialEg = evaluator_data::pestoMaterial_eg[pieceIndx];
 
-    Bitboard blackPawns = material.read(Set::BLACK, pawnId);
-    while (blackPawns.empty() == false) {
-        u32 sqr = blackPawns.popLsb();
-        sqr = evaluator_data::flip(sqr);
-        score -= evaluator_data::pawnPositionTaperedScoreTable[sqr] * endgameCoeficient;
-    }
-
-    for (u8 pieceIndx = 1; pieceIndx < kingId; ++pieceIndx) {
+        // tables have A8 at index 0, see evaluator_data.
         Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
-
         while (whitePieces.empty() == false) {
-            u32 sqr = whitePieces.popLsb();
-            score += evaluator_data::pestoTables[pieceIndx][sqr];
+            u32 sqr = evaluator_data::flip(whitePieces.popLsb());
+            mg += materialMg + tableMg[sqr];
+            eg += materialEg + tableEg[sqr];
         }
 
         Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
         while (blackPieces.empty() == false) {
             u32 sqr = blackPieces.popLsb();
-            sqr = evaluator_data::flip(sqr);
-            score -= evaluator_data::pestoTables[pieceIndx][sqr];
+            mg -= materialMg + tableMg[sqr];
+            eg -= materialEg + tableEg[sqr];
         }
     }
 
-    Bitboard whiteKing = material.read(Set::WHITE, kingId);
-    while (whiteKing.empty() == false) {
-        u32 sqr = whiteKing.popLsb();
-        score += evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
+    const i32 phase = gamePhase();
+    return static_cast<i16>((mg * phase + eg * (evaluator_data::maxGamePhase - phase)) / evaluator_data::maxGamePhase);
+}
+
+i32
+Evaluator::gamePhase() const
+{
+    const auto& material = m_position.material();
+    i32 phase = 0;
+    for (u8 pieceIndx = knightId; pieceIndx <= queenId; ++pieceIndx) {
+        const i32 count = static_cast<i32>(material.read(Set::WHITE, pieceIndx).count() + material.read(Set::BLACK, pieceIndx).count());
+        phase += count * evaluator_data::gamePhaseIncrement[pieceIndx];
     }
 
-    Bitboard blackKing = material.read(Set::BLACK, kingId);
-    while (blackKing.empty() == false) {
-        u32 sqr = blackKing.popLsb();
-        sqr = evaluator_data::flip(sqr);
-        score -= evaluator_data::kingPositionTaperedScoreTable[sqr] * endgameCoeficient;
-    }
-
-    return score;
+    return std::min(phase, evaluator_data::maxGamePhase);
 }
 
 i16 Evaluator::EvaluatePawnStructure() const {

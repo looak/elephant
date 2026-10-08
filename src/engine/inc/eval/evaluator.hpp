@@ -46,9 +46,15 @@ public:
      * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */    
     float calculateEndGameCoeficient() const;
 
+    /**
+     * @brief PeSTO game phase, knights & bishops add 1, rooks 2 and queens 4.
+     * @return 24 with all pieces on the board (capped there after promotions) down to 0 with only kings & pawns. */
+    i32 gamePhase() const;
+
 private:
     i16 EvaluateMaterial() const;
-    i16 EvaluatePiecePositions() const;
+    // PeSTO material & piece/sq tables, tapered by gamePhase.
+    i16 EvaluatePesto() const;
     i16 EvaluatePawnStructure() const;
     i16 EvaluatePawnManhattanDistance() const;
     i16 EvaluateKingSafety() const;
