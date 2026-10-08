@@ -1,24 +1,58 @@
 #!/bin/sh
-# Adds a "bench <nodes> nodes" line from doc/bench-result to the commit message, OpenBench reads the bench from there.
+# Adds a "bench <nodes> nodes" line to the commit message, OpenBench reads the bench from the branch's newest commit.
+#
+# When the commit changes the engine (src/engine, src/cli/src or ob_build/makefile) the bench is run, built with
+# ob_build/makefile and g++ like OpenBench builds it, other compilers give other node counts. Without g++ and make on
+# PATH (Windows) the build runs through WSL. Otherwise the bench line of the last commit that has one is reused.
+#
+#   ELEPHANT_BENCH=force git commit ...   run the bench even when no engine file changed, e.g. to fix an amend
+#   ELEPHANT_BENCH=skip  git commit ...   no bench line at all
+#
+# The bench builds the working tree, unstaged engine changes end up in it. A warning is printed when there are any.
 #
 # This tracked copy is the source, git runs it from .git/hooks. Install or update once per clone, from the repo root:
 #   cp hooks/prepare-commit-msg .git/hooks/ && chmod +x .git/hooks/prepare-commit-msg
-# Refresh after any change that affects search, from ob_build:   ./elephant_ob bench | tail -1 > ../doc/bench-result
 
 msg_file="$1"
-commit_type="$2"   # message, template, merge, squash, or commit (amend / -c / -C)
+[ "$ELEPHANT_BENCH" = "skip" ] && exit 0
 
-# merges and squashes aren't benched.
-case "$commit_type" in
-    merge|squash) exit 0 ;;
-esac
+root="$(git rev-parse --show-toplevel)"
+engine_paths="src/engine src/cli/src ob_build/makefile"
 
-bench_file="$(git rev-parse --show-toplevel)/doc/bench-result"
-[ -f "$bench_file" ] || exit 0
+run_bench() {
+    # build objects & binary stay in ob_build/build, which is ignored.
+    build='cd ob_build && make -j"$(nproc)" EXE=build/elephant_ob >/dev/null 2>&1 && ./build/elephant_ob bench | tail -n 1'
+    if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
+        (cd "$root" && sh -c "$build")
+    elif command -v wsl.exe >/dev/null 2>&1; then
+        wsl_root="$(wsl.exe -e wslpath -a "$root" | tr -d '\r')"
+        wsl.exe -e sh -c "cd '$wsl_root' && $build" | tr -d '\r'
+    else
+        echo "prepare-commit-msg: no g++/make or WSL found, can't run the bench" >&2
+    fi
+}
 
-# first number in the file is the node count, e.g. "48460682 nodes 3727744 nps".
-nodes=$(grep -o '[0-9][0-9]*' "$bench_file" | head -n 1)
-[ -n "$nodes" ] || exit 0
+engine_changed=0
+# initial commit has no HEAD, everything is new.
+if ! git rev-parse --verify -q HEAD >/dev/null || ! git diff --cached --quiet HEAD -- $engine_paths; then
+    engine_changed=1
+fi
+
+nodes=""
+if [ "$engine_changed" = 1 ] || [ "$ELEPHANT_BENCH" = "force" ]; then
+    git diff --quiet -- $engine_paths || echo "prepare-commit-msg: unstaged engine changes are part of the bench" >&2
+    echo "prepare-commit-msg: running bench..." >&2
+    # e.g. "1710707 nodes 2259850 nps", the first number is the node count.
+    nodes=$(run_bench | grep -o '^[0-9][0-9]* nodes' | grep -o '^[0-9]*')
+    if [ -z "$nodes" ]; then
+        echo "prepare-commit-msg: bench failed, no bench line added" >&2
+        exit 0
+    fi
+    echo "prepare-commit-msg: bench $nodes nodes" >&2
+else
+    nodes=$(git log --format=%B -n 200 HEAD 2>/dev/null | grep -m 1 -o '^bench [0-9][0-9]* nodes' | grep -o '[0-9][0-9]*')
+    [ -n "$nodes" ] || exit 0
+fi
 
 # Any existing bench line is replaced (amend). The bench line isn't a "Key: value" trailer, so it goes in its own
 # paragraph before the trailer block (Co-Authored-By etc.), otherwise git no longer reads the trailers.
