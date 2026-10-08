@@ -50,6 +50,6 @@ inline constexpr u8 verificationDepth = 6;
 
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
-inline constexpr u8 futilityDepthMargin = (defaultMaxDepth / 2);
-inline constexpr i16 futilityMargin = 200; // 2 pawns
+// delta pruning, slack on top of the material a capture can win before it's judged hopeless.
+inline constexpr i16 deltaMargin = 200; // 2 pawns
 } // namespace quiescence_params

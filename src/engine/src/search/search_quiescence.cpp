@@ -10,20 +10,6 @@
 #include <system/time_manager.hpp>
 
 template<Set us>
-u16 Search::mostValuablePieceInPosition(PositionReader pos) {
-    const auto& material = pos.material();
-    for (u8 pieceIndx = queenId; pieceIndx >= pawnId; --pieceIndx) {
-        if (material.read<us>(pieceIndx).empty() == false) {
-            return piece_constants::value[pieceIndx];
-        }
-    }
-    return 0; // no pieces found
-}
-
-template u16 Search::mostValuablePieceInPosition<Set::WHITE>(PositionReader);
-template u16 Search::mostValuablePieceInPosition<Set::BLACK>(PositionReader);
-
-template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
@@ -37,12 +23,13 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;
+    i16 standPat = -c_infinity;
     if (inCheck) {
         // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
         moves.start(nullptr, MoveTypes::ALL);
     }
     else {
-        const i16 standPat = context.evaluate<us>();
+        standPat = context.evaluate<us>();
 
         // Stand-pat beta cutoff
         if (standPat >= beta)
@@ -56,13 +43,15 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             return standPat;
 
         bestEval = standPat;
+
+        // --- Delta Pruning (node) ---
+        if constexpr (search_policies::QuiescencePolicy::deltaPruning) {
+            if (search_policies::QuiescencePolicy::deltaPruneNode(context.position.read().material(), us, standPat, alpha))
+                return standPat;
+        }
+
         moves.start(nullptr, MoveTypes::CAPTURES_ONLY);
     }
-
-    // Futility pruning
-    // u16 mvValue = mostValuablePieceInPosition<opposing_set<us>()>(context.position.read());
-    // if (search_policies::QuiescencePolicy::futile(depth, standPat + mvValue, alpha))
-    //     return standPat;
 
     // evasions don't consume quiescence depth, the line stays bounded since only captures are searched once out of
     // check, and the ply limit above.
@@ -75,7 +64,15 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             break;
 
         PackedMove move = ordered.move;
-        
+
+        // --- Delta Pruning (move) ---
+        if constexpr (search_policies::QuiescencePolicy::deltaPruning) {
+            if (!inCheck && search_policies::QuiescencePolicy::deltaPruneMove(context.position.read().material(), move, standPat, alpha)) {
+                ordered = moves.next();
+                continue;
+            }
+        }
+
         // Skip bad captures (SEE < 0)
         // if (SEE(move) < 0) {
         //     ordered = moves.next();

@@ -31,6 +31,7 @@
 class Search;
 
 struct KillerMoves;
+struct MaterialPositionMask;
 struct MoveOrderingHeuristic;
 struct MoveOrderingView;
 struct PackedMove;
@@ -46,6 +47,7 @@ namespace enabled_policies {
     inline constexpr bool LMR = true;
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
+    inline constexpr bool DeltaPruning = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -102,13 +104,15 @@ public:
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
+    static constexpr bool deltaPruning = enabled_policies::DeltaPruning;
     static u8 maxDepth;
 
-    static bool futile(u8 depth, i32 eval, i16 alpha) {
-        return depth > 0
-        && (depth < quiescence_params::futilityDepthMargin)
-        && (eval + quiescence_params::futilityMargin < alpha);
-    }
+    // Delta pruning, standing pat plus the material a capture can win and a margin still doesn't reach alpha.
+    // Only when not in check, evasions are all searched.
+    // Node: even winning the opponent's most valuable piece, or promoting, isn't enough. Nothing here is worth searching.
+    static bool deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha);
+    // Move: this capture (or promotion) alone isn't enough, skip it.
+    static bool deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha);
 };
 
 // --- Debug Policies ---

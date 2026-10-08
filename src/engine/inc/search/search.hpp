@@ -81,9 +81,6 @@ private:
     template<Set us>
     std::optional<i16> tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 beta, u16 ply);
 
-    template<Set us>
-    u16 mostValuablePieceInPosition(PositionReader pos);
-        
     void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
     
     TranspositionTable& m_transpositionTable;
