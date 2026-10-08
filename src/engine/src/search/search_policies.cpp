@@ -134,6 +134,16 @@ void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingVie
     view.history = heuristic.history.data();
 }
 
+// --- Reverse Futility Pruning (RFP) Policies ---
+bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
+    if (isPV || inCheck || depth > rfp_params::maxDepth)
+        return false;
+    if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
+        return false;
+
+    return staticEval - rfp_params::margin * depth >= beta;
+}
+
 // --- Futility Pruning Policies ---
 bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
     if (isPV || inCheck || depth > futility_params::maxDepth)

@@ -100,6 +100,14 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     const bool inCheck = moves.isChecked();
     const i16 staticEval = (isPV || inCheck) ? -c_infinity : context.evaluate<us>();
 
+    // --- Reverse Futility Pruning ---
+    if constexpr (search_policies::RFP::enabled) {
+        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta)) {
+            pv->length = 0;
+            return staticEval;
+        }
+    }
+
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
         if (!isPV && !inCheck) {

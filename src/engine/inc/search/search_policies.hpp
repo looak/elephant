@@ -49,6 +49,7 @@ namespace enabled_policies {
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
     inline constexpr bool FutilityPruning = true;
+    inline constexpr bool RFP = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -99,6 +100,16 @@ public:
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= nmp_params::minDepth && hasNonPawnMaterial; }
     static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
     static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
+};
+
+// --- Reverse Futility Pruning (RFP) Policies ---
+class RFP {
+public:
+    static constexpr bool enabled = enabled_policies::RFP;
+
+    // True when the static eval beats beta by a depth scaled margin at a shallow non-PV node, the node returns its
+    // static eval without searching. Never in check or with beta at a mate score.
+    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
 };
 
 // --- Futility Pruning Policies ---
