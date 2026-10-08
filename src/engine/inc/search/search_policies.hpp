@@ -48,6 +48,7 @@ namespace enabled_policies {
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
+    inline constexpr bool FutilityPruning = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -98,6 +99,19 @@ public:
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= nmp_params::minDepth && hasNonPawnMaterial; }
     static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
     static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
+};
+
+// --- Futility Pruning Policies ---
+class Futility {
+public:
+    static constexpr bool enabled = enabled_policies::FutilityPruning;
+
+    // True when the static eval is so far below alpha at a shallow non-PV node that a quiet move isn't expected to
+    // reach it. Never in check or with alpha at a mate score.
+    static bool nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha);
+    // At a futile node quiet moves that don't give check are skipped, captures & promotions are still searched. The
+    // first move is always searched so the node has a score.
+    static bool skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
 };
 
 // --- Quiescence Search Policies ---

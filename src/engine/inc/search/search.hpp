@@ -72,14 +72,15 @@ private:
     template<Set us>
     i16 alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
     template<Set us>
-    i16 searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove);
+    // futile: the node failed the futility check, quiet moves that don't give check are skipped.
+    i16 searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
 
     template<Set us>
     i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
-    std::optional<i16> tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 beta, u16 ply);
+    std::optional<i16> tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
 
     void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
     

@@ -6,9 +6,9 @@
 
 // Null Move Pruning: pass the move and search the opponent's reply with a reduced, null window search. If we still
 // fail high after giving the opponent a free move, the position is good enough that a full search would too.
-// Called at non-PV nodes that aren't in check.
+// Called at non-PV nodes that aren't in check, staticEval is the node's eval from alphaBeta.
 template<Set us>
-std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply) {
+std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
     // never two null moves in a row, the second would just hand the move back.
     if (ctx.nullMoveAt[ply - 1])
         return std::nullopt;
@@ -30,7 +30,7 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
         return std::nullopt;
 
     // only worth trying when we're already at or above beta.
-    if (ctx.evaluate<us>() < beta)
+    if (staticEval < beta)
         return std::nullopt;
 
     // --- make null move ---
@@ -80,5 +80,5 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     return cutScore;
 }
 
-template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply);
-template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply);
+template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);

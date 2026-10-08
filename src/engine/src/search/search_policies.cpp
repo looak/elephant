@@ -134,6 +134,21 @@ void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingVie
     view.history = heuristic.history.data();
 }
 
+// --- Futility Pruning Policies ---
+bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
+    if (isPV || inCheck || depth > futility_params::maxDepth)
+        return false;
+    if (alpha >= c_checkmateMinScore || alpha <= -c_checkmateMinScore)
+        return false;
+
+    const i32 margin = futility_params::base + futility_params::perDepth * depth;
+    return staticEval + margin <= alpha;
+}
+
+bool Futility::skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
+    return futileNode && moveIndex > 0 && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;
 
 // --- Quiescence Search Policies ---
