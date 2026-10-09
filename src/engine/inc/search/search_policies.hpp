@@ -50,6 +50,7 @@ namespace enabled_policies {
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
     inline constexpr bool QuiescenceSEEPruning = true;
+    inline constexpr bool QuiescenceTT = true;
     // captures that lose material by SEE are searched after the quiet moves.
     inline constexpr bool DeferLosingCaptures = true;
     inline constexpr bool FutilityPruning = true;
@@ -154,6 +155,8 @@ public:
     static constexpr bool deltaPruning = enabled_policies::DeltaPruning;
     // captures that lose material by static exchange are skipped, only when not in check.
     static constexpr bool seePruning = enabled_policies::QuiescenceSEEPruning;
+    // probe & store the transposition table, results are stored at depth 0.
+    static constexpr bool transpositionTable = enabled_policies::QuiescenceTT;
     static u8 maxDepth;
 
     // Delta pruning, standing pat plus the material a capture can win and a margin still doesn't reach alpha.

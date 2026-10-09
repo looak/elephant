@@ -8,6 +8,7 @@
 #include <search/search_policies.hpp>
 #include <search/search_threadcontext.hpp>
 #include <search/static_exchange.hpp>
+#include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 template<Set us>
@@ -19,15 +20,45 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
+    // window at entry, alpha moves with stand pat & the loop.
+    const i16 alphaAtEntry = alpha;
+    const bool isPV = beta - alpha > 1;
+    const u64 hash = context.position.read().hash();
+
+    // --- Transposition Table Probe ---
+    // Quiescence results are depth 0, every entry is deep enough. No cutoffs at PV nodes, as in alphaBeta. The TT
+    // move is searched first when it's a capture.
+    MoveOrderingView ordering{};
+    TranspositionFlag ttFlag = TranspositionFlag::TTF_NONE;
+    if constexpr (search_policies::TT::enabled && search_policies::QuiescencePolicy::transpositionTable) {
+        std::optional<i16> ttScore = search_policies::TT::probe(hash, 0, ply, alpha, beta, ttFlag, ordering.ttMove);
+        if (!isPV && ttScore.has_value())
+            return ttScore.value();
+    }
+
+    // A quiescence result is only stored for a position the table doesn't know yet, a store always overwrites an
+    // entry for the same position, also a deeper one from the main search.
+    auto store = [&](i16 score, PackedMove move) {
+        if constexpr (search_policies::TT::enabled && search_policies::QuiescencePolicy::transpositionTable) {
+            if (ttFlag != TranspositionFlag::TTF_NONE)
+                return;
+            const TranspositionFlag bound = score >= beta ? TranspositionFlag::TTF_CUT_BETA
+                : score > alphaAtEntry ? TranspositionFlag::TTF_CUT_EXACT
+                : TranspositionFlag::TTF_CUT_ALPHA;
+            search_policies::TT::update(hash, move, score, 0, ply, bound);
+        }
+    };
+
     // The move source knows whether we're in check before generating anything, the filter is decided after.
     SearchMoveSource<us> moves(context.position.read());
     const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;
     i16 standPat = -c_infinity;
+    PackedMove bestMove = PackedMove::NullMove();
     if (inCheck) {
         // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
-        moves.start(nullptr, MoveTypes::ALL);
+        moves.start(&ordering, MoveTypes::ALL);
     }
     else {
         standPat = context.evaluate<us>();
@@ -51,7 +82,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
                 return standPat;
         }
 
-        moves.start(nullptr, MoveTypes::CAPTURES_ONLY);
+        moves.start(&ordering, MoveTypes::CAPTURES_ONLY);
     }
 
     // evasions don't consume quiescence depth, the line stays bounded since only captures are searched once out of
@@ -100,11 +131,15 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
 
         ++movesSearched;
 
-        if (qEval > bestEval)
+        if (qEval > bestEval) {
             bestEval = qEval;
+            bestMove = move;
+        }
 
-        if (bestEval >= beta)
+        if (bestEval >= beta) {
+            store(bestEval, bestMove);
             return bestEval;
+        }
         
         if (bestEval > alpha)
             alpha = bestEval;
@@ -120,6 +155,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         return checked_cast<i16>(-c_checkmateConstant + ply); // Mate score
     }
 
+    store(bestEval, bestMove);
     return bestEval;
 }
 
