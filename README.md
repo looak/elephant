@@ -79,6 +79,11 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
     * futility pruning
     * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic
 
+* Time management:
+    * soft & hard limits, a new iteration only starts within the soft limit and the hard limit aborts the search
+    * increment aware, never plans beyond what is on the clock
+    * configurable move overhead for GUI & network latency
+
 * Evaluation:
     * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase
     * mop-up for converting won endgames
@@ -92,7 +97,8 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 * evaluation: passed pawns, pawn structure and king safety, Texel tuning
 * search: static exchange evaluation, aspiration windows, late move pruning
-* time management with soft & hard limits
+* time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
+* pondering
 * multi threaded search (lazy SMP)
 * a terminal UI
 * ~~reach elo 2000~~
@@ -147,6 +153,14 @@ $ make
 ## Running Elephant Gambit
 
 Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0][v0.4.0-link] supports [UCI protocol][uci-link] and you can interface it with your Chess GUI of choice. Personally, I have been using [Arena](http://www.playwitharena.de/) & [CuteChess](https://cutechess.com/). Every so often I'll host the engine locally and one can play against it on [lichess.org][lichess-link].
+
+### UCI options
+
+| Option | Default | Range | |
+|:-------|:-------:|:-----:|:--|
+| `Threads` | 1 | 1–24 | search threads |
+| `Hash` | 8 | 1–1024 | transposition table size in MB |
+| `Move Overhead` | 10 | 0–5000 | milliseconds kept in reserve on every move for GUI & network latency, raise it when playing over the internet, e.g. 100 on lichess |
 
 ## Running the tests
 
