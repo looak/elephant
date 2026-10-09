@@ -23,6 +23,15 @@ inline constexpr i32 c_checkmateMaxDistance = 256;
 inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 inline constexpr i16 c_drawConstant = 0;
 
+// aspiration window parameters
+namespace aspiration_params {
+// from this depth the root is searched in a window around the previous iteration's score, earlier scores swing too much.
+inline constexpr u8 minDepth = 5;
+inline constexpr i32 initialDelta = 25;
+// a side of the window that would grow beyond this opens up fully.
+inline constexpr i32 maxDelta = 1000;
+} // namespace aspiration_params
+
 // late move reduction parameters
 namespace lmr_params {
 inline constexpr u8 minDepth = 3;
