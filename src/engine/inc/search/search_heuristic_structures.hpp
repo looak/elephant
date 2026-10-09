@@ -19,9 +19,12 @@
 #include <move/generation/move_ordering_view.hpp>
 #include <search/search_constants.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <vector>
+
+#include <diagnostics/assert.hpp>
 
 struct MoveHistory {
 private:
@@ -42,15 +45,19 @@ public:
         }
     }
 
-    bool isRepetition(u64 hashKey) const {
-        int occurrences = 0;
-        for (auto it = recentHashes.rbegin(); it != recentHashes.rend(); ++it) {
-            if (*it == hashKey) {
-                occurrences++;
-                if (occurrences >= 3)
-                    return true;
-            }
-        }        
+    // Threefold repetition of the last pushed position, hashKey. A capture or pawn move can't be undone, so only the
+    // positions since the last one (halfmoveClock half moves back) can repeat it, and of those only the ones with the
+    // same side to move, every second one.
+    bool isRepetition(u64 hashKey, u16 halfmoveClock) const {
+        ASSERT_MSG(!recentHashes.empty() && recentHashes.back() == hashKey, "the position checked has to be the last pushed.");
+        const size_t last = recentHashes.size() - 1;
+        const size_t window = std::min<size_t>(halfmoveClock, last);
+
+        int occurrences = 1;  // the position itself
+        for (size_t back = 2; back <= window; back += 2) {
+            if (recentHashes[last - back] == hashKey && ++occurrences >= 3)
+                return true;
+        }
         return false;
     }
 };

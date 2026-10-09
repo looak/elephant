@@ -239,4 +239,31 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
 
 }
 
+// A rook up, but every move makes the hundredth half move without a capture or pawn move and there's no mate in one.
+TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
+    GameContext context;
+    io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 99 120", context.editChessboard());
+
+    Search searcher(context);
+    testingParams.SearchDepth = 6;
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    EXPECT_EQ(0, result.score);
+    EXPECT_FALSE(result.move().isNull());
+}
+
+// One move short of the fifty move rule the rook still counts.
+TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
+    GameContext context;
+    io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 0 120", context.editChessboard());
+
+    Search searcher(context);
+    testingParams.SearchDepth = 6;
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    EXPECT_GT(result.score, 300);
+}
+
 }  // namespace ElephantTest

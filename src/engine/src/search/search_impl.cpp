@@ -29,6 +29,10 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
                 searchContext.history.push(undoUnit.hash);
             }
+            // the game history holds the positions before each move, the root is the first occurrence the search
+            // can repeat.
+            searchContext.history.push(searchContext.position.read().hash());
+            searchContext.halfmoveClock[1] = m_gameContext.readPly();
             auto result = iterativeDeepening<us>(searchContext, params);
             result.count = searchContext.nodeCount + searchContext.qNodeCount;
             searchContext.end(threadId);

@@ -27,9 +27,20 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // The root is always a PV node. Pruning and TT cutoffs are only safe at non-PV nodes.
     const bool isPV = beta - alpha > 1;
 
+    // The incoming line's first move is searched first, iterative deepening hands the root its previous best move this
+    // way. The line is cleared so every return below leaves an empty PV unless a move raises alpha.
+    const PackedMove pvHint = pv->length > 0 ? pv->moves[0] : PackedMove::NullMove();
+    pv->length = 0;
+
     PositionReader pos = context.position.read();
-    if (context.history.isRepetition(pos.hash()) == true) {
-        return -c_drawConstant;
+
+    // --- Draws ---
+    // threefold repetition, the root & the game's earlier positions included, and the fifty move rule. Never at the
+    // root, a search started in a drawn position still has to return a move. A mate given on the hundredth half move
+    // would win but is scored a draw, rare enough not to generate moves for.
+    if (ply > 1) {
+        if (context.history.isRepetition(pos.hash(), context.halfmoveClock[ply]) || context.halfmoveClock[ply] >= 100)
+            return -c_drawConstant;
     }
 
     // hard ply limit, killers & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
@@ -59,7 +70,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         // repetitions. At the root it would also play the stored move without searching it. The TT move still
         // orders first below.
         if (!isPV && ttProbeResult.has_value()) {
-            pv->length = 0;
             return ttProbeResult.value();
         }
     }
@@ -69,7 +79,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
     // stand pat instead of a draw score.
     if (depth <= 0) {
-        pv->length = 0;
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
             return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
@@ -83,7 +92,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
 
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
-    if (pv->length > 0) orderingView.pvMove = pv->moves[0];
+    if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
     search_policies::MoveOrdering::prime(context.moveOrdering, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
@@ -105,7 +114,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
         if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta)) {
-            pv->length = 0;
             return staticEval;
         }
     }
@@ -114,7 +122,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if constexpr (search_policies::NMP::enabled) {
         if (!isPV && !inCheck) {
             if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, depth, beta, ply, staticEval)) {
-                pv->length = 0;
                 return nullScore.value();
             }
         }
@@ -181,8 +188,6 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     if constexpr (search_policies::LMP::enabled)
         quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
-    u16 movingPly = ply; 
-
     do {
         if (context.shouldStop()) break;
 
@@ -207,11 +212,17 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
 
+        // makeMove advances the fifty move counter, reset by pawn moves & captures.
+        u16 halfmoveClock = context.halfmoveClock[ply];
         MoveUndoUnit undoState;
-        executor.makeMove(move, undoState, movingPly);
+        executor.makeMove(move, undoState, halfmoveClock);
+        context.halfmoveClock[ply + 1] = halfmoveClock;
         context.history.push(pos.hash());
         
         i16 eval;
+
+        // the previous sibling's line isn't this move's, the child starts without one.
+        childPv.length = 0;
 
         // update depth
         i32 nextDepth = static_cast<i32>(adjustedDepth) - 1;

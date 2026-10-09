@@ -40,6 +40,8 @@ struct ThreadSearchContext {
     // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
     // straight back.
     std::array<bool, c_maxSearchDepth> nullMoveAt{};
+    // halfmoveClock[ply] is the fifty move rule counter of the position at ply, the root (ply 1) gets the game's.
+    std::array<u16, c_maxSearchDepth + 1> halfmoveClock{};
     // While a null move fail high is verified, nmpColor doesn't null move before nmpMinPly.
     u16 nmpMinPly = 0;
     bool nmpColorWhite = false;
