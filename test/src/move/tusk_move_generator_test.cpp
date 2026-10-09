@@ -121,6 +121,61 @@ TEST(TuskMoveGenerator, StagedHandsOutEachMoveOnce) {
     }
 }
 
+// Qd2xd5 loses the queen to the c6 pawn, it's the only capture.
+TEST(TuskMoveGenerator, DeferLosingCaptures_LosingCaptureComesAfterTheQuiets) {
+    GameContext context;
+    io::fen_parser::deserialize("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1", context.editChessboard());
+    PositionReader position = context.readChessPosition();
+    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    const std::string losingCapture = "d2d5";
+
+    auto handOutOrder = [&](bool defer) {
+        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .deferLosingCaptures = defer });
+        tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
+        std::vector<std::string> order;
+        while (PrioritizedMove move = moves.next())
+            order.push_back(move.move.toString());
+        return order;
+    };
+
+    const std::vector<std::string> deferred = handOutOrder(true);
+    const std::vector<std::string> inPlace = handOutOrder(false);
+
+    ASSERT_FALSE(inPlace.empty());
+    EXPECT_EQ(losingCapture, inPlace.front());
+    EXPECT_EQ(losingCapture, deferred.back());
+
+    // the same moves, each handed out once.
+    std::vector<std::string> sortedDeferred = deferred, sortedInPlace = inPlace;
+    std::sort(sortedDeferred.begin(), sortedDeferred.end());
+    std::sort(sortedInPlace.begin(), sortedInPlace.end());
+    EXPECT_EQ(sortedInPlace, sortedDeferred);
+}
+
+TEST(TuskMoveGenerator, DeferLosingCaptures_StagedHandsOutEachMoveOnce) {
+    for (const std::string& fen : testPositions) {
+        GameContext context;
+        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        if (context.readToPlay() != Set::WHITE)
+            continue;
+
+        PositionReader position = context.readChessPosition();
+        KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .deferLosingCaptures = true });
+        tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
+        tusk::MoveGenResult<Set::WHITE> all = generator.generateAll();
+
+        std::vector<u16> seen;
+        while (PrioritizedMove move = moves.next())
+            seen.push_back(move.move.read());
+
+        std::sort(seen.begin(), seen.end());
+        EXPECT_EQ(seen.end(), std::adjacent_find(seen.begin(), seen.end())) << fen;
+        EXPECT_EQ(all.generatedCount(), seen.size()) << fen;
+        EXPECT_EQ(seen.size(), moves.searched().size()) << fen;
+    }
+}
+
 TEST(TuskMoveGenerator, CapturesOnlyFilter) {
     GameContext context;
     io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());

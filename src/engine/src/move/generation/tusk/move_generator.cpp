@@ -11,6 +11,7 @@
 #include <position/castling_state_info.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/position.hpp>
+#include <search/static_exchange.hpp>
 
 namespace tusk {
 namespace {
@@ -183,6 +184,7 @@ template<Set us>
 PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
     const MoveOrderingView* ordering = m_params.ordering;
     const bool capturesOnly = m_params.moveFilter == MoveTypes::CAPTURES_ONLY;
+    const bool deferLosing = m_params.deferLosingCaptures && !capturesOnly;
     auto accepted = [&](PackedMove move) {
         return !capturesOnly || move.isCapture() || move.isPromotion();
     };
@@ -192,6 +194,13 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
         if (result.m_current < result.m_end) {
             if (result.m_stage == Stage::CAPTURES || result.m_stage == Stage::QUIETS)
                 result.pickBest();
+
+            // a capture that loses material is held back until after the quiets.
+            if (result.m_stage == Stage::CAPTURES && deferLosing && result.m_losingCount < result.m_losingCaptures.size()
+                && !see::ge(m_position.material(), result.m_moves[result.m_current].move, 0)) {
+                result.m_losingCaptures[result.m_losingCount++] = result.m_moves[result.m_current++];
+                continue;
+            }
             return result.m_moves[result.m_current++].toPrioritized();
         }
 
@@ -239,6 +248,15 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
             break;
 
         case Stage::QUIETS:
+            result.m_stage = Stage::LOSING_CAPTURES;
+            break;
+
+        case Stage::LOSING_CAPTURES:
+            if (result.m_losingCurrent < result.m_losingCount)
+                return result.m_losingCaptures[result.m_losingCurrent++].toPrioritized();
+            result.m_stage = Stage::DONE;
+            break;
+
         case Stage::UNORDERED:
             result.m_stage = Stage::DONE;
             break;

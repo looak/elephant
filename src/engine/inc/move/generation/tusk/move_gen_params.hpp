@@ -45,6 +45,7 @@ enum class Stage : u8 {
     KILLERS,
     QUIETS_GEN,
     QUIETS,
+    LOSING_CAPTURES,  // captures that lose material by SEE, held back from CAPTURES when deferLosingCaptures is set
     UNORDERED,  // generateAll(), moves handed out in generation order
     DONE
 };
@@ -53,6 +54,9 @@ enum class Stage : u8 {
 struct MoveGenParams {
     const MoveOrderingView* ordering = nullptr;
     MoveTypes moveFilter = MoveTypes::ALL;
+    // captures & promotions that lose material by static exchange are handed out after the quiets instead of with the
+    // other captures. Only with MoveTypes::ALL.
+    bool deferLosingCaptures = false;
 };
 
 } // namespace tusk

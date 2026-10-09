@@ -50,6 +50,8 @@ namespace enabled_policies {
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
     inline constexpr bool QuiescenceSEEPruning = true;
+    // captures that lose material by SEE are searched after the quiet moves.
+    inline constexpr bool DeferLosingCaptures = true;
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;

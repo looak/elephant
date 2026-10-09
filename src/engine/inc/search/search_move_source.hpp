@@ -82,7 +82,8 @@ public:
     [[nodiscard]] bool isChecked() const { return m_pinThreats.isChecked(); }
 
     void start(const MoveOrderingView* ordering, MoveTypes filter) {
-        m_generator.emplace(m_position, m_pinThreats, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter });
+        m_generator.emplace(m_position, m_pinThreats, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter,
+            .deferLosingCaptures = search_policies::enabled_policies::DeferLosingCaptures });
         m_moves.emplace(*m_generator, tusk::Stage::PV_MOVE);
     }
 
