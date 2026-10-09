@@ -52,6 +52,7 @@ namespace enabled_policies {
     inline constexpr bool QuiescenceSEEPruning = true;
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
+    inline constexpr bool LMP = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -129,6 +130,19 @@ public:
     // At a futile node quiet moves that don't give check are skipped, captures & promotions are still searched. The
     // first move is always searched so the node has a score.
     static bool skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
+};
+
+// --- Late Move Pruning (LMP) Policies ---
+class LMP {
+public:
+    static constexpr bool enabled = enabled_policies::LMP;
+
+    // Quiet moves searched at a shallow non-PV node before the remaining quiets are skipped, 0 means no limit. Never in
+    // check.
+    static u16 quietLimit(bool isPV, bool inCheck, u8 depth);
+    // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
+    // is skipped while the best score is still a loss by mate, the node needs a real score.
+    static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
 };
 
 // --- Quiescence Search Policies ---

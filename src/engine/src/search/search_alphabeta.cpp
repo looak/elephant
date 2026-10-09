@@ -174,6 +174,13 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     std::array<PackedMove, 64> quietsTried;
     u16 quietCount = 0;
 
+    // --- Late Move Pruning ---
+    // at shallow non-PV nodes only the first quiets are searched, the rest rarely matter.
+    u16 quietLimit = 0;
+    u16 quietsSearched = 0;
+    if constexpr (search_policies::LMP::enabled)
+        quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
+
     u16 movingPly = ply; 
 
     do {
@@ -184,6 +191,14 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         // --- Futility Pruning ---
         // skipped quiets weren't searched, they get no history malus either.
         if (search_policies::Futility::skipMove(futile, index, move, ordered.isCheck())) {
+            ordered = moves.next();
+            index++;
+            continue;
+        }
+
+        // --- Late Move Pruning ---
+        // skipped quiets weren't searched, they get no history malus either.
+        if (search_policies::LMP::skipMove(quietLimit, quietsSearched, bestEval, move, ordered.isCheck())) {
             ordered = moves.next();
             index++;
             continue;
@@ -277,8 +292,11 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             }
         }
 
-        if (quietCount < quietsTried.size() && search_policies::MoveOrdering::isQuiet(move))
-            quietsTried[quietCount++] = move;
+        if (search_policies::MoveOrdering::isQuiet(move)) {
+            quietsSearched++;
+            if (quietCount < quietsTried.size())
+                quietsTried[quietCount++] = move;
+        }
 
         ordered = moves.next();
         index++;

@@ -73,6 +73,15 @@ inline constexpr i16 base = 100;
 inline constexpr i16 perDepth = 100;
 } // namespace futility_params
 
+// late move pruning parameters
+namespace lmp_params {
+// at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
+// 3 + depth * depth pushed the zugzwang win in the null move search test from depth 15 to 20, this costs it a ply.
+inline constexpr u8 maxDepth = 5;
+inline constexpr u16 base = 5;
+inline constexpr u16 factor = 2;
+} // namespace lmp_params
+
 // reverse futility pruning parameters
 namespace rfp_params {
 // nodes up to this depth return when the static eval beats beta by margin * depth.
