@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <optional>
 #include <span>
 #include <stack>
@@ -99,7 +100,11 @@ public:
     static constexpr bool enabled = enabled_policies::NMP;
 
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= nmp_params::minDepth && hasNonPawnMaterial; }
-    static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
+    // only called with staticEval >= beta, the eval term is never negative.
+    static u8 getReduction(u8 depth, i16 staticEval, i16 beta) {
+        const i32 evalReduction = std::min((staticEval - beta) / nmp_params::evalDivisor, nmp_params::maxEvalReduction);
+        return static_cast<u8>(nmp_params::baseReduction + depth / nmp_params::depthDivisor + evalReduction);
+    }
     static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
 };
 

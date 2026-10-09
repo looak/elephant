@@ -43,7 +43,7 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     ctx.history.push(pos.hash());
     ctx.nullMoveAt[ply] = true;
 
-    const u8 R = search_policies::NMP::getReduction(depth);
+    const u8 R = search_policies::NMP::getReduction(depth, staticEval, beta);
     const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;
     PVLine nullPv;
     i16 nullScore = -alphaBeta<opposing_set<us>()>(ctx, nullDepth, -beta, -beta + 1, ply + 1, &nullPv);
