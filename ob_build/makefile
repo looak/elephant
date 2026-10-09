@@ -29,8 +29,12 @@ INCLUDE_PATHS := $(VERSION_HEADER_DIR) ../src/engine/inc ../src/cli/inc ../third
 INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 
 # Compiler and flags
+# ARCH is the -march target, native for OpenBench. Release builds pass portable levels: x86-64, x86-64-v2, x86-64-v3.
+# LDFLAGS is added when linking, release builds pass -static so the binary runs without the compiler's runtime.
 CXX := g++
-CXXFLAGS := -std=c++2a -O3 -flto=auto -march=native -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+ARCH ?= native
+LDFLAGS ?=
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
@@ -53,7 +57,7 @@ all: $(EXE_PATH)
 
 # Executable dependency on object files AND version header
 $(EXE_PATH): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 # Object file compilation rule
 $(BUILD_DIR)/%.o: ../%.cpp $(VERSION_HEADER)
