@@ -56,9 +56,6 @@ template<Set us>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
     SearchResult result;
 
-    // ms since the search started, when the current iteration began.
-    u64 iterationStart = context.clock.now();
-
     // iterative deepening loop -- might make this optional.
     
     for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
@@ -78,8 +75,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
             break;
 
         // the time this iteration finished, reported with its node count so nodes / time is the real nps.
-        const u64 iterationEnd = context.clock.now();
-        reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, iterationEnd);
+        reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, context.clock.now());
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);
@@ -94,14 +90,11 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         }
 
         result = itrResult;
-        
-        const u64 iterationTimeSpan = iterationEnd - iterationStart;
-        iterationStart = iterationEnd;
 
         if (context.clock.shouldStop())
             break;
 
-        if (context.clock.continueIterativeDeepening(iterationTimeSpan) == false)
+        if (context.clock.continueIterativeDeepening() == false)
             break;
     }
     

@@ -34,68 +34,43 @@ void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspect
     }
 }
 
-    u64 TimeManager::calculateSearchTime() {
-    if (!m_isTimeManaged)
-        return std::numeric_limits<u64>::max(); // effectively infinite time
-
-    u64 allocatedTime = 0;
-
-    if (m_moveTime_ms > 0) {
-        allocatedTime = static_cast<u64>(m_moveTime_ms);
-    } else {
-        // Basic heuristic: allocate a fraction of remaining time
-        u64 baseTime = m_timeLeft_ms / 24; // e.g., 1/24th of remaining time
-
-        // Consider moves to go if specified
-        if (m_movesToGo > 0) {
-            baseTime = m_timeLeft_ms / m_movesToGo;
-        }
-
-         // Add increment - partial if available
-        baseTime += (m_increment_ms * 75) / 100; // use 75% of increment
-        allocatedTime = baseTime;
-    }
-
-    // Safety margin to avoid time forfeits
-    u32 margin = 98; // 98% of calculated time
-    allocatedTime = (allocatedTime * margin) / 100;
-
+void TimeManager::calculateLimits() {
     // Never plan beyond what is actually on the clock, the increment is only credited after we move
     // and the GUI's view of our clock includes the latency between us.
-    u64 available = m_moveTime_ms > 0 ? m_moveTime_ms : m_timeLeft_ms;
-    u64 ceiling = available > m_moveOverhead_ms ? available - m_moveOverhead_ms : 1;
-    return std::min(allocatedTime, ceiling);
+    auto minusOverhead = [this](u64 time) -> u64 {
+        return time > m_moveOverhead_ms ? time - m_moveOverhead_ms : 1;
+    };
+
+    if (m_moveTime_ms > 0) {
+        // a fixed time per move, use all of it.
+        m_hardLimit_ms = minusOverhead(m_moveTime_ms);
+        m_softLimit_ms = m_hardLimit_ms;
+        return;
+    }
+
+    const u64 movesToGo = m_movesToGo > 0 ? m_movesToGo : c_defaultMovesToGo;
+    const u64 target = m_timeLeft_ms / movesToGo + (m_increment_ms * 3) / 4;
+
+    // the hard limit lets an iteration started just before the soft limit finish, but no single move
+    // may take most of the clock.
+    const u64 maxUsage = std::max<u64>(minusOverhead(m_timeLeft_ms) * c_maxClockUsage_pct / 100, 1);
+    m_hardLimit_ms = std::min(target * c_hardLimitFactor, maxUsage);
+    m_softLimit_ms = std::min(target * c_softLimit_pct / 100, m_hardLimit_ms);
 }
 
 void TimeManager::setMoveOverhead(u32 overhead_ms) {
     m_moveOverhead_ms = std::min(overhead_ms, c_maxMoveOverhead_ms);
 }
 
-bool TimeManager::continueIterativeDeepening(u64 lastIterationTimeSpan) const {
+bool TimeManager::continueIterativeDeepening() const {
     if (m_isTimeManaged == false) {
         // If not time-managed (e.g., depth-limited), always allow.
         // The iterative deepener loop will handle the depth limit.
-        return true; 
+        return true;
     }
 
-    // A common, safe heuristic: if the *next* iteration is
-    // predicted to take more than 50% of the *total remaining time*, stop.
-    // A simple prediction is that the next depth will take ~4-6x longer.
-    // We'll use a factor of 4 for safety.    
-    u64 predictedTime = lastIterationTimeSpan * 4;
-
-    timepoint_t now = chess_time_t::now();
-    i64 timeSpent = std::chrono::duration_cast<ms_t>(now - m_startTime).count();
-    i64 allocatedTime = std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count();
-
-    if (timeSpent >= allocatedTime)
-        return false; // already out of time
-
-    const u32 margin = 95; // 95% margin to be safe
-    u64 timeRemaining = (u64)((allocatedTime - timeSpent) * margin) / 100;
-
-    // If we predict the next iteration will use up more than our remaining time and a margin, stop.
-    return predictedTime < timeRemaining;
+    // only start another iteration while within the soft limit, the hard limit aborts it if it runs long.
+    return now() < m_softLimit_ms;
 }
 
 void TimeManager::begin() {
@@ -106,9 +81,9 @@ void TimeManager::begin() {
         m_endTime = timepoint_t::max();
     } 
     else {
-        // We have time controls, calculate the stop time.
-        u64 allocation_ms = calculateSearchTime();
-        m_endTime = m_startTime + ms_t(allocation_ms);
+        // We have time controls, the hard limit is when the search is aborted.
+        calculateLimits();
+        m_endTime = m_startTime + ms_t(m_hardLimit_ms);
     }
 }
 
@@ -118,11 +93,12 @@ u64 TimeManager::now() const {
     return static_cast<u64>(elapsed);
 }
 
-u64 TimeManager::allocatedTime() const {
-    if (m_isTimeManaged == false)
-        return std::numeric_limits<u64>::max();
+u64 TimeManager::softLimit() const {
+    return m_isTimeManaged ? m_softLimit_ms : std::numeric_limits<u64>::max();
+}
 
-    return static_cast<u64>(std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count());
+u64 TimeManager::hardLimit() const {
+    return m_isTimeManaged ? m_hardLimit_ms : std::numeric_limits<u64>::max();
 }
 
 bool TimeManager::shouldStop() const {

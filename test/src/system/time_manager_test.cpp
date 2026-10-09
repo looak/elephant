@@ -3,6 +3,8 @@
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
 
+#include <limits>
+
 namespace ElephantTest {
 /**
  * @file time_manager_test.cpp
@@ -12,7 +14,7 @@ namespace ElephantTest {
  */
 ////////////////////////////////////////////////////////////////
 
-TEST(TimeManagerTest, allocatedTime_IncrementLargerThanClock_NeverExceedsClockMinusOverhead)
+TEST(TimeManagerTest, limits_IncrementLargerThanClock_NeverExceedClockMinusOverhead)
 {
     // setup, 75% of the increment alone is far more than what is left on the clock.
     SearchParameters params;
@@ -25,10 +27,11 @@ TEST(TimeManagerTest, allocatedTime_IncrementLargerThanClock_NeverExceedsClockMi
     tm.begin();
 
     // verify
-    EXPECT_LE(tm.allocatedTime(), 450u);
+    EXPECT_EQ(450u * c_maxClockUsage_pct / 100, tm.hardLimit());
+    EXPECT_EQ(tm.hardLimit(), tm.softLimit());
 }
 
-TEST(TimeManagerTest, allocatedTime_ClockBelowOverhead_AllocatesMinimalTime)
+TEST(TimeManagerTest, limits_ClockBelowOverhead_AllocateMinimalTime)
 {
     // setup, the first iteration always completes so we still return a move.
     SearchParameters params;
@@ -41,10 +44,11 @@ TEST(TimeManagerTest, allocatedTime_ClockBelowOverhead_AllocatesMinimalTime)
     tm.begin();
 
     // verify
-    EXPECT_EQ(1u, tm.allocatedTime());
+    EXPECT_EQ(1u, tm.hardLimit());
+    EXPECT_EQ(1u, tm.softLimit());
 }
 
-TEST(TimeManagerTest, allocatedTime_MoveTime_OverheadIsSubtracted)
+TEST(TimeManagerTest, limits_MoveTime_UseAllOfItMinusOverhead)
 {
     // setup
     SearchParameters params;
@@ -56,12 +60,13 @@ TEST(TimeManagerTest, allocatedTime_MoveTime_OverheadIsSubtracted)
     tm.begin();
 
     // verify
-    EXPECT_EQ(900u, tm.allocatedTime());
+    EXPECT_EQ(900u, tm.hardLimit());
+    EXPECT_EQ(900u, tm.softLimit());
 }
 
-TEST(TimeManagerTest, allocatedTime_PlentyOfTime_OverheadDoesNotChangeAllocation)
+TEST(TimeManagerTest, limits_PlentyOfTime_AreSharesOfTargetTime)
 {
-    // setup, 1/24th of the clock plus 75% of the increment, minus the 2% margin.
+    // setup, the target is the clock spread over the default moves to go plus 75% of the increment.
     SearchParameters params;
     params.WhiteTimelimit = 60000;
     params.WhiteTimeIncrement = 1000;
@@ -72,7 +77,42 @@ TEST(TimeManagerTest, allocatedTime_PlentyOfTime_OverheadDoesNotChangeAllocation
     tm.begin();
 
     // verify
-    EXPECT_EQ((60000u / 24 + 750u) * 98 / 100, tm.allocatedTime());
+    const u64 target = 60000u / c_defaultMovesToGo + 750u;
+    EXPECT_EQ(target * c_softLimit_pct / 100, tm.softLimit());
+    EXPECT_EQ(target * c_hardLimitFactor, tm.hardLimit());
+}
+
+TEST(TimeManagerTest, limits_OneMoveToGo_KeepAShareOfTheClock)
+{
+    // setup
+    SearchParameters params;
+    params.WhiteTimelimit = 10000;
+    params.MovesToGo = 1;
+    TimeManager tm(params, Set::WHITE);
+    tm.setMoveOverhead(10);
+
+    // do
+    tm.begin();
+
+    // verify
+    EXPECT_EQ(9990u * c_maxClockUsage_pct / 100, tm.hardLimit());
+    EXPECT_EQ(10000u * c_softLimit_pct / 100, tm.softLimit());
+}
+
+TEST(TimeManagerTest, limits_DepthOnly_AreUnbounded)
+{
+    // setup
+    SearchParameters params;
+    params.SearchDepth = 5;
+    TimeManager tm(params, Set::WHITE);
+
+    // do
+    tm.begin();
+
+    // verify
+    EXPECT_EQ(std::numeric_limits<u64>::max(), tm.hardLimit());
+    EXPECT_EQ(std::numeric_limits<u64>::max(), tm.softLimit());
+    EXPECT_TRUE(tm.continueIterativeDeepening());
 }
 
 TEST(TimeManagerTest, setMoveOverhead_AboveMaximum_IsClamped)
@@ -87,7 +127,7 @@ TEST(TimeManagerTest, setMoveOverhead_AboveMaximum_IsClamped)
     tm.begin();
 
     // verify
-    EXPECT_EQ(10000u - c_maxMoveOverhead_ms, tm.allocatedTime());
+    EXPECT_EQ(10000u - c_maxMoveOverhead_ms, tm.hardLimit());
 }
 
 }  // namespace ElephantTest
