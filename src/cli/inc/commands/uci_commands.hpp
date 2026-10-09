@@ -68,7 +68,8 @@ static UCICommandsMap commands = {
 
 static UCIOptionsMap options = {
     { "Threads", "type spin default 1 min 1 max 24" },
-    { "Hash", "type spin default 8 min 1 max 1024"}
+    { "Hash", "type spin default 8 min 1 max 1024"},
+    { "Move Overhead", "type spin default 10 min 0 max 5000" }
 };
 
 } // namespace UCICommands

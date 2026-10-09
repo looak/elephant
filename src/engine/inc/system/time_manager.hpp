@@ -11,6 +11,10 @@ using timepoint_t = std::chrono::high_resolution_clock::time_point;
 using ms_t = std::chrono::milliseconds;
 using chess_time_t = std::chrono::high_resolution_clock;
 
+// time (ms) kept in reserve on every move for latency between engine and GUI.
+inline constexpr u32 c_defaultMoveOverhead_ms = 10;
+inline constexpr u32 c_maxMoveOverhead_ms = 5000;
+
 class TimeManager {
 public:
     /**
@@ -27,6 +31,11 @@ public:
     void applyTimeSettings(const SearchParameters& params, Set perspective);
 
     /**
+     * @brief Sets the time reserved on every move for communication latency, persists across searches.
+     * @param overhead_ms Milliseconds subtracted from the clock before allocating search time.   */
+    void setMoveOverhead(u32 overhead_ms);
+
+    /**
      * @brief Checks if another iteration of iterative deepening should be started.
      * @param last_iteration_time_ms The time (in ms) that the *previous* iteration took.
      * @return true if the engine should search deeper, false otherwise.     */
@@ -40,6 +49,11 @@ public:
      * @brief Gets the current time in milliseconds since begin.
      * @return Current time in milliseconds.     */
     u64 now() const;
+
+    /**
+     * @brief Gets the time allocated for the current search, valid after begin().
+     * @return Allocated time in milliseconds.     */
+    u64 allocatedTime() const;
 
     /**
      * @brief The main function for search threads to call periodically.
@@ -65,6 +79,7 @@ private:
     u32 m_increment_ms;
     u32 m_moveTime_ms;
     u32 m_movesToGo;
+    u32 m_moveOverhead_ms = c_defaultMoveOverhead_ms;
 
     // --- State ---
     timepoint_t m_startTime;

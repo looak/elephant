@@ -10,6 +10,7 @@
 #include <search/search.hpp>
 #include <system/clock.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <map>
 #include <optional>
@@ -33,6 +34,7 @@ UCI::~UCI() {
 void UCI::InitializeOptions() {
     SetOption({"name", "Threads", "value", "1"});
     SetOption({ "name", "Hash", "value", "8" });
+    SetOption({ "name", "Move", "Overhead", "value", std::to_string(c_defaultMoveOverhead_ms) });
 }
 
 void
@@ -67,23 +69,33 @@ UCI::SetOption(const std::list<std::string> args)
         return false;
     }
     
-    auto&& option = args.begin();
-    auto&& name = std::next(option);
-    auto&& valuetype = std::next(name);
-    auto&& value = std::next(valuetype);
+    // option names may contain spaces, e.g. "name Move Overhead value 10"
+    auto token = std::next(args.begin());
+    std::string name = *token++;
+    while (token != args.end() && *token != "value")
+        name += " " + *token++;
 
-    
-    if (name->compare("Threads") == 0) {        
-        m_options["Threads"] = *value;
-        m_threadCount = static_cast<u16>(std::stoi(*value));
+    if (token == args.end() || std::next(token) == args.end()) {
+        throw new ephant::uci_command_exception("option", "No value given for option: " + name);
+        return false;
     }
-    else if (name->compare("Hash") == 0) {
-        m_options["Hash"] = *value;
-        size_t newSize = static_cast<size_t>(std::stoi(*value));
+    const std::string& value = *std::next(token);
+
+    if (name == "Threads") {
+        m_options["Threads"] = value;
+        m_threadCount = static_cast<u16>(std::stoi(value));
+    }
+    else if (name == "Hash") {
+        m_options["Hash"] = value;
+        size_t newSize = static_cast<size_t>(std::stoi(value));
         m_context.editTranspositionTable().resize(newSize);
     }
+    else if (name == "Move Overhead") {
+        m_options["Move Overhead"] = value;
+        m_timeManager.setMoveOverhead(static_cast<u32>(std::max(0, std::stoi(value))));
+    }
     else {
-        throw new ephant::uci_command_exception("option", "Unknown option: " + *name);
+        throw new ephant::uci_command_exception("option", "Unknown option: " + name);
         return false;
     }
 

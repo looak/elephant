@@ -1,6 +1,9 @@
 #include <system/time_manager.hpp>
 #include <search/search.hpp>
 
+#include <algorithm>
+#include <limits>
+
 TimeManager::TimeManager(const SearchParameters& params, Set perspective)
     : m_isTimeManaged(true)
 {
@@ -54,9 +57,18 @@ void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspect
     }
 
     // Safety margin to avoid time forfeits
-    u32 margin = 98; // 98% of calculated time    
+    u32 margin = 98; // 98% of calculated time
     allocatedTime = (allocatedTime * margin) / 100;
-    return allocatedTime;
+
+    // Never plan beyond what is actually on the clock, the increment is only credited after we move
+    // and the GUI's view of our clock includes the latency between us.
+    u64 available = m_moveTime_ms > 0 ? m_moveTime_ms : m_timeLeft_ms;
+    u64 ceiling = available > m_moveOverhead_ms ? available - m_moveOverhead_ms : 1;
+    return std::min(allocatedTime, ceiling);
+}
+
+void TimeManager::setMoveOverhead(u32 overhead_ms) {
+    m_moveOverhead_ms = std::min(overhead_ms, c_maxMoveOverhead_ms);
 }
 
 bool TimeManager::continueIterativeDeepening(u64 lastIterationTimeSpan) const {
@@ -104,6 +116,13 @@ u64 TimeManager::now() const {
     timepoint_t currentTime = chess_time_t::now();
     auto elapsed = std::chrono::duration_cast<ms_t>(currentTime - m_startTime).count();
     return static_cast<u64>(elapsed);
+}
+
+u64 TimeManager::allocatedTime() const {
+    if (m_isTimeManaged == false)
+        return std::numeric_limits<u64>::max();
+
+    return static_cast<u64>(std::chrono::duration_cast<ms_t>(m_endTime - m_startTime).count());
 }
 
 bool TimeManager::shouldStop() const {
