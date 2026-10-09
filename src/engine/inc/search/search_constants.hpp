@@ -40,6 +40,8 @@ inline constexpr u16 fullDepthMoves = 3;
 // reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
 inline constexpr double base = 0.75;
 inline constexpr double divisor = 2.25;
+// captures that lose material by SEE are reduced this many plies less than quiets, a sacrifice can still be the move.
+inline constexpr i32 losingCaptureOffset = 2;
 } // namespace lmr_params
 
 // history heuristic parameters

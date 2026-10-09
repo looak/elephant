@@ -46,6 +46,8 @@ namespace search_policies {
 namespace enabled_policies {
     inline constexpr bool TT = true;
     inline constexpr bool LMR = true;
+    // LMR also reduces captures that lose material by SEE.
+    inline constexpr bool LMRLosingCaptures = true;
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
@@ -80,9 +82,15 @@ class LMR {
 public:
     static constexpr bool enabled = enabled_policies::LMR;
 
-    // Plies to take off a late move's search, 0 when it's searched at full depth. Only quiet moves late in the
-    // ordering are reduced, never in check or when the move gives check, and the reduced search keeps depth >= 1.
-    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck);
+    // Plies to take off a late move's search, 0 when it's searched at full depth. Only quiets and captures that lose
+    // material by SEE late in the ordering are reduced, the captures less, never in check or when the move gives check,
+    // and the reduced search keeps depth >= 1.
+    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool losingCapture, bool inCheck, bool givesCheck);
+    // Whether reduction() could reduce a move at this node and index, apart from what kind of move it is. Lets the
+    // search skip the static exchange for captures that wouldn't be reduced anyway.
+    static bool mayReduce(u8 depth, u16 moveIndex, bool inCheck, bool givesCheck) {
+        return depth >= lmr_params::minDepth && moveIndex >= lmr_params::fullDepthMoves && !inCheck && !givesCheck;
+    }
 };
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---

@@ -11,6 +11,7 @@
 #include <search/search_move_source.hpp>
 #include <search/search_policies.hpp>
 #include <search/search_threadcontext.hpp>
+#include <search/static_exchange.hpp>
 #include <search/transposition_table.hpp>
 
 #include <system/time_manager.hpp>
@@ -207,6 +208,16 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
 
+        // --- Late Move Reduction candidates ---
+        // quiets, and captures that lose material by SEE now that they're searched after the quiets. The exchange
+        // is decided on the position before the move.
+        const bool quiet = search_policies::MoveOrdering::isQuiet(move);
+        bool losingCapture = false;
+        if constexpr (search_policies::enabled_policies::LMRLosingCaptures) {
+            if (!quiet && search_policies::LMR::mayReduce(depth, index, moves.isChecked(), ordered.isCheck()))
+                losingCapture = !see::ge(pos.material(), move, 0);
+        }
+
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
         context.history.push(pos.hash());
@@ -232,8 +243,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // Quiet moves late in the ordering rarely matter, scout them shallower first.
             u8 reduction = 0;
             if constexpr (search_policies::LMR::enabled) {
-                reduction = search_policies::LMR::reduction(depth, index, isPV, search_policies::MoveOrdering::isQuiet(move),
-                    moves.isChecked(), ordered.isCheck());
+                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, losingCapture, moves.isChecked(), ordered.isCheck());
             }
 
             eval = -alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction), -alpha - 1, -alpha, ply + 1, &childPv);
