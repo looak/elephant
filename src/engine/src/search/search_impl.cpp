@@ -6,6 +6,7 @@
 #include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
+#include <algorithm>
 #include <thread>
 #include <future>
 
@@ -56,11 +57,13 @@ template<Set us>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {    
     SearchResult result;
 
-    u64 lastIterationTimeSpan = context.clock.now();
-
     // iterative deepening loop -- might make this optional.
     
-    for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
+    // the hard ply limit in alphaBeta makes deeper iterations pointless.
+    const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
+    const u8 depthLimit = params.SearchDepth == 0 ? maxDepth : std::min(params.SearchDepth, maxDepth);
+
+    for (u8 itrDepth = 1; itrDepth <= depthLimit; ++itrDepth) {
         SearchResult itrResult;
         if (result.pvLine.length > 0) {
             // carry over best move from previous iteration
@@ -76,7 +79,8 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         if (context.stopped)
             break;
 
-        reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, lastIterationTimeSpan);
+        // the time this iteration finished, reported with its node count so nodes / time is the real nps.
+        reportResult(itrResult, itrDepth, context.nodeCount + context.qNodeCount, context.clock.now());
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);
@@ -91,14 +95,11 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         }
 
         result = itrResult;
-        
-        u64 iterationTimeSpan = context.clock.now() - lastIterationTimeSpan;
-        lastIterationTimeSpan = context.clock.now();
 
         if (context.clock.shouldStop())
             break;
 
-        if (context.clock.continueIterativeDeepening(iterationTimeSpan) == false)
+        if (context.clock.continueIterativeDeepening() == false)
             break;
     }
     

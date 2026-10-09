@@ -3,6 +3,9 @@
 #include <io/fen_parser.hpp>
 #include <core/uci.hpp>
 
+#include <chrono>
+#include <thread>
+
 namespace ElephantTest {
 /**
  * @file uci_test.cpp
@@ -243,6 +246,47 @@ TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
         result = m_uci.Go(args);
     }
 
+    EXPECT_TRUE(result);
+}
+
+TEST_F(UciFixture, go_infinite_SearchesAndHoldsBestmoveUntilStop)
+{
+    // setup, mate in one so the search ends on its own long before stop is sent.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    std::string beforeStop;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.AsyncGo({ "infinite" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        beforeStop = testOutput.str();
+        m_uci.Stop();
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_EQ(std::string::npos, beforeStop.find("bestmove"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a1a8"));
+}
+
+TEST_F(UciFixture, setoption_MultiWordName_MoveOverheadIsAccepted)
+{
+    // setup
+    m_uci.Enable();
+
+    // do
+    std::list<std::string> args;
+    extractArgsFromCommand("setoption name Move Overhead value 100", args);
+    args.pop_front();  // pop setoption
+    bool result = m_uci.SetOption(args);
+
+    // verify
     EXPECT_TRUE(result);
 }
 

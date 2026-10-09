@@ -72,6 +72,9 @@ set(TEST_SOURCE ${TEST_SOURCE}
 ## /search/...
     ${TEST_SRC_DIR}/search/search_test.cpp
     ## ${TEST_SRC_DIR}/search/transposition_test.cpp
+
+## /system/...
+    ${TEST_SRC_DIR}/system/time_manager_test.cpp
 )
 
 # Long running correctness suites (perft, EPD), built into their own executable.
