@@ -64,6 +64,14 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         }
     }
 
+    // --- Internal Iterative Reduction ---
+    // Without a TT or PV move the ordering is a guess and the node is likely new to the search, a ply shallower is
+    // cheaper and stores a move for the next visit.
+    if constexpr (search_policies::enabled_policies::IIR) {
+        if (depth >= iir_params::minDepth && bestMove.isNull() && pv->length == 0)
+            depth--;
+    }
+
     // --- Leaf Node Check ---
     // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
     // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's

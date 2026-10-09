@@ -82,6 +82,12 @@ inline constexpr u16 base = 5;
 inline constexpr u16 factor = 2;
 } // namespace lmp_params
 
+// internal iterative reduction parameters
+namespace iir_params {
+// nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.
+inline constexpr u8 minDepth = 4;
+} // namespace iir_params
+
 // reverse futility pruning parameters
 namespace rfp_params {
 // nodes up to this depth return when the static eval beats beta by margin * depth.
