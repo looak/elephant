@@ -82,6 +82,15 @@ inline constexpr u16 base = 5;
 inline constexpr u16 factor = 2;
 } // namespace lmp_params
 
+// SEE pruning parameters
+namespace see_pruning_params {
+// at non-PV nodes up to this depth moves whose static exchange falls below a depth scaled threshold are skipped.
+inline constexpr u8 maxDepth = 8;
+// quiets: threshold = -quietMargin * depth, captures: threshold = -captureMargin * depth * depth.
+inline constexpr i32 quietMargin = 60;
+inline constexpr i32 captureMargin = 20;
+} // namespace see_pruning_params
+
 // reverse futility pruning parameters
 namespace rfp_params {
 // nodes up to this depth return when the static eval beats beta by margin * depth.

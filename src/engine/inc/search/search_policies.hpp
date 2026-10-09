@@ -55,6 +55,7 @@ namespace enabled_policies {
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
+    inline constexpr bool SEEPruning = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -145,6 +146,18 @@ public:
     // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
     // is skipped while the best score is still a loss by mate, the node needs a real score.
     static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
+};
+
+// --- SEE Pruning Policies ---
+class SEEPruning {
+public:
+    static constexpr bool enabled = enabled_policies::SEEPruning;
+
+    // True when a move's static exchange loses more than a depth scaled margin at a shallow non-PV node, quiets get a
+    // smaller margin than captures. Never in check, for a move giving check, or before a move has scored above a mate
+    // loss, the node needs a real score.
+    static bool skipMove(const MaterialPositionMask& material, bool isPV, bool inCheck, u8 depth, i16 bestEval,
+        PackedMove move, bool givesCheck);
 };
 
 // --- Quiescence Search Policies ---

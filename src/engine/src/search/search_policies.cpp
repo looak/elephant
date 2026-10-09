@@ -1,6 +1,7 @@
 #include <search/search_policies.hpp>
 #include <search/search_constants.hpp>
 #include <search/search_heuristic_structures.hpp>
+#include <search/static_exchange.hpp>
 #include <search/transposition_table.hpp>
 
 #include <bitboard/bitboard_constants.hpp>
@@ -170,6 +171,18 @@ u16 LMP::quietLimit(bool isPV, bool inCheck, u8 depth) {
 bool LMP::skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
     return quietLimit > 0 && quietsSearched >= quietLimit && bestEval > -c_checkmateMinScore
         && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
+// --- SEE Pruning Policies ---
+bool SEEPruning::skipMove(const MaterialPositionMask& material, bool isPV, bool inCheck, u8 depth, i16 bestEval,
+    PackedMove move, bool givesCheck) {
+    if (isPV || inCheck || givesCheck || depth > see_pruning_params::maxDepth || bestEval <= -c_checkmateMinScore)
+        return false;
+
+    const i32 threshold = MoveOrdering::isQuiet(move)
+        ? -see_pruning_params::quietMargin * depth
+        : -see_pruning_params::captureMargin * depth * depth;
+    return !see::ge(material, move, threshold);
 }
 
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;

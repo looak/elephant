@@ -204,6 +204,16 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             continue;
         }
 
+        // --- SEE Pruning ---
+        // a move that hands over too much material by static exchange is unlikely to be worth a search this shallow.
+        if constexpr (search_policies::SEEPruning::enabled) {
+            if (search_policies::SEEPruning::skipMove(pos.material(), isPV, moves.isChecked(), depth, bestEval, move, ordered.isCheck())) {
+                ordered = moves.next();
+                index++;
+                continue;
+            }
+        }
+
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
 
