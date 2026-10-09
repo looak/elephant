@@ -149,6 +149,21 @@ namespace internals {
         return bishopAttacks;
     }
 
+    constexpr std::array<u64, 64> generateKingAttackTable() {
+        std::array<u64, 64> table{};
+        for (u32 sqr = 0; sqr < 64; ++sqr) {
+            const u64 sqrMask = 1ull << sqr;
+            // east & west, masking off squares that wrapped around the board.
+            u64 attacks = ((sqrMask << 1) & ~board_constants::fileaMask) | ((sqrMask >> 1) & ~board_constants::filehMask);
+            const u64 row = attacks | sqrMask;
+            attacks |= (row << 8) | (row >> 8);
+            table[sqr] = attacks;
+        }
+        return table;
+    }
+
+    inline constexpr std::array<u64, 64> kingAttacks = generateKingAttackTable();
+
     void generateRookTable(std::array<std::array<u64, 4096>, 64>& result);
     void generateBishopTable(std::array<std::array<u64, 1024>, 64>& result);
     void initialize();
@@ -157,6 +172,19 @@ namespace internals {
 
 inline u64 getKnightAttacks(u32 sqr) {
     return tables::getKnightAttacks()[sqr];
+}
+
+inline constexpr u64 getKingAttacks(u32 sqr) {
+    return internals::kingAttacks[sqr];
+}
+
+// squares attacked by pawns of set s.
+template<Set s>
+constexpr u64 pawnAttacks(u64 pawns) {
+    if constexpr (s == Set::WHITE)
+        return ((pawns & ~board_constants::filehMask) << 9) | ((pawns & ~board_constants::fileaMask) << 7);
+    else
+        return ((pawns & ~board_constants::filehMask) >> 7) | ((pawns & ~board_constants::fileaMask) >> 9);
 }
 
 inline u64 getRookAttacks(u32 sqr, u64 occupancy) {

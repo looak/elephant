@@ -25,32 +25,8 @@ constexpr u16 givesCheck = 0x4000;  // quiets, added on top of history
 constexpr i32 historyMax = MoveOrderingView::historyMax;
 } // namespace priority
 
-constexpr u64 fileA = board_constants::fileaMask;
-constexpr u64 fileH = board_constants::filehMask;
-
-constexpr std::array<u64, 64> computeKingAttacks() {
-    std::array<u64, 64> table{};
-    for (u32 sqr = 0; sqr < 64; ++sqr) {
-        const u64 sqrMask = 1ull << sqr;
-        // east & west, masking off squares that wrapped around the board.
-        u64 attacks = ((sqrMask << 1) & ~fileA) | ((sqrMask >> 1) & ~fileH);
-        const u64 row = attacks | sqrMask;
-        attacks |= (row << 8) | (row >> 8);
-        table[sqr] = attacks;
-    }
-    return table;
-}
-
-constexpr std::array<u64, 64> kingAttacks = computeKingAttacks();
-
-// squares attacked by pawns of set s.
-template<Set s>
-constexpr u64 pawnAttacks(u64 pawns) {
-    if constexpr (s == Set::WHITE)
-        return ((pawns & ~fileH) << 9) | ((pawns & ~fileA) << 7);
-    else
-        return ((pawns & ~fileH) >> 7) | ((pawns & ~fileA) >> 9);
-}
+constexpr const std::array<u64, 64>& kingAttacks = attacks::internals::kingAttacks;
+using attacks::pawnAttacks;
 
 template<Set s>
 constexpr u64 pawnPush(u64 pawns) {

@@ -7,6 +7,7 @@
 #include <search/search_move_source.hpp>
 #include <search/search_policies.hpp>
 #include <search/search_threadcontext.hpp>
+#include <search/static_exchange.hpp>
 #include <system/time_manager.hpp>
 
 template<Set us>
@@ -73,11 +74,14 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             }
         }
 
-        // Skip bad captures (SEE < 0)
-        // if (SEE(move) < 0) {
-        //     ordered = moves.next();
-        //     continue;
-        // }
+        // --- SEE Pruning ---
+        // a capture that loses material once the exchange on its square plays out won't raise alpha.
+        if constexpr (search_policies::QuiescencePolicy::seePruning) {
+            if (!inCheck && !see::ge(context.position.read().material(), move, 0)) {
+                ordered = moves.next();
+                continue;
+            }
+        }
 
         MoveExecutor executor(context.position.edit());
         MoveUndoUnit undoState;

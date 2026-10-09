@@ -48,6 +48,7 @@ namespace enabled_policies {
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
+    inline constexpr bool QuiescenceSEEPruning = true;
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
@@ -130,6 +131,8 @@ class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
     static constexpr bool deltaPruning = enabled_policies::DeltaPruning;
+    // captures that lose material by static exchange are skipped, only when not in check.
+    static constexpr bool seePruning = enabled_policies::QuiescenceSEEPruning;
     static u8 maxDepth;
 
     // Delta pruning, standing pat plus the material a capture can win and a margin still doesn't reach alpha.
