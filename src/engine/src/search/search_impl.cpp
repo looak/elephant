@@ -6,6 +6,7 @@
 #include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
+#include <algorithm>
 #include <thread>
 #include <future>
 
@@ -58,7 +59,11 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
     // iterative deepening loop -- might make this optional.
     
-    for (u8 itrDepth = 1; itrDepth <= params.SearchDepth; ++itrDepth) {
+    // the hard ply limit in alphaBeta makes deeper iterations pointless.
+    const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
+    const u8 depthLimit = params.SearchDepth == 0 ? maxDepth : std::min(params.SearchDepth, maxDepth);
+
+    for (u8 itrDepth = 1; itrDepth <= depthLimit; ++itrDepth) {
         SearchResult itrResult;
         if (result.pvLine.length > 0) {
             // carry over best move from previous iteration

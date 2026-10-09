@@ -31,8 +31,8 @@ class TimeManager;
 
 struct SearchParameters {
     // search depth in half moves, a.k.a. ply or plies.
-    // 0 = infinite
-    u8 SearchDepth = 24;
+    // 0 = no depth limit, the search runs until stopped by time or reaches the ply limit.
+    u8 SearchDepth = 0;
     // u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
     u16 ThreadCount = 1;
 
