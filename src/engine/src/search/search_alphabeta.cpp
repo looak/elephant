@@ -64,6 +64,20 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         }
     }
 
+    // --- Leaf Node Check ---
+    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
+    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
+    // stand pat instead of a draw score.
+    if (depth <= 0) {
+        pv->length = 0;
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
+            // Start Q-Search with its *own* depth limit, configured with search params.
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
+        } else {
+            return context.evaluate<us>();
+        }
+    }
+
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveOrderingView orderingView;
 
@@ -81,18 +95,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
             return -c_checkmateConstant + (i16)ply; // Mate score adjusted by ply
         }
         return -c_drawConstant; // Stalemate
-    }
-
-    // --- Leaf Node Check ---
-    if (depth <= 0) {
-        pv->length = 0;
-        if constexpr (search_policies::QuiescencePolicy::enabled) {
-            // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
-        } else {
-            pv->length = 0;            
-            return context.evaluate<us>();
-        }
     }
 
     // --- Static Eval ---
