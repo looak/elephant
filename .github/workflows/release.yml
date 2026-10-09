@@ -1,0 +1,91 @@
+name: Release
+
+# Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels and attaches them
+# to a GitHub release when one is published. By hand it builds any branch or tag into workflow artifacts, and attaches
+# them to the release of that tag when asked.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or tag to build, e.g. main or 0.15.0
+        required: true
+        default: main
+      attach:
+        description: Attach the binaries to the release of this tag
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+        # x86-64 runs on any 64-bit CPU, v2 adds popcnt & SSE4.2, v3 adds AVX2 & BMI2 (most CPUs from ~2015).
+        arch: [x86-64, x86-64-v2, x86-64-v3]
+    runs-on: ${{ matrix.os }}
+    env:
+      REF: ${{ github.event.release.tag_name || inputs.ref }}
+      ATTACH: ${{ github.event_name == 'release' || inputs.attach }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ env.REF }}
+
+    - name: Set up MSYS2 g++
+      if: runner.os == 'Windows'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        install: make git mingw-w64-ucrt-x86_64-gcc
+
+    - name: Name the binary
+      shell: bash
+      run: |
+        version="$(head -n 1 version.txt | tr -d '\r[:space:]')"
+        os="$([ "$RUNNER_OS" = Windows ] && echo windows || echo linux)"
+        ext="$([ "$RUNNER_OS" = Windows ] && echo .exe || echo)"
+        echo "BINARY=elephant-gambit-$version-$os-${{ matrix.arch }}$ext" >> "$GITHUB_ENV"
+
+    - name: Build (Linux)
+      if: runner.os == 'Linux'
+      working-directory: ob_build
+      run: make -j"$(nproc)" ARCH=${{ matrix.arch }} LDFLAGS=-static EXE="$BINARY"
+
+    - name: Build (Windows)
+      if: runner.os == 'Windows'
+      working-directory: ob_build
+      shell: msys2 {0}
+      run: make -j"$(nproc)" ARCH=${{ matrix.arch }} LDFLAGS=-static EXE="$BINARY"
+
+    # every binary has to speak UCI and finish the bench before it's attached.
+    - name: Smoke test
+      working-directory: ob_build
+      shell: bash
+      run: |
+        out="$(printf 'uci\nisready\nquit\n' | ./"$BINARY")"
+        echo "$out"
+        echo "$out" | grep -q "^id name Elephant Gambit"
+        echo "$out" | grep -q "^uciok"
+        echo "$out" | grep -q "^readyok"
+        ./"$BINARY" bench | tail -n 1
+
+    - name: Keep as workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BINARY }}
+        path: ob_build/${{ env.BINARY }}
+
+    - name: Attach to release
+      if: env.ATTACH == 'true'
+      working-directory: ob_build
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release upload "$REF" "$BINARY" --clobber
