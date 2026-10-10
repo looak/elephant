@@ -11,8 +11,10 @@
 #include <search/static_exchange.hpp>
 #include <system/time_manager.hpp>
 
+#include <optional>
+
 template<Set us>
-i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply) {
+i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, SearchMoveSource<us>* leafMoves) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
     ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
@@ -22,8 +24,10 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
-    // The move source knows whether we're in check before generating anything, the filter is decided after.
-    SearchMoveSource<us> moves(context.position.read());
+    // The move source knows whether we're in check before generating anything, the filter is decided after. Reuses
+    // the one alphaBeta built when it dropped into quiescence at a leaf, the position is the same.
+    std::optional<SearchMoveSource<us>> ownMoves;
+    SearchMoveSource<us>& moves = leafMoves != nullptr ? *leafMoves : ownMoves.emplace(context.position.read());
     const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;
@@ -126,5 +130,5 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     return bestEval;
 }
 
-template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16);
-template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16);
+template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16, SearchMoveSource<Set::WHITE>*);
+template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16, SearchMoveSource<Set::BLACK>*);

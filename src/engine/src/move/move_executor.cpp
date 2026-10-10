@@ -268,8 +268,8 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
         if (capturedPiece.getType() == PieceType::ROOK)
             internalHandleRookMovedOrCaptured(move.targetSqr(), undoState);
 
-        // remove captured piece from board, clearPiece also removes it from the hash.
-        m_position.clearPiece(pieceTarget);
+        // remove captured piece from board, clearPiece also removes it from the hash. The piece is known, no second lookup.
+        m_position.clearPiece(capturedPiece, pieceTarget);
         pieceRemoved(capturedPiece, pieceTarget);
         return;
     }
