@@ -76,7 +76,9 @@ private:
     i16 searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
 
     template<Set us>
-    i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply);
+    // moves, when given, is an unstarted move source for this position, alphaBeta passes the one it built at a leaf so
+    // the check & pin info isn't computed twice.
+    i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, SearchMoveSource<us>* moves = nullptr);
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
