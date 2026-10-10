@@ -46,6 +46,20 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if (moves.isChecked())
         depth++;
 
+    // --- Leaf Node Check ---
+    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
+    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
+    // stand pat instead of a draw score.
+    if (depth <= 0) {
+        pv->length = 0;
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
+            // Start Q-Search with its *own* depth limit, configured with search params.
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
+        } else {
+            return context.evaluate<us>();
+        }
+    }
+
     PackedMove bestMove = PackedMove::NullMove();
 
     // --- Transposition Table Probe ---
@@ -61,20 +75,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         if (!isPV && ttProbeResult.has_value()) {
             pv->length = 0;
             return ttProbeResult.value();
-        }
-    }
-
-    // --- Leaf Node Check ---
-    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
-    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
-    // stand pat instead of a draw score.
-    if (depth <= 0) {
-        pv->length = 0;
-        if constexpr (search_policies::QuiescencePolicy::enabled) {
-            // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
-        } else {
-            return context.evaluate<us>();
         }
     }
 
