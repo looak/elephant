@@ -292,9 +292,9 @@ struct PrioritizedMove {
 
     PackedMove move;
     u16 priority : 15;
-    bool check : 1;
+    u16 check : 1;  // u16 like priority, MSVC won't pack bitfields of different types into one unit
 };
-// static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
+static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 
 struct PrioritizedMoveComparator {
     constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
