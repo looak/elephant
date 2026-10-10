@@ -55,6 +55,7 @@ namespace enabled_policies {
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
+    inline constexpr bool IIR = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
