@@ -285,7 +285,7 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
 
     // unmake move
     m_position.placePiece(promotedPiece, srcSqr);
-    m_position.clearPiece(trgSqr);
+    m_position.clearPiece(movedPiece, trgSqr);
 
     if (undoState.move.isCapture()) {
         if (undoState.move.isEnPassant()) {
@@ -317,10 +317,8 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
         internalMakeMove(rook, rookTarget.toSquare(), rookSource.toSquare(), editor);
     }
 
-    m_position.enPassant().write(undoState.enPassantState.read());  // restore enpassant state
-    m_position.castling().write(undoState.castlingState.read());    // restore castling state
-
-    m_position.hash() = undoState.hash; // overwrite hash to previous state.
+    // restore en passant, castling & the hash, the states aren't rehashed since the stored hash overwrites it.
+    m_position.restoreState(undoState.enPassantState.read(), undoState.castlingState.read(), undoState.hash);
 
     return true;
 }
