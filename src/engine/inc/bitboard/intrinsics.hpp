@@ -110,17 +110,17 @@ namespace intrinsics {
 /**
  * @brief Bit scan forward
  * @param bitboard bitboard to scan
- * @returns index of least significant bit */
+ * @returns index of least significant bit, 0 for an empty bitboard (countr_zero gives 64, masked to 0). */
 [[nodiscard]] constexpr u32
 lsbIndex(u64 bitboard) {
-    return static_cast<u32>(std::countr_zero(bitboard));
+    return static_cast<u32>(std::countr_zero(bitboard)) & 63;
 }
 
 /**
- * Bit scan reverse    */
+ * Bit scan reverse, 0 for an empty bitboard.    */
 [[nodiscard]] constexpr u32
 msbIndex(u64 bitboard) {
-    return static_cast<u32>(63 - std::countl_zero(bitboard));
+    return bitboard ? static_cast<u32>(63 - std::countl_zero(bitboard)) : 0;
 }
 
 /**
