@@ -25,7 +25,6 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
         material.editMaterial(piece.index())[square] = true;
 
         hash() = zobrist::updatePieceHash(hash(), piece, square);
-        pieceAdded(piece, square);
         
         return true;      
     }
@@ -60,7 +59,6 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
         material.editSet(targetPiece.set())[square] = false;
         material.editMaterial(targetPiece.index())[square] = false;
         hash() = zobrist::updatePieceHash(hash(), targetPiece, square);
-        pieceRemoved(targetPiece, square);
         return true;
     }
     else {
@@ -76,7 +74,6 @@ void PositionProxy<AccessType>::clearPiece(Piece piece, Square square) {
         material.editSet(piece.set())[square] = false;
         material.editMaterial(piece.index())[square] = false;
         hash() = zobrist::updatePieceHash(hash(), piece, square);
-        pieceRemoved(piece, square);
     }
     else {
         static_assert(false, "Cannot call clearPiece() on a read-only policy position.");
@@ -104,7 +101,6 @@ void PositionProxy<AccessType>::clear() {
         m_position.m_castlingState = {};
         m_position.m_enpassantState = {};
         m_position.m_hash = 0;
-        m_position.m_pesto = {};
     }
     else
     {

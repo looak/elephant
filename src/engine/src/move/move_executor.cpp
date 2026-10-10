@@ -19,6 +19,8 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     
     undoUnit.move = move;
     undoUnit.hash = m_position.hash();
+    if (m_accumulator)
+        undoUnit.pesto = *m_accumulator;
     undoUnit.plyCount = plyCount;
 
     ChessPiece movingPiece = m_position.pieceAt(move.sourceSqr());
@@ -120,8 +122,8 @@ MoveExecutor::internalHandlePawnMove(const PackedMove move, Set set, MutableMate
 
         m_position.hash() = zobrist::updatePieceHash(m_position.hash(), src, move.sourceSqr());
         m_position.hash() = zobrist::updatePieceHash(m_position.hash(), promote, move.sourceSqr());
-        m_position.pieceRemoved(src, move.sourceSqr());
-        m_position.pieceAdded(promote, move.sourceSqr());
+        pieceRemoved(src, move.sourceSqr());
+        pieceAdded(promote, move.sourceSqr());
 
         // updating the piece on the source tile since we're doing this pre-move.
         // internal move will handle the actual move of the piece, but what piece it is doesn't
@@ -247,8 +249,8 @@ void MoveExecutor::internalMakeMove(ChessPiece piece, Square source, Square targ
     // update hash
     m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, target);
     m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, source);
-    m_position.pieceRemoved(piece, source);
-    m_position.pieceAdded(piece, target);
+    pieceRemoved(piece, source);
+    pieceAdded(piece, target);
 }
 
 void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState)
@@ -268,6 +270,7 @@ void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pie
 
         // remove captured piece from board, clearPiece also removes it from the hash.
         m_position.clearPiece(pieceTarget);
+        pieceRemoved(capturedPiece, pieceTarget);
         return;
     }
 
@@ -287,17 +290,16 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
     const ChessPiece promotedPiece =
         undoState.move.isPromotion() ? ChessPiece(movedPiece.getSet(), PieceType::PAWN) : movedPiece;
 
-    // unmake move
-    m_position.placePiece(promotedPiece, srcSqr);
-    m_position.clearPiece(movedPiece, trgSqr);
+    // unmake move through the material editors, the hash & accumulator are restored from the undo unit below.
+    auto movedEditor = m_position.materialEditor(movedPiece.getSet(), movedPiece.getType());
+    movedEditor[trgSqr] = false;
+    auto sourceEditor = m_position.materialEditor(promotedPiece.getSet(), promotedPiece.getType());
+    sourceEditor[srcSqr] = true;
 
     if (undoState.move.isCapture()) {
-        if (undoState.move.isEnPassant()) {
-            m_position.placePiece(undoState.capturedPiece, undoState.enPassantState.readTarget());
-        }
-        else {
-            m_position.placePiece(undoState.capturedPiece, trgSqr);
-        }
+        const Square capturedSqr = undoState.move.isEnPassant() ? undoState.enPassantState.readTarget() : trgSqr;
+        auto capturedEditor = m_position.materialEditor(undoState.capturedPiece.getSet(), undoState.capturedPiece.getType());
+        capturedEditor[capturedSqr] = true;
     }
     else if (undoState.move.isCastling()) {
         // we're unmaking a castling move, we need to move the rook back to it's original position.
@@ -316,13 +318,15 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
             rookSource = SquareNotation(coordinates::file_h, target.rank());
             rookTarget = SquareNotation(coordinates::file_f, target.rank());
         }
-        ChessPiece rook(movedPiece.getSet(), PieceType::ROOK);
-        auto editor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
-        internalMakeMove(rook, rookTarget.toSquare(), rookSource.toSquare(), editor);
+        auto rookEditor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
+        rookEditor[rookTarget.toSquare()] = false;
+        rookEditor[rookSource.toSquare()] = true;
     }
 
-    // restore en passant, castling & the hash, the states aren't rehashed since the stored hash overwrites it.
+    // restore en passant, castling & the hash, nothing above rehashed.
     m_position.restoreState(undoState.enPassantState.read(), undoState.castlingState.read(), undoState.hash);
+    if (m_accumulator)
+        *m_accumulator = undoState.pesto;
 
     return true;
 }

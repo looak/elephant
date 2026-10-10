@@ -3,6 +3,7 @@
 #include <eval/pesto_accumulator.hpp>
 #include <io/fen_parser.hpp>
 #include <move/generation/move_gen_policy.hpp>
+#include <move/move_executor.hpp>
 
 #include <string>
 #include <vector>
@@ -10,15 +11,16 @@
 namespace ElephantTest {
 
 namespace {
-bool matchesScratch(const GameContext& context) {
-    const PositionReader position = context.readChessPosition();
-    return position.pesto() == PestoAccumulator::computeFromScratch(position.material());
+bool matchesScratch(const GameContext& context, const PestoAccumulator& accumulator) {
+    return accumulator == PestoAccumulator::computeFromScratch(context.readChessPosition().material());
 }
 
-// Walks every legal line to the given depth and checks the incrementally updated accumulator against a full recompute
-// after every make and unmake. Records the first line that diverges.
+// Walks every legal line to the given depth making & unmaking through a MoveExecutor that carries the accumulator,
+// checking it against a full recompute after every make and against its earlier value after every unmake. Records
+// the first line that diverges.
 template<Set us>
-void verifyPestoThroughTree(GameContext& context, int depth, std::vector<std::string>& line, std::string& firstFailure) {
+void verifyPestoThroughTree(GameContext& context, PestoAccumulator& accumulator, int depth, std::vector<std::string>& line,
+                            std::string& firstFailure) {
     if (depth == 0 || !firstFailure.empty())
         return;
 
@@ -26,19 +28,22 @@ void verifyPestoThroughTree(GameContext& context, int depth, std::vector<std::st
         if (!firstFailure.empty())
             return;
 
-        const PestoAccumulator before = context.readChessPosition().pesto();
+        const PestoAccumulator before = accumulator;
         line.push_back(move.toString());
-        context.MakeMove(move);
+        MoveExecutor executor(context.editChessPosition(), &accumulator);
+        MoveUndoUnit undo;
+        u16 plyCount = 0;
+        executor.makeMove(move, undo, plyCount);
 
-        if (!matchesScratch(context)) {
+        if (!matchesScratch(context, accumulator)) {
             for (const auto& m : line) firstFailure += m + " ";
             firstFailure += "(after make)";
         }
 
-        verifyPestoThroughTree<opposing_set<us>()>(context, depth - 1, line, firstFailure);
+        verifyPestoThroughTree<opposing_set<us>()>(context, accumulator, depth - 1, line, firstFailure);
 
-        context.UnmakeMove();
-        if (firstFailure.empty() && !(context.readChessPosition().pesto() == before)) {
+        executor.unmakeMove(undo);
+        if (firstFailure.empty() && !(accumulator == before)) {
             for (const auto& m : line) firstFailure += m + " ";
             firstFailure += "(after unmake)";
         }
@@ -61,14 +66,14 @@ TEST(PestoAccumulator, IncrementalMatchesComputedThroughTree)
     for (const auto& [fen, depth] : positions) {
         GameContext context;
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
-        ASSERT_TRUE(matchesScratch(context)) << "initial accumulator, " << fen;
+        PestoAccumulator accumulator = PestoAccumulator::computeFromScratch(context.readChessPosition().material());
 
         std::vector<std::string> line;
         std::string firstFailure;
         if (context.readToPlay() == Set::WHITE)
-            verifyPestoThroughTree<Set::WHITE>(context, depth, line, firstFailure);
+            verifyPestoThroughTree<Set::WHITE>(context, accumulator, depth, line, firstFailure);
         else
-            verifyPestoThroughTree<Set::BLACK>(context, depth, line, firstFailure);
+            verifyPestoThroughTree<Set::BLACK>(context, accumulator, depth, line, firstFailure);
 
         EXPECT_TRUE(firstFailure.empty()) << fen << "\n  accumulator diverged after: " << firstFailure;
     }

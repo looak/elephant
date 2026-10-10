@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <eval/pesto_accumulator.hpp>
 #include <position/position_accessors.hpp>
 #include <move/move.hpp>
 
@@ -33,8 +34,10 @@ struct GameState;
 
 class MoveExecutor {
 public:
-    MoveExecutor(PositionProxy<PositionEditPolicy> position)
-        : m_position(position) {}
+    // accumulator, when given, is updated as make adds & removes pieces and restored from the undo unit on unmake, see
+    // PestoAccumulator. Search owns it, the position doesn't carry evaluation state.
+    MoveExecutor(PositionProxy<PositionEditPolicy> position, PestoAccumulator* accumulator = nullptr)
+        : m_position(position), m_accumulator(accumulator) {}
 
     ~MoveExecutor() = default;
 
@@ -55,5 +58,10 @@ private:
     void internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState);
     void internalUpdateEnPassant(Square source, Square target);
 
+    // a piece entered or left a square, forwarded to the accumulator.
+    void pieceAdded(ChessPiece piece, Square square) { if (m_accumulator) m_accumulator->add(piece, square); }
+    void pieceRemoved(ChessPiece piece, Square square) { if (m_accumulator) m_accumulator->remove(piece, square); }
+
     PositionProxy<PositionEditPolicy> m_position;
+    PestoAccumulator* m_accumulator;
 };

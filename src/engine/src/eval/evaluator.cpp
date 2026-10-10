@@ -57,20 +57,20 @@ i16
 Evaluator::EvaluateMaterial() const
 {
     // piece_constants material, kept incrementally by the position.
-    return static_cast<i16>(m_position.pesto().material);
+    return static_cast<i16>(m_accumulator.material);
 }
 
 i16
 Evaluator::EvaluatePesto() const
 {
-    // material and piece square sums & game phase are kept incrementally by the position, see PestoAccumulator.
-    return static_cast<i16>(m_position.pesto().taperedScore());
+    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator.
+    return static_cast<i16>(m_accumulator.taperedScore());
 }
 
 i32
 Evaluator::gamePhase() const
 {
-    return std::min(m_position.pesto().phase, evaluator_data::maxGamePhase);
+    return std::min(m_accumulator.phase, evaluator_data::maxGamePhase);
 }
 
 i16 Evaluator::EvaluatePawnStructure() const {
@@ -245,9 +245,10 @@ float Evaluator::calculateEndGameCoeficient() const {
     // if (m_moveCount > 64) // if we're past 64 moves, treat the game as end game.
     //     return 1.f;
 
-    auto material = m_position.material();
+    // piece count & material totals are kept incrementally by search, see PestoAccumulator.
+    const PestoAccumulator& pesto = m_accumulator;
 
-    if (material.combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
+    if (pesto.pieceCount <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
         return 1.f;
 
     static constexpr i16 defaultPosValueOfMaterial = piece_constants::value[0] * 16    // pawn
@@ -260,11 +261,7 @@ float Evaluator::calculateEndGameCoeficient() const {
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a
     // endgame already should just return 1.f
 
-    i16 boardMaterialCombinedValue = 0;
-    for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::WHITE>(index).count();
-        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::BLACK>(index).count();
-    }
+    const i32 boardMaterialCombinedValue = pesto.nonKingMaterial;
 
     // removed move count influence on endgame coeficient, because I don't think it's needed. This note is here
     // for future reference if we want to add it back.   

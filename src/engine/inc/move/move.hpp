@@ -20,6 +20,7 @@
 
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
+#include <eval/pesto_accumulator.hpp>
 #include <material/chess_piece.hpp>
 #include <math/cast.hpp>
 #include <position/en_passant_state_info.hpp>
@@ -381,6 +382,7 @@ struct MoveUndoUnit {
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
     u64 hash;
+    PestoAccumulator pesto;  // search's accumulator before the move, restored on unmake like the hash
     u16 plyCount;
 };
 
