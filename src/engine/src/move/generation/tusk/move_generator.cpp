@@ -109,12 +109,13 @@ std::array<u64, 6> computeCheckSquares(const MaterialPositionMask& material, u64
     return result;
 }
 
-inline u8 victimAt(const MaterialPositionMask& material, u64 sqrMask) {
-    for (u8 pieceId = pawnId; pieceId < kingId; ++pieceId) {
-        if (material.read(pieceId).read() & sqrMask)
-            return pieceId;
-    }
-    return pawnId; // en passant, target square is empty
+// branchless, the piece bitboards are one-hot per square so summing bit * pieceId gives the victim. An empty square,
+// the en passant target, sums to pawnId. Kings are never captured.
+inline u8 victimAt(const MaterialPositionMask& material, u32 sqr) {
+    u32 victim = 0;
+    for (u32 pieceId = knightId; pieceId < kingId; ++pieceId)
+        victim += static_cast<u32>((material.read(static_cast<i32>(pieceId)).read() >> sqr) & 1) * pieceId;
+    return static_cast<u8>(victim);
 }
 
 template<Set us>
@@ -127,7 +128,7 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
     i32 score = 0;
     if (move.isCapture() || move.isPromotion()) {
         if (move.isCapture())
-            score += piece_constants::value[victimAt(material, dstMask)] * 8 - pieceId;
+            score += piece_constants::value[victimAt(material, static_cast<u32>(move.target()))] * 8 - pieceId;
         if (checkingPiece == queenId && move.isPromotion())
             score += piece_constants::value[queenId] * 8;
     }
@@ -283,7 +284,11 @@ template<Set us>
 template<GenType type>
 void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
     const MaterialPositionMask& material = m_position.material();
-    const std::array<u64, 6> checkSquares = computeCheckSquares<us>(material, material.combine().read());
+    if (!result.m_checkSquaresReady) {
+        result.m_checkSquares = computeCheckSquares<us>(material, material.combine().read());
+        result.m_checkSquaresReady = true;
+    }
+    const std::array<u64, 6>& checkSquares = result.m_checkSquares;
     const MoveOrderingView* ordering = m_params.ordering;
     constexpr bool includeKillers = type == GenType::QUIETS;
 

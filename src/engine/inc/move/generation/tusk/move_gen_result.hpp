@@ -105,6 +105,10 @@ private:
     void pickBest();
 
     std::array<ScoredMove, 256> m_moves;  // intentionally uninitialized, see ScoredMove
+    // per piece type, squares giving direct check. Computed by the first scored stage and reused by the next, the
+    // position is the same for every stage of a result.
+    std::array<u64, 6> m_checkSquares;
+    bool m_checkSquaresReady = false;
     const MoveGenerator<us>* m_generator;
     u32 m_current = 0;
     u32 m_end = 0;
