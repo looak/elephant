@@ -70,6 +70,10 @@ std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i1
     return std::nullopt;
 }
 
+void TT::prefetch(u64 hash) {
+    m_table->prefetch(hash);
+}
+
 bool TT::probeMove(u64 hash, PackedMove& outMove) {
     i16 dummyScore;
     u8 dummyDepth;

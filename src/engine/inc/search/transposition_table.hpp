@@ -23,6 +23,7 @@
  */
 
 #pragma once
+#include <xmmintrin.h>
 #include <system/platform.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
@@ -177,6 +178,7 @@ public:
     // --- Probe and Store ---    
     bool probe(u64 hash, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound);
     void store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound);
+    void prefetch(u64 hash) const { _mm_prefetch(reinterpret_cast<const char*>(&m_table[hash & m_mask]), _MM_HINT_T0); }
     
     // --- Age Management ---    
     void incrementAge() { m_age = (m_age + 1) & 0x3F;  /* Wrap at 64 */ }    

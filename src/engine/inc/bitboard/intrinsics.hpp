@@ -17,6 +17,7 @@
 #pragma once
 
 #include <system/platform.hpp>
+#include <bit>
 namespace fallback {
 
 constexpr u32 index64[64] = {   0,  47, 1,  56, 48, 27, 2,  60, 57, 49, 41, 37, 28, 16, 3,  61, 54, 58, 35, 52, 50, 42,
@@ -112,15 +113,14 @@ namespace intrinsics {
  * @returns index of least significant bit */
 [[nodiscard]] constexpr u32
 lsbIndex(u64 bitboard) {
-    return fallback::bitScanForward(bitboard);
+    return static_cast<u32>(std::countr_zero(bitboard));
 }
 
 /**
  * Bit scan reverse    */
 [[nodiscard]] constexpr u32
 msbIndex(u64 bitboard) {
-    return fallback::freakOut(bitboard);
-    // return __bsrq(bitboard);
+    return static_cast<u32>(63 - std::countl_zero(bitboard));
 }
 
 /**

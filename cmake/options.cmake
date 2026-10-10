@@ -5,7 +5,7 @@ set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions" FORCE)
 set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
-set(DEBUG_TRANSITION_TABLE ON CACHE BOOL "Enable debug output for transition table" FORCE)
+set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
 set(DEBUG_SEARCH_TREE OFF CACHE BOOL "Enable debug file output for search tree" FORCE)
 
 # Map to spdlog's compile-time level

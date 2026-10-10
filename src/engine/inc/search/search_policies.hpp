@@ -63,6 +63,7 @@ public:
     // ply converts mate scores between root relative (search) and node relative (stored).
     static std::optional<i16> probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
     static bool probeMove(u64 hash, PackedMove& outMove);
+    static void prefetch(u64 hash);
     static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag);
     static void printStats();
 

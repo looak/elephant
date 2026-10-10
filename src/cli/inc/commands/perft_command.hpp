@@ -54,7 +54,7 @@ public:
         timer.Start();
 
         PerftSearch perftSearch(*m_context);
-        auto result = perftSearch.Run(args.depth);
+        auto result = perftSearch.Run<move_gen_policy::Tusk>(args.depth);
 
         timer.Stop();
         const u64 elapsedMs = static_cast<u64>(std::max<i64>(timer.getElapsedTime(), 1));
