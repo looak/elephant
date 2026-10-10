@@ -26,14 +26,20 @@
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/pesto_accumulator.hpp>
+#include <move/move_executor.hpp>
 
 struct ThreadSearchContext {
     ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
-        : position(_position), clock(_clock) {
+        : position(_position),
+          accumulator(PestoAccumulator::computeFromScratch(position.read().material())),
+          clock(_clock) {
             gameState.whiteToMove = whiteToMove;
 
         }
     Position position;
+    // PeSTO sums for position, kept in step by the executors from executor() & read by evaluate().
+    PestoAccumulator accumulator;
     GameState gameState;
     MoveHistory history;
     MoveOrderingHeuristic moveOrdering;
@@ -72,9 +78,12 @@ struct ThreadSearchContext {
     i16 evaluate() {
         ++evalCount;
         constexpr i16 perspective = (us == Set::WHITE) ? 1 : -1;
-        Evaluator evaluator(position.read());
+        Evaluator evaluator(position.read(), accumulator);
         return evaluator.Evaluate() * perspective;
     }
+
+    // Makes & unmakes moves on position, keeping the accumulator in step.
+    MoveExecutor executor() { return MoveExecutor(position.edit(), &accumulator); }
 
 #ifdef DEBUG_SEARCH_TREE
     int m_debugIndentation = 0;

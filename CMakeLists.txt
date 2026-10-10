@@ -35,7 +35,35 @@ foreach(option IN LISTS PRECOMPILE_OPTIONS)
     endif()
 endforeach()
 
+# every Debug build checks assertions & throws, whatever the options above say.
+add_compile_definitions($<$<CONFIG:Debug>:ASSERTIONS_ENABLED> $<$<CONFIG:Debug>:EXCEPTIONS_ENABLED>)
+message(STATUS "## Precompile option: ASSERTIONS_ENABLED & EXCEPTIONS_ENABLED always ON in Debug")
+
 message(STATUS "## Precompile log level: ${LOG_LEVEL}")
+
+# Link time optimization for optimized builds. Attack table & ray lookups live in .cpp files and are only inlined
+# across translation units with LTO, without it every slider lookup is a function call.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_OUTPUT LANGUAGES CXX)
+if(IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+    message(STATUS "## Link time optimization: ON (Release, RelWithDebInfo)")
+else()
+    message(STATUS "## Link time optimization: not supported, ${IPO_OUTPUT}")
+endif()
+
+# Target the build machine's instruction set (popcnt, tzcnt, lzcnt...). Turn off for portable binaries, the release
+# binaries are built by ob_build/makefile with an explicit ARCH.
+option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
+if(ELEPHANT_NATIVE_ARCH)
+    if(MSVC)
+        add_compile_options(/arch:AVX2)
+    else()
+        add_compile_options(-march=native)
+    endif()
+    message(STATUS "## Native instruction set: ON")
+endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 

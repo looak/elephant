@@ -5,6 +5,7 @@
 #include <io/fen_parser.hpp>
 #include <move/generation/king_pin_threats.hpp>
 #include <move/generation/move_gen_policy.hpp>
+#include <move/generation/tusk/check_info.hpp>
 #include <move/generation/tusk/move_generator.hpp>
 #include <search/perft_search.hpp>
 
@@ -19,8 +20,8 @@ namespace ElephantTest {
 namespace {
 
 template<Set us>
-KingPinThreats<us> computePins(PositionReader position) {
-    return KingPinThreats<us>(to_square(position.material().king<us>().lsbIndex()), position);
+tusk::CheckInfo<us> computePins(PositionReader position) {
+    return tusk::CheckInfo<us>(position);
 }
 
 // Perft through the lazy staged generate() path, with ordering moves taken from the position itself so pv/tt/killer
@@ -28,7 +29,7 @@ KingPinThreats<us> computePins(PositionReader position) {
 template<Set us>
 u64 tuskStagedPerft(GameContext& context, int depth) {
     PositionReader position = context.readChessPosition();
-    KingPinThreats<us> pins = computePins<us>(position);
+    tusk::CheckInfo<us> pins = computePins<us>(position);
 
     MoveOrderingView ordering;
     {
@@ -107,7 +108,7 @@ TEST(TuskMoveGenerator, StagedHandsOutEachMoveOnce) {
             continue;
 
         PositionReader position = context.readChessPosition();
-        KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+        tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
         tusk::MoveGenerator<Set::WHITE> generator(position, pins);
         tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
@@ -126,7 +127,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_LosingCaptureComesAfterTheQuiets) {
     GameContext context;
     io::fen_parser::deserialize("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1", context.editChessboard());
     PositionReader position = context.readChessPosition();
-    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
     const std::string losingCapture = "d2d5";
 
     auto handOutOrder = [&](bool defer) {
@@ -160,7 +161,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_StagedHandsOutEachMoveOnce) {
             continue;
 
         PositionReader position = context.readChessPosition();
-        KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+        tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
         tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .deferLosingCaptures = true });
         tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
         tusk::MoveGenResult<Set::WHITE> all = generator.generateAll();
@@ -181,7 +182,7 @@ TEST(TuskMoveGenerator, CapturesOnlyFilter) {
     io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());
 
     PositionReader position = context.readChessPosition();
-    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
     tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .moveFilter = MoveTypes::CAPTURES_ONLY });
     tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
@@ -219,7 +220,7 @@ TEST(TuskMoveGenerator, StagedOrdering) {
     view.killers[1] = expectedOrder[4];
 
     PositionReader position = context.readChessPosition();
-    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
     tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = &view });
     tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
@@ -242,7 +243,7 @@ TEST(TuskMoveGenerator, PeekDoesNotConsume) {
     io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());
 
     PositionReader position = context.readChessPosition();
-    KingPinThreats<Set::WHITE> pins = computePins<Set::WHITE>(position);
+    tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
     tusk::MoveGenerator<Set::WHITE> generator(position, pins);
     tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
@@ -256,6 +257,69 @@ TEST(TuskMoveGenerator, PeekDoesNotConsume) {
         ++count;
     }
     EXPECT_EQ(48u, count);
+}
+
+namespace {
+// Compares CheckInfo against the per direction KingPinThreats at every node of a tree.
+template<Set us>
+void verifyCheckInfoThroughTree(GameContext& context, int depth, std::vector<std::string>& line, std::string& firstFailure) {
+    if (!firstFailure.empty())
+        return;
+
+    const PositionReader position = context.readChessPosition();
+    const tusk::CheckInfo<us> checkInfo(position);
+    const KingPinThreats<us> reference(to_square(position.material().king<us>().lsbIndex()), position);
+    const u64 usMat = position.material().combine<us>().read();
+
+    std::string mismatch;
+    if (checkInfo.isChecked() != reference.isChecked())
+        mismatch = "isChecked";
+    else if (checkInfo.checkCount() != reference.isCheckedCount())
+        mismatch = "checkCount";
+    else if (checkInfo.checkCount() == 1 && checkInfo.checkMask() != reference.checks().read())
+        mismatch = "checkMask";
+    else if (checkInfo.pinned() != (reference.pins().read() & usMat))
+        mismatch = "pinned";
+    if (!mismatch.empty()) {
+        for (const auto& m : line) firstFailure += m + " ";
+        firstFailure += "(" + mismatch + ")";
+        return;
+    }
+
+    if (depth == 0)
+        return;
+
+    move_gen_policy::Tusk::forEachMove<us>(position, [&](PackedMove move) {
+        line.push_back(move.toString());
+        context.MakeMove(move);
+        verifyCheckInfoThroughTree<opposing_set<us>()>(context, depth - 1, line, firstFailure);
+        context.UnmakeMove();
+        line.pop_back();
+    });
+}
+} // namespace
+
+TEST(TuskCheckInfo, MatchesKingPinThreatsThroughTree) {
+    // checks, double checks & pins along every line are all reached within these depths.
+    const std::vector<std::pair<std::string, int>> positions = {
+        { "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 3 },   // kiwipete
+        { "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 5 },
+        { "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 3 },
+        { "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 3 },
+        { "2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1", 3 },             // WAC.001
+    };
+
+    for (const auto& [fen, depth] : positions) {
+        GameContext context;
+        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        std::vector<std::string> line;
+        std::string firstFailure;
+        if (context.readToPlay() == Set::WHITE)
+            verifyCheckInfoThroughTree<Set::WHITE>(context, depth, line, firstFailure);
+        else
+            verifyCheckInfoThroughTree<Set::BLACK>(context, depth, line, firstFailure);
+        EXPECT_TRUE(firstFailure.empty()) << fen << "\n  CheckInfo differs after: " << firstFailure;
+    }
 }
 
 } // namespace ElephantTest

@@ -56,65 +56,21 @@ i16 Evaluator::EvaluatePlus(PackedMove)
 i16
 Evaluator::EvaluateMaterial() const
 {
-    const auto& material = m_position.material();
-    i16 score = 0;
-
-    for (u8 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-        u16 pieceValue = piece_constants::value[pieceIndx];
-        i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
-        i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
-
-        score += pieceValue * whiteCount;
-        score -= pieceValue * blackCount;
-    }
-
-    return score;
+    // piece_constants material, kept incrementally by the position.
+    return static_cast<i16>(m_accumulator.material);
 }
 
 i16
 Evaluator::EvaluatePesto() const
 {
-    const auto& material = m_position.material();
-    i32 mg = 0;
-    i32 eg = 0;
-
-    for (u8 pieceIndx = 0; pieceIndx < 6; ++pieceIndx) {
-        const i32* tableMg = evaluator_data::pestoTables_mg[pieceIndx];
-        const i32* tableEg = evaluator_data::pestoTables_eg[pieceIndx];
-        const i32 materialMg = evaluator_data::pestoMaterial_mg[pieceIndx];
-        const i32 materialEg = evaluator_data::pestoMaterial_eg[pieceIndx];
-
-        // tables have A8 at index 0, see evaluator_data.
-        Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
-        while (whitePieces.empty() == false) {
-            u32 sqr = evaluator_data::flip(whitePieces.popLsb());
-            mg += materialMg + tableMg[sqr];
-            eg += materialEg + tableEg[sqr];
-        }
-
-        Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
-        while (blackPieces.empty() == false) {
-            u32 sqr = blackPieces.popLsb();
-            mg -= materialMg + tableMg[sqr];
-            eg -= materialEg + tableEg[sqr];
-        }
-    }
-
-    const i32 phase = gamePhase();
-    return static_cast<i16>((mg * phase + eg * (evaluator_data::maxGamePhase - phase)) / evaluator_data::maxGamePhase);
+    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator.
+    return static_cast<i16>(m_accumulator.taperedScore());
 }
 
 i32
 Evaluator::gamePhase() const
 {
-    const auto& material = m_position.material();
-    i32 phase = 0;
-    for (u8 pieceIndx = knightId; pieceIndx <= queenId; ++pieceIndx) {
-        const i32 count = static_cast<i32>(material.read(Set::WHITE, pieceIndx).count() + material.read(Set::BLACK, pieceIndx).count());
-        phase += count * evaluator_data::gamePhaseIncrement[pieceIndx];
-    }
-
-    return std::min(phase, evaluator_data::maxGamePhase);
+    return std::min(m_accumulator.phase, evaluator_data::maxGamePhase);
 }
 
 i16 Evaluator::EvaluatePawnStructure() const {
@@ -289,9 +245,10 @@ float Evaluator::calculateEndGameCoeficient() const {
     // if (m_moveCount > 64) // if we're past 64 moves, treat the game as end game.
     //     return 1.f;
 
-    auto material = m_position.material();
+    // piece count & material totals are kept incrementally by search, see PestoAccumulator.
+    const PestoAccumulator& pesto = m_accumulator;
 
-    if (material.combine().count() <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
+    if (pesto.pieceCount <= 12) // if we have less than 12 pieces on the board, treat the game as end game.
         return 1.f;
 
     static constexpr i16 defaultPosValueOfMaterial = piece_constants::value[0] * 16    // pawn
@@ -304,11 +261,7 @@ float Evaluator::calculateEndGameCoeficient() const {
     // calculation. and probably, at the point we're looking for promotions, we're most likely in a
     // endgame already should just return 1.f
 
-    i16 boardMaterialCombinedValue = 0;
-    for (u8 index = 0; index < 5; ++index) {
-        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::WHITE>(index).count();
-        boardMaterialCombinedValue += piece_constants::value[index] * material.read<Set::BLACK>(index).count();
-    }
+    const i32 boardMaterialCombinedValue = pesto.nonKingMaterial;
 
     // removed move count influence on endgame coeficient, because I don't think it's needed. This note is here
     // for future reference if we want to add it back.   

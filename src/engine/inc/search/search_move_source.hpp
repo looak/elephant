@@ -34,7 +34,7 @@
 #include <optional>
 #include <type_traits>
 
-#include <move/generation/king_pin_threats.hpp>
+#include <move/generation/tusk/check_info.hpp>
 #include <move/generation/move_generator.hpp>
 #include <move/generation/move_ordering_view.hpp>
 #include <move/generation/tusk/move_generator.hpp>
@@ -73,16 +73,16 @@ class TuskSearchMoveSource {
 public:
     explicit TuskSearchMoveSource(PositionReader position) :
         m_position(position),
-        m_pinThreats(to_square(position.material().king<us>().lsbIndex()), position)
+        m_checkInfo(position)
     {}
 
     TuskSearchMoveSource(const TuskSearchMoveSource&) = delete;
     TuskSearchMoveSource& operator=(const TuskSearchMoveSource&) = delete;
 
-    [[nodiscard]] bool isChecked() const { return m_pinThreats.isChecked(); }
+    [[nodiscard]] bool isChecked() const { return m_checkInfo.isChecked(); }
 
     void start(const MoveOrderingView* ordering, MoveTypes filter) {
-        m_generator.emplace(m_position, m_pinThreats, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter,
+        m_generator.emplace(m_position, m_checkInfo, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter,
             .deferLosingCaptures = search_policies::enabled_policies::DeferLosingCaptures });
         m_moves.emplace(*m_generator, tusk::Stage::PV_MOVE);
     }
@@ -92,7 +92,7 @@ public:
 
 private:
     PositionReader m_position;
-    KingPinThreats<us> m_pinThreats;
+    tusk::CheckInfo<us> m_checkInfo;
     std::optional<tusk::MoveGenerator<us>> m_generator;
     std::optional<tusk::MoveGenResult<us>> m_moves;    // points at *m_generator, declared after it
 };

@@ -24,6 +24,7 @@
 
 #pragma once
 #include <system/platform.hpp>
+#include <eval/pesto_accumulator.hpp>
 #include <position/position_accessors.hpp>
 
 #include <unordered_map>
@@ -35,7 +36,12 @@ class Position;
 class Evaluator
 {
 public:
-    Evaluator(PositionReader position) : m_position(position) {}
+    // accumulator must match position, search keeps one in step through MoveExecutor.
+    Evaluator(PositionReader position, const PestoAccumulator& accumulator) :
+        m_position(position), m_accumulator(accumulator) {}
+    // computes the accumulator from scratch, for one off evaluations outside search.
+    Evaluator(PositionReader position) :
+        m_position(position), m_accumulator(PestoAccumulator::computeFromScratch(position.material())) {}
 
     i16 Evaluate();
     i16 EvaluatePlus(PackedMove move);
@@ -71,5 +77,6 @@ private:
 
 
     PositionProxy<PositionReadOnlyPolicy> m_position;
+    PestoAccumulator m_accumulator;
 
 };
