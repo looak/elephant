@@ -76,6 +76,18 @@ public:
     template<bool validation = false>
     bool clearPiece(Square square);
 
+    // Clears a piece the caller already knows is on square, skips looking it up. Used by unmake.
+    void clearPiece(Piece piece, Square square);
+
+    // Restores en passant, castling & hash from an undo. Writes the raw states, hashing them is wasted work since the
+    // stored hash overwrites it anyway.
+    void restoreState(byte enPassantState, byte castlingState, u64 hash) {
+        static_assert(std::is_same_v<AccessType, PositionEditPolicy>, "Cannot call restoreState() on a read-only policy position.");
+        m_position.m_enpassantState.write(enPassantState);
+        m_position.m_castlingState.write(castlingState);
+        m_position.m_hash = hash;
+    }
+
     AccessType::chess_piece_t pieceAt(Square square) const;
 
     AccessType::material_t material() const { return m_position.m_materialMask; }

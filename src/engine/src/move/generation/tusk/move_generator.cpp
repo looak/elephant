@@ -86,12 +86,13 @@ std::array<u64, 6> computeCheckSquares(const MaterialPositionMask& material, u64
     return result;
 }
 
-inline u8 victimAt(const MaterialPositionMask& material, u64 sqrMask) {
-    for (u8 pieceId = pawnId; pieceId < kingId; ++pieceId) {
-        if (material.read(pieceId).read() & sqrMask)
-            return pieceId;
-    }
-    return pawnId; // en passant, target square is empty
+// branchless, the piece bitboards are one-hot per square so summing bit * pieceId gives the victim. An empty square,
+// the en passant target, sums to pawnId. Kings are never captured.
+inline u8 victimAt(const MaterialPositionMask& material, u32 sqr) {
+    u32 victim = 0;
+    for (u32 pieceId = knightId; pieceId < kingId; ++pieceId)
+        victim += static_cast<u32>((material.read(static_cast<i32>(pieceId)).read() >> sqr) & 1) * pieceId;
+    return static_cast<u8>(victim);
 }
 
 template<Set us>
@@ -104,7 +105,7 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
     i32 score = 0;
     if (move.isCapture() || move.isPromotion()) {
         if (move.isCapture())
-            score += piece_constants::value[victimAt(material, dstMask)] * 8 - pieceId;
+            score += piece_constants::value[victimAt(material, static_cast<u32>(move.target()))] * 8 - pieceId;
         if (checkingPiece == queenId && move.isPromotion())
             score += piece_constants::value[queenId] * 8;
     }
@@ -146,17 +147,6 @@ PackedMove MoveGenResult<us>::peek() {
     return move.move;
 }
 
-template<Set us>
-void MoveGenResult<us>::pickBest() {
-    u32 best = m_current;
-    for (u32 i = m_current + 1; i < m_end; ++i) {
-        if (m_moves[i].priority() > m_moves[best].priority())
-            best = i;
-    }
-    if (best != m_current)
-        std::swap(m_moves[best], m_moves[m_current]);
-}
-
 template class MoveGenResult<Set::WHITE>;
 template class MoveGenResult<Set::BLACK>;
 
@@ -164,9 +154,9 @@ template class MoveGenResult<Set::BLACK>;
 // MoveGenerator
 
 template<Set us>
-MoveGenerator<us>::MoveGenerator(PositionReader position, const KingPinThreats<us>& pinThreats, const MoveGenParams& params) :
+MoveGenerator<us>::MoveGenerator(PositionReader position, const CheckInfo<us>& checkInfo, const MoveGenParams& params) :
     m_position(position),
-    m_pinThreats(pinThreats),
+    m_checkInfo(checkInfo),
     m_params(params)
 {}
 
@@ -192,10 +182,8 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
     while (true) {
         // pending moves, either a generated batch or single pv/tt/killer moves pushed by a stage below.
         if (result.m_current < result.m_end) {
-            if (result.m_stage == Stage::CAPTURES || result.m_stage == Stage::QUIETS)
-                result.pickBest();
-
-            // a capture that loses material is held back until after the quiets.
+            // a capture that loses material is held back until after the quiets. The captures batch is sorted when
+            // generated, the losing ones keep their order among themselves.
             if (result.m_stage == Stage::CAPTURES && deferLosing && result.m_losingCount < result.m_losingCaptures.size()
                 && !see::ge(m_position.material(), result.m_moves[result.m_current].move, 0)) {
                 result.m_losingCaptures[result.m_losingCount++] = result.m_moves[result.m_current++];
@@ -279,7 +267,11 @@ template<Set us>
 template<GenType type>
 void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
     const MaterialPositionMask& material = m_position.material();
-    const std::array<u64, 6> checkSquares = computeCheckSquares<us>(material, material.combine().read());
+    if (!result.m_checkSquaresReady) {
+        result.m_checkSquares = computeCheckSquares<us>(material, material.combine().read());
+        result.m_checkSquaresReady = true;
+    }
+    const std::array<u64, 6>& checkSquares = result.m_checkSquares;
     const MoveOrderingView* ordering = m_params.ordering;
     constexpr bool includeKillers = type == GenType::QUIETS;
 
@@ -288,7 +280,19 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
             return;
         result.push(scoreMove<us>(move, pieceId, material, checkSquares, ordering));
     };
+    const u32 begin = result.m_end;
     generateMoves<type>(sink, ~0ull);
+
+    // insertion sort the batch by descending priority, stages are short and mostly ordered by generation.
+    for (u32 i = begin + 1; i < result.m_end; ++i) {
+        const ScoredMove moving = result.m_moves[i];
+        u32 j = i;
+        while (j > begin && result.m_moves[j - 1].priority() < moving.priority()) {
+            result.m_moves[j] = result.m_moves[j - 1];
+            --j;
+        }
+        result.m_moves[j] = moving;
+    }
 }
 
 template<Set us>
@@ -336,9 +340,9 @@ void MoveGenerator<us>::generateMoves(Sink& sink, u64 sources) const {
         return;
     const u32 kingSqr = intrinsics::lsbIndex(kingMask);
 
-    const u32 checkCount = m_pinThreats.isCheckedCount();
-    const u64 checkMask = checkCount == 0 ? ~0ull : m_pinThreats.checks().read();
-    const u64 pinned = m_pinThreats.pins().read() & usMat;
+    const u32 checkCount = m_checkInfo.checkCount();
+    const u64 checkMask = m_checkInfo.checkMask();
+    const u64 pinned = m_checkInfo.pinned();
 
     // which destination squares a non king, non pawn piece may move to for this generation type.
     u64 targets = 0;

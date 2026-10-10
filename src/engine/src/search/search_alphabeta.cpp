@@ -163,7 +163,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     PVLine childPv;
     u16 index = 0;
 
-    MoveExecutor executor(context.position.edit());
+    MoveExecutor executor = context.executor();
     PrioritizedMove ordered = moves.next();
     
     // We need to store the "Best Move Found So Far" locally to update outMove correctly
@@ -209,6 +209,8 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
 
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
+        if constexpr (search_policies::TT::enabled)
+            search_policies::TT::prefetch(pos.hash());
         context.history.push(pos.hash());
         
         i16 eval;

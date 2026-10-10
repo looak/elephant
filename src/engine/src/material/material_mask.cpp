@@ -49,27 +49,15 @@ void MaterialPositionMask::clear()
 
 ChessPiece MaterialPositionMask::pieceAt(Square sqr) const
 {
-        Bitboard mask(UINT64_C(1) << (u8)sqr);
+    // Branchless, the piece bitboards are one-hot per square so summing bit * (pieceId + 1) gives the PieceType, NONE
+    // on an empty square. All eight bitboards share a cache line.
+    const u32 shift = static_cast<u32>(sqr);
+    u32 type = 0;
+    for (u32 pieceId = 0; pieceId < 6; ++pieceId)
+        type += static_cast<u32>((m_material[pieceId].read() >> shift) & 1) * (pieceId + 1);
 
-    for (byte set = 0; set < 2; ++set) {
-        if (m_set[set] & mask)
-        {
-            // unrolled this for loop in an attempt to make it quicker.
-            if (m_material[pawnId] & mask)
-                return piece_constants::pieces[set][pawnId];
-            else if (m_material[knightId] & mask)
-                return piece_constants::pieces[set][knightId];
-            else if (m_material[bishopId] & mask)
-                return piece_constants::pieces[set][bishopId];
-            else if (m_material[rookId] & mask)
-                return piece_constants::pieces[set][rookId];
-            else if (m_material[queenId] & mask)
-                return piece_constants::pieces[set][queenId];
-            else if (m_material[kingId] & mask)
-                return piece_constants::pieces[set][kingId];
-        }
-    }
-    return piece_constants::null();
+    const u32 black = static_cast<u32>((m_set[1].read() >> shift) & 1);
+    return ChessPiece(static_cast<Set>(black), static_cast<PieceType>(type));
 }
 
 // this code is slightly slower than the above version with a for and a bunch of ifs, probably due to the branch prediction.

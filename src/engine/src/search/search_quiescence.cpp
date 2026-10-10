@@ -83,7 +83,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
             }
         }
 
-        MoveExecutor executor(context.position.edit());
+        MoveExecutor executor = context.executor();
         MoveUndoUnit undoState;
         // makeMove updates its ply argument as the fifty move counter (reset on captures), never hand it the search ply.
         u16 fiftyMoveCounter = ply;

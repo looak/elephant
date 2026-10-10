@@ -67,6 +67,20 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
     return false;
 }
 
+template<typename AccessType>
+void PositionProxy<AccessType>::clearPiece(Piece piece, Square square) {
+    if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
+        auto& material = m_position.m_materialMask;
+        material.editSet(piece.set())[square] = false;
+        material.editMaterial(piece.index())[square] = false;
+        hash() = zobrist::updatePieceHash(hash(), piece, square);
+    }
+    else {
+        static_assert(false, "Cannot call clearPiece() on a read-only policy position.");
+    }
+}
+
+template void PositionProxy<PositionEditPolicy>::clearPiece(Piece, Square);
 template bool PositionProxy<PositionEditPolicy>::clearPiece<true>(Square);
 template bool PositionProxy<PositionEditPolicy>::clearPiece<false>(Square);
 // template bool PositionProxy<PositionReadOnlyPolicy>::clearPiece<true>(Square); // This will static assert if used.

@@ -20,6 +20,7 @@
 
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
+#include <eval/pesto_accumulator.hpp>
 #include <material/chess_piece.hpp>
 #include <math/cast.hpp>
 #include <position/en_passant_state_info.hpp>
@@ -292,9 +293,9 @@ struct PrioritizedMove {
 
     PackedMove move;
     u16 priority : 15;
-    bool check : 1;
+    u16 check : 1;  // u16 like priority, MSVC won't pack bitfields of different types into one unit
 };
-// static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
+static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
 
 struct PrioritizedMoveComparator {
     constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
@@ -381,6 +382,7 @@ struct MoveUndoUnit {
     CastlingStateInfo castlingState;
     EnPassantStateInfo enPassantState;
     u64 hash;
+    PestoAccumulator pesto;  // search's accumulator before the move, restored on unmake like the hash
     u16 plyCount;
 };
 

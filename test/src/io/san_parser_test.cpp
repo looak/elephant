@@ -41,6 +41,9 @@ TEST_F(SanParserFixture, ParseValidSan) {
 }
 
 TEST_F(SanParserFixture, ParseInvalidSan) {
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
     // setup
     PositionEditor editor(testingPosition);
     editor.placePiece(piece_constants::white_pawn, Square::E2);
@@ -51,6 +54,7 @@ TEST_F(SanParserFixture, ParseInvalidSan) {
     EXPECT_THROW({
         io::san_parser::deserialize(testingPosition, whiteToMove, san);
     }, ephant::io_error);
+#endif
 }
 
 TEST_F(SanParserFixture, BulkTest_GenericParsingTest) {
@@ -91,10 +95,12 @@ TEST_F(SanParserFixture, AmbiguousMoveParsing_UnableToResolveAmbiguity_ShouldThr
     std::string san = "Ne4";  // Both knights can move to e4, this should be ambiguous
     bool whiteToMove = true;
 
-    // do
+    // do, ambiguity is only detected with exceptions enabled.
+#ifdef EXCEPTIONS_ENABLED
     EXPECT_THROW({
         io::san_parser::deserialize(testingPosition, whiteToMove, san);
     }, ephant::io_error);
+#endif
 
     // setup
     san = "Nce4";  // specifying the c-file knight should resolve ambiguity
