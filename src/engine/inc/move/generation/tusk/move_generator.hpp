@@ -19,8 +19,8 @@
  * @brief tusk::MoveGenerator, a stateless legal move generator. All mutable state lives in MoveGenResult.
  *
  * Usage:
- *     KingPinThreats<us> pins(kingSq, pos);
- *     MoveGenerator<us> gen(pos, pins, { .ordering = &ordering });
+ *     CheckInfo<us> checkInfo(pos);
+ *     MoveGenerator<us> gen(pos, checkInfo, { .ordering = &ordering });
  *     MoveGenResult<us> moves = gen.generate();
  *     while (PrioritizedMove m = moves.next()) { ... }
  *
@@ -31,7 +31,7 @@
 
 #pragma once
 
-#include <move/generation/king_pin_threats.hpp>
+#include <move/generation/tusk/check_info.hpp>
 #include <move/generation/tusk/move_gen_params.hpp>
 #include <move/generation/tusk/move_gen_result.hpp>
 #include <position/position_accessors.hpp>
@@ -41,7 +41,7 @@ namespace tusk {
 template<Set us>
 class MoveGenerator {
 public:
-    MoveGenerator(PositionReader position, const KingPinThreats<us>& pinThreats, const MoveGenParams& params = {});
+    MoveGenerator(PositionReader position, const CheckInfo<us>& checkInfo, const MoveGenParams& params = {});
 
     // Lazy, staged and ordered. Nothing is generated until the first next()/peek().
     [[nodiscard]] MoveGenResult<us> generate() const;
@@ -49,7 +49,7 @@ public:
     // Eager, every legal move in generation order and unscored. For perft and other callers that want all moves.
     [[nodiscard]] MoveGenResult<us> generateAll() const;
 
-    [[nodiscard]] bool isChecked() const { return m_pinThreats.isChecked(); }
+    [[nodiscard]] bool isChecked() const { return m_checkInfo.isChecked(); }
 
 private:
     friend class MoveGenResult<us>;
@@ -75,7 +75,7 @@ private:
     [[nodiscard]] bool isOrderingMove(PackedMove move, bool includeKillers) const;
 
     PositionReader m_position;
-    const KingPinThreats<us>& m_pinThreats;
+    const CheckInfo<us>& m_checkInfo;
     MoveGenParams m_params;
 };
 

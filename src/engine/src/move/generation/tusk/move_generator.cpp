@@ -187,9 +187,9 @@ template class MoveGenResult<Set::BLACK>;
 // MoveGenerator
 
 template<Set us>
-MoveGenerator<us>::MoveGenerator(PositionReader position, const KingPinThreats<us>& pinThreats, const MoveGenParams& params) :
+MoveGenerator<us>::MoveGenerator(PositionReader position, const CheckInfo<us>& checkInfo, const MoveGenParams& params) :
     m_position(position),
-    m_pinThreats(pinThreats),
+    m_checkInfo(checkInfo),
     m_params(params)
 {}
 
@@ -352,9 +352,9 @@ void MoveGenerator<us>::generateMoves(Sink& sink, u64 sources) const {
         return;
     const u32 kingSqr = intrinsics::lsbIndex(kingMask);
 
-    const u32 checkCount = m_pinThreats.isCheckedCount();
-    const u64 checkMask = checkCount == 0 ? ~0ull : m_pinThreats.checks().read();
-    const u64 pinned = m_pinThreats.pins().read() & usMat;
+    const u32 checkCount = m_checkInfo.checkCount();
+    const u64 checkMask = m_checkInfo.checkMask();
+    const u64 pinned = m_checkInfo.pinned();
 
     // which destination squares a non king, non pawn piece may move to for this generation type.
     u64 targets = 0;

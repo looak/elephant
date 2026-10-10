@@ -76,6 +76,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/move/generation/move_ordering_view.hpp
 
 ## /move/generation/tusk/...   new move gen
+    ${ENGINE_INC_DIR}/move/generation/tusk/check_info.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_result.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_generator.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_params.hpp
