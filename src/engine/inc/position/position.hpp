@@ -26,6 +26,7 @@
 #pragma once
 #include <system/platform.hpp>
 #include <material/material_mask.hpp>
+#include <eval/pesto_accumulator.hpp>
 #include <position/castling_state_info.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/position_accessors.hpp>
@@ -56,4 +57,5 @@ private:
     CastlingStateInfo m_castlingState;
     EnPassantStateInfo m_enpassantState;
     u64 m_hash = 0;
+    PestoAccumulator m_pesto;  // kept up to date by PositionProxy::pieceAdded / pieceRemoved
 };

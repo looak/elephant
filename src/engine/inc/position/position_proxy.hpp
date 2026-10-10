@@ -22,6 +22,7 @@
 
 #pragma once
 #include <material/chess_piece.hpp>
+#include <eval/pesto_accumulator.hpp>
 #include <material/material_mask.hpp>
 #include <move/move.hpp>
 #include <position/en_passant_state_info.hpp>
@@ -34,6 +35,38 @@ typedef ChessPiece Piece;
 class Position;
 struct PositionReadOnlyPolicy;
 struct PositionEditPolicy;
+
+// Assigning a piece to a square through PositionEditor::operator[], replaces whatever was on it.
+struct MutableImplicitPieceSquare {
+    MutableImplicitPieceSquare(u64& hash, MaterialPositionMask& material, PestoAccumulator& pesto, Square sqr) :
+        m_hash(hash),
+        m_material(material),
+        m_pesto(pesto),
+        m_sqr(sqr)
+    {
+    }
+
+    void operator=(ChessPiece piece)
+    {
+        if (piece.isValid()) {
+            ChessPiece oldPiece = m_material.pieceAt(m_sqr);
+            if (oldPiece.isValid()) {
+                m_material.clear(squareMaskTable[static_cast<u8>(m_sqr)], oldPiece.getSet(), oldPiece.index());
+                m_hash = zobrist::updatePieceHash(m_hash, oldPiece, m_sqr);
+                m_pesto.remove(oldPiece, m_sqr);
+            }
+            m_material.write(squareMaskTable[static_cast<u8>(m_sqr)], piece.getSet(), piece.index());
+            m_hash = zobrist::updatePieceHash(m_hash, piece, m_sqr);
+            m_pesto.add(piece, m_sqr);
+        }
+    }
+
+private:
+    u64& m_hash;
+    MaterialPositionMask& m_material;
+    PestoAccumulator& m_pesto;
+    Square m_sqr;
+};
 
 template<typename AccessType>
 class PositionProxy {
@@ -88,6 +121,20 @@ public:
         m_position.m_hash = hash;
     }
 
+    /**
+     * Incremental evaluation hooks, every piece entering or leaving a square is reported here once the material
+     * bitboards are updated. Keeps the PeSTO accumulator current, the place to hook in any other incremental eval.  */
+    void pieceAdded(Piece piece, Square square) {
+        static_assert(std::is_same_v<AccessType, PositionEditPolicy>, "Cannot call pieceAdded() on a read-only policy position.");
+        m_position.m_pesto.add(piece, square);
+    }
+    void pieceRemoved(Piece piece, Square square) {
+        static_assert(std::is_same_v<AccessType, PositionEditPolicy>, "Cannot call pieceRemoved() on a read-only policy position.");
+        m_position.m_pesto.remove(piece, square);
+    }
+
+    const PestoAccumulator& pesto() const { return m_position.m_pesto; }
+
     AccessType::chess_piece_t pieceAt(Square square) const;
 
     AccessType::material_t material() const { return m_position.m_materialMask; }
@@ -129,7 +176,7 @@ public:
     MutableImplicitPieceSquare operator[](Square sqr) 
     {
         if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
-            return MutableImplicitPieceSquare(m_position.m_hash, m_position.m_materialMask, sqr);
+            return MutableImplicitPieceSquare(m_position.m_hash, m_position.m_materialMask, m_position.m_pesto, sqr);
         }
         else {
             static_assert(false, "Cannot call and modify position with operator[] on a position with a read-only policy.");

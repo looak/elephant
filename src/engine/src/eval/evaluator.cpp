@@ -56,65 +56,21 @@ i16 Evaluator::EvaluatePlus(PackedMove)
 i16
 Evaluator::EvaluateMaterial() const
 {
-    const auto& material = m_position.material();
-    i16 score = 0;
-
-    for (u8 pieceIndx = 0; pieceIndx < 6; pieceIndx++) {
-        u16 pieceValue = piece_constants::value[pieceIndx];
-        i32 whiteCount = material.read(Set::WHITE, pieceIndx).count();
-        i32 blackCount = material.read(Set::BLACK, pieceIndx).count();
-
-        score += pieceValue * whiteCount;
-        score -= pieceValue * blackCount;
-    }
-
-    return score;
+    // piece_constants material, kept incrementally by the position.
+    return static_cast<i16>(m_position.pesto().material);
 }
 
 i16
 Evaluator::EvaluatePesto() const
 {
-    const auto& material = m_position.material();
-    i32 mg = 0;
-    i32 eg = 0;
-
-    for (u8 pieceIndx = 0; pieceIndx < 6; ++pieceIndx) {
-        const i32* tableMg = evaluator_data::pestoTables_mg[pieceIndx];
-        const i32* tableEg = evaluator_data::pestoTables_eg[pieceIndx];
-        const i32 materialMg = evaluator_data::pestoMaterial_mg[pieceIndx];
-        const i32 materialEg = evaluator_data::pestoMaterial_eg[pieceIndx];
-
-        // tables have A8 at index 0, see evaluator_data.
-        Bitboard whitePieces = material.read(Set::WHITE, pieceIndx);
-        while (whitePieces.empty() == false) {
-            u32 sqr = evaluator_data::flip(whitePieces.popLsb());
-            mg += materialMg + tableMg[sqr];
-            eg += materialEg + tableEg[sqr];
-        }
-
-        Bitboard blackPieces = material.read(Set::BLACK, pieceIndx);
-        while (blackPieces.empty() == false) {
-            u32 sqr = blackPieces.popLsb();
-            mg -= materialMg + tableMg[sqr];
-            eg -= materialEg + tableEg[sqr];
-        }
-    }
-
-    const i32 phase = gamePhase();
-    return static_cast<i16>((mg * phase + eg * (evaluator_data::maxGamePhase - phase)) / evaluator_data::maxGamePhase);
+    // material and piece square sums & game phase are kept incrementally by the position, see PestoAccumulator.
+    return static_cast<i16>(m_position.pesto().taperedScore());
 }
 
 i32
 Evaluator::gamePhase() const
 {
-    const auto& material = m_position.material();
-    i32 phase = 0;
-    for (u8 pieceIndx = knightId; pieceIndx <= queenId; ++pieceIndx) {
-        const i32 count = static_cast<i32>(material.read(Set::WHITE, pieceIndx).count() + material.read(Set::BLACK, pieceIndx).count());
-        phase += count * evaluator_data::gamePhaseIncrement[pieceIndx];
-    }
-
-    return std::min(phase, evaluator_data::maxGamePhase);
+    return std::min(m_position.pesto().phase, evaluator_data::maxGamePhase);
 }
 
 i16 Evaluator::EvaluatePawnStructure() const {

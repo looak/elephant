@@ -120,6 +120,8 @@ MoveExecutor::internalHandlePawnMove(const PackedMove move, Set set, MutableMate
 
         m_position.hash() = zobrist::updatePieceHash(m_position.hash(), src, move.sourceSqr());
         m_position.hash() = zobrist::updatePieceHash(m_position.hash(), promote, move.sourceSqr());
+        m_position.pieceRemoved(src, move.sourceSqr());
+        m_position.pieceAdded(promote, move.sourceSqr());
 
         // updating the piece on the source tile since we're doing this pre-move.
         // internal move will handle the actual move of the piece, but what piece it is doesn't
@@ -245,6 +247,8 @@ void MoveExecutor::internalMakeMove(ChessPiece piece, Square source, Square targ
     // update hash
     m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, target);
     m_position.hash() = zobrist::updatePieceHash(m_position.hash(), piece, source);
+    m_position.pieceRemoved(piece, source);
+    m_position.pieceAdded(piece, target);
 }
 
 void MoveExecutor::internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState)
