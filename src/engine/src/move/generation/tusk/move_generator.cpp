@@ -214,8 +214,6 @@ PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
     while (true) {
         // pending moves, either a generated batch or single pv/tt/killer moves pushed by a stage below.
         if (result.m_current < result.m_end) {
-            if (result.m_stage == Stage::CAPTURES || result.m_stage == Stage::QUIETS)
-                result.pickBest();
             return result.m_moves[result.m_current++].toPrioritized();
         }
 
@@ -294,7 +292,19 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
             return;
         result.push(scoreMove<us>(move, pieceId, material, checkSquares, ordering));
     };
+    const u32 begin = result.m_end;
     generateMoves<type>(sink, ~0ull);
+
+    // insertion sort the batch by descending priority, stages are short and mostly ordered by generation.
+    for (u32 i = begin + 1; i < result.m_end; ++i) {
+        const ScoredMove moving = result.m_moves[i];
+        u32 j = i;
+        while (j > begin && result.m_moves[j - 1].priority() < moving.priority()) {
+            result.m_moves[j] = result.m_moves[j - 1];
+            --j;
+        }
+        result.m_moves[j] = moving;
+    }
 }
 
 template<Set us>
