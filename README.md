@@ -48,6 +48,7 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org][lichess-link] |
 |:-------:|:---:|:---:|:---:|:---:|
+|[v0.15.0][v0.15.0-link]|~139 million| N/A | ~5 million | testing |
 |[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | testing |
 |[v0.7.0][v0.7.0-link]|~19.5 million| N/A | ~1.65 million | ~1600 elo |
 |[v0.6.5][v0.6.5-link]|~16.45 million| N/A | ~1.24 million | ~1500 elo |
@@ -56,9 +57,9 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 |[v0.4.0][v0.4.0-link]|~5 million|~110 million best case | ~600k | ~1350 elo |
 |[v0.2.0-alpha.1][v0.2.0-alpha.1-link]| ~4 million | ~35 million best case | ~250k | ~1350 elo |
 
-*moves p/s is perft from the start position, nodes p/s is search from the start position. v0.13.3 is measured on an AMD Ryzen 9 9900X, earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
+*moves p/s is perft from the start position, nodes p/s is search from the start position. v0.15.0 is measured with the g++ build OpenBench and the release binaries use (`-O3 -march=native`) on an AMD Ryzen 9 9900X. v0.13.3 on the same CPU, but from a 32-bit build with assertions compiled in, which understates it. Earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
 
-v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link].
+v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link]. v0.15.0's search and speed work is another +224 Elo over v0.13.7 in self-play, see the [v0.15.0 release][v0.15.0-link].
 
 
 ## Features
@@ -69,15 +70,17 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 * Search:
     * negamax alpha-beta with principal variation search
-    * iterative deepening
+    * iterative deepening with aspiration windows
     * transposition table
-    * quiescence search with delta pruning
+    * quiescence search with delta pruning and static exchange (SEE) pruning
     * check extensions
-    * null move pruning with verification
+    * null move pruning with verification, the reduction grows with depth
     * late move reductions
+    * late move pruning
+    * internal iterative reduction
     * reverse futility pruning
     * futility pruning
-    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic
+    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic, captures that lose material by SEE after the quiet moves
 
 * Time management:
     * soft & hard limits, a new iteration only starts within the soft limit and the hard limit aborts the search
@@ -85,7 +88,7 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
     * configurable move overhead for GUI & network latency
 
 * Evaluation:
-    * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase
+    * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase, updated incrementally as pieces move
     * mop-up for converting won endgames
 
 * API:
@@ -95,8 +98,8 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 ## Goals & todo
 
-* evaluation: passed pawns, pawn structure and king safety, Texel tuning
-* search: static exchange evaluation, aspiration windows, late move pruning
+* evaluation: an NNUE trained on the engine's own games
+* search: singular extensions, continuation history, history adjusted reductions, SPSA tuning of the search parameters
 * time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
 * pondering
 * multi threaded search (lazy SMP)
@@ -109,11 +112,21 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. 
 
+### Downloads
+
+Every [release][release-link] has Windows and Linux binaries of the UCI engine, built for three x86-64 levels. Pick the newest your CPU supports:
+
+| Binary | Needs | CPUs |
+|:-------|:------|:-----|
+| `x86-64-v3` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
+| `x86-64-v2` | POPCNT, SSE4.2 | most from ~2009 on |
+| `x86-64` | any 64-bit CPU | anything else |
+
+The binaries are statically linked and need nothing else installed. They start in UCI mode, `bench` as an argument runs the OpenBench bench.
+
 ### Prerequisites
 
-This is a C++20 project and I'm not distributing any binaries, so to run the engine you need to compile it yourself.
-
-Currently requiering a compiler which compiles [C++20](https://en.cppreference.com/w/cpp/20).
+To build it yourself you need a compiler for [C++20](https://en.cppreference.com/w/cpp/20).
 
 ### Installing and Building
 
@@ -202,6 +215,7 @@ For the versions available, see the [tags on this repository](https://github.com
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
+[v0.15.0-link]:         https://github.com/looak/elephant/releases/tag/0.15.0
 [v0.13.3-link]:         https://github.com/looak/elephant/releases/tag/0.13.3
 [v0.7.0-link]:          https://github.com/looak/elephant/releases/tag/0.7.0
 [v0.6.5-link]:          https://github.com/looak/elephant/releases/tag/0.6.5
