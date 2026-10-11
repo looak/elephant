@@ -85,7 +85,8 @@ public:
     // Same move next() would return, without consuming it. Not const, may trigger generation.
     [[nodiscard]] PackedMove peek();
 
-    // Moves already handed out by next(), e.g. quiets searched before a cutoff for history updates.
+    // Moves already handed out by next(), e.g. quiets searched before a cutoff for history updates. Losing captures
+    // held back for after the quiets are included from when they're held back.
     [[nodiscard]] std::span<const ScoredMove> searched() const {
         return { m_moves.data(), m_current };
     }
@@ -101,13 +102,19 @@ private:
     // used by the generator to append to the current batch.
     void push(ScoredMove move) { m_moves[m_end++] = move; }
 
-    // swaps the highest priority move in [m_current, m_end) into m_current.
-    void pickBest();
-
     std::array<ScoredMove, 256> m_moves;  // intentionally uninitialized, see ScoredMove
+    // losing captures held back from the CAPTURES stage, in the order they would have been handed out. When it's full
+    // further losing captures are handed out in place.
+    std::array<ScoredMove, 32> m_losingCaptures;  // intentionally uninitialized
+    // per piece type, squares giving direct check. Computed by the first scored stage and reused by the next, the
+    // position is the same for every stage of a result.
+    std::array<u64, 6> m_checkSquares;
+    bool m_checkSquaresReady = false;
     const MoveGenerator<us>* m_generator;
     u32 m_current = 0;
     u32 m_end = 0;
+    u32 m_losingCount = 0;
+    u32 m_losingCurrent = 0;
     Stage m_stage;
 };
 

@@ -5,6 +5,19 @@
 #include <move/generation/move_bulk_generator.hpp>
 #include <math/cast.hpp>
 
+namespace {
+constexpr u16 capturePriorityFromScore(std::optional<i16> captureScore)
+{
+    if (!captureScore.has_value()) {
+        return 0;
+    }
+
+    const i32 priority = static_cast<i32>(move_generator_constants::capturePriority)
+        + (static_cast<i32>(captureScore.value()) * static_cast<i32>(move_generator_constants::mvvLvaMultiplier));
+    return static_cast<u16>(priority);
+}
+} // namespace
+
 template<Set us>
 MoveGenerator<us>::MoveGenerator(PositionReader position, const MoveGenParams& params) :
 m_pinThreats(to_square(position.material().king<us>().lsbIndex()), position),
@@ -287,8 +300,7 @@ void MoveGenerator<us>::internalGeneratePawnMoves(BulkMoveGenerator bulkMoveGen)
                 move.setCapture(true);
 
             auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSquare]), pawnId);
-            prioratizedMove.priority = move_generator_constants::capturePriority + 
-                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
+            prioratizedMove.priority = capturePriorityFromScore(captureScore);
 
             // if we're promoting set the promotion flag and create 4 moves.
             if (promotionMask & squareMaskTable[checked_cast<size_t>(dstIndex)]) {
@@ -363,8 +375,7 @@ void MoveGenerator<us>::internalGenerateKingMoves(BulkMoveGenerator bulkMoveGen)
         auto captureScore = m_position.material().computeCaptureScore<us>(dstIndexMsk, kingId);
         if (captureScore.has_value()) {
             move.setCapture(true);
-            prioratizedMove.priority = move_generator_constants::capturePriority + 
-                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
+            prioratizedMove.priority = capturePriorityFromScore(captureScore);
         }
 
         if (castlingRaw & 2) {
@@ -403,8 +414,7 @@ void MoveGenerator<us>::buildPackedMoveFromBitboard(u8 pieceId, Bitboard movesbb
 
         if (capture) {
             auto captureScore = m_position.material().computeCaptureScore<us>(Bitboard(squareMaskTable[*dstSquare]), pieceId);
-            prioratizedMove.priority = move_generator_constants::capturePriority + 
-                (captureScore.value() * move_generator_constants::mvvLvaMultiplier);
+            prioratizedMove.priority = capturePriorityFromScore(captureScore);
         }
 
         // figure out if we're checking the king.

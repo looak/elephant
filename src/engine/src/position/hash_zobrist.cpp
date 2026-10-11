@@ -2,12 +2,6 @@
 #include <array>
 #include <core/chessboard.hpp>
 
-// https://stackoverflow.com/questions/33010010/how-to-generate-random-64-bit-unsigned-integer-in-c
-#define IMAX_BITS(m) ((m) / ((m) % 255 + 1) / 255 % 255 * 8 + 7 - 86 / ((m) % 255 + 12))
-#define RAND_MAX_WIDTH IMAX_BITS(RAND_MAX)
-//_Static_assert((RAND_MAX& (RAND_MAX + 1u)) == 0, "RAND_MAX not a Mersenne number");
-
-
 namespace zobrist {
 namespace internals {
 std::array<std::array<u64, 12>, 64> table;
@@ -16,13 +10,14 @@ std::array<u64, 4> castling;
 u64 black_to_move;
 bool _initialized;
 
+// splitmix64 with a fixed seed. The keys must be the same on every platform, rand() is implementation defined and
+// gave Windows and Linux builds different keys, so different searches and benches.
 u64 rand64(void) {
-    u64 r = 0;
-    for (int i = 0; i < 64; i += RAND_MAX_WIDTH) {
-        r <<= RAND_MAX_WIDTH;
-        r ^= (unsigned)rand();
-    }
-    return r;
+    static u64 state = 0x9E3779B97F4A7C15ull;
+    u64 z = (state += 0x9E3779B97F4A7C15ull);
+    z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+    z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+    return z ^ (z >> 31);
 }
 
 void initialize() {

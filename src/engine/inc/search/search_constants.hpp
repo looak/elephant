@@ -23,6 +23,15 @@ inline constexpr i32 c_checkmateMaxDistance = 256;
 inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 inline constexpr i16 c_drawConstant = 0;
 
+// aspiration window parameters
+namespace aspiration_params {
+// from this depth the root is searched in a window around the previous iteration's score, earlier scores swing too much.
+inline constexpr u8 minDepth = 5;
+inline constexpr i32 initialDelta = 25;
+// a side of the window that would grow beyond this opens up fully.
+inline constexpr i32 maxDelta = 1000;
+} // namespace aspiration_params
+
 // late move reduction parameters
 namespace lmr_params {
 inline constexpr u8 minDepth = 3;
@@ -46,6 +55,13 @@ inline constexpr u8 minDepth = 3;
 // null move fail highs from this depth up are verified with a reduced normal search before cutting, guards against
 // zugzwang where passing is better than any real move.
 inline constexpr u8 verificationDepth = 6;
+// reduction = base + depth / depthDivisor + min((staticEval - beta) / evalDivisor, maxEvalReduction), deeper nodes and
+// a bigger margin over beta reduce more. The common 3 + depth / 3 + min(.., 3) never found the zugzwang win in the
+// null move search test, the verification search shrinks with the null move's depth.
+inline constexpr i32 baseReduction = 2;
+inline constexpr i32 depthDivisor = 4;
+inline constexpr i32 evalDivisor = 200;
+inline constexpr i32 maxEvalReduction = 1;
 } // namespace nmp_params
 
 // futility pruning parameters
@@ -56,6 +72,21 @@ inline constexpr u8 maxDepth = 3;
 inline constexpr i16 base = 100;
 inline constexpr i16 perDepth = 100;
 } // namespace futility_params
+
+// late move pruning parameters
+namespace lmp_params {
+// at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
+// 3 + depth * depth pushed the zugzwang win in the null move search test from depth 15 to 20, this costs it a ply.
+inline constexpr u8 maxDepth = 5;
+inline constexpr u16 base = 5;
+inline constexpr u16 factor = 2;
+} // namespace lmp_params
+
+// internal iterative reduction parameters
+namespace iir_params {
+// nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.
+inline constexpr u8 minDepth = 4;
+} // namespace iir_params
 
 // reverse futility pruning parameters
 namespace rfp_params {

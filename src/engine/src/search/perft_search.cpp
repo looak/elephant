@@ -13,9 +13,7 @@ PerftResult PerftSearch::Run(int depth)
         return PerftResult();
     }
 
-    typedef std::function<void(PackedMove, PerftResult&, bool)> t_accFunction;
-
-    t_accFunction accumulator = [&](PackedMove move, PerftResult& result, bool leaf) {
+    auto accumulator = [&](PackedMove move, PerftResult& result, bool leaf) {
         result.Nodes += static_cast<u64>(leaf);
         result.AccNodes++;
 
@@ -38,7 +36,7 @@ PerftResult PerftSearch::Run(int depth)
     };
 
 
-    return internalRunEntryPoint<TMoveGen, PerftResult, t_accFunction>(depth, accumulator);
+    return internalRunEntryPoint<TMoveGen, PerftResult>(depth, accumulator);
 }
 
 template PerftResult PerftSearch::Run<move_gen_policy::Legacy>(int);

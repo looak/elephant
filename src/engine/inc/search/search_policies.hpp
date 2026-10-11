@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <optional>
 #include <span>
 #include <stack>
@@ -48,8 +49,13 @@ namespace enabled_policies {
     inline constexpr bool NMP = true;
     inline constexpr bool Quiescence = true;
     inline constexpr bool DeltaPruning = true;
+    inline constexpr bool QuiescenceSEEPruning = true;
+    // captures that lose material by SEE are searched after the quiet moves.
+    inline constexpr bool DeferLosingCaptures = true;
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
+    inline constexpr bool LMP = true;
+    inline constexpr bool IIR = true;
     // true: search pulls moves from tusk::MoveGenerator, false: legacy MoveGenerator. See search_move_source.hpp.
     inline constexpr bool TuskMoveGen = true;
 }
@@ -63,6 +69,7 @@ public:
     // ply converts mate scores between root relative (search) and node relative (stored).
     static std::optional<i16> probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
     static bool probeMove(u64 hash, PackedMove& outMove);
+    static void prefetch(u64 hash);
     static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag);
     static void printStats();
 
@@ -98,7 +105,11 @@ public:
     static constexpr bool enabled = enabled_policies::NMP;
 
     static bool shouldPrune(u32 depth, bool inCheck, bool hasNonPawnMaterial) { return !inCheck && depth >= nmp_params::minDepth && hasNonPawnMaterial; }
-    static u8 getReduction(u8 depth) { return (depth > 6) ? 3 : 2; }
+    // only called with staticEval >= beta, the eval term is never negative.
+    static u8 getReduction(u8 depth, i16 staticEval, i16 beta) {
+        const i32 evalReduction = std::min((staticEval - beta) / nmp_params::evalDivisor, nmp_params::maxEvalReduction);
+        return static_cast<u8>(nmp_params::baseReduction + depth / nmp_params::depthDivisor + evalReduction);
+    }
     static bool shouldVerify(u8 depth) { return depth >= nmp_params::verificationDepth; }
 };
 
@@ -125,11 +136,26 @@ public:
     static bool skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
 };
 
+// --- Late Move Pruning (LMP) Policies ---
+class LMP {
+public:
+    static constexpr bool enabled = enabled_policies::LMP;
+
+    // Quiet moves searched at a shallow non-PV node before the remaining quiets are skipped, 0 means no limit. Never in
+    // check.
+    static u16 quietLimit(bool isPV, bool inCheck, u8 depth);
+    // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
+    // is skipped while the best score is still a loss by mate, the node needs a real score.
+    static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
+};
+
 // --- Quiescence Search Policies ---
 class QuiescencePolicy {
 public:
     static constexpr bool enabled = enabled_policies::Quiescence;
     static constexpr bool deltaPruning = enabled_policies::DeltaPruning;
+    // captures that lose material by static exchange are skipped, only when not in check.
+    static constexpr bool seePruning = enabled_policies::QuiescenceSEEPruning;
     static u8 maxDepth;
 
     // Delta pruning, standing pat plus the material a capture can win and a margin still doesn't reach alpha.

@@ -1,12 +1,14 @@
 #include <search/search.hpp>
 
 #include <core/game_context.hpp>
+#include <math/cast.hpp>
 
 #include <search/search_threadcontext.hpp>
 #include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 #include <algorithm>
+#include <cstdlib>
 #include <thread>
 #include <future>
 
@@ -64,16 +66,42 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     const u8 depthLimit = params.SearchDepth == 0 ? maxDepth : std::min(params.SearchDepth, maxDepth);
 
     for (u8 itrDepth = 1; itrDepth <= depthLimit; ++itrDepth) {
-        SearchResult itrResult;
-        if (result.pvLine.length > 0) {
-            // carry over best move from previous iteration
-            itrResult.pvLine.moves[0] = result.pvLine.moves[0]; 
-            itrResult.pvLine.length = 1;
-        }
-
         // the first iteration always completes so there is a move to return, deeper ones may be aborted.
         context.stopEnabled = itrDepth > 1;
-        itrResult.score = alphaBeta<us>(context, itrDepth, -c_infinity, c_infinity, 1, &itrResult.pvLine);
+
+        // --- Aspiration Window ---
+        // The score rarely moves far between iterations, a narrow window around the last one prunes more. When the
+        // score lands outside it the failing side widens and the iteration is searched again. Never around a mate.
+        i32 delta = aspiration_params::initialDelta;
+        i32 alpha = -c_infinity;
+        i32 beta = c_infinity;
+        if (itrDepth >= aspiration_params::minDepth && std::abs(result.score) < c_checkmateMinScore) {
+            alpha = std::max(result.score - delta, -c_infinity);
+            beta = std::min(result.score + delta, c_infinity);
+        }
+
+        SearchResult itrResult;
+        while (true) {
+            itrResult = SearchResult{};
+            if (result.pvLine.length > 0) {
+                // carry over best move from previous iteration
+                itrResult.pvLine.moves[0] = result.pvLine.moves[0];
+                itrResult.pvLine.length = 1;
+            }
+
+            itrResult.score = alphaBeta<us>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine);
+            if (context.stopped)
+                break;
+
+            // only a side that isn't fully open yet can fail, a full window always ends the loop.
+            delta *= 2;
+            if (itrResult.score <= alpha && alpha > -c_infinity)
+                alpha = delta > aspiration_params::maxDelta ? -c_infinity : std::max(itrResult.score - delta, -c_infinity);
+            else if (itrResult.score >= beta && beta < c_infinity)
+                beta = delta > aspiration_params::maxDelta ? c_infinity : std::min(itrResult.score + delta, c_infinity);
+            else
+                break;
+        }
 
         // aborted iteration, its score & pv can't be trusted. Keep the last complete iteration.
         if (context.stopped)

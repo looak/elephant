@@ -63,6 +63,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/chessboard_test.cpp
     ${TEST_SRC_DIR}/position/chess_positions.cpp
     ${TEST_SRC_DIR}/position/evaluation_test.cpp
+    ${TEST_SRC_DIR}/position/pesto_accumulator_test.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
     ## ${TEST_SRC_DIR}/position/notation_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
@@ -71,6 +72,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 
 ## /search/...
     ${TEST_SRC_DIR}/search/search_test.cpp
+    ${TEST_SRC_DIR}/search/static_exchange_test.cpp
     ## ${TEST_SRC_DIR}/search/transposition_test.cpp
 
 ## /system/...

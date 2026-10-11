@@ -64,6 +64,28 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
         }
     }
 
+    // --- Internal Iterative Reduction ---
+    // Without a TT or PV move the ordering is a guess and the node is likely new to the search, a ply shallower is
+    // cheaper and stores a move for the next visit.
+    if constexpr (search_policies::enabled_policies::IIR) {
+        if (depth >= iir_params::minDepth && bestMove.isNull() && pv->length == 0)
+            depth--;
+    }
+
+    // --- Leaf Node Check ---
+    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
+    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
+    // stand pat instead of a draw score.
+    if (depth <= 0) {
+        pv->length = 0;
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
+            // Start Q-Search with its *own* depth limit, configured with search params.
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
+        } else {
+            return context.evaluate<us>();
+        }
+    }
+
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveOrderingView orderingView;
 
@@ -81,18 +103,6 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
             return -c_checkmateConstant + (i16)ply; // Mate score adjusted by ply
         }
         return -c_drawConstant; // Stalemate
-    }
-
-    // --- Leaf Node Check ---
-    if (depth <= 0) {
-        pv->length = 0;
-        if constexpr (search_policies::QuiescencePolicy::enabled) {
-            // Start Q-Search with its *own* depth limit, configured with search params.
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply);
-        } else {
-            pv->length = 0;            
-            return context.evaluate<us>();
-        }
     }
 
     // --- Static Eval ---
@@ -161,7 +171,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     PVLine childPv;
     u16 index = 0;
 
-    MoveExecutor executor(context.position.edit());
+    MoveExecutor executor = context.executor();
     PrioritizedMove ordered = moves.next();
     
     // We need to store the "Best Move Found So Far" locally to update outMove correctly
@@ -171,6 +181,13 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     // simply not penalised.
     std::array<PackedMove, 64> quietsTried;
     u16 quietCount = 0;
+
+    // --- Late Move Pruning ---
+    // at shallow non-PV nodes only the first quiets are searched, the rest rarely matter.
+    u16 quietLimit = 0;
+    u16 quietsSearched = 0;
+    if constexpr (search_policies::LMP::enabled)
+        quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
     u16 movingPly = ply; 
 
@@ -187,11 +204,21 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             continue;
         }
 
+        // --- Late Move Pruning ---
+        // skipped quiets weren't searched, they get no history malus either.
+        if (search_policies::LMP::skipMove(quietLimit, quietsSearched, bestEval, move, ordered.isCheck())) {
+            ordered = moves.next();
+            index++;
+            continue;
+        }
+
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
 
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, movingPly);
+        if constexpr (search_policies::TT::enabled)
+            search_policies::TT::prefetch(pos.hash());
         context.history.push(pos.hash());
         
         i16 eval;
@@ -275,8 +302,11 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             }
         }
 
-        if (quietCount < quietsTried.size() && search_policies::MoveOrdering::isQuiet(move))
-            quietsTried[quietCount++] = move;
+        if (search_policies::MoveOrdering::isQuiet(move)) {
+            quietsSearched++;
+            if (quietCount < quietsTried.size())
+                quietsTried[quietCount++] = move;
+        }
 
         ordered = moves.next();
         index++;

@@ -70,6 +70,10 @@ std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i1
     return std::nullopt;
 }
 
+void TT::prefetch(u64 hash) {
+    m_table->prefetch(hash);
+}
+
 bool TT::probeMove(u64 hash, PackedMove& outMove) {
     i16 dummyScore;
     u8 dummyDepth;
@@ -157,6 +161,19 @@ bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i
 
 bool Futility::skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
     return futileNode && moveIndex > 0 && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
+// --- Late Move Pruning (LMP) Policies ---
+u16 LMP::quietLimit(bool isPV, bool inCheck, u8 depth) {
+    if (isPV || inCheck || depth > lmp_params::maxDepth)
+        return 0;
+
+    return static_cast<u16>(lmp_params::base + lmp_params::factor * depth * depth);
+}
+
+bool LMP::skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
+    return quietLimit > 0 && quietsSearched >= quietLimit && bestEval > -c_checkmateMinScore
+        && MoveOrdering::isQuiet(move) && !givesCheck;
 }
 
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;

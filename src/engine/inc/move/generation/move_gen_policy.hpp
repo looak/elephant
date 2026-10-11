@@ -55,8 +55,8 @@ struct Tusk {
 
     template<Set us, typename F>
     static void forEachMove(PositionReader position, F&& onMove) {
-        KingPinThreats<us> pins(to_square(position.material().king<us>().lsbIndex()), position);
-        tusk::MoveGenerator<us> generator(position, pins);
+        tusk::CheckInfo<us> checkInfo(position);
+        tusk::MoveGenerator<us> generator(position, checkInfo);
         tusk::MoveGenResult<us> moves = generator.generateAll();
         while (PrioritizedMove move = moves.next())
             onMove(move.move);

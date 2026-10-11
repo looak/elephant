@@ -1,11 +1,13 @@
-set(DEVELOPMENT_BUILD ON CACHE BOOL "Enable development build settings" FORCE)
+set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
 set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
-set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions" FORCE)
-set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions" FORCE)
+# Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, off by default
+# so Release & RelWithDebInfo run (and profile) like the OpenBench build. CI's unit tests turn both on.
+set(ASSERTIONS_ENABLED OFF CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
+set(EXCEPTIONS_ENABLED OFF CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
-set(DEBUG_TRANSITION_TABLE ON CACHE BOOL "Enable debug output for transition table" FORCE)
+set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
 set(DEBUG_SEARCH_TREE OFF CACHE BOOL "Enable debug file output for search tree" FORCE)
 
 # Map to spdlog's compile-time level

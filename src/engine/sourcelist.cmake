@@ -42,6 +42,8 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/eval/evaluation_table.hpp
     ${ENGINE_INC_DIR}/eval/evaluator.hpp
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
+    ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp
+    ${ENGINE_INC_DIR}/eval/pesto_tables.hpp
 
 ## /io/...
     ${ENGINE_INC_DIR}/io/fen_parser.hpp
@@ -74,6 +76,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/move/generation/move_ordering_view.hpp
 
 ## /move/generation/tusk/...   new move gen
+    ${ENGINE_INC_DIR}/move/generation/tusk/check_info.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_result.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_generator.hpp
     ${ENGINE_INC_DIR}/move/generation/tusk/move_gen_params.hpp
@@ -95,6 +98,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/search_move_source.hpp
     ${ENGINE_INC_DIR}/search/search_policies.hpp    
     ${ENGINE_INC_DIR}/search/search_results.hpp
+    ${ENGINE_INC_DIR}/search/static_exchange.hpp
     ${ENGINE_INC_DIR}/search/transposition_table.hpp
 
 ## /system/...
@@ -159,6 +163,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/search/search_nullmove.cpp
     ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
     ${ENGINE_SRC_DIR}/search/search_policies.cpp
+    ${ENGINE_SRC_DIR}/search/static_exchange.cpp
 
 ## /system/...
     ${ENGINE_SRC_DIR}/system/clock.cpp
