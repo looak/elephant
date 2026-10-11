@@ -47,7 +47,7 @@ public:
 
 private:
     bool m_running = false;
-    std::chrono::high_resolution_clock::time_point m_startTime;
-    std::chrono::high_resolution_clock::time_point m_endTime;
+    std::chrono::steady_clock::time_point m_startTime;
+    std::chrono::steady_clock::time_point m_endTime;
 
 };

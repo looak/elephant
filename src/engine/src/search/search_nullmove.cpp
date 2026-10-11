@@ -42,6 +42,8 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
     ctx.history.push(pos.hash());
     ctx.nullMoveAt[ply] = true;
+    // passing counts as a quiet move for the fifty move rule.
+    ctx.halfmoveClock[ply + 1] = static_cast<u16>(ctx.halfmoveClock[ply] + 1);
 
     const u8 R = search_policies::NMP::getReduction(depth, staticEval, beta);
     const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;

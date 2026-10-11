@@ -2,19 +2,19 @@
 
 void Clock::Start()
 {
-    m_startTime = std::chrono::high_resolution_clock::now();
+    m_startTime = std::chrono::steady_clock::now();
     m_running = true;
 }
 
 void Clock::Stop()
 {
-    m_endTime = std::chrono::high_resolution_clock::now();
+    m_endTime = std::chrono::steady_clock::now();
     m_running = false;
 }
 
 i64 Clock::getElapsedTime() const
 {
-    auto endTime = std::chrono::high_resolution_clock::now();
+    auto endTime = std::chrono::steady_clock::now();
     if (m_running == false)
         endTime = m_endTime;
     return std::chrono::duration_cast<std::chrono::milliseconds>(endTime - m_startTime).count();

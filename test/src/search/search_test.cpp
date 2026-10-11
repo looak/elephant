@@ -195,8 +195,9 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
-        // (64 MB hash), 18 leaves a ply of margin. Raise this when new pruning pushes it out of reach.
-        testingParams.SearchDepth = 18;
+        // (64 MB hash). 0.15.1's IIR, applied at every node without a TT or PV move now that PVs are cleared, finds it
+        // at 19, 20 leaves a ply of margin. Raise this when new pruning pushes it out of reach.
+        testingParams.SearchDepth = 20;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);
@@ -237,6 +238,33 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
     OUT() << "Search completed in " << testing_clock.getElapsedTime() << " ms.";
     EXPECT_LT(testing_clock.getElapsedTime(), 1000); // should finish within 1s
 
+}
+
+// A rook up, but every move makes the hundredth half move without a capture or pawn move and there's no mate in one.
+TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
+    GameContext context;
+    io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 99 120", context.editChessboard());
+
+    Search searcher(context);
+    testingParams.SearchDepth = 6;
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    EXPECT_EQ(0, result.score);
+    EXPECT_FALSE(result.move().isNull());
+}
+
+// One move short of the fifty move rule the rook still counts.
+TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
+    GameContext context;
+    io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 0 120", context.editChessboard());
+
+    Search searcher(context);
+    testingParams.SearchDepth = 6;
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    EXPECT_GT(result.score, 300);
 }
 
 }  // namespace ElephantTest

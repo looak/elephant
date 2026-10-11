@@ -7,9 +7,9 @@
 
 struct SearchParameters;
 
-using timepoint_t = std::chrono::high_resolution_clock::time_point;
+using timepoint_t = std::chrono::steady_clock::time_point;
 using ms_t = std::chrono::milliseconds;
-using chess_time_t = std::chrono::high_resolution_clock;
+using chess_time_t = std::chrono::steady_clock;
 
 // time (ms) kept in reserve on every move for latency between engine and GUI.
 inline constexpr u32 c_defaultMoveOverhead_ms = 10;
