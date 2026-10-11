@@ -275,6 +275,54 @@ TEST_F(UciFixture, go_infinite_SearchesAndHoldsBestmoveUntilStop)
     EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a1a8"));
 }
 
+// The GUI sends the clock with go ponder, it mustn't limit the search, the time is the opponent's until ponderhit.
+TEST_F(UciFixture, go_ponder_SearchesAndHoldsBestmoveUntilPonderhit)
+{
+    // setup, mate in one so the search ends on its own long before ponderhit is sent.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    std::string beforePonderhit;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.AsyncGo({ "ponder", "wtime", "100", "btime", "100" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        beforePonderhit = testOutput.str();
+        m_uci.PonderHit();
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_EQ(std::string::npos, beforePonderhit.find("bestmove"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a1a8"));
+}
+
+TEST_F(UciFixture, go_ponder_StopEndsThePonderSearch)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.AsyncGo({ "ponder", "wtime", "60000", "btime", "60000" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        m_uci.Stop();
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+}
+
 TEST_F(UciFixture, setoption_MultiWordName_MoveOverheadIsAccepted)
 {
     // setup

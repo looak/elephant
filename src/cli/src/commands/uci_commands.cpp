@@ -45,8 +45,8 @@ bool UCICommands::BenchCommand(std::list<std::string> args, UCI& interface) {
 bool UCICommands::StopCommand(std::list<std::string>, UCI& interface) {
     return interface.Stop();
 }
-bool UCICommands::PonderHitCommand(std::list<std::string>, UCI&) {
-    throw new ephant::not_implemented_exception("UCI PonderHit command not implemented");
+bool UCICommands::PonderHitCommand(std::list<std::string>, UCI& interface) {
+    return interface.PonderHit();
 }
 
 bool UCICommands::PrintCommand(std::list<std::string>, UCI& interface)

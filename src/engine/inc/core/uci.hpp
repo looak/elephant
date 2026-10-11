@@ -85,6 +85,11 @@ public:
     bool Stop();
 
     /**
+     * The opponent played the move we were pondering on. Ends the ponder search, which answers with "bestmove"
+     * for the move found so far.     */
+    bool PonderHit();
+
+    /**
      * Non standard UCI, used for testing.   */
     bool Perft(std::list<std::string> args);
 

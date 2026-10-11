@@ -179,6 +179,13 @@ UCI::Stop()
 }
 
 bool
+UCI::PonderHit()
+{
+    m_timeManager.cancel();
+    return true;
+}
+
+bool
 UCI::AsyncGo(std::list<std::string> args)
 {
     SyncGo(); // should stop any ongoing search first -- but we still check to be sure.
@@ -266,7 +273,6 @@ UCI::Go(std::list<std::string> args)
 
 
     options["searchmoves"] = not_yet_implemented;
-    options["ponder"] = not_yet_implemented;
     options["nodes"] = not_yet_implemented;
     options["mate"] = not_yet_implemented;
                 
@@ -278,6 +284,13 @@ UCI::Go(std::list<std::string> args)
     options["movestogo"] = parse_int(searchParams.MovesToGo);
     options["movetime"] = parse_int(searchParams.MoveTime);
     options["infinite"] = parse_bool(searchParams.Infinite, [&searchParams]() {
+        searchParams.MoveTime = 0;
+        searchParams.SearchDepth = 0;
+        return true;
+    });
+    // pondering searches like infinite, on the opponent's time. Both stop and ponderhit end it, ponderhit plays the
+    // move found so far at once rather than continuing on our own clock.
+    options["ponder"] = parse_bool(searchParams.Infinite, [&searchParams]() {
         searchParams.MoveTime = 0;
         searchParams.SearchDepth = 0;
         return true;
@@ -319,7 +332,8 @@ UCI::Go(std::list<std::string> args)
         result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
     }
 
-    // UCI: an infinite search may only send bestmove after "stop", also when it ended on its own (mate, ply limit).
+    // UCI: an infinite or ponder search may only send bestmove after "stop" or "ponderhit", also when it ended on its
+    // own (mate, ply limit).
     if (searchParams.Infinite) {
         std::stop_token stopToken = m_timeManager.cancelToken();
         while (stopToken.stop_requested() == false)
