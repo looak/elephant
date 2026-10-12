@@ -112,7 +112,7 @@ UCI::SetOption(const std::list<std::string> args)
         };
 
         if (name == "Threads") {
-            u16 threadCount = static_cast<u16>(std::clamp(toInt(), 1, 1024));
+            u16 threadCount = static_cast<u16>(std::clamp(toInt(), 1, 64));
             m_options["Threads"] = value;
             m_threadCount = threadCount;
         }
