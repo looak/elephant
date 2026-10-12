@@ -363,4 +363,89 @@ TEST_F(UciFixture, position_PromotingPawn)
     EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 1 1", outputFen.c_str());
 }
 
+TEST_F(UciFixture, ucinewgame_ClearsTranspositionTableAndAge)
+{
+    // setup
+    m_uci.Enable();
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    const u64 hash = 0x123456789ABCDEF0ull;
+    tt.setAge(5);
+    tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
+
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    ASSERT_TRUE(tt.probe(hash, move, score, depth, flag));
+
+    // do
+    bool result = m_uci.NewGame();
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(tt.probe(hash, move, score, depth, flag));
+    EXPECT_EQ(0, tt.getAge());
+}
+
+TEST_F(UciFixture, position_startpos_moves_KeepsTranspositionTable)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    const u64 hash = 0x123456789ABCDEF0ull;
+    tt.setAge(5);
+    tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
+
+    // do, the GUI sends this every move of a game.
+    std::string commandLine = "position startpos moves e2e4 e7e5 g1f3";
+    std::list<std::string> args;
+    extractArgsFromCommand(commandLine, args);
+    args.pop_front();  // pop position
+    bool result = m_uci.Position(args);
+
+    // verify
+    EXPECT_TRUE(result);
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    EXPECT_TRUE(tt.probe(hash, move, score, depth, flag));
+    EXPECT_EQ(42, score);
+    EXPECT_EQ(7, depth);
+    EXPECT_EQ(5, tt.getAge());
+}
+
+TEST_F(UciFixture, ucinewgame_AfterSearch_RootIsNoLongerInTranspositionTable)
+{
+    // setup, a search leaves the root position in the TT.
+    m_uci.Enable();
+    m_uci.NewGame();
+    std::list<std::string> positionArgs{ "startpos" };
+    m_uci.Position(positionArgs);
+    const u64 rootHash = m_uci.readGameContext().readChessPosition().hash();
+
+    std::list<std::string> goArgs{ "depth", "4" };
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        m_uci.Go(goArgs);
+    }
+
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    ASSERT_TRUE(tt.probe(rootHash, move, score, depth, flag));
+    ASSERT_NE(0, tt.getAge());
+
+    // do
+    m_uci.NewGame();
+
+    // verify
+    EXPECT_FALSE(tt.probe(rootHash, move, score, depth, flag));
+    EXPECT_EQ(0, tt.getAge());
+}
+
 }  // namespace ElephantTest

@@ -98,6 +98,7 @@ public:
     bool Bench(std::list<std::string> args);
 
     const GameContext& readGameContext() { return m_context; }
+    GameContext& editGameContext() { return m_context; }
 private:
     /**
      * initialize the engines options with default values    */

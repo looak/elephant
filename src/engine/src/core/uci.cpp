@@ -167,7 +167,13 @@ UCI::Position(std::list<std::string> args)
 bool
 UCI::NewGame()
 {
+    // a search still running would race the clear below, GUIs stop it first but make sure.
+    SyncGo();
     m_context.NewGame();
+    // games are independent, nothing from the last game may carry over. The TT (and its age) is the only search state
+    // that outlives a go, the killers & history are built per search in ThreadSearchContext. Not part of
+    // GameContext::NewGame, "position startpos" calls that every move.
+    m_context.editTranspositionTable().clear();
     return true;
 }
 
