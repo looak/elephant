@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 
 namespace prnt {
 namespace internals {
@@ -15,7 +16,7 @@ namespace internals {
     {
         size_t lengthLeft = internals::lineLength - command.length();
         if (lengthLeft == 0 || lengthLeft > 128)  // might wrap
-            throw new std::range_error("AddLineDevider is too short!");
+            throw std::range_error("AddLineDevider is too short!");
 
         std::stringstream output;
         output << " # " << command << ' ';

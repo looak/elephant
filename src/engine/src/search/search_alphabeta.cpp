@@ -196,10 +196,19 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     if constexpr (search_policies::LMP::enabled)
         quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
+    // go searchmoves, only the given moves are searched at the root.
+    const bool restrictRoot = ply == 1 && context.rootMoves.empty() == false;
+
     do {
         if (context.shouldStop()) break;
 
         PackedMove move = ordered.move;
+
+        // skipped without counting, the first allowed move is searched as the PV move.
+        if (restrictRoot && context.isRootMoveAllowed(move) == false) {
+            ordered = moves.next();
+            continue;
+        }
 
         // --- Futility Pruning ---
         // skipped quiets weren't searched, they get no history malus either.

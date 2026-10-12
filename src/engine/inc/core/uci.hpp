@@ -46,7 +46,8 @@ public:
     * position [fen  | startpos ]  moves  ....
     * set up the position described in fenstring on the internal board and play the
     * moves on the internal chess board. If the game was played from the start
-    * position the string "startpos" will be sent   */
+    * position the string "startpos" will be sent. A malformed command is reported with an info string and
+    * returns false, it never throws.   */
     bool Position(std::list<std::string> args);
 
     /**
@@ -60,7 +61,8 @@ public:
 
     /**
      * option name [name] value [value]
-     * sets a option on the engine */
+     * sets a option on the engine. An unknown option or bad value is reported with an info string and returns false,
+     * it never throws. */
     bool SetOption(const std::list<std::string> args);
 
     /**
@@ -70,7 +72,8 @@ public:
     /**
      * Starts calculating the best move for the current position. Number of
      * options are available according to the UCI standard and described in
-     * the documentation.     */
+     * the documentation: depth, nodes, mate, movetime, wtime, btime, winc, binc, movestogo, infinite, ponder &
+     * searchmoves. A bad option is reported with an info string and ignored, a bestmove is always sent.     */
     bool Go(std::list<std::string> args);
 
     /**
@@ -102,7 +105,9 @@ private:
     /**
      * initialize the engines options with default values    */
     void InitializeOptions();
-    
+
+    // Position's parser, throws on a malformed command which Position reports.
+    bool ParsePosition(std::list<std::string> args);
 
     bool m_enabled;
     u16 m_threadCount = 1;

@@ -141,7 +141,14 @@ bool UciModeProcessor::processInput(AppContext* context, const std::string&) {
             }       
             
             tokens.pop_front();  // remove command from arguments
-            command->second(tokens, interface);
+            try {
+                command->second(tokens, interface);
+            }
+            catch (const std::exception& e) {
+                // a malformed command must never take the engine down, report it and keep reading.
+                LOG_ERROR("UCI command '{}' failed: {}", commandStr, e.what());
+                std::cout << "info string error " << e.what() << std::endl;
+            }
         }
     }
 

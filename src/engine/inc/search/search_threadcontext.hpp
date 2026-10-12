@@ -18,6 +18,7 @@
 
 #pragma once
 #include <array>
+#include <vector>
 
 #include <core/chessboard.hpp>
 #include <search/search_constants.hpp>
@@ -64,13 +65,42 @@ struct ThreadSearchContext {
 
     u32 stopCheckCounter = 0;
 
-    // Throttled, the clock is only consulted every 1024 calls.
+    // go nodes, 0 = no limit. Checked against this thread's own count, with several threads each one may search up to
+    // the limit. Fine for now, Lazy SMP gets reworked later; with one thread the search is deterministic.
+    u64 nodeLimit = 0;
+
+    // go searchmoves, the only moves searched at the root. Empty = all moves.
+    std::vector<PackedMove> rootMoves;
+
+    [[nodiscard]] bool nodeLimitReached() const {
+        return nodeLimit != 0 && nodeCount + qNodeCount >= nodeLimit;
+    }
+
+    // A move parsed from UCI notation carries no capture or special flags, compare what the notation holds.
+    [[nodiscard]] static bool sameUciMove(PackedMove lhs, PackedMove rhs) {
+        return lhs.sourceSqr() == rhs.sourceSqr() && lhs.targetSqr() == rhs.targetSqr()
+            && lhs.isPromotion() == rhs.isPromotion()
+            && (!lhs.isPromotion() || lhs.readPromoteToPieceType() == rhs.readPromoteToPieceType());
+    }
+
+    [[nodiscard]] bool isRootMoveAllowed(PackedMove move) const {
+        for (PackedMove allowed : rootMoves) {
+            if (sameUciMove(allowed, move))
+                return true;
+        }
+        return false;
+    }
+
+    // Throttled, the clock is only consulted every 1024 calls. The node limit is checked on every call so go nodes
+    // stops close to exact, the branch is cheap & predictable when no limit is set.
     bool shouldStop() {
         if (stopped)
             return true;
         if (!stopEnabled)
             return false;
-        if ((++stopCheckCounter & 1023) == 0 && clock.shouldStop())
+        if (nodeLimitReached())
+            stopped = true;
+        else if ((++stopCheckCounter & 1023) == 0 && clock.shouldStop())
             stopped = true;
         return stopped;
     }
