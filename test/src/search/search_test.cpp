@@ -134,8 +134,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
     }
 }
 
-// using this to test performance of search.
-TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInFive) {
+// were disabled as too slow, both run in well under a second since 0.15.
+TEST_F(SearchFixture, ExpectedMoveMateInFive) {
     for (const auto& searchCase : s_mateInFive) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
@@ -160,7 +160,7 @@ TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInFive) {
     }
 }
 
-TEST_F(SearchFixture, DISABLED_ExpectedMoveMateInEight) {
+TEST_F(SearchFixture, ExpectedMoveMateInEight) {
     for (const auto& searchCase : s_mateInEight) {
         GameContext context;
         testingParams.SearchDepth = 16; // increase depth for harder mates
