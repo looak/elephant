@@ -20,6 +20,7 @@
 #include <search/search_results.hpp>
 
 #include <optional>
+#include <vector>
 
 // forward-declare
 struct ThreadSearchContext;
@@ -49,6 +50,14 @@ struct SearchParameters {
 
     u32 MovesToGo = 0;
     bool Infinite = false;
+
+    // stop once a search thread has visited this many nodes (nodes + qnodes), 0 = no node limit. The first iteration
+    // always completes, so the count can overshoot when the limit is smaller than a depth 1 search.
+    u64 NodeLimit = 0;
+
+    // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
+    // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
+    std::vector<PackedMove> SearchMoves;
 };
 
 class Search {

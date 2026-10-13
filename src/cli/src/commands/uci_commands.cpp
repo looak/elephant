@@ -22,18 +22,17 @@ bool UCICommands::SetOptionCommand(std::list<std::string> args, UCI& interface)
 
 bool UCICommands::RegisterCommand(std::list<std::string>, UCI&)
 {
-    throw new ephant::not_implemented_exception("UCI Register command not implemented");
+    // the engine needs no registration, the command is accepted & ignored.
+    return true;
 }
 
 bool UCICommands::NewGameCommand(std::list<std::string>, UCI& interface) {
     return interface.NewGame();
 }
 
-bool UCICommands::PositionCommand(std::list<std::string> args, UCI& interface) {   
-    if (!interface.Position(args))
-        throw new ephant::io_error("Failed to set position in UCI Position command");
-
-    return true;
+bool UCICommands::PositionCommand(std::list<std::string> args, UCI& interface) {
+    // a malformed position is reported by UCI::Position itself.
+    return interface.Position(args);
 }
 bool UCICommands::GoCommand(std::list<std::string> args, UCI& interface) {
     interface.AsyncGo(args);

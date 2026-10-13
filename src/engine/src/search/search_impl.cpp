@@ -3,6 +3,7 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 
+#include <search/search_move_source.hpp>
 #include <search/search_threadcontext.hpp>
 #include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
@@ -16,13 +17,34 @@ template<Set us>
 SearchResult Search::go(SearchParameters params, TimeManager& clock) {   
     clock.begin();
     m_transpositionTable.incrementAge();
-    
+
+    // go searchmoves, keep the moves that are legal here. With none left the root isn't restricted, the search must
+    // still return a move.
+    std::vector<PackedMove> rootMoves;
+    if (params.SearchMoves.empty() == false) {
+        MoveOrderingView ordering;
+        SearchMoveSource<us> legalMoves(m_originPosition);
+        legalMoves.start(&ordering, MoveTypes::ALL);
+        for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
+            for (PackedMove requested : params.SearchMoves) {
+                if (ThreadSearchContext::sameUciMove(requested, legal.move)) {
+                    rootMoves.push_back(legal.move);
+                    break;
+                }
+            }
+        }
+        if (rootMoves.empty())
+            LOG_WARN("go searchmoves: none of the given moves are legal, searching all moves.");
+    }
+
     std::vector<std::future<SearchResult>> searchResults;
-    
+
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
-            [this, &params, &clock, threadId]() {
+            [this, &params, &clock, &rootMoves, threadId]() {
             ThreadSearchContext searchContext(this->m_originPosition.copy(), us == Set::WHITE, clock);
+            searchContext.nodeLimit = params.NodeLimit;
+            searchContext.rootMoves = rootMoves;
             searchContext.begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
             // TODO: This could be done once for all ThreadContexts.
@@ -128,7 +150,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
 
-        if (context.clock.shouldStop())
+        if (context.clock.shouldStop() || context.nodeLimitReached())
             break;
 
         if (context.clock.continueIterativeDeepening() == false)
