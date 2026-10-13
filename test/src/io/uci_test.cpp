@@ -363,4 +363,78 @@ TEST_F(UciFixture, position_PromotingPawn)
     EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 0 1", outputFen.c_str());  // a promotion is a pawn move, the clock resets
 }
 
+// Only a pawn captures en passant, issue #14. A knight or king stepping onto the empty en passant square is a quiet
+// move: no capture flag, the pawn that double pushed stays and the halfmove clock counts up instead of resetting.
+TEST_F(UciFixture, position_moves_NonPawnOntoEnPassantSquare_IsNotACapture)
+{
+    struct Case {
+        std::string fen;
+        std::string moves;
+        Square emptied;     // source square of the last move
+        Square target;      // the en passant square
+        ChessPiece piece;   // the piece that moved onto it
+        Square pawn;        // the pawn that double pushed, still on the board
+        std::string expectedFen;
+    };
+    const Case cases[] = {
+        { "rnbqkb1r/pppppppp/8/8/6n1/8/PPPPPPPP/RNBQKBNR w KQkq - 3 3", "e2e4 g4e3", Square::G4, Square::E3, BLACKKNIGHT,
+          Square::E4, "rnbqkb1r/pppppppp/8/8/4P3/4n3/PPPP1PPP/RNBQKBNR w KQkq - 1 4" },
+        { "4k3/3p4/8/4K3/8/8/8/8 b - - 5 40", "d7d5 e5d6", Square::E5, Square::D6, WHITEKING,
+          Square::D5, "4k3/8/3K4/3p4/8/8/8/8 b - - 1 41" },
+    };
+
+    for (const auto& c : cases) {
+        UCI uci;
+        uci.Enable();
+        std::list<std::string> args;
+        extractArgsFromCommand("position fen " + c.fen + " moves " + c.moves, args);
+        args.pop_front();  // pop position
+        EXPECT_TRUE(uci.Position(args)) << c.fen;
+
+        const auto& history = uci.readGameContext().readGameHistory().moveUndoUnits;
+        ASSERT_EQ(2u, history.size()) << c.fen;
+        EXPECT_FALSE(history.back().move.isCapture()) << c.moves;
+        EXPECT_FALSE(history.back().move.isEnPassant()) << c.moves;
+        EXPECT_EQ(ChessPiece::None(), history.back().capturedPiece) << c.moves;
+
+        const auto& board = uci.readGameContext().readChessPosition();
+        EXPECT_EQ(c.piece, board.pieceAt(c.target)) << c.moves;
+        EXPECT_EQ(ChessPiece::None(), board.pieceAt(c.emptied)) << c.moves;
+        EXPECT_EQ(PieceType::PAWN, board.pieceAt(c.pawn).getType()) << c.moves;
+        EXPECT_FALSE(board.enPassant()) << c.moves;
+        EXPECT_EQ(1, uci.readGameContext().readPly()) << c.moves;
+
+        std::string outputFen;
+        io::fen_parser::serialize(uci.readGameContext().readChessboard(), outputFen);
+        EXPECT_EQ(c.expectedFen, outputFen);
+    }
+}
+
+// A pawn onto the en passant square is still an en passant capture, flagged as one so unmake puts the pawn back on
+// the right square.
+TEST_F(UciFixture, position_moves_PawnOntoEnPassantSquare_CapturesEnPassant)
+{
+    m_uci.Enable();
+    const std::string fen = "4k3/3p4/8/4P3/8/8/8/4K3 b - - 5 40";
+    std::list<std::string> args;
+    extractArgsFromCommand("position fen " + fen + " moves d7d5 e5d6", args);
+    args.pop_front();  // pop position
+    EXPECT_TRUE(m_uci.Position(args));
+
+    const auto& history = m_uci.readGameContext().readGameHistory().moveUndoUnits;
+    ASSERT_EQ(2u, history.size());
+    EXPECT_TRUE(history.back().move.isCapture());
+    EXPECT_TRUE(history.back().move.isEnPassant());
+
+    const auto& board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(WHITEPAWN, board.pieceAt(Square::D6));
+    EXPECT_EQ(ChessPiece::None(), board.pieceAt(Square::D5));
+    EXPECT_EQ(ChessPiece::None(), board.pieceAt(Square::E5));
+    EXPECT_EQ(0, m_uci.readGameContext().readPly());
+
+    std::string outputFen;
+    io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
+    EXPECT_EQ("4k3/8/3P4/8/8/8/8/4K3 b - - 0 41", outputFen);
+}
+
 }  // namespace ElephantTest
