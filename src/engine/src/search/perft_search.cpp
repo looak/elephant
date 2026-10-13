@@ -39,13 +39,10 @@ PerftResult PerftSearch::Run(int depth)
     return internalRunEntryPoint<TMoveGen, PerftResult>(depth, accumulator);
 }
 
-template PerftResult PerftSearch::Run<move_gen_policy::Legacy>(int);
 template PerftResult PerftSearch::Run<move_gen_policy::Tusk>(int);
 
 PerftResult PerftSearch::Deepen()
 {
-    // MoveGenerator<Set::WHITE> gen(m_context.readChessboard().readPosition());
-    // gen.GenerateMoves();
 
     return PerftResult();
 }
@@ -85,5 +82,4 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
     return results;
 }
 
-template std::vector<DivideResult> PerftSearch::Divide<move_gen_policy::Legacy>(int);
 template std::vector<DivideResult> PerftSearch::Divide<move_gen_policy::Tusk>(int);

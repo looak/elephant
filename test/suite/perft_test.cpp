@@ -3,7 +3,7 @@
 
 #include <io/fen_parser.hpp>
 #include <core/game_context.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move/generation/move_gen_policy.hpp>
 #include <search/search.hpp>
 #include <search/perft_search.hpp>
 #include <system/clock.hpp>
@@ -159,59 +159,10 @@ void RunReferencePositions(const std::vector<PerftCaseArgs>& perftTestCases)
     EXPECT_TRUE(testsPassed);
 }
 
+// templated on the generator, a new one is A/B tested by running the reference positions with its policy too.
 TEST_F(PerftFixture, EstablishedReferencePositions)
 {
-    RunReferencePositions<move_gen_policy::Legacy>(ReferencePositionCases());
-}
-
-TEST_F(PerftFixture, EstablishedReferencePositions_Tusk)
-{
     RunReferencePositions<move_gen_policy::Tusk>(ReferencePositionCases());
-}
-
-// Runs every enabled reference position on both generators, verifies they agree and prints a speed comparison.
-// Cases above abMaxNodes are skipped to keep the comparison quick.
-TEST_F(PerftFixture, MoveGeneratorAB)
-{
-    constexpr u64 abMaxNodes = 500'000'000;
-    u64 totalNodes = 0;
-    i64 legacyTotalMs = 0;
-    i64 tuskTotalMs = 0;
-
-    OUT() << std::format(" {:<40} {:>10} {:>12} {:>12} {:>8}", "case", "nodes", "legacy nps", "tusk nps", "speedup");
-    for (const auto& perftCase : ReferencePositionCases()) {
-        if (!perftCase.enabled || perftCase.expectedNodeCount > abMaxNodes)
-            continue;
-
-        Clock legacyClock;
-        legacyClock.Start();
-        PerftResult legacy = ExecutePerftCase<move_gen_policy::Legacy>(perftCase.fen, perftCase.searchDepth);
-        legacyClock.Stop();
-
-        Clock tuskClock;
-        tuskClock.Start();
-        PerftResult tusk = ExecutePerftCase<move_gen_policy::Tusk>(perftCase.fen, perftCase.searchDepth);
-        tuskClock.Stop();
-
-        EXPECT_EQ(legacy.Nodes, tusk.Nodes) << " TestId: " << perftCase.testId;
-        EXPECT_EQ(legacy.Captures, tusk.Captures) << " TestId: " << perftCase.testId;
-        EXPECT_EQ(legacy.Castles, tusk.Castles) << " TestId: " << perftCase.testId;
-        EXPECT_EQ(legacy.Promotions, tusk.Promotions) << " TestId: " << perftCase.testId;
-
-        const u64 legacyNps = legacyClock.calcNodesPerSecond(legacy.AccNodes);
-        const u64 tuskNps = tuskClock.calcNodesPerSecond(tusk.AccNodes);
-        const double speedup = legacyNps > 0 ? static_cast<double>(tuskNps) / static_cast<double>(legacyNps) : 0.0;
-        OUT() << std::format(" {:<40} {:>10} {:>12} {:>12} {:>7.2f}x", perftCase.testId, tusk.Nodes, legacyNps, tuskNps, speedup);
-
-        totalNodes += tusk.AccNodes;
-        legacyTotalMs += legacyClock.getElapsedTime();
-        tuskTotalMs += tuskClock.getElapsedTime();
-    }
-
-    OUT() << "---------------------------------";
-    OUT() << " legacy: " << legacyTotalMs << " ms, tusk: " << tuskTotalMs << " ms, total nodes: " << totalNodes;
-    if (tuskTotalMs > 0)
-        OUT() << std::format(" overall speedup: {:.2f}x", static_cast<double>(legacyTotalMs) / static_cast<double>(tuskTotalMs));
 }
 
 ////////////////////////////////////////////////////////////////

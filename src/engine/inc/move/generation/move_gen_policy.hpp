@@ -16,8 +16,8 @@
 
 /**
  * @file move_gen_policy.hpp
- * @brief Policies wrapping each move generator behind the same interface, so callers like perft can be templated on
- * the generator and A/B tested.
+ * @brief Policies wrapping a move generator behind one interface, so callers like perft and the move generator tests
+ * are templated on the generator and a new one can be A/B tested against tusk.
  *
  * A policy provides:
  *     static constexpr const char* name;
@@ -29,25 +29,10 @@
 
 #pragma once
 
-#include <move/generation/king_pin_threats.hpp>
-#include <move/generation/move_generator.hpp>
 #include <move/generation/tusk/move_generator.hpp>
 #include <position/position_accessors.hpp>
 
 namespace move_gen_policy {
-
-// The original MoveGenerator, scores and sorts every move.
-struct Legacy {
-    static constexpr const char* name = "legacy";
-
-    template<Set us, typename F>
-    static void forEachMove(PositionReader position, F&& onMove) {
-        MoveGenParams params;
-        MoveGenerator<us> generator(position, params);
-        while (PrioritizedMove move = generator.pop())
-            onMove(move.move);
-    }
-};
 
 // tusk::MoveGenerator, unordered generateAll().
 struct Tusk {

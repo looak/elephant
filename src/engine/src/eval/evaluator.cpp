@@ -9,7 +9,6 @@
 #include <eval/evaluator_data.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
 #include <search/search_constants.hpp>
 
 i16
@@ -155,14 +154,8 @@ i16 Evaluator::EvaluateKingSafety() const {
     Bitboard blackPawnWall = blackPawns & blackPawnWallMask;
     score -= blackPawnWall.count() * pawnWallFactor;
 
-    // evaluate pins and checks
-    // const auto& whiteThreats = movegen.readKingPinThreats<Set::WHITE>();
-    // Bitboard whitePins = whiteThreats.pins() & material.black();
-    // score -= whitePins.count() * pinFactor;
-
-    // const auto& blackThreats = movegen.readKingPinThreats<Set::BLACK>();
-    // Bitboard blackPins = blackThreats.pins() & material.white();
-    // score += blackPins.count() * pinFactor;
+    // evaluate pins, not enabled: tusk::CheckInfo<us>(position).pinned() is the pieces of us pinned to our king,
+    // score -= popcnt(CheckInfo<WHITE>.pinned()) * pinFactor and += for black.
 
     return score;
 }

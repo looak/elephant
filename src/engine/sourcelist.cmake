@@ -68,11 +68,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/move/move_executor.hpp
 
 ## /move/generation/...
-    ${ENGINE_INC_DIR}/move/generation/king_pin_threats.hpp
-    ${ENGINE_INC_DIR}/move/generation/move_bulk_generator.hpp
-    ${ENGINE_INC_DIR}/move/generation/move_gen_isolation.hpp
     ${ENGINE_INC_DIR}/move/generation/move_gen_policy.hpp
-    ${ENGINE_INC_DIR}/move/generation/move_generator.hpp
     ${ENGINE_INC_DIR}/move/generation/move_ordering_view.hpp
 
 ## /move/generation/tusk/...   new move gen
@@ -143,10 +139,6 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ## /move/...
     ${ENGINE_SRC_DIR}/move/move.cpp
     ${ENGINE_SRC_DIR}/move/move_executor.cpp
-
-## /move/generation/...
-    ${ENGINE_SRC_DIR}/move/generation/king_pin_threats.cpp
-    ${ENGINE_SRC_DIR}/move/generation/move_generator.cpp
 
 ## /move/generation/tusk/...   new move gen
     ${ENGINE_SRC_DIR}/move/generation/tusk/move_generator.cpp

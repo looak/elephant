@@ -16,8 +16,7 @@
 
 /**
  * @file search_move_source.hpp
- * @brief SearchMoveSource, the one interface search uses to pull moves, backed by either the legacy MoveGenerator or
- * tusk::MoveGenerator depending on search_policies::enabled_policies::TuskMoveGen.
+ * @brief SearchMoveSource, the one interface search uses to pull moves, backed by tusk::MoveGenerator.
  *
  * Usage:
  *     SearchMoveSource<us> moves(position);
@@ -32,40 +31,12 @@
 #pragma once
 
 #include <optional>
-#include <type_traits>
 
 #include <move/generation/tusk/check_info.hpp>
-#include <move/generation/move_generator.hpp>
 #include <move/generation/move_ordering_view.hpp>
 #include <move/generation/tusk/move_generator.hpp>
 #include <position/position_accessors.hpp>
 #include <search/search_policies.hpp>
-
-// Legacy MoveGenerator, it holds the params by reference and reads the filter lazily on the first pop.
-template<Set us>
-class LegacySearchMoveSource {
-public:
-    explicit LegacySearchMoveSource(PositionReader position) :
-        m_generator(position, m_params)
-    {}
-
-    LegacySearchMoveSource(const LegacySearchMoveSource&) = delete;
-    LegacySearchMoveSource& operator=(const LegacySearchMoveSource&) = delete;
-
-    [[nodiscard]] bool isChecked() const { return m_generator.isChecked(); }
-
-    void start(const MoveOrderingView* ordering, MoveTypes filter) {
-        m_params.ordering = ordering;
-        m_params.moveFilter = filter;
-    }
-
-    [[nodiscard]] PrioritizedMove next() { return m_generator.pop(); }
-    [[nodiscard]] PackedMove peek() { return m_generator.peek(); }
-
-private:
-    MoveGenParams m_params;    // declared before m_generator, which keeps a reference to it
-    MoveGenerator<us> m_generator;
-};
 
 // tusk::MoveGenerator, staged & lazy. The generator and result are created in start() once the filter is known.
 template<Set us>
@@ -99,12 +70,7 @@ private:
 
 // A class rather than an alias so search.hpp can forward declare it.
 template<Set us>
-class SearchMoveSource : public std::conditional_t<search_policies::enabled_policies::TuskMoveGen,
-                                                   TuskSearchMoveSource<us>,
-                                                   LegacySearchMoveSource<us>> {
-    using Base = std::conditional_t<search_policies::enabled_policies::TuskMoveGen,
-                                    TuskSearchMoveSource<us>,
-                                    LegacySearchMoveSource<us>>;
+class SearchMoveSource : public TuskSearchMoveSource<us> {
 public:
-    using Base::Base;
+    using TuskSearchMoveSource<us>::TuskSearchMoveSource;
 };

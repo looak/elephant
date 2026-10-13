@@ -3,7 +3,6 @@
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
 #include <move/generation/move_gen_policy.hpp>
-#include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 #include <position/hash_zobrist.hpp>
 
@@ -341,14 +340,11 @@ TEST(ZobristHashing, DoublePush_AdjacentEnemyPawn_EnPassantSetAndCapturable)
         const u64 afterPush = position.hash();
 
         // the generator offers the en passant capture.
-        MoveGenParams params;
-        params.setPawns(true);
-        MoveGenerator<Set::BLACK> gen(position, params);
         PackedMove epCapture;
-        while (auto move = gen.pop().move) {
+        move_gen_policy::Tusk::forEachMove<Set::BLACK>(position, [&](PackedMove move) {
             if (move.isEnPassant())
                 epCapture = move;
-        }
+        });
         ASSERT_FALSE(epCapture.isNull());
         EXPECT_EQ(capturer, epCapture.sourceSqr());
         EXPECT_EQ(Square::E3, epCapture.targetSqr());
