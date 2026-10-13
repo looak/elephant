@@ -28,6 +28,22 @@
 #include <core/square_notation.hpp>
 #include <position/hash_zobrist.hpp>
 
+namespace en_passant {
+/**
+ * @brief True when one of capturerPawns stands next to pushedPawn (adjacent file, same rank), i.e. could capture the
+ * pawn that just double pushed en passant. The en passant square is only recorded (and hashed) when this holds, so a
+ * position reached through a double push hashes the same as the identical position reached by other moves, as FIDE
+ * repetition rules require. Pins & other legality are deliberately ignored, the rare pinned capturer only costs a
+ * missed repetition, never a wrong move.
+ */
+constexpr bool capture_possible(u64 capturerPawns, Square pushedPawn)
+{
+    const u64 pawn = UINT64_C(1) << to_index(pushedPawn);
+    const u64 neighbours = ((pawn << 1) & ~board_constants::fileaMask) | ((pawn >> 1) & ~board_constants::filehMask);
+    return (capturerPawns & neighbours) != 0;
+}
+}  // namespace en_passant
+
 struct EnPassantStateInfo {
 public:
     operator bool() const { return m_innerState != 0; }
