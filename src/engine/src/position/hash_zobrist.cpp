@@ -1,4 +1,5 @@
 #include <position/hash_zobrist.hpp>
+#include <position/position_hash.hpp>
 #include <array>
 #include <core/chessboard.hpp>
 
@@ -47,8 +48,11 @@ bool initialized() {
 } // namespace internals
 
 u64 computeBoardHash(const Chessboard& board) {
+    return computePositionHash(board.readPosition(), board.readToPlay() == Set::WHITE);
+}
+
+u64 computePositionHash(PositionReader reader, bool whiteToMove) {
     u64 hash = 0;
-    PositionReader reader = board.readPosition();
     auto itr = reader.begin();
 
     while (itr != reader.end()) {
@@ -68,7 +72,7 @@ u64 computeBoardHash(const Chessboard& board) {
         hash = updateEnPassantHash(hash, reader.enPassant().readSquare());
     }
 
-    if (board.readToPlay() == Set::BLACK)
+    if (!whiteToMove)
         hash ^= internals::black_to_move;
 
     return hash;

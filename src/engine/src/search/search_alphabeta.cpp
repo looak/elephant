@@ -1,4 +1,5 @@
 #include <search/search.hpp>
+#include <position/position_hash.hpp>
 
 #include <array>
 #include <span>
@@ -33,6 +34,10 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     pv->length = 0;
 
     PositionReader pos = context.position.read();
+    // the incremental hash, used by the TT & repetition checks, has to match the position after every make, unmake &
+    // null move. Assertion builds only, recomputing it is far too slow otherwise.
+    ASSERT_MSG(pos.hash() == zobrist::computePositionHash(pos, us == Set::WHITE),
+               "The incremental hash differs from the position's in alphaBeta.");
 
     // --- Draws ---
     // threefold repetition, the root & the game's earlier positions included, and the fifty move rule. Never at the
