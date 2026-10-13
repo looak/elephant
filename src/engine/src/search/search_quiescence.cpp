@@ -1,4 +1,5 @@
 #include <search/search.hpp>
+#include <position/position_hash.hpp>
 
 #include <eval/evaluator.hpp>
 
@@ -14,6 +15,8 @@ template<Set us>
 i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
+    ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
+               "The incremental hash differs from the position's in quiescence.");
 
     // hard ply limit, the static eval is the best we can do even when in check.
     if (ply >= c_maxSearchDepth - 1)

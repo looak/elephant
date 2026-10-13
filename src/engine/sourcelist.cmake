@@ -85,6 +85,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/position/castling_state_info.hpp
     ${ENGINE_INC_DIR}/position/en_passant_state_info.hpp
     ${ENGINE_INC_DIR}/position/hash_zobrist.hpp
+    ${ENGINE_INC_DIR}/position/position_hash.hpp
     ${ENGINE_INC_DIR}/position/position.hpp
     ${ENGINE_INC_DIR}/position/position_access_policies.hpp
     ${ENGINE_INC_DIR}/position/position_accessors.hpp
