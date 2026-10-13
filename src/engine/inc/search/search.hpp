@@ -20,6 +20,7 @@
 #include <search/search_results.hpp>
 
 #include <optional>
+#include <atomic>
 #include <vector>
 
 // forward-declare
@@ -60,6 +61,13 @@ struct SearchParameters {
     std::vector<PackedMove> SearchMoves;
 };
 
+// What the threads of one search share. The main thread (id 0) sets stop once it's done so the helpers unwind, every
+// thread adds its node count to nodes as it searches.
+struct SharedSearchState {
+    std::atomic<bool> stop{false};
+    std::atomic<u64> nodes{0};
+};
+
 class Search {
     friend class QSearchEnabled;
 public:
@@ -97,4 +105,5 @@ private:
     GameContext& m_gameContext;
 
     PositionReader m_originPosition;
+    SharedSearchState m_shared;
 };
