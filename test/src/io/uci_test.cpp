@@ -2,7 +2,11 @@
 
 #include <io/fen_parser.hpp>
 #include <core/uci.hpp>
+#include <core/game_context.hpp>
+#include <search/search.hpp>
+#include <system/time_manager.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -361,6 +365,376 @@ TEST_F(UciFixture, position_PromotingPawn)
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 1 1", outputFen.c_str());
+}
+
+namespace {
+// the largest "nodes" value of the info lines, the node count of the last completed iteration.
+u64 lastReportedNodes(const std::string& output)
+{
+    u64 nodes = 0;
+    size_t pos = 0;
+    while ((pos = output.find(" nodes ", pos)) != std::string::npos) {
+        pos += 7;
+        nodes = std::max<u64>(nodes, std::stoull(output.substr(pos)));
+    }
+    return nodes;
+}
+}  // namespace
+
+TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    bool result = false;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        result = m_uci.Go({ "nodes", "5000" });
+    }
+
+    // verify, completed iterations never report more than the limit.
+    EXPECT_TRUE(result);
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove 0000"));
+    EXPECT_GT(lastReportedNodes(testOutput.str()), 0u);
+    EXPECT_LE(lastReportedNodes(testOutput.str()), 5000u);
+}
+
+TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
+{
+    auto search = [](u64 nodeLimit) {
+        GameContext context;
+        context.NewGame();
+        Search search(context);
+        SearchParameters params;
+        params.NodeLimit = nodeLimit;
+        TimeManager clock(params, Set::WHITE);
+        return search.go<Set::WHITE>(params, clock);
+    };
+
+    // do
+    SearchResult first = search(20000);
+    SearchResult second = search(20000);
+
+    // verify, the count passes the limit by at most the nodes counted while unwinding.
+    EXPECT_GE(first.count, 20000u);
+    EXPECT_LE(first.count, 20000u + c_maxSearchDepth);
+    EXPECT_EQ(first.count, second.count);
+    EXPECT_EQ(first.move(), second.move());
+    EXPECT_FALSE(first.move().isNull());
+}
+
+TEST_F(UciFixture, go_nodes_CombinesWithDepth)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do, a depth that is reached long before the node limit.
+        m_uci.Go({ "depth", "2", "nodes", "10000000" });
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("depth 2"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("depth 3"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+}
+
+TEST_F(UciFixture, go_mate_1_FindsTheMatingMove)
+{
+    // setup, back rank mate in one.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.Go({ "mate", "1" });
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("score mate 1"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a1a8"));
+}
+
+TEST_F(UciFixture, go_mate_2_FindsTheMateInTwo)
+{
+    // setup, no mate in one. 1. Kg6 Kg8 2. Ra8# or 1. Kf7 Kh7 2. Rh1#.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 7k/8/5K2/8/8/8/8/R7 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.Go({ "mate", "2" });
+    }
+
+    // verify
+    const std::string output = testOutput.str();
+    EXPECT_NE(std::string::npos, output.find("score mate 2"));
+    EXPECT_TRUE(output.find("bestmove f6g6") != std::string::npos || output.find("bestmove f6f7") != std::string::npos)
+        << output;
+}
+
+TEST_F(UciFixture, go_mate_WithoutAMateStillEndsWithABestmove)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do, no mate in two from the start position, the search ends at depth 4.
+        m_uci.Go({ "mate", "2" });
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("depth 4"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("depth 5"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+}
+
+TEST_F(UciFixture, go_searchmoves_RestrictsTheRoot)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do, the moves list ends at the next option.
+        m_uci.Go({ "searchmoves", "a2a3", "depth", "3" });
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("depth 3"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("depth 4"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a2a3"));
+}
+
+TEST_F(UciFixture, go_searchmoves_MatingMoveLeftOutIsNotPlayed)
+{
+    // setup, a1a8 mates but isn't among the moves to search.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.Go({ "depth", "3", "searchmoves", "a1a2", "g1f1" });
+    }
+
+    // verify
+    const std::string output = testOutput.str();
+    EXPECT_EQ(std::string::npos, output.find("bestmove a1a8"));
+    EXPECT_TRUE(output.find("bestmove a1a2") != std::string::npos || output.find("bestmove g1f1") != std::string::npos)
+        << output;
+}
+
+TEST_F(UciFixture, go_searchmoves_NoLegalMoveGivenSearchesAllMoves)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.Go({ "searchmoves", "e2e5", "depth", "2" });
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove 0000"));
+    EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove e2e5"));
+}
+
+TEST_F(UciFixture, go_InvalidValue_IsReportedAndSearchStillReturnsAMove)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    std::stringstream testOutput;
+    bool result = false;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        EXPECT_NO_THROW(result = m_uci.Go({ "nodes", "abc", "depth", "2" }));
+    }
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_NE(std::string::npos, testOutput.str().find("info string error"));
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+}
+
+TEST_F(UciFixture, setoption_UnknownOption_IsReportedAndDoesNotThrow)
+{
+    // setup
+    m_uci.Enable();
+
+    // do
+    std::list<std::string> args;
+    extractArgsFromCommand("setoption name Foo value 1", args);
+    args.pop_front();  // pop setoption
+    bool result = true;
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        EXPECT_NO_THROW(result = m_uci.SetOption(args));
+    }
+
+    // verify
+    EXPECT_FALSE(result);
+    EXPECT_NE(std::string::npos, testOutput.str().find("info string error"));
+}
+
+TEST_F(UciFixture, setoption_MalformedOption_DoesNotThrow)
+{
+    // setup
+    m_uci.Enable();
+    bool tooFewArguments = true;
+    bool notANumber = true;
+
+    // do
+    EXPECT_NO_THROW(tooFewArguments = m_uci.SetOption({ "name", "Hash" }));
+    EXPECT_NO_THROW(notANumber = m_uci.SetOption({ "name", "Hash", "value", "lots" }));
+
+    // verify
+    EXPECT_FALSE(tooFewArguments);
+    EXPECT_FALSE(notANumber);
+}
+
+TEST_F(UciFixture, position_Malformed_IsReportedAndDoesNotThrow)
+{
+    // setup
+    m_uci.Enable();
+    bool noArguments = true;
+    bool badMove = true;
+    bool unknownKeyword = true;
+
+    // do
+    EXPECT_NO_THROW(noArguments = m_uci.Position({}));
+    EXPECT_NO_THROW(badMove = m_uci.Position({ "startpos", "moves", "e2e4", "zz99" }));
+    EXPECT_NO_THROW(unknownKeyword = m_uci.Position({ "somewhere" }));
+
+    // verify
+    EXPECT_FALSE(noArguments);
+    EXPECT_FALSE(badMove);
+    EXPECT_FALSE(unknownKeyword);
+}
+
+TEST_F(UciFixture, ucinewgame_ClearsTranspositionTableAndAge)
+{
+    // setup
+    m_uci.Enable();
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    const u64 hash = 0x123456789ABCDEF0ull;
+    tt.setAge(5);
+    tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
+
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    ASSERT_TRUE(tt.probe(hash, move, score, depth, flag));
+
+    // do
+    bool result = m_uci.NewGame();
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(tt.probe(hash, move, score, depth, flag));
+    EXPECT_EQ(0, tt.getAge());
+}
+
+TEST_F(UciFixture, position_startpos_moves_KeepsTranspositionTable)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    const u64 hash = 0x123456789ABCDEF0ull;
+    tt.setAge(5);
+    tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
+
+    // do, the GUI sends this every move of a game.
+    std::string commandLine = "position startpos moves e2e4 e7e5 g1f3";
+    std::list<std::string> args;
+    extractArgsFromCommand(commandLine, args);
+    args.pop_front();  // pop position
+    bool result = m_uci.Position(args);
+
+    // verify
+    EXPECT_TRUE(result);
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    EXPECT_TRUE(tt.probe(hash, move, score, depth, flag));
+    EXPECT_EQ(42, score);
+    EXPECT_EQ(7, depth);
+    EXPECT_EQ(5, tt.getAge());
+}
+
+TEST_F(UciFixture, ucinewgame_AfterSearch_RootIsNoLongerInTranspositionTable)
+{
+    // setup, a search leaves the root position in the TT.
+    m_uci.Enable();
+    m_uci.NewGame();
+    std::list<std::string> positionArgs{ "startpos" };
+    m_uci.Position(positionArgs);
+    const u64 rootHash = m_uci.readGameContext().readChessPosition().hash();
+
+    std::list<std::string> goArgs{ "depth", "4" };
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        m_uci.Go(goArgs);
+    }
+
+    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    PackedMove move;
+    Score score = 0;
+    u8 depth = 0;
+    TranspositionFlag flag = TTF_NONE;
+    ASSERT_TRUE(tt.probe(rootHash, move, score, depth, flag));
+    ASSERT_NE(0, tt.getAge());
+
+    // do
+    m_uci.NewGame();
+
+    // verify
+    EXPECT_FALSE(tt.probe(rootHash, move, score, depth, flag));
+    EXPECT_EQ(0, tt.getAge());
 }
 
 }  // namespace ElephantTest

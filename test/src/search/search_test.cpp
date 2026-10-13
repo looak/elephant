@@ -267,4 +267,72 @@ TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
     EXPECT_GT(result.score, 300);
 }
 
+// --- Lazy SMP ---
+TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
+{
+    // setup, the mate in three from WhiteMateInThree_ExpectQg6AsFirstMove.
+    std::string fen("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
+    GameContext single;
+    io::fen_parser::deserialize(fen.c_str(), single.editChessboard());
+    GameContext threaded;
+    io::fen_parser::deserialize(fen.c_str(), threaded.editChessboard());
+
+    // do
+    Search singleSearch(single);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult singleResult = singleSearch.go<Set::WHITE>(testingParams, timeManager);
+
+    testingParams.ThreadCount = 4;
+    Search threadedSearch(threaded);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult threadedResult = threadedSearch.go<Set::WHITE>(testingParams, timeManager);
+
+    // verify, the main thread's move is played and the count holds the helpers' nodes too.
+    EXPECT_EQ(Square::G3, threadedResult.move().sourceSqr());
+    EXPECT_EQ(Square::G6, threadedResult.move().targetSqr());
+    EXPECT_EQ(singleResult.score, threadedResult.score);
+    EXPECT_GT(threadedResult.count, singleResult.count);
+}
+
+TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)
+{
+    // setup, without a time limit the helpers would search to the ply limit if the main thread didn't stop them.
+    GameContext context;
+    context.NewGame();
+    testingParams.SearchDepth = 6;
+    testingParams.ThreadCount = 8;
+
+    // do
+    Clock clock;
+    clock.Start();
+    Search searcher(context);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+    clock.Stop();
+
+    // verify
+    EXPECT_FALSE(result.move().isNull());
+    EXPECT_LT(clock.getElapsedTime(), 5000);
+}
+
+TEST_F(SearchFixture, LazySmp_NodeLimit_CountsAllThreads)
+{
+    // setup
+    GameContext context;
+    context.NewGame();
+    testingParams.SearchDepth = 0;
+    testingParams.ThreadCount = 4;
+    testingParams.NodeLimit = 200000;
+
+    // do
+    Search searcher(context);
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    // verify, each thread sees the others' nodes up to 1024 stop checks late, a few thousand nodes over at most.
+    EXPECT_FALSE(result.move().isNull());
+    EXPECT_GE(result.count, 200000u);
+    EXPECT_LT(result.count, 200000u + 4u * 4096u);
+}
+
 }  // namespace ElephantTest

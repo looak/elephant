@@ -18,8 +18,10 @@
 
 #pragma once
 #include <array>
+#include <vector>
 
 #include <core/chessboard.hpp>
+#include <search/search.hpp>
 #include <search/search_constants.hpp>
 #include <search/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
@@ -64,14 +66,74 @@ struct ThreadSearchContext {
 
     u32 stopCheckCounter = 0;
 
-    // Throttled, the clock is only consulted every 1024 calls.
+    // go nodes, 0 = no limit. Checked against the nodes of all threads, with one thread the search is deterministic.
+    u64 nodeLimit = 0;
+
+    // go searchmoves, the only moves searched at the root. Empty = all moves.
+    std::vector<PackedMove> rootMoves;
+
+    // Lazy SMP, every thread searches the same root and they share the TT. Thread 0 is the main thread, it reports,
+    // manages time and its result is the one played. The helpers only fill the TT.
+    u16 threadId = 0;
+    SharedSearchState* shared = nullptr;
+    // this thread's nodes already added to shared->nodes.
+    u64 publishedNodes = 0;
+
+    [[nodiscard]] bool isMainThread() const { return threadId == 0; }
+
+    // adds the nodes searched since the last call to the shared total, every 1024 stop checks & when the thread ends.
+    void publishNodes() {
+        const u64 own = nodeCount + qNodeCount;
+        if (shared != nullptr)
+            shared->nodes.fetch_add(own - publishedNodes, std::memory_order_relaxed);
+        publishedNodes = own;
+    }
+
+    // nodes of all threads, exact for this one and up to 1024 stop checks behind for the others.
+    [[nodiscard]] u64 totalNodes() const {
+        const u64 own = nodeCount + qNodeCount;
+        if (shared == nullptr)
+            return own;
+        return shared->nodes.load(std::memory_order_relaxed) + own - publishedNodes;
+    }
+
+    [[nodiscard]] bool nodeLimitReached() const {
+        return nodeLimit != 0 && totalNodes() >= nodeLimit;
+    }
+
+    [[nodiscard]] bool searchStopped() const {
+        return shared != nullptr && shared->stop.load(std::memory_order_relaxed);
+    }
+
+    // A move parsed from UCI notation carries no capture or special flags, compare what the notation holds.
+    [[nodiscard]] static bool sameUciMove(PackedMove lhs, PackedMove rhs) {
+        return lhs.sourceSqr() == rhs.sourceSqr() && lhs.targetSqr() == rhs.targetSqr()
+            && lhs.isPromotion() == rhs.isPromotion()
+            && (!lhs.isPromotion() || lhs.readPromoteToPieceType() == rhs.readPromoteToPieceType());
+    }
+
+    [[nodiscard]] bool isRootMoveAllowed(PackedMove move) const {
+        for (PackedMove allowed : rootMoves) {
+            if (sameUciMove(allowed, move))
+                return true;
+        }
+        return false;
+    }
+
+    // Throttled, the clock and the main thread's stop are only consulted every 1024 calls. The node limit is checked on
+    // every call so go nodes stops close to exact, the branch is cheap & predictable when no limit is set.
     bool shouldStop() {
         if (stopped)
             return true;
         if (!stopEnabled)
             return false;
-        if ((++stopCheckCounter & 1023) == 0 && clock.shouldStop())
+        if (nodeLimitReached())
             stopped = true;
+        else if ((++stopCheckCounter & 1023) == 0) {
+            publishNodes();
+            if (clock.shouldStop() || searchStopped())
+                stopped = true;
+        }
         return stopped;
     }
 
