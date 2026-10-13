@@ -71,7 +71,9 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 * Search:
     * negamax alpha-beta with principal variation search
     * iterative deepening with aspiration windows
-    * transposition table
+    * multi threaded, Lazy SMP: the threads share the transposition table, helper threads search ahead of the main thread at staggered depths
+    * transposition table: 8 entries to a 64 byte cache line, each entry one lock-free 64-bit word, every megabyte of `Hash` used
+    * draw detection: threefold repetition including the game's earlier positions, fifty move rule
     * quiescence search with delta pruning and static exchange (SEE) pruning
     * check extensions
     * null move pruning with verification, the reduction grows with depth
@@ -93,7 +95,7 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 * API:
     * "user friendly" cli interface
-    * UCI compatible
+    * UCI compatible: `go` with depth, nodes, mate, movetime, clock & increments, infinite, ponder and searchmoves, `info hashfull`, `debug on` shows what the helper threads search
     * OpenBench compatible - https://github.com/AndyGrant/OpenBench
 
 ## Goals & todo
@@ -101,8 +103,7 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 * evaluation: an NNUE trained on the engine's own games
 * search: singular extensions, continuation history, history adjusted reductions, SPSA tuning of the search parameters
 * time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
-* pondering
-* multi threaded search (lazy SMP)
+* pondering, the engine already handles `go ponder` but doesn't advertise the `Ponder` option
 * a terminal UI
 * ~~reach elo 2000~~
 
@@ -171,8 +172,8 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 | Option | Default | Range | |
 |:-------|:-------:|:-----:|:--|
-| `Threads` | 1 | 1–24 | search threads |
-| `Hash` | 8 | 1–1024 | transposition table size in MB |
+| `Threads` | 1 | 1–64 | search threads, Lazy SMP |
+| `Hash` | 8 | 1–32768 | transposition table size in MB, give it more with more threads and longer time controls |
 | `Move Overhead` | 10 | 0–5000 | milliseconds kept in reserve on every move for GUI & network latency, raise it when playing over the internet, e.g. 100 on lichess |
 
 ## Running the tests
@@ -202,9 +203,13 @@ cp hooks/prepare-commit-msg .git/hooks/ && chmod +x .git/hooks/prepare-commit-ms
 
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. The version is written in one place, `version.txt`.
+We use [SemVer](http://semver.org/) for versioning, major.minor.patch. The version is written in one place, `version.txt`, and the engine reports it in its UCI name, `id name Elephant Gambit 1.0.0`. For Elephant the parts mean:
 
-Work happens in cycles focused on one area. A cycle bumps the minor version and labels it with the area, every change in it bumps the patch: `0.13.1-search`, `0.13.2-search`, ... A cycle ends with a release that drops the label, `0.13.3`. The engine reports the full version in its UCI name, `id name Elephant Gambit 0.13.3`.
+* **major**, an engine generation. A new architecture or a change to the UCI options, renamed, removed or behaving differently. 1.0 is the first complete, multi threaded UCI engine, an NNUE evaluation would be 2.0.
+* **minor**, a finished cycle that made the engine stronger or added a feature, verified with SPRT.
+* **patch**, fixes and cleanups without an intended strength change, verified not to lose strength.
+
+Work happens in cycles focused on one area, on a cycle branch with one branch per change, each tested on its own. Builds in a cycle are pre-releases of the version it leads to, labelled with the cycle's name and a counter: `1.0.0-herd.1`, `1.0.0-herd.2`, ... A pre-release sorts before its release, the cycle ends with the release itself, `1.0.0`. Before 1.0 the cycles bumped the minor version and the patch for every change, `0.14.12-search`, released as `0.15.0`.
 
 For the versions available, see the [tags on this repository](https://github.com/looak/elephant/tags). 
 
