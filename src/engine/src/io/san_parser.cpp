@@ -1,6 +1,6 @@
 #include <io/san_parser.hpp>
 #include <diagnostics/exceptions.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move/generation/tusk/move_generator.hpp>
 #include <position/position.hpp>
 #include <variant>
 #include <format>
@@ -69,24 +69,17 @@ namespace san_parser {
 
         std::vector<PrioritizedMove> candidateMoves;
 
-        MoveGenParams params;
-        PackedMove candidate = PackedMove::NullMove();
-        MoveGenerator<us> gen(position, params);
-        do {
-            PrioritizedMove mv = gen.pop();
-            candidate = mv.move;
-
-            if (candidate.isNull() == true)
-                break;
-
+        tusk::CheckInfo<us> checkInfo(position);
+        tusk::MoveGenerator<us> gen(position, checkInfo);
+        tusk::MoveGenResult<us> moves = gen.generateAll();
+        while (PrioritizedMove mv = moves.next()) {
             auto pieceAtSource = position.pieceAt(mv.move.sourceSqr());
             if (pieceAtSource.getType() != piece)
                 continue;
                 
             if (mv.move.targetSqr() == target)
                 candidateMoves.push_back(mv);
-
-        } while(true);
+        }
 
         THROW_EXPR(candidateMoves.size() > 0, ephant::io_error, std::format("san_parser :: No matching moves found for SAN: {}", san));
 

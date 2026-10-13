@@ -4,7 +4,6 @@
 #include <system/platform.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
 #include <position/hash_zobrist.hpp>
 
 #include <future>

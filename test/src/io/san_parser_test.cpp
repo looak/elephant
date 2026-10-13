@@ -26,6 +26,9 @@ public:
 TEST_F(SanParserFixture, ParseValidSan) {
     // setup
     PositionEditor editor(testingPosition);
+    // kings on both sides, a legal position: the move generator assumes one.
+    editor.placePiece(piece_constants::white_king, Square::E1);
+    editor.placePiece(piece_constants::black_king, Square::E8);
     editor.placePiece(piece_constants::white_pawn, Square::E2);
     std::string san = "e4";
     bool whiteToMove = true;
@@ -46,6 +49,9 @@ TEST_F(SanParserFixture, ParseInvalidSan) {
 #else
     // setup
     PositionEditor editor(testingPosition);
+    // kings on both sides, a legal position: the move generator assumes one.
+    editor.placePiece(piece_constants::white_king, Square::E1);
+    editor.placePiece(piece_constants::black_king, Square::E8);
     editor.placePiece(piece_constants::white_pawn, Square::E2);
     std::string san = "e9";  // invalid square
     bool whiteToMove = true;

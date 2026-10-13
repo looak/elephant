@@ -51,9 +51,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 
 ## /move/...
     ${TEST_SRC_DIR}/move/checkmate_test.cpp
-    ${TEST_SRC_DIR}/move/move_bulk_generator_test.cpp
     ${TEST_SRC_DIR}/move/move_executor_test.cpp
-    ${TEST_SRC_DIR}/move/move_gen_isolation_test.cpp
     ${TEST_SRC_DIR}/move/move_generator_test.cpp
     ${TEST_SRC_DIR}/move/packed_move_test.cpp
     ${TEST_SRC_DIR}/move/tusk_move_generator_test.cpp
