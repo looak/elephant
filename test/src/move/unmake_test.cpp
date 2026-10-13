@@ -94,7 +94,7 @@ public:
 // 2 [   ][   ][   ][   ][ P ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-// 1. e3, unmake, e4, unmake.
+// 1. e3, unmake, e4, unmake, then with a black pawn on d4: e4, unmake.
 TEST_P(UnmakeFixture, Pawn_SimpleMoves)
 {
     // setup
@@ -126,7 +126,15 @@ TEST_P(UnmakeFixture, Pawn_SimpleMoves)
 
     PackedMove moveE4(Square::E2, Square::E4);
 
-    // do e4 move
+    // do e4 move, no black pawn stands beside e4 so no en passant square is recorded (or hashed).
+    m_game.MakeMove<true>(moveE4);
+    EXPECT_FALSE(editor.enPassant());
+    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_EQ(orgHash, editor.hash());
+
+    // with a black pawn on d4 able to capture en passant, e4 records e3.
+    editor.placePiece(piece_constants::black_pawn, Square::D4);
+    orgHash = editor.hash();
     m_game.MakeMove<true>(moveE4);
 
     // verify

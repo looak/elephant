@@ -82,21 +82,20 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
 template void MoveExecutor::makeMove<true>(const PackedMove, MoveUndoUnit&, u16&);
 template void MoveExecutor::makeMove<false>(const PackedMove, MoveUndoUnit&, u16&);
 
-void MoveExecutor::internalUpdateEnPassant(Square source, Square target)
+void MoveExecutor::internalUpdateEnPassant(Square source, Square target, Set set)
 {
     // reset enpassant cached values before updating en passant
     m_position.enPassant().clear();
 
     i16 dif = to_rank(source) - to_rank(target);
-    if (abs(dif) == 2)  { // we made a enpassant move, calculate the enpassant square made available for pawn capture.
-        dif = dif / 2;
+    if (abs(dif) == 2)  { // double push, the square behind the pawn becomes available for en passant capture.
+        // only record (and hash) it when an enemy pawn stands beside the pushed pawn, otherwise the position is
+        // identical to the same one reached without a double push and repetitions must see equal hashes.
+        const u64 capturers = m_position.material().read(Set(opposing_set(toSetId(set))), pawnId).read();
+        if (!en_passant::capture_possible(capturers, target))
+            return;
 
-        Square epSqr = Square::NullSQ;
-        if (dif < 0)
-            epSqr = shift_north(source);
-        else
-            epSqr = shift_south(source);
-        // Square sqr = SquareNotation(to_file(source), to_rank(source) - checked_cast<u8>(dif)).toSquare();
+        const Square epSqr = dif < 0 ? shift_north(source) : shift_south(source);
         m_position.enPassant().writeSquare(epSqr);
     }
 }
@@ -115,7 +114,7 @@ MoveExecutor::internalHandlePawnMove(const PackedMove move, Set set, MutableMate
         // could validate that there is a pawn on the target square.
     }
 
-    internalUpdateEnPassant(move.sourceSqr(), move.targetSqr());
+    internalUpdateEnPassant(move.sourceSqr(), move.targetSqr(), set);
 
     if (move.isPromotion()) {
         const ChessPiece promote(set, static_cast<PieceType>(move.readPromoteToPieceType()));

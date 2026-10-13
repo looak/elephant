@@ -5,6 +5,7 @@
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
+#include <search/search_heuristic_structures.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -809,6 +810,137 @@ TEST_F(UciFixture, position_moves_PawnOntoEnPassantSquare_CapturesEnPassant)
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
     EXPECT_EQ("4k3/8/3P4/8/8/8/8/4K3 b - - 0 41", outputFen);
+}
+
+
+////////////////////////////////////////////////////////////////
+// From a fastchess game which reported "PV continues after threefold repetition". h2h4 used to record (and hash) an en
+// passant square on h3 although no black pawn stood on g4 to capture it, so the position after h2h4 hashed differently
+// from the same position reached later by f3f4 and the third occurrence went unnoticed. The en passant square is now only
+// recorded when an enemy pawn stands beside the pushed pawn.
+namespace repetition_game {
+const std::string fen = "r1bqkb1r/1p1n1ppp/p1p1pn2/2Pp4/3P2P1/2N1BN2/PP2PP1P/R2QKB1R w KQkq - 1 9";
+const std::string movesUntilH4 =
+    "g4g5 f6h5 a1c1 b7b6 f1h3 b6c5 h3g4 g7g6 d4c5 f8g7 e1g1 e8g8 d1a4 c8b7 e3d2 a8b8 b2b4 d8e7 c1d1 d7e5 f3e5 g7e5 "
+    "f2f4 h5f4 f1f4 h7h5 g5h6 e7h4 g1h1 e5f4 d2f4 h4g4 f4b8 f8b8 a4a3 g4h5 a3c1 e6e5 d1g1 b7c8 c1g5 h5g5 g1g5 c8f5 "
+    "a2a3 d5d4 c3a4 g8h7 a4b6 h7h6 g5g3 e5e4 g3g1 d4d3 h1g2 b8d8 e2d3 e4d3 b6c4 d8d4 c4d2 a6a5 g1b1 a5b4 a3b4 h6g7 "
+    "g2g3 d4g4 g3f2 g4h4 d2f3 h4c4 f3d2 c4f4 f2g3 f4g4 g3f2 g7f6 b4b5 c6b5 b1b5 f6e5 b5b7 e5d5 b7f7 g4h4 d2f3 h4f4 "
+    "f7f8 d5c5 f8d8 c5c4 f2g3 f4g4 g3f2 c4c3 d8d6 g4e4 d6c6 c3b2 f2g3 e4e2 c6d6 b2c3 d6c6 c3b2 c6d6 e2c2 g3f4 c2c4 "
+    "f4e3 c4e4 e3f2 b2c3 d6c6 c3b4 c6d6 e4e2 f2g3 b4c3 d6c6 c3b4 c6d6 f5e4 d6d7 b4c3 f3d4 e2e1 d4b5 c3b4 b5c7 e1e3 "
+    "g3f4 e3e2 d7d4 b4b3 h2h4";
+// the game continued, then the engine (white) played f4f3 f5e4 f3f4 in its PV.
+const std::string movesAfterH4 = "e4f5 f4f3 f5e4 f3f4 e4f5";
+}  // namespace repetition_game
+
+// Threefold repetition of the current position, judged the way the search does: the hashes before every game move
+// plus the current one.
+static bool isThreefold(const GameContext& context)
+{
+    MoveHistory history;
+    for (const auto& undoUnit : context.readGameHistory().moveUndoUnits)
+        history.push(undoUnit.hash);
+    const u64 hash = context.readChessPosition().hash();
+    history.push(hash);
+    return history.isRepetition(hash, context.readPly());
+}
+
+TEST_F(UciFixture, position_DoublePushWithoutCapturer_RepetitionDetected)
+{
+    m_uci.Enable();
+    std::list<std::string> args;
+
+    // after h2h4, no black pawn on g4 could capture on h3 so there's no en passant square.
+    extractArgsFromCommand("fen " + repetition_game::fen + " moves " + repetition_game::movesUntilH4, args);
+    ASSERT_TRUE(m_uci.Position(args));
+    {
+        const auto position = m_uci.readGameContext().readChessPosition();
+        EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
+        EXPECT_EQ(WHITEPAWN, position.pieceAt(Square::H4));
+        EXPECT_EQ(WHITEKING, position.pieceAt(Square::F4));
+        EXPECT_EQ(BLACKBISHOP, position.pieceAt(Square::E4));
+        EXPECT_NE(BLACKPAWN, position.pieceAt(Square::G4));
+        EXPECT_FALSE(position.enPassant());
+    }
+    const u64 afterH4 = m_uci.readGameContext().readChessPosition().hash();
+    EXPECT_FALSE(isThreefold(m_uci.readGameContext()));
+
+    // e4f5 f4f3 f5e4 f3f4 reaches it a second time, not yet a draw.
+    args.clear();
+    extractArgsFromCommand("fen " + repetition_game::fen + " moves " + repetition_game::movesUntilH4 + " e4f5 f4f3 f5e4 f3f4", args);
+    ASSERT_TRUE(m_uci.Position(args));
+    EXPECT_EQ(afterH4, m_uci.readGameContext().readChessPosition().hash());
+    EXPECT_FALSE(isThreefold(m_uci.readGameContext()));
+
+    // the game moves then the engine's PV f4f3 f5e4 f3f4 reaches it a third time.
+    args.clear();
+    extractArgsFromCommand("fen " + repetition_game::fen + " moves " + repetition_game::movesUntilH4 + " " +
+                           repetition_game::movesAfterH4 + " f4f3 f5e4 f3f4", args);
+    ASSERT_TRUE(m_uci.Position(args));
+    EXPECT_EQ(afterH4, m_uci.readGameContext().readChessPosition().hash());
+    EXPECT_TRUE(isThreefold(m_uci.readGameContext()));
+}
+
+// After the game moves and f4f3 f5e4, white (worse off) can claim the draw with f3f4, the position after h2h4 for the
+// third time. The search has to see it as a draw and the PV must stop there, like fastchess checks.
+TEST_F(UciFixture, go_DoublePushWithoutCapturer_PVStopsAtRepetition)
+{
+    m_uci.Enable();
+    const std::string gameMoves = repetition_game::movesUntilH4 + " " + repetition_game::movesAfterH4 + " f4f3 f5e4";
+    std::list<std::string> args;
+    extractArgsFromCommand("fen " + repetition_game::fen + " moves " + gameMoves, args);
+    ASSERT_TRUE(m_uci.Position(args));
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        ASSERT_TRUE(m_uci.Go({ "depth", "10" }));
+    }
+
+    // last pv printed.
+    std::string pv;
+    std::string line;
+    while (std::getline(testOutput, line)) {
+        const size_t at = line.find(" pv ");
+        if (at != std::string::npos)
+            pv = line.substr(at + 4);
+    }
+    std::list<std::string> pvMoves;
+    extractArgsFromCommand(pv, pvMoves);
+    pvMoves.remove("");
+    ASSERT_FALSE(pvMoves.empty()) << testOutput.str();
+    EXPECT_EQ("f3f4", pvMoves.front()) << pv;
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove f3f4"));
+
+    // replay the game & pv one move at a time and compare positions by FEN (pieces, side to move & castling, without the
+    // en passant field) instead of hashes, so the check doesn't share the engine's hashing. No pv move may follow a
+    // threefold repetition. Dropping the en passant field entirely is fine here, no en passant capture is possible.
+    std::list<std::string> allMoves;
+    extractArgsFromCommand(gameMoves, allMoves);
+    const size_t gameLength = allMoves.size();
+    allMoves.insert(allMoves.end(), pvMoves.begin(), pvMoves.end());
+
+    std::vector<std::string> keys;
+    std::string played;
+    for (size_t ply = 0; ply <= allMoves.size(); ++ply) {
+        if (ply > 0)
+            played += " " + *std::next(allMoves.begin(), static_cast<std::ptrdiff_t>(ply - 1));
+        args.clear();
+        extractArgsFromCommand("fen " + repetition_game::fen + (played.empty() ? "" : " moves" + played), args);
+        ASSERT_TRUE(m_uci.Position(args));
+        std::string fen;
+        io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), fen);
+        std::list<std::string> fields;
+        extractArgsFromCommand(fen, fields);
+        keys.push_back(fields.front() + " " + *std::next(fields.begin()) + " " + *std::next(fields.begin(), 2));
+
+        if (ply <= gameLength)
+            continue;
+        if (std::count(keys.begin(), keys.end(), keys.back()) >= 3) {
+            EXPECT_EQ(allMoves.size(), ply) << "PV continues after threefold repetition: " << pv;
+            break;
+        }
+    }
+    EXPECT_EQ(3, std::count(keys.begin(), keys.end(), keys[gameLength + 1])) << "f3f4 should be the third occurrence";
 }
 
 }  // namespace ElephantTest

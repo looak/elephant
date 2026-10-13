@@ -56,7 +56,7 @@ private:
     bool internalHandleKingMove(const PackedMove move, Set set, Square& targetRook, Square& rookMove, MoveUndoUnit& undoState);
     void internalHandleKingRookMove(const ChessPiece piece, const PackedMove move, MoveUndoUnit& undoState);
     void internalHandleCapture(const PackedMove move, const Square pieceTarget, MoveUndoUnit& undoState);
-    void internalUpdateEnPassant(Square source, Square target);
+    void internalUpdateEnPassant(Square source, Square target, Set set);
 
     // a piece entered or left a square, forwarded to the accumulator.
     void pieceAdded(ChessPiece piece, Square square) { if (m_accumulator) m_accumulator->add(piece, square); }
