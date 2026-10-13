@@ -181,8 +181,8 @@ Either run the output binary `ElephantTest` after build or browse to `.\build\` 
 
 | Tier | Runs | Takes | What |
 |:--|:--|:--|:--|
-| smoke | `test/smoke.sh` (`test\smoke.ps1` from PowerShell) | about nine minutes | the local sanity check before a merge: unit tests, perft, bench, then WAC with 1 & 4 threads, Arasan 2024 with 4 threads and STS |
-| extended | `ElephantSuite --gtest_filter=EpdSuite.Extended*` | about 25 minutes | the same suites with more budget and Arasan 2024 with 1 thread too, CI runs it with perft on pull requests to main |
+| smoke | `test/smoke.sh` (`test\smoke.ps1` from PowerShell) | under a minute | the local sanity check before a merge: unit tests, perft, bench, then WAC with 1 & 4 threads and the first 25 positions of each STS theme, at low node counts |
+| extended | `ElephantSuite --gtest_filter=EpdSuite.Extended*` | about 25 minutes | WAC and all of STS with more budget, plus Arasan 2024 with 1 & 4 threads, CI runs it with perft on pull requests to main |
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. `EG_EPD_NODES`, `EG_EPD_DEPTH`, `EG_EPD_MOVETIME`, `EG_EPD_THREADS`, `EG_EPD_HASH` and `EG_EPD_MIN_PASSED` override a suite's settings for experiments, see `test/suite/epd_suite_test.cpp`. Every run appends its score to `logs/epd_results.csv`.
 
