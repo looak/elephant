@@ -360,7 +360,7 @@ TEST_F(UciFixture, position_PromotingPawn)
 
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
-    EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 1 1", outputFen.c_str());
+    EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 0 1", outputFen.c_str());  // a promotion is a pawn move, the clock resets
 }
 
 }  // namespace ElephantTest

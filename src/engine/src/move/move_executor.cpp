@@ -43,6 +43,9 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     undoUnit.enPassantState.write(m_position.enPassant().read());
     undoUnit.castlingState.write(m_position.castling().read());
 
+    // fifty move rule counter, a pawn move or a capture resets it below.
+    plyCount++;
+
     switch (movingPiece.getType()) {
     case PieceType::PAWN:
         // updating pieceTarget since if we're capturing enpassant the target will be on a
@@ -62,8 +65,6 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
         m_position.enPassant().clear();
     }
 
-    plyCount++;  // increment ply count on non-capture move
-    
     if (move.isCapture())
     {
         internalHandleCapture(move, captureTarget, undoUnit);
