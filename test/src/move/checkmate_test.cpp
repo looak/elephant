@@ -6,7 +6,7 @@
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move_gen_ab.hpp>
 
 namespace ElephantTest
 {
@@ -21,7 +21,7 @@ namespace ElephantTest
  * @author Alexander Loodin Ek *
  */
 
-class CheckmateFixture : public ::testing::Test
+class CheckmateFixture : public ::testing::TestWithParam<Generator>
 {
 public:
     enum class Outcome { Playing, Checkmate, Stalemate };
@@ -43,36 +43,29 @@ public:
     template<Set set>
     Outcome outcome()
     {
-        MoveGenParams params;
-        MoveGenerator<set> gen(m_context.readChessPosition(), params);
-        if (gen.pop().move.isNull() == false)
+        bool anyMove = false;
+        forEachLegalMove<set>(GetParam(), m_context.readChessPosition(), [&](PackedMove) { anyMove = true; });
+        if (anyMove)
             return Outcome::Playing;
-        return gen.isChecked() ? Outcome::Checkmate : Outcome::Stalemate;
+        return isChecked<set>(GetParam(), m_context.readChessPosition()) ? Outcome::Checkmate : Outcome::Stalemate;
     }
 
     std::vector<PackedMove> legalMoves()
     {
         std::vector<PackedMove> moves;
-        MoveGenParams params;
-        if (m_context.readToPlay() == Set::WHITE) {
-            MoveGenerator<Set::WHITE> gen(m_context.readChessPosition(), params);
-            while (PackedMove mv = gen.pop().move)
-                moves.push_back(mv);
-        }
-        else {
-            MoveGenerator<Set::BLACK> gen(m_context.readChessPosition(), params);
-            while (PackedMove mv = gen.pop().move)
-                moves.push_back(mv);
-        }
+        auto add = [&](PackedMove mv) { moves.push_back(mv); };
+        if (m_context.readToPlay() == Set::WHITE)
+            forEachLegalMove<Set::WHITE>(GetParam(), m_context.readChessPosition(), add);
+        else
+            forEachLegalMove<Set::BLACK>(GetParam(), m_context.readChessPosition(), add);
         return moves;
     }
 
     bool sideToMoveIsChecked()
     {
-        MoveGenParams params;
         if (m_context.readToPlay() == Set::WHITE)
-            return MoveGenerator<Set::WHITE>(m_context.readChessPosition(), params).isChecked();
-        return MoveGenerator<Set::BLACK>(m_context.readChessPosition(), params).isChecked();
+            return isChecked<Set::WHITE>(GetParam(), m_context.readChessPosition());
+        return isChecked<Set::BLACK>(GetParam(), m_context.readChessPosition());
     }
 
     GameContext m_context;
@@ -91,7 +84,7 @@ public:
 //    A  B  C  D  E  F  G  H
 // 3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1
 // Black to move, checkmate in 1 move, Qxd1#.
-TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
+TEST_P(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
 {
     setup("3qk3/8/8/8/8/8/5PPP/3R2K1 b - - 0 1");
 
@@ -124,7 +117,7 @@ TEST_F(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
 //    A  B  C  D  E  F  G  H
 // k7/2Q5/1K6/8/8/8/8/8 b - - 0 1
 // Black to move but they're in stalemate.
-TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
+TEST_P(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
 {
     setup("k7/2Q5/1K6/8/8/8/8/8 b - - 0 1");
 
@@ -136,7 +129,7 @@ TEST_F(CheckmateFixture, BlackToMoveInStalemate_Black_Stalemate)
 
 // r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4
 // Scholar's mate, the queen on f7 is guarded by the bishop.
-TEST_F(CheckmateFixture, ScholarsMate_Black_Checkmate)
+TEST_P(CheckmateFixture, ScholarsMate_Black_Checkmate)
 {
     setup("r1bqkbnr/ppp2Qpp/2np4/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 0 4");
 
@@ -146,7 +139,7 @@ TEST_F(CheckmateFixture, ScholarsMate_Black_Checkmate)
 
 // r1bqkbnr/ppp2ppp/2np4/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 2 4
 // the queen on h5 has 13 moves, 3 of them captures, Qxe5+ & Qxf7# give check and Qxf7 mates.
-TEST_F(CheckmateFixture, ScholarsMateQueenMovesIntoMate_White_OneCheckmate)
+TEST_P(CheckmateFixture, ScholarsMateQueenMovesIntoMate_White_OneCheckmate)
 {
     setup("r1bqkbnr/ppp2ppp/2np4/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 2 4");
 
@@ -175,5 +168,7 @@ TEST_F(CheckmateFixture, ScholarsMateQueenMovesIntoMate_White_OneCheckmate)
     EXPECT_EQ(2, checks);
     EXPECT_EQ(1, checkmates);
 }
+
+ELEPHANT_MOVE_GEN_AB(CheckmateFixture);
 
 } // namespace ElephantTest

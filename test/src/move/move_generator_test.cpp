@@ -8,7 +8,7 @@
 
 #include <io/fen_parser.hpp>
 #include <core/game_context.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move_gen_ab.hpp>
 
 
 #include "bitboard_test_helpers.hpp"
@@ -17,43 +17,41 @@ namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
 /**
  * @file move_generator_test.cpp
- * @brief Fixture for testing move generator.
+ * @brief Fixture for testing move generation, every test runs against both generators (move_gen_ab.hpp).
  * Naming convention as of May 2023: <TestedFunctionality>_<TestedColor>_<ExpectedResult>
  * @author Alexander Loodin Ek
  */
-class MoveGeneratorFixture : public ::testing::Test {
+class MoveGeneratorFixture : public ::testing::TestWithParam<Generator> {
 public:
-    virtual void SetUp() {
-        testParams.setAll(true);
-    };
-    virtual void TearDown() {};
-
     using MovePredicate = std::function<bool(const PackedMove&)>;
-
-    template<Set t_set>
-    Bitboard buildMoveMask(MoveGenerator<t_set>& gen, MovePredicate pred = nullptr) const
-    {
-        Bitboard result;
-        while (auto mv = gen.pop().move) {
-            if (pred && !pred(mv))
-                continue;
-
-            result[mv.targetSqr()] = true;
-        }
-        return result;
-    }
 
     // every move the generator hands out for us in the current position, those matching pred when one is given.
     template<Set us>
     std::vector<PackedMove> collectMoves(MovePredicate pred = nullptr)
     {
-        MoveGenerator<us> gen(testContext.readChessPosition(), testParams);
         std::vector<PackedMove> result;
-        while (PackedMove mv = gen.pop().move) {
+        auto add = [&](PackedMove mv) {
             if (!pred || pred(mv))
                 result.push_back(mv);
-        }
+        };
+        forEachLegalMove<us>(GetParam(), testContext.readChessPosition(), add);
         return result;
+    }
+
+    // the target squares of us' moves, those matching pred when one is given.
+    template<Set us>
+    Bitboard moveMask(MovePredicate pred = nullptr)
+    {
+        Bitboard result;
+        for (PackedMove mv : collectMoves<us>(pred))
+            result[mv.targetSqr()] = true;
+        return result;
+    }
+
+    template<Set us>
+    bool isChecked()
+    {
+        return ElephantTest::isChecked<us>(GetParam(), testContext.readChessPosition());
     }
 
     // sets the board up from fen and returns the moves of the side to move, those matching pred when one is given.
@@ -68,8 +66,8 @@ public:
     bool sideToMoveIsChecked()
     {
         if (testContext.readToPlay() == Set::WHITE)
-            return WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked();
-        return BlackMoveGen(testContext.readChessPosition(), testParams).isChecked();
+            return isChecked<Set::WHITE>();
+        return isChecked<Set::BLACK>();
     }
 
     static MovePredicate from(Square source)
@@ -122,26 +120,19 @@ public:
     }
 
     GameContext testContext;
-    MoveGenParams testParams;
 };
 ////////////////////////////////////////////////////////////////
 
 // move generator asserts if the board is empty
-TEST_F(MoveGeneratorFixture, Empty)
+TEST_P(MoveGeneratorFixture, Empty)
 {
-    MoveGenerator<Set::WHITE> whiteGen(testContext.readChessPosition(), testParams);
-    MoveGenerator<Set::BLACK> blackGen(testContext.readChessPosition(), testParams);
-
-    PackedMove whiteMove = whiteGen.pop().move;
-    PackedMove blackMove = blackGen.pop().move;
-
-    EXPECT_TRUE(whiteMove.isNull());
-    EXPECT_TRUE(blackMove.isNull());
+    EXPECT_TRUE(collectMoves<Set::WHITE>().empty());
+    EXPECT_TRUE(collectMoves<Set::BLACK>().empty());
 }
 
 /** Most basic move generation test, a king in the middle of the board with no other pieces,
 * should have eight moves available. */
-TEST_F(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
+TEST_P(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
 {
     using enum Square;
 
@@ -158,15 +149,13 @@ TEST_F(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
         D3, E3, F3
     );
 
-    WhiteMoveGen gen(testContext.readChessPosition(), testParams);
-
-    Bitboard result = buildMoveMask(gen);
+    Bitboard result = moveMask<Set::WHITE>();
     EXPECT_EQ(expected, result);
 }
 
 /** Most basic move generation test, a king in the middle of the board with no other pieces,
 * should have eight moves available. */
-TEST_F(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
+TEST_P(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
 {
     using enum Square;
 
@@ -183,25 +172,23 @@ TEST_F(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
         D3, E3, F3
     );
 
-    BlackMoveGen gen(testContext.readChessPosition(), testParams);
-
-    Bitboard result = buildMoveMask(gen);
+    Bitboard result = moveMask<Set::BLACK>();
     EXPECT_EQ(expected, result);
 }
 
-TEST_F(MoveGeneratorFixture, KingFromE1_White_FiveMovesAvailable)
+TEST_P(MoveGeneratorFixture, KingFromE1_White_FiveMovesAvailable)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
     EXPECT_EQ(5u, result.size());
 }
 
-TEST_F(MoveGeneratorFixture, KingFromE8_Black_FiveMovesAvailable)
+TEST_P(MoveGeneratorFixture, KingFromE8_Black_FiveMovesAvailable)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/8/4K3 b - - 0 1");
     EXPECT_EQ(5u, result.size());
 }
 
-TEST_F(MoveGeneratorFixture, KingAndPawn_White_PawnBlocksOneMoveOfKingButHasDoublePushAvailable)
+TEST_P(MoveGeneratorFixture, KingAndPawn_White_PawnBlocksOneMoveOfKingButHasDoublePushAvailable)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1");
     EXPECT_EQ(6u, result.size());
@@ -217,7 +204,7 @@ TEST_F(MoveGeneratorFixture, KingAndPawn_White_PawnBlocksOneMoveOfKingButHasDoub
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // the king can capture the knight on d7 but can't move to f8 since the knight covers it.
-TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnight)
+TEST_P(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnight)
 {
     auto result = legalMoves("4k3/3N4/8/8/8/8/8/4K3 b - - 0 1");
 
@@ -235,7 +222,7 @@ TEST_F(MoveGeneratorFixture, KingMoveGeneration_Black_KingCanCaptureOpponentKnig
 //     A    B    C    D    E    F    G    H
 // valid moves: e2, f2, d1
 // can not capture knight on d2 since it is guarded by rook on d8, f1 is covered by the knight.
-TEST_F(MoveGeneratorFixture, King_GuardedPiece_CanNotCaptureKnight)
+TEST_P(MoveGeneratorFixture, King_GuardedPiece_CanNotCaptureKnight)
 {
     auto result = legalMoves("3rk3/8/8/8/8/8/3n4/4K3 w - - 0 1");
 
@@ -251,7 +238,7 @@ TEST_F(MoveGeneratorFixture, King_GuardedPiece_CanNotCaptureKnight)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, King_Castling_QueenSideCastlingAvailable)
+TEST_P(MoveGeneratorFixture, King_Castling_QueenSideCastlingAvailable)
 {
     auto result = legalMoves("r3k3/8/8/8/8/8/8/4K3 b q - 0 1", from(Square::E8));
 
@@ -273,7 +260,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_QueenSideCastlingAvailable)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, King_Castling_KingAndQueenSideCastlingAvailable)
+TEST_P(MoveGeneratorFixture, King_Castling_KingAndQueenSideCastlingAvailable)
 {
     auto result = legalMoves("r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1", from(Square::E8));
 
@@ -292,7 +279,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_KingAndQueenSideCastlingAvailable)
 //     A    B    C    D    E    F    G    H
 // valid king moves: d8, f8, d7, e7
 // can not castle since we are in check.
-TEST_F(MoveGeneratorFixture, King_InCheck_CanNotCastle)
+TEST_P(MoveGeneratorFixture, King_InCheck_CanNotCastle)
 {
     auto result = legalMoves("r3k3/8/3N4/8/8/8/8/4K3 b q - 0 1", from(Square::E8));
 
@@ -309,7 +296,7 @@ TEST_F(MoveGeneratorFixture, King_InCheck_CanNotCastle)
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: f2, d1
-TEST_F(MoveGeneratorFixture, King_DoubleCheck_OnlyValidMovesAreToMoveKing)
+TEST_P(MoveGeneratorFixture, King_DoubleCheck_OnlyValidMovesAreToMoveKing)
 {
     auto result = legalMoves("3rk3/4r3/8/8/8/5n2/3n2P1/4K3 w - - 0 1");
 
@@ -327,7 +314,7 @@ TEST_F(MoveGeneratorFixture, King_DoubleCheck_OnlyValidMovesAreToMoveKing)
 //     A    B    C    D    E    F    G    H
 // valid moves: e2, f2, d1
 // can not capture knight on d2 since it is guarded by rook on d8.
-TEST_F(MoveGeneratorFixture, King_Checked_CanNotCaptureGuardedPiece)
+TEST_P(MoveGeneratorFixture, King_Checked_CanNotCaptureGuardedPiece)
 {
     auto result = legalMoves("3rk3/8/8/8/8/5n2/3n4/4K3 w - - 0 1");
 
@@ -344,7 +331,7 @@ TEST_F(MoveGeneratorFixture, King_Checked_CanNotCaptureGuardedPiece)
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: e2, f2, f1
-TEST_F(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheck)
+TEST_P(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheck)
 {
     auto result = legalMoves("3rk3/8/8/8/8/8/8/4K3 w - - 0 1");
 
@@ -361,7 +348,7 @@ TEST_F(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheck)
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: d2, e2, f2
-TEST_F(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheckKnightVariation)
+TEST_P(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheckKnightVariation)
 {
     auto result = legalMoves("4k3/8/8/8/8/4n3/8/4K3 w - - 0 1");
 
@@ -377,7 +364,7 @@ TEST_F(MoveGeneratorFixture, King_NotChecked_CanNotMoveIntoCheckKnightVariation)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, King_Check_CaptureCheckingPawn)
+TEST_P(MoveGeneratorFixture, King_Check_CaptureCheckingPawn)
 {
     auto result = legalMoves("4k3/5P2/8/8/8/8/8/4K3 b - - 0 1");
 
@@ -401,7 +388,7 @@ TEST_F(MoveGeneratorFixture, King_Check_CaptureCheckingPawn)
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // the knight covers d8, which the king passes when castling queen side.
-TEST_F(MoveGeneratorFixture, King_Castling_CanNotQueenSideCastleBecauseItsBlockedByKnight)
+TEST_P(MoveGeneratorFixture, King_Castling_CanNotQueenSideCastleBecauseItsBlockedByKnight)
 {
     auto result = legalMoves("r3k3/8/2N5/8/8/8/8/4K3 b q - 0 1", from(Square::E8));
 
@@ -417,7 +404,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_CanNotQueenSideCastleBecauseItsBlocke
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, King_Castling_CanNotCastleInCheck)
+TEST_P(MoveGeneratorFixture, King_Castling_CanNotCastleInCheck)
 {
     auto result = legalMoves("r3k2r/8/8/1B6/8/8/8/4K3 b kq - 0 1");
 
@@ -425,7 +412,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_CanNotCastleInCheck)
 }
 
 // both castles are available, the rook on a2 covers the king's other squares and both rooks are attacked.
-TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
+TEST_P(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
 {
     auto result = legalMoves("1B2k2r/1b4bq/8/8/8/8/r7/R3K2R w KQ - 2 2");
 
@@ -443,7 +430,7 @@ TEST_F(MoveGeneratorFixture, King_Castling_MoreCastlingIssues)
  * 3 . . . . P . . p
  * 2 . . . . P P . P
  * 1 . . . . K . . .  */
-TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
+TEST_P(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward)
 {
     // b6 1 move, e2 blocked by e3, e3 1 move, f2 2 moves, g5 blocked by the knight, g7 4 promotions, h2 blocked by h3.
     auto result = legalMoves("4k3/6P1/1P4n1/6P1/8/4P2p/4PP1P/4K3 w - - 0 1", pieceType(PieceType::PAWN));
@@ -451,7 +438,7 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_White_BlockedPiecesCanNotMoveForward
     EXPECT_EQ(8u, result.size());
 }
 
-TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
+TEST_P(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
 {
     // c5, fxg5, cxd4, e4, exd4 and five king moves.
     auto white = legalMoves("4k3/8/8/5pp1/2Pp1P2/2P1P3/8/4K3 w - - 0 1");
@@ -463,7 +450,7 @@ TEST_F(MoveGeneratorFixture, PawnBasicMoves_WhiteAndBlack_SimpleCaptures)
     EXPECT_EQ(3u, black.size());
 }
 
-TEST_F(MoveGeneratorFixture, PawnPromotion)
+TEST_P(MoveGeneratorFixture, PawnPromotion)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/p7/4K3 b - - 0 1", isPromotion);
 
@@ -480,7 +467,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotion)
     EXPECT_TRUE(found[3]);  // queen
 }
 
-TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
+TEST_P(MoveGeneratorFixture, PawnPromotionCapture)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/p7/1R2K3 b - - 0 1", isPromotion);
 
@@ -504,7 +491,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCapture)
     EXPECT_TRUE(found[7]);  // queen capture
 }
 
-TEST_F(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
+TEST_P(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
 {
     auto result = legalMoves("4k3/8/5n2/8/4N3/8/8/4K3 w - - 0 1");
     EXPECT_EQ(13u, result.size());
@@ -514,7 +501,7 @@ TEST_F(MoveGeneratorFixture, KnightMoveGeneration_White_OneCaptureNonBlocked)
     EXPECT_EQ(1u, countIf(knightMoves, isCapture));
 }
 
-TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
+TEST_P(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
 {
     {  // knight on a1 has two moves, plus five king moves.
         auto result = legalMoves("4k3/8/8/8/8/8/8/N3K3 w - - 0 1");
@@ -540,7 +527,7 @@ TEST_F(MoveGeneratorFixture, KnightsInAllCorner_White_EightAvailableMoves)
 // valid moves:
 // a1=Q, a1=R, a1=B, a1=N, b1=Q+ b1=R+, b1=B, b1=N and five king moves.
 // 8 promotions, 4 of which are captures, two of which are checks.
-TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
+TEST_P(MoveGeneratorFixture, PawnPromotionCaptureCheck)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/p7/1R4K1 b - - 0 1");
 
@@ -570,7 +557,7 @@ TEST_F(MoveGeneratorFixture, PawnPromotionCaptureCheck)
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // the rook covers d5, d6, b7 & c7 and is guarded by the king.
-TEST_F(MoveGeneratorFixture, King_Threat_CantCaptureGuardedByKing)
+TEST_P(MoveGeneratorFixture, King_Threat_CantCaptureGuardedByKing)
 {
     auto result = legalMoves("4k3/3r4/2K5/8/8/8/8/8 w - - 0 1");
 
@@ -587,7 +574,7 @@ TEST_F(MoveGeneratorFixture, King_Threat_CantCaptureGuardedByKing)
 // 1 [   ][   ][   ][   ][ K ][ R ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // Only valid move for bishop is to capture the pawn.
-TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BishopOnlyHasOneMove)
+TEST_P(MoveGeneratorFixture, Bishop_KingInCheck_BishopOnlyHasOneMove)
 {
     auto result = legalMoves("4k1b1/5P2/8/8/8/8/8/4KR2 b - - 0 1");
     EXPECT_EQ(5u, result.size());
@@ -605,7 +592,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BishopOnlyHasOneMove)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][ K ][ R ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, Bishop_Pinned_NoValidMoves)
+TEST_P(MoveGeneratorFixture, Bishop_Pinned_NoValidMoves)
 {
     auto result = legalMoves("4k3/8/8/4b3/8/8/8/3KR3 b - - 0 1", from(Square::E5));
 
@@ -613,7 +600,7 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NoValidMoves)
 }
 
 // the queen pins the bishop on c1 and the bishop on a5 pins the rook, only the king can move.
-TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToMoveFromOnePinToAnother)
+TEST_P(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToMoveFromOnePinToAnother)
 {
     auto result = legalMoves("6k1/8/8/b7/1R6/8/8/q1B1K3 w - - 0 1");
 
@@ -632,7 +619,7 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToMoveFromOnePinToAnother)
 //     A    B    C    D    E    F    G    H
 // found an edge case where a pinned piece would be allowed to capture
 // a different piece than the one pinning it.
-TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
+TEST_P(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
 {
     auto result = legalMoves("4k3/8/8/4b3/8/6N1/8/3KR3 b - - 0 1", from(Square::E5));
 
@@ -648,7 +635,7 @@ TEST_F(MoveGeneratorFixture, Bishop_Pinned_NotAllowedToCapture)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][ R ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, Rook_Captures_TwoRooksCanCaptureSamePiece)
+TEST_P(MoveGeneratorFixture, Rook_Captures_TwoRooksCanCaptureSamePiece)
 {
     auto rookMoves = pieceType(PieceType::ROOK);
     auto result = legalMoves("R6r/4k3/8/8/8/8/8/4K2R w - - 0 1", [&](const PackedMove& mv) { return mv.isCapture() && rookMoves(mv); });
@@ -669,7 +656,7 @@ TEST_F(MoveGeneratorFixture, Rook_Captures_TwoRooksCanCaptureSamePiece)
 // 1 [ q ][ R ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // the rook on b1 can only move along the pin, Rxa1, Rc1 & Rd1, the rook on d2 can't move.
-TEST_F(MoveGeneratorFixture, Rook_Pinned_CantMoveRookFromOnePinToAnother)
+TEST_P(MoveGeneratorFixture, Rook_Pinned_CantMoveRookFromOnePinToAnother)
 {
     auto result = legalMoves("5k2/8/8/8/8/2b5/3R4/qR2K3 w - - 0 1");
 
@@ -688,7 +675,7 @@ TEST_F(MoveGeneratorFixture, Rook_Pinned_CantMoveRookFromOnePinToAnother)
 // 1 [   ][   ][   ][ Q ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: c1, b1, a1
-TEST_F(MoveGeneratorFixture, Queen_StartingPos_BlockedByPawns)
+TEST_P(MoveGeneratorFixture, Queen_StartingPos_BlockedByPawns)
 {
     auto result = legalMoves("4k3/8/8/8/8/8/2PPP3/3QK3 w - - 0 1", from(Square::D1));
 
@@ -696,7 +683,7 @@ TEST_F(MoveGeneratorFixture, Queen_StartingPos_BlockedByPawns)
 }
 
 // the queen on c1 can only move along the pin, Qxa1, Qb1 & Qd1, the rook is pinned by the bishop.
-TEST_F(MoveGeneratorFixture, Queen_Pinned_CantMoveFromOnePinToAntoher)
+TEST_P(MoveGeneratorFixture, Queen_Pinned_CantMoveFromOnePinToAntoher)
 {
     auto result = legalMoves("6k1/8/8/b7/1R6/8/8/q1Q1K3 w - - 0 1");
 
@@ -714,7 +701,7 @@ TEST_F(MoveGeneratorFixture, Queen_Pinned_CantMoveFromOnePinToAntoher)
 // 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: Kf1, Kh1, Kh2
-TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing)
+TEST_P(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing)
 {
     auto result = legalMoves("4k3/8/1b3nbN/8/8/8/6P1/6K1 w - - 0 1");
 
@@ -731,7 +718,7 @@ TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing)
 // 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
 //     A    B    C    D    E    F    G    H
 // valid moves: Kf1, Kh1, Kh2
-TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing_RookVarient)
+TEST_P(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing_RookVarient)
 {
     auto result = legalMoves("4k3/8/1b3nrN/8/8/8/6P1/6K1 w - - 0 1");
 
@@ -748,7 +735,7 @@ TEST_F(MoveGeneratorFixture, King_InCheck_OnlyValidMoveIsKing_RookVarient)
 // 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
 //     A    B    C    D    E    F    G    H
 // the pawn is pinned along the file it moves on, g3 & g4.
-TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
+TEST_P(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
 {
     auto result = legalMoves("4k3/8/6r1/8/8/8/6P1/6K1 w - - 0 1", from(Square::G2));
 
@@ -756,7 +743,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldHaveTwoMoves)
 }
 
 // the queen pins the pawn on d1 and the bishop on a5 pins the rook, only the king can move.
-TEST_F(MoveGeneratorFixture, Pawn_Pinned_NotAbleToMoveFromOnePinToAnother)
+TEST_P(MoveGeneratorFixture, Pawn_Pinned_NotAbleToMoveFromOnePinToAnother)
 {
     auto result = legalMoves("6k1/8/8/b7/1R6/8/8/q2PK3 w - - 0 1");
 
@@ -765,7 +752,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_NotAbleToMoveFromOnePinToAnother)
 }
 
 // the queen on e3 checks the king, Rf2, Kh1 & dxe3.
-TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesCheckedVariation)
+TEST_P(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesCheckedVariation)
 {
     auto result = legalMoves("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/4qN2/Pp1P2PP/R2Q1RK1 w kq - 1 2");
 
@@ -781,7 +768,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesCheckedVariation)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][   ][   ][ K ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesBlackVariation)
+TEST_P(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesBlackVariation)
 {
     auto result = legalMoves("4k3/3p4/8/1B6/8/8/8/6K1 b - - 0 1", from(Square::D7));
 
@@ -798,7 +785,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_ShouldNotHaveAnyMovesBlackVariation)
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // the pawn on b5 is pinned along the rank, six rook moves, three king moves & e5.
-TEST_F(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
+TEST_P(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
 {
     auto result = legalMoves("8/8/8/KP5r/1R2P2k/8/8/8 w - - 0 1");
 
@@ -806,27 +793,27 @@ TEST_F(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
     EXPECT_EQ(0u, countIf(result, from(Square::B5)));
 }
 
-TEST_F(MoveGeneratorFixture, Pawn_NotCheckingKing)
+TEST_P(MoveGeneratorFixture, Pawn_NotCheckingKing)
 {
     io::fen_parser::deserialize("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34", testContext.editChessboard());
 
     EXPECT_FALSE(sideToMoveIsChecked());
 }
 
-TEST_F(MoveGeneratorFixture, Pawn_White_CheckingKing)
+TEST_P(MoveGeneratorFixture, Pawn_White_CheckingKing)
 {
     io::fen_parser::deserialize("8/8/6k1/7P/7K/8/8/8 b - - 0 1", testContext.editChessboard());
 
-    EXPECT_TRUE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_TRUE(isChecked<Set::BLACK>());
+    EXPECT_FALSE(isChecked<Set::WHITE>());
 }
 
-TEST_F(MoveGeneratorFixture, Pawn_Black_CheckingKing)
+TEST_P(MoveGeneratorFixture, Pawn_Black_CheckingKing)
 {
     io::fen_parser::deserialize("8/8/6k1/6p1/7K/8/8/8 w - - 0 1", testContext.editChessboard());
 
-    EXPECT_TRUE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_TRUE(isChecked<Set::WHITE>());
+    EXPECT_FALSE(isChecked<Set::BLACK>());
 }
 
 // 8 [   ][   ][   ][   ][   ][   ][   ][   ]
@@ -839,7 +826,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Black_CheckingKing)
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // sequence of moves: g4 fxg3 is illegal because it puts king in check.
-TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
+TEST_P(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1");
     EXPECT_EQ(Square::G3, testContext.readChessPosition().enPassant().readSquare());
@@ -866,7 +853,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // e4 fxe3 is illegal, it takes both pawns off the rank and exposes the king to the rook.
-TEST_F(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
+TEST_P(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R2Pp1k/8/8/8 b - e3 0 1", pieceType(PieceType::PAWN));
     EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
@@ -874,7 +861,7 @@ TEST_F(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
     EXPECT_TRUE(contains_exactly_target_squares(result, Square::C6, Square::C5, Square::D5, Square::F3));
 }
 
-TEST_F(MoveGeneratorFixture, PinnedPawn_Black_SimilarAsAboveButMorePieces)
+TEST_P(MoveGeneratorFixture, PinnedPawn_Black_SimilarAsAboveButMorePieces)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1");
     EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
@@ -891,7 +878,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_Black_SimilarAsAboveButMorePieces)
     EXPECT_EQ(0u, countIf(pawnMoves, isCapture));
 }
 
-TEST_F(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWouldPutUsInCheck)
+TEST_P(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWouldPutUsInCheck)
 {
     auto result = legalMoves("8/8/3p4/KPp4r/1R2Pp1k/8/6P1/8 w - c6 0 2");
     EXPECT_EQ(Square::C6, testContext.readChessPosition().enPassant().readSquare());
@@ -908,7 +895,7 @@ TEST_F(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWould
     EXPECT_EQ(0u, countIf(pawnMoves, isCapture));
 }
 
-TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRank)
+TEST_P(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRank)
 {
     auto result = legalMoves("8/8/8/K7/4Pp1k/8/6P1/8 b - e3 0 2", pieceType(PieceType::PAWN));
     EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
@@ -917,7 +904,7 @@ TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRa
     EXPECT_EQ(1u, countIf(result, isEnPassant));
 }
 
-TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRankMorePawnsVariation)
+TEST_P(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRankMorePawnsVariation)
 {
     auto result = legalMoves("8/8/8/K7/1R2PpPk/8/8/8 b - g3 0 2", pieceType(PieceType::PAWN));
     EXPECT_EQ(Square::G3, testContext.readChessPosition().enPassant().readSquare());
@@ -926,7 +913,7 @@ TEST_F(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRa
     EXPECT_EQ(1u, countIf(result, isEnPassant));
 }
 
-TEST_F(MoveGeneratorFixture, Knight_Move_NothingSpecial)
+TEST_P(MoveGeneratorFixture, Knight_Move_NothingSpecial)
 {
     auto result = legalMoves("8/8/4n3/8/k7/8/8/5K2 b - - 0 1", from(Square::E6));
 
@@ -944,7 +931,7 @@ TEST_F(MoveGeneratorFixture, Knight_Move_NothingSpecial)
  * 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
  *     A    B    C    D    E    F    G    H
  * the king can't step back along the rank, a4 is still covered by the rook. */
-TEST_F(MoveGeneratorFixture, KingCheckedByRook)
+TEST_P(MoveGeneratorFixture, KingCheckedByRook)
 {
     auto result = legalMoves("8/8/8/8/1k5R/8/8/5K2 b - - 0 1");
 
@@ -963,7 +950,7 @@ TEST_F(MoveGeneratorFixture, KingCheckedByRook)
 *     A    B    C    D    E    F    G    H
 8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1
 The pawn on e4 checks the king and dxe3 would capture it, but the pawn is pinned by the white rook. */
-TEST_F(MoveGeneratorFixture, Pawn_DoubleMoveCheck_EnPassantCaptureNotAvailableBecauseOfPin)
+TEST_P(MoveGeneratorFixture, Pawn_DoubleMoveCheck_EnPassantCaptureNotAvailableBecauseOfPin)
 {
     auto result = legalMoves("8/8/8/3k4/3pP3/8/8/1K1R2B1 b - e3 0 1");
 
@@ -983,7 +970,7 @@ TEST_F(MoveGeneratorFixture, Pawn_DoubleMoveCheck_EnPassantCaptureNotAvailableBe
 * 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
 *     A    B    C    D    E    F    G    H
 Some Edge Case issue where pawn was allowed to "capture" empty square. */
-TEST_F(MoveGeneratorFixture, Pawn_Capture_CanNotCaptureNonOpSquareWhilePinned)
+TEST_P(MoveGeneratorFixture, Pawn_Capture_CanNotCaptureNonOpSquareWhilePinned)
 {
     // c6, c5, exd5, g5, b3, bxc3 & hxg2, d7 is pinned by the bishop.
     auto result = legalMoves("r3k2r/p1ppqpb1/bn2pnp1/1B1PN3/1p2P3/2N2Q1p/PPPB1PPP/R3K2R b KQkq - 1 1", pieceType(PieceType::PAWN));
@@ -1003,7 +990,7 @@ TEST_F(MoveGeneratorFixture, Pawn_Capture_CanNotCaptureNonOpSquareWhilePinned)
  * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
  *     A    B    C    D    E    F    G    H
  * fen: 8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2*/
-TEST_F(MoveGeneratorFixture, Pawn_MoveC3C2_MoveSuccessfull)
+TEST_P(MoveGeneratorFixture, Pawn_MoveC3C2_MoveSuccessfull)
 {
     auto result = legalMoves("8/8/1k6/2b5/3P4/2p2K2/8/8 b - - 2 2", from(Square::C3));
 
@@ -1021,7 +1008,7 @@ TEST_F(MoveGeneratorFixture, Pawn_MoveC3C2_MoveSuccessfull)
  * 1 [   ][ K ][   ][ R ][   ][   ][   ][   ]
  *     A    B    C    D    E    F    G    H
  * fen: 8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1*/
-TEST_F(MoveGeneratorFixture, Knight_Nxb3_IllegalMoveSincePinned)
+TEST_P(MoveGeneratorFixture, Knight_Nxb3_IllegalMoveSincePinned)
 {
     auto result = legalMoves("8/8/8/3k4/3n4/1B6/8/1K1R4 b - - 0 1", from(Square::D4));
 
@@ -1040,7 +1027,7 @@ TEST_F(MoveGeneratorFixture, Knight_Nxb3_IllegalMoveSincePinned)
  *     A  B  C  D  E  F  G  H
  * fen:  8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3
  * only king moves get out of the rook's check, bxc6 e.p. doesn't.  */
-TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvailable)
+TEST_P(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvailable)
 {
     auto result = legalMoves("8/K6r/3p4/1Pp5/1R3p1k/8/4P1P1/8 w - c6 4 3");
 
@@ -1059,7 +1046,7 @@ TEST_F(MoveGeneratorFixture, KingInCheck_White_SpecialCasedPawnMovementsNotAvail
  *     A    B    C    D    E    F    G    H
  * fen: 8/1k6/8/2Pp4/2K5/8/8/8 w - d6 0 1
  * cxd6 e.p. captures the checking pawn. */
-TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable)
+TEST_P(MoveGeneratorFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable)
 {
     auto result = legalMoves("8/1k6/8/2Pp4/2K5/8/8/8 w - d6 0 1");
 
@@ -1080,7 +1067,7 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_White_EnPassantCaptureAvailable
  *     A    B    C    D    E    F    G    H
  * 8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1
  * the pawn on e4 is guarded by the rook, dxe3 e.p. captures it. */
-TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
+TEST_P(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailableForPawn)
 {
     auto result = legalMoves("8/8/8/3k4/3pP3/8/8/1K2R1B1 b - e3 0 1");
 
@@ -1100,13 +1087,13 @@ TEST_F(MoveGeneratorFixture, PawnDoubleMoveCheck_Black_EnPassantCaptureAvailable
 * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 *     A    B    C    D    E    F    G    H
 3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3 */
-TEST_F(MoveGeneratorFixture, PinnedQueen_White_CanNotMoveQueen)
+TEST_P(MoveGeneratorFixture, PinnedQueen_White_CanNotMoveQueen)
 {
     auto result = legalMoves("3rk3/8/3Q4/8/5q2/8/3K4/8 w - - 3 3");
 
     // verify
-    EXPECT_TRUE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_TRUE(isChecked<Set::WHITE>());
+    EXPECT_FALSE(isChecked<Set::BLACK>());
     EXPECT_EQ(6u, result.size());
     EXPECT_EQ(0u, countIf(result, from(Square::D6)));
 }
@@ -1123,12 +1110,12 @@ TEST_F(MoveGeneratorFixture, PinnedQueen_White_CanNotMoveQueen)
  *     A    B    C    D    E    F    G    H
  * fen: 8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1
  */
-TEST_F(MoveGeneratorFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
+TEST_P(MoveGeneratorFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
 {
     auto result = legalMoves("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 0 1");
 
-    EXPECT_FALSE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_FALSE(isChecked<Set::WHITE>());
+    EXPECT_FALSE(isChecked<Set::BLACK>());
 
     // verify
     EXPECT_EQ(15u, result.size());
@@ -1146,18 +1133,18 @@ TEST_F(MoveGeneratorFixture, PawnDobuleMove_Black_BlackBishopToCapturePawn)
 * 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 *     A    B    C    D    E    F    G    H
 3r1k2/8/3N4/5q2/8/3K4/8/8 w - - 0 1 */
-TEST_F(MoveGeneratorFixture, Knight_Pinned_CanNotCaptureCheckingPiece)
+TEST_P(MoveGeneratorFixture, Knight_Pinned_CanNotCaptureCheckingPiece)
 {
     auto result = legalMoves("3r1k2/8/3N4/5q2/8/3K4/8/8 w - - 0 1");
 
     // verify
-    EXPECT_TRUE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_TRUE(isChecked<Set::WHITE>());
+    EXPECT_FALSE(isChecked<Set::BLACK>());
     EXPECT_EQ(6u, result.size());
     EXPECT_EQ(0u, countIf(result, from(Square::D6))) << "There shouldn't be any knight moves amongst the available moves";
 }
 
-TEST_F(MoveGeneratorFixture, Knight_Pinned_CanNotMoveFromOnePinToAnother)
+TEST_P(MoveGeneratorFixture, Knight_Pinned_CanNotMoveFromOnePinToAnother)
 {
     auto result = legalMoves("6k1/8/8/b7/1R6/8/8/q2NK3 w - - 0 1");
 
@@ -1177,13 +1164,13 @@ TEST_F(MoveGeneratorFixture, Knight_Pinned_CanNotMoveFromOnePinToAnother)
 *     A    B    C    D    E    F    G    H
 5k2/8/3N4/5q2/8/3K4/8/8 w - - 0 1
 the knight can capture the queen or block on e4. */
-TEST_F(MoveGeneratorFixture, Knight_CaptureCheckingQueen_ShouldOnlyHaveOneMoveAvailable)
+TEST_P(MoveGeneratorFixture, Knight_CaptureCheckingQueen_ShouldOnlyHaveOneMoveAvailable)
 {
     auto result = legalMoves("5k2/8/3N4/5q2/8/3K4/8/8 w - - 0 1");
 
     // verify
-    EXPECT_TRUE(WhiteMoveGen(testContext.readChessPosition(), testParams).isChecked());
-    EXPECT_FALSE(BlackMoveGen(testContext.readChessPosition(), testParams).isChecked());
+    EXPECT_TRUE(isChecked<Set::WHITE>());
+    EXPECT_FALSE(isChecked<Set::BLACK>());
     EXPECT_EQ(8u, result.size());
 
     auto knightMoves = legalMoves("5k2/8/3N4/5q2/8/3K4/8/8 w - - 0 1", from(Square::D6));
@@ -1202,7 +1189,7 @@ TEST_F(MoveGeneratorFixture, Knight_CaptureCheckingQueen_ShouldOnlyHaveOneMoveAv
 //     A    B    C    D    E    F    G    H
 // R3k2r/1b4bq/8/8/8/8/7B/4K2R b Kk - 0 1
 // after Rxa8+ the bishop on b7 has two moves, Bc8 & Bxa8.
-TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece)
+TEST_P(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece)
 {
     auto result = legalMoves("R3k2r/1b4bq/8/8/8/8/7B/4K2R b Kk - 0 1", from(Square::B7));
 
@@ -1220,7 +1207,7 @@ TEST_F(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 // 1 [   ][   ][   ][   ][   ][ K ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // 4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2
-TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePawnsWereAllowedToCaptureDespiteBeingInCheck)
+TEST_P(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePawnsWereAllowedToCaptureDespiteBeingInCheck)
 {
     auto result = legalMoves("4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2", pieceType(PieceType::PAWN));
 
@@ -1246,7 +1233,7 @@ TEST_F(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
     1  [R][ ][ ][ ][K][ ][ ][R]
         A  B  C  D  E  F  G  H
 r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 **/
-TEST_F(MoveGeneratorFixture, PerftTestPositionTwo_CaptureMoves_ShouldHaveEightCaptureMoves)
+TEST_P(MoveGeneratorFixture, PerftTestPositionTwo_CaptureMoves_ShouldHaveEightCaptureMoves)
 {
     auto result = legalMoves("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
@@ -1254,5 +1241,7 @@ TEST_F(MoveGeneratorFixture, PerftTestPositionTwo_CaptureMoves_ShouldHaveEightCa
     EXPECT_EQ(8u, countIf(result, isCapture));
     EXPECT_EQ(2u, countIf(result, isCastling));
 }
+
+ELEPHANT_MOVE_GEN_AB(MoveGeneratorFixture);
 
 }  // namespace ElephantTest

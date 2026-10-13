@@ -8,13 +8,13 @@
 #include <core/game_context.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
+#include <move_gen_ab.hpp>
 #include <move/move_executor.hpp>
 #include <io/fen_parser.hpp>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
-class UnmakeFixture : public ::testing::Test {
+class UnmakeFixture : public ::testing::TestWithParam<Generator> {
 public:
     virtual void SetUp() {
 
@@ -32,17 +32,11 @@ public:
     std::vector<PackedMove> legalMoves()
     {
         std::vector<PackedMove> moves;
-        MoveGenParams params;
-        if (m_game.readToPlay() == Set::WHITE) {
-            MoveGenerator<Set::WHITE> gen(m_game.readChessPosition(), params);
-            while (PackedMove mv = gen.pop().move)
-                moves.push_back(mv);
-        }
-        else {
-            MoveGenerator<Set::BLACK> gen(m_game.readChessPosition(), params);
-            while (PackedMove mv = gen.pop().move)
-                moves.push_back(mv);
-        }
+        auto add = [&](PackedMove mv) { moves.push_back(mv); };
+        if (m_game.readToPlay() == Set::WHITE)
+            forEachLegalMove<Set::WHITE>(GetParam(), m_game.readChessPosition(), add);
+        else
+            forEachLegalMove<Set::BLACK>(GetParam(), m_game.readChessPosition(), add);
         return moves;
     }
 
@@ -101,7 +95,7 @@ public:
 // 1 [   ][   ][   ][   ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // 1. e3, unmake, e4, unmake.
-TEST_F(UnmakeFixture, Pawn_SimpleMoves)
+TEST_P(UnmakeFixture, Pawn_SimpleMoves)
 {
     // setup
     PositionEditor editor = m_game.editChessPosition();    
@@ -164,7 +158,7 @@ TEST_F(UnmakeFixture, Pawn_SimpleMoves)
 //     A    B    C    D    E    F    G    H
 // Moves:
 // 1. e4 dxe3 e.p.
-TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
+TEST_P(UnmakeFixture, EnPassant_Captured_Unmake)
 {
     // setup    
     PositionEditor editor = m_game.editChessboard().editPosition();
@@ -240,7 +234,7 @@ TEST_F(UnmakeFixture, EnPassant_Captured_Unmake)
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // every white move and every black reply, c4 & f4 give black an en passant capture each.
-TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
+TEST_P(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
 {
     // setup
     setup("4k3/8/8/8/3p2p1/8/2P2P2/4K3 w - - 0 1");
@@ -286,7 +280,7 @@ TEST_F(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
 //     A    B    C    D    E    F    G    H
 // Moves:
 // e8=Q, unmake, exd8=Q, unmake, exd8=N, unmake
-TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
+TEST_P(UnmakeFixture, Pawn_Promotion_Unmake)
 {
     auto P = WHITEPAWN;
     auto n = BLACKKNIGHT;
@@ -359,7 +353,7 @@ TEST_F(UnmakeFixture, Pawn_Promotion_Unmake)
 // 1 [   ][   ][ K ][ R ][   ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
 // and unmade back to the start.
-TEST_F(UnmakeFixture, Castling)
+TEST_P(UnmakeFixture, Castling)
 {
     auto k = BLACKKING;
     auto r = BLACKROOK;
@@ -447,7 +441,7 @@ TEST_F(UnmakeFixture, Castling)
 // 1 [ R ][   ][   ][   ][ K ][   ][   ][ R ]
 //     A    B    C    D    E    F    G    H
 // capturing a rook on its starting square takes away that side's castling, a rook capturing a rook takes away both.
-TEST_F(UnmakeFixture, Castling_Captures)
+TEST_P(UnmakeFixture, Castling_Captures)
 {
     struct CaptureCase {
         const char* fen;
@@ -503,7 +497,7 @@ TEST_F(UnmakeFixture, Castling_Captures)
 //     A    B    C    D    E    F    G    H
 // Moves:
 // 1... Ke7 2. Ke2, a king move takes away its side's castling, unmake gives it back.
-TEST_F(UnmakeFixture, Unmake_KingMoves)
+TEST_P(UnmakeFixture, Unmake_KingMoves)
 {
     auto k = BLACKKING;
     auto K = WHITEKING;
@@ -550,7 +544,7 @@ TEST_F(UnmakeFixture, Unmake_KingMoves)
 // 2 [   ][   ][   ][   ][   ][   ][   ][   ]
 // 1 [   ][   ][   ][   ][ K ][   ][   ][   ]
 //     A    B    C    D    E    F    G    H
-TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
+TEST_P(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
 {
     setup("r3k3/8/8/3B4/8/8/8/4K3 w q - 0 1");
     const Chessboard start = m_game.copyChessboard();
@@ -584,7 +578,7 @@ TEST_F(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
 
 // every move two plies deep from kiwipete, quiet moves, captures, castles, en passant & promotions alike, unmakes back to
 // the exact position it was made from.
-TEST_F(UnmakeFixture, Unmake_EveryMoveTwoPliesDeep_RestoresState)
+TEST_P(UnmakeFixture, Unmake_EveryMoveTwoPliesDeep_RestoresState)
 {
     setup("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     const Chessboard start = m_game.copyChessboard();
@@ -607,5 +601,7 @@ TEST_F(UnmakeFixture, Unmake_EveryMoveTwoPliesDeep_RestoresState)
 }
 
 ////////////////////////////////////////////////////////////////
+
+ELEPHANT_MOVE_GEN_AB(UnmakeFixture);
 
 }  // namespace ElephantTest

@@ -30,6 +30,7 @@ set(TEST_SOURCE_INCLUDE ${TEST_SOURCE_INCLUDE}
 ## /...
     ${TEST_INC_DIR}/bitboard_test_helpers.hpp
     ${TEST_INC_DIR}/chess_positions.hpp
+    ${TEST_INC_DIR}/move_gen_ab.hpp
     ${TEST_INC_DIR}/search_cases.hpp
 )
 
