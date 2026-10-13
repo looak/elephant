@@ -58,6 +58,7 @@ TEST(ZobristHashing, IncrementalMatchesComputedThroughTree)
         { "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 4 },
         { "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 3 },
         { "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 3 },
+        { "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1", 3 },   // kiwipete, black to move
     };
 
     for (const auto& [fen, depth] : positions) {
@@ -228,6 +229,43 @@ TEST(ZobristHashing, HashToMove_Unmake_Rehash)
     newHash = zobrist::updateBlackToMoveHash(newHash);
     EXPECT_EQ(initialHash, newHash) << "Hash should revert to initial value after updating";
 
+}
+
+// A FEN with black to move has to carry the black to move key, issue #13. Loading it gives the same hash as a full
+// recompute, and the same hash as reaching the position by moves from a white to move FEN.
+TEST(ZobristHashing, BlackToMoveFen_HashMatchesComputedAndPositionReachedByMoves)
+{
+    zobrist::internals::initialize();
+
+    const std::string blackToMove = "r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 3 2";
+    GameContext loaded;
+    ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
+    ASSERT_EQ(Set::BLACK, loaded.readToPlay());
+    EXPECT_EQ(zobrist::computeBoardHash(loaded.readChessboard()), loaded.readChessPosition().hash());
+
+    // 1. Nf3 Nc6 2. Nc3, no pawn moves so neither an en passant square nor the halfmove clock tells the two apart.
+    GameContext played;
+    ASSERT_TRUE(io::fen_parser::deserialize(std::string(c_startPositionFen), played.editChessboard()));
+    played.MakeMove(PackedMove(Square::G1, Square::F3));
+    played.MakeMove(PackedMove(Square::B8, Square::C6));
+    played.MakeMove(PackedMove(Square::B1, Square::C3));
+    ASSERT_EQ(Set::BLACK, played.readToPlay());
+
+    std::string playedFen;
+    io::fen_parser::serialize(played.readChessboard(), playedFen);
+    ASSERT_EQ(blackToMove, playedFen);
+
+    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
+    EXPECT_EQ(zobrist::computeBoardHash(played.readChessboard()), played.readChessPosition().hash());
+
+    // the same position with white to move differs only by the black to move key.
+    GameContext whiteToMove;
+    ASSERT_TRUE(io::fen_parser::deserialize("r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R w KQkq - 3 2", whiteToMove.editChessboard()));
+    EXPECT_EQ(zobrist::updateBlackToMoveHash(whiteToMove.readChessPosition().hash()), loaded.readChessPosition().hash());
+
+    // reloading a black to move FEN into a board that already has black to move keeps the key exactly once.
+    ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
+    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
 }
 
 } // namespace ElephantTest

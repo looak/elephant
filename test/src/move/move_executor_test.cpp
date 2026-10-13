@@ -14,6 +14,10 @@
 
 #include "chess_positions.hpp"
 
+#include <sstream>
+
+#include <vector>
+
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
 
@@ -24,7 +28,7 @@ namespace ElephantTest {
  * @author Alexander Loodin Ek  */
 class MoveExecutorFixture : public ::testing::Test {
 public:
-    // the fen without its halfmove clock, see DISABLED_PawnPush_ResetsHalfmoveClock, the full move number is kept.
+    // the fen without its halfmove clock, the PGN tests compare positions, the full move number is kept.
     std::string fen() const
     {
         std::string output;
@@ -55,14 +59,66 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     // verify
     EXPECT_EQ(positionReader.pieceAt(Square::E4), piece_constants::white_pawn);
     EXPECT_EQ(positionReader.pieceAt(Square::E2), piece_constants::null());
-    EXPECT_EQ(ply, 1);
+    EXPECT_EQ(ply, 0) << "a pawn move resets the fifty move counter";
 }
 
-// BUG: MoveExecutor::makeMove resets the fifty move counter on a pawn move and then increments it like any other move, so
-// a pawn push that isn't a capture leaves the halfmove clock at 1 instead of 0. The search's fifty move rule then calls
-// the draw a ply early after a pawn push, and fen output after one is off by one. MakeValidMove_E2E4_UpdatesBoard expects
-// the 1 and needs to expect 0 once this is fixed.
-TEST_F(MoveExecutorFixture, DISABLED_PawnPush_ResetsHalfmoveClock)
+// The fifty move counter is 0 after a pawn move or a capture and counts up by one after any other move, issue #15.
+// Unmake restores the value from before the move. The halfmove clock in the FEN agrees.
+TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
+    // white: Ke1 Nb1 pawns d2 e2, black: Ke8 Nf6 pawn d5, halfmove clock 7.
+    ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", m_game.editChessboard()));
+    ASSERT_EQ(7, m_game.readPly());
+
+    struct Step {
+        PackedMove move;
+        u16 expected;
+        const char* name;
+    };
+    auto captureMove = [](Square source, Square target) {
+        PackedMove move(source, target);
+        move.setCapture(true);
+        return move;
+    };
+    const Step steps[] = {
+        { PackedMove(Square::B1, Square::C3), 8, "quiet knight move counts up" },
+        { PackedMove(Square::F6, Square::G4), 9, "quiet knight move counts up" },
+        { PackedMove(Square::E2, Square::E4), 0, "double pawn push resets" },
+        { PackedMove(Square::G4, Square::F6), 1, "quiet knight move after a pawn push" },
+        { PackedMove(Square::D2, Square::D3), 0, "single pawn push resets" },
+        { captureMove(Square::F6, Square::E4), 0, "knight capture resets" },
+        { PackedMove(Square::E1, Square::E2), 1, "king move counts up" },
+        { PackedMove(Square::E8, Square::E7), 2, "king move counts up" },
+        { captureMove(Square::D3, Square::E4), 0, "pawn capture resets" },
+        { captureMove(Square::D5, Square::E4), 0, "pawn capture resets" },
+    };
+
+    std::vector<u16> before;
+    for (const auto& step : steps) {
+        before.push_back(m_game.readPly());
+        m_game.MakeMove(step.move);
+        EXPECT_EQ(step.expected, m_game.readPly()) << step.name << ", " << step.move.toString();
+
+        std::string fen;
+        io::fen_parser::serialize(m_game.readChessboard(), fen);
+        std::istringstream fields(fen);
+        std::string field;
+        for (int i = 0; i < 5; ++i)
+            fields >> field;  // the fifth field is the halfmove clock
+        EXPECT_EQ(std::to_string(step.expected), field) << fen;
+    }
+
+    for (size_t i = std::size(steps); i-- > 0;) {
+        m_game.UnmakeMove();
+        EXPECT_EQ(before[i], m_game.readPly()) << "unmake " << steps[i].move.toString();
+    }
+    EXPECT_EQ(7, m_game.readPly());
+    std::string restored;
+    io::fen_parser::serialize(m_game.readChessboard(), restored);
+    EXPECT_EQ("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", restored);
+}
+
+// A pawn push resets the halfmove clock to 0, issue #15.
+TEST_F(MoveExecutorFixture, PawnPush_ResetsHalfmoveClock)
 {
     io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 7 20", m_game.editChessboard());
     EXPECT_EQ(7, m_game.readChessboard().readPlyCount());

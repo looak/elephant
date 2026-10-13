@@ -200,9 +200,13 @@ UCI::ParsePosition(std::list<std::string> args)
                 throw ephant::uci_command_exception("moves", "Invalid move: " + moveStr);
 
             auto capture = position.pieceAt(move.targetSqr());
-            if (capture != ChessPiece::None() 
-            || position.enPassant().readSquare() == move.targetSqr()) {
+            if (capture != ChessPiece::None()) {
                 move.setCapture(true);
+            }
+            // only a pawn captures en passant, any other piece stepping onto the en passant square is a quiet move.
+            else if (cp.getType() == PieceType::PAWN && position.enPassant()
+                     && position.enPassant().readSquare() == move.targetSqr()) {
+                move.setEnPassant(true);  // sets both capture & en passant
             }
 
             m_context.MakeMove(move);
