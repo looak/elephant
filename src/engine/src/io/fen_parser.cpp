@@ -11,6 +11,7 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 #include <position/castling_state_info.hpp>
+#include <position/hash_zobrist.hpp>
 #include <system/platform.hpp>
 
 namespace io {
@@ -114,12 +115,21 @@ bool
 deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
 {
     char value = (char)std::tolower(toPlayStr[0]);
+    bool whiteToMove;
     if (value == 'w')
-        outputBoard.editState().whiteToMove = true;
+        whiteToMove = true;
     else if (value == 'b')
-        outputBoard.editState().whiteToMove = false;
+        whiteToMove = false;
     else
         return false;
+
+    // the hash carries the black to move key whenever black is to move, toggle it when the side to move changes so the
+    // hash matches zobrist::computeBoardHash and the same position reached by moves.
+    if (outputBoard.readState().whiteToMove != whiteToMove) {
+        auto& hash = outputBoard.editPosition().hash();
+        hash = zobrist::updateBlackToMoveHash(hash);
+    }
+    outputBoard.editState().whiteToMove = whiteToMove;
 
     return true;
 }
