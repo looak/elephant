@@ -67,6 +67,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
+    ${TEST_SRC_DIR}/position/square_notation_test.cpp
 
 ## /search/...
     ${TEST_SRC_DIR}/search/search_test.cpp
