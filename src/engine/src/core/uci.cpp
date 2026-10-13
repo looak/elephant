@@ -441,14 +441,18 @@ bool UCI::Bench(std::list<std::string>)
 {
     spdlog::info("Starting benchmark...");
 
+    // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
+    // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0,
+    // the same as a new one, the node count doesn't change. 16 MB rather than the default 64: each position clears the
+    // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
+    // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
+    GameContext context;
+    context.editTranspositionTable().resize(16);
+
     Clock timer;
     timer.Start();
     u64 nodes = 0;
 
-    // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
-    // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0,
-    // the same as a new one, the node count doesn't change.
-    GameContext context;
     for (const auto& fen : bench::fens) {
         context.Reset();
         context.editTranspositionTable().clear();
