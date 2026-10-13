@@ -441,8 +441,13 @@ bool UCI::Bench(std::list<std::string>)
     timer.Start();
     u64 nodes = 0;
 
+    // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
+    // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0,
+    // the same as a new one, the node count doesn't change.
+    GameContext context;
     for (const auto& fen : bench::fens) {
-        GameContext context;
+        context.Reset();
+        context.editTranspositionTable().clear();
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
         Search search(context);
