@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <optional>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -89,23 +90,31 @@ std::string joined(const std::vector<std::string>& words) {
 
 } // namespace
 
-// "f5=10, Be5+=2, Bf2=3" as move & points, empty when the comment isn't a list of scored moves.
-std::vector<std::pair<std::string, int>> parseMoveScores(std::string text) {
-    text.erase(std::remove(text.begin(), text.end(), '"'), text.end());
+// e2e4 or e7e8q, compared with the played move as is, the SAN parser doesn't read it.
+bool isCoordinateMove(const std::string& text) {
+    auto file = [](char c) { return c >= 'a' && c <= 'h'; };
+    auto rank = [](char c) { return c >= '1' && c <= '8'; };
+    return (text.size() == 4 || (text.size() == 5 && std::string("qrbn").find(text[4]) != std::string::npos))
+        && file(text[0]) && rank(text[1]) && file(text[2]) && rank(text[3]);
+}
+
+// "f5=10, Be5+=2, Bf2=3" as move & points, empty when the comment isn't a list of scored moves. Every move=points pair
+// is read, a few STS lines miss a comma ("Bd4=10Qb8=6", "Rg3=7 Rd5=9"). Text left over that isn't a separator makes it
+// an ordinary comment, "...topic_show.pl?tid=18253" isn't a move.
+std::vector<std::pair<std::string, int>> parseMoveScores(const std::string& text) {
+    // SAN with an optional promotion (exf8=Q+) or coordinate notation (b8a8, e7e8q), then the points.
+    static const std::regex pair(R"(((?:[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?|O-O-O|O-O|[a-h][1-8][a-h][1-8][qrbn]?)[+#]?)=(-?\d+))");
     std::vector<std::pair<std::string, int>> scores;
-    std::istringstream entries(text);
-    for (std::string entry; std::getline(entries, entry, ',');) {
-        entry = trim(entry);
-        const size_t equals = entry.find('=');
-        if (equals == std::string::npos || equals == 0)
-            return {};
-        try {
-            scores.emplace_back(entry.substr(0, equals), std::stoi(entry.substr(equals + 1)));
-        }
-        catch (const std::exception&) {
-            return {};
-        }
+    std::string leftover;
+    size_t last = 0;
+    for (auto it = std::sregex_iterator(text.begin(), text.end(), pair); it != std::sregex_iterator(); ++it) {
+        leftover += text.substr(last, it->position() - last);
+        last = it->position() + it->length();
+        scores.emplace_back((*it)[1].str(), std::stoi((*it)[2].str()));
     }
+    leftover += text.substr(last);
+    if (leftover.find_first_not_of(" ,\"") != std::string::npos)
+        return {};
     return scores;
 }
 
@@ -284,6 +293,23 @@ protected:
         return moves;
     }
 
+    // A c0 alternative is the suite author's extra, not the case itself: one the SAN parser can't read, STS lists a few
+    // illegal moves, is skipped with a note rather than failing the suite like a broken bm or am does.
+    static bool scoredMoveMatches(const GameContext& context, const std::string& san, const std::string& played,
+                                  const EpdTestCase& tc) {
+        try {
+            const PackedMove move = io::san_parser::deserialize(context.readChessPosition(),
+                                                                context.readToPlay() == Set::WHITE, san);
+            return !move.isNull() && move.toString() == played;
+        }
+        catch (...) {
+            const std::string message = std::format("NOTE {}: c0 move {} can't be parsed, it scores nothing", tc.id, san);
+            spdlog::warn(message);
+            std::cout << message << "\n";
+            return false;
+        }
+    }
+
     struct CaseResult {
         bool solved = false;
         int points = 0;   // scored suites, the points of the move played
@@ -325,8 +351,8 @@ protected:
         const std::vector<PackedMove> avoid = parseSanMoves(context, tc.avoidMoves, tc);
         const bool solved = (tc.bestMoves.empty() || contains(best)) && !contains(avoid);
         int points = 0;
-        for (const auto& [san, value] : tc.moveScores) {
-            if (contains(parseSanMoves(context, { san }, tc)))
+        for (const auto& [move, value] : tc.moveScores) {
+            if (isCoordinateMove(move) ? move == played : scoredMoveMatches(context, move, played, tc))
                 points = value;
         }
 
@@ -537,6 +563,35 @@ TEST(EpdParser, StsMoveScores) {
     auto arasan = parseEpdLine(R"(r1bq1r1k/p1pnbpp1/1p2p3/6p1/3PB3/5N2/PPPQ1PPP/2KR3R w - - bm g4; id "arasan2024.1"; c0 "J. Polgar-Berkes, Budapest Hunguest Hotels 2003";)");
     ASSERT_TRUE(arasan.has_value());
     EXPECT_TRUE(arasan->moveScores.empty());
+
+    // nor is one with an '=' in a URL, arasan2024.84.
+    auto url = parseEpdLine(R"(rnb1kb1r/pp1p1ppp/1q2p3/8/3NP1n1/2N1B3/PPP2PPP/R2QKB1R w KQkq - bm Qxg4; id "arasan2024.84"; c0 "Gaw Paw Sicilian: http://rybkaforum.net/cgi-bin/rybkaforum/topic_show.pl?tid=18253";)");
+    ASSERT_TRUE(url.has_value());
+    EXPECT_TRUE(url->moveScores.empty());
+}
+
+TEST(EpdParser, StsMoveScores_CoordinateAndPromotionMoves) {
+    // STS lists a few alternatives in coordinate notation, STS(v9.0) Advancement of a/b/c pawns.005.
+    auto tc = parseEpdLine(R"(1q2r1k1/1b2bpp1/p2ppn1p/2p5/P3PP1B/2PB1RP1/2P1Q2P/2KR4 b - - bm c4; id "STS(v9.0) Advancement of a/b/c pawns.005"; c0 "c4=10, Bc6=5, Qa7=4, Qa8=5, Qc8=5, b8a8=5";)");
+    ASSERT_TRUE(tc.has_value());
+    ASSERT_EQ(6u, tc->moveScores.size());
+    EXPECT_EQ((std::pair<std::string, int>{ "b8a8", 5 }), tc->moveScores.back());
+    EXPECT_TRUE(isCoordinateMove("b8a8"));
+    EXPECT_TRUE(isCoordinateMove("e7e8q"));
+    EXPECT_FALSE(isCoordinateMove("Qa8"));
+    EXPECT_FALSE(isCoordinateMove("exd5"));
+
+    // a promotion has an '=' of its own.
+    auto promotion = parseEpdLine(R"(8/4P1k1/8/8/8/8/8/4K3 w - - bm e8=Q; id "promotion"; c0 "e8=Q=10, e8=N=1, Kd2=2";)");
+    ASSERT_TRUE(promotion.has_value());
+    EXPECT_EQ((std::vector<std::pair<std::string, int>>{ { "e8=Q", 10 }, { "e8=N", 1 }, { "Kd2", 2 } }),
+              promotion->moveScores);
+
+    // a few STS lines miss a comma, STS(v12.0) Center Control.026.
+    auto missingComma = parseEpdLine(R"(2r3k1/p2npp2/p2p1bp1/3P4/1qN1PQ1P/1P2B3/r5P1/1R3R1K b - - bm Ne5; c0 "Ne5=10, a5=7, Bd4=10Qb8=6, Rc7=6"; id "STS(v12.0) Center Control.026";)");
+    ASSERT_TRUE(missingComma.has_value());
+    EXPECT_EQ((std::vector<std::pair<std::string, int>>{ { "Ne5", 10 }, { "a5", 7 }, { "Bd4", 10 }, { "Qb8", 6 }, { "Rc7", 6 } }),
+              missingComma->moveScores);
 }
 
 TEST(EpdParser, NoMoves_Skipped) {
