@@ -119,7 +119,7 @@ UCI::SetOption(const std::list<std::string> args)
         else if (name == "Hash") {
             size_t newSize = static_cast<size_t>(std::max(1, toInt()));
             m_options["Hash"] = value;
-            m_context.editTranspositionTable().resize(newSize);
+            m_context.editTranspositionTable().resize(newSize, m_threadCount);
         }
         else if (name == "Move Overhead") {
             u32 overhead = static_cast<u32>(std::max(0, toInt()));
@@ -221,7 +221,7 @@ UCI::NewGame()
     // games are independent, nothing from the last game may carry over. The TT (and its age) is the only search state
     // that outlives a go, the killers & history are built per search in ThreadSearchContext. Not part of
     // GameContext::NewGame, "position startpos" calls that every move.
-    m_context.editTranspositionTable().clear();
+    m_context.editTranspositionTable().clear(m_threadCount);
     return true;
 }
 
