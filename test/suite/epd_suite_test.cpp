@@ -175,11 +175,22 @@ struct EpdSettings {
     u32 moveTime = 0;
     u16 threads = 1;
     size_t hashMb = 64;
+    size_t perFile = 0;   // the first perFile positions of each file, 0 for all of them
 
     std::string describe() const {
         std::string limit = nodes ? std::format("nodes {}", nodes) : depth ? std::format("depth {}", depth)
                                                                            : std::format("movetime {}", moveTime);
-        return std::format("{}, threads {}, hash {}", limit, threads, hashMb);
+        std::string result = std::format("{}, threads {}, hash {}", limit, threads, hashMb);
+        if (perFile)
+            result += std::format(", first {} per file", perFile);
+        return result;
+    }
+
+    // the cases this tier runs, the first perFile of them.
+    std::vector<EpdTestCase> select(std::vector<EpdTestCase> cases) const {
+        if (perFile && cases.size() > perFile)
+            cases.resize(perFile);
+        return cases;
     }
 };
 
@@ -409,7 +420,7 @@ protected:
         size_t solved = 0, total = 0;
         long long score = 0, maxScore = 0;
         for (const std::string& epdFile : epdFiles) {
-            const std::vector<EpdTestCase> cases = loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile));
+            const std::vector<EpdTestCase> cases = settings.select(loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile)));
             if (cases.empty()) {
                 ADD_FAILURE() << "No positions found in res/" << epdFile;
                 continue;
@@ -447,11 +458,11 @@ protected:
 
     // Runs every position in res/epdFile, the levels apply to the number solved.
     void runSuite(const std::string& suiteName, const std::string& epdFile, EpdSettings tierSettings, Thresholds levels) {
-        const std::vector<EpdTestCase> cases = loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile));
+        const EpdSettings settings = applyEnvironment(tierSettings);
+        const std::vector<EpdTestCase> cases = settings.select(loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile)));
         if (cases.empty()) {
             GTEST_SKIP() << "No positions found in res/" << epdFile;
         }
-        const EpdSettings settings = applyEnvironment(tierSettings);
 
         initializeLogger(suiteName);
         GameContext context;
@@ -487,28 +498,25 @@ std::vector<std::string> stsFiles() {
 }
 
 // --- Smoke tier, the local sanity check ---
-// Baselines are the counts measured at 1.0.0-herd.7. The minimums allow a few percent, the multi threaded suites
-// differ from run to run and get more room, for them the minimum mostly catches crashes & hangs.
-
+// Budgeted to run in seconds: test/smoke.sh, unit tests & perft included, should finish within a minute. Low node
+// counts, the deep tactics & Arasan are the extended tier's. Baselines are the counts measured at 1.0.0-herd.10. The
+// minimums allow a few percent, the multi threaded suite differs from run to run and gets more room, for it the
+// minimum mostly catches crashes & hangs.
 TEST_F(EpdSuite, Smoke_WinAtChess) {
-    runSuite("Smoke_WinAtChess", "wac_new.epd", { .nodes = 2'000'000 }, { .baseline = 282, .minimum = 272 });
+    runSuite("Smoke_WinAtChess", "wac_new.epd", { .nodes = 150'000 }, { .baseline = 260, .minimum = 252 });
 }
 
 TEST_F(EpdSuite, Smoke_WinAtChess_4Threads) {
-    runSuite("Smoke_WinAtChess_4Threads", "wac_new.epd", { .nodes = 8'000'000, .threads = 4 }, { .baseline = 282, .minimum = 265, .repeatable = false });
-}
-
-TEST_F(EpdSuite, Smoke_Arasan2024_4Threads) {
-    runSuite("Smoke_Arasan2024_4Threads", "arasan2024.epd", { .nodes = 16'000'000, .threads = 4 }, { .baseline = 11, .minimum = 7, .repeatable = false });
+    runSuite("Smoke_WinAtChess_4Threads", "wac_new.epd", { .nodes = 400'000, .threads = 4 }, { .baseline = 258, .minimum = 240, .repeatable = false });
 }
 
 TEST_F(EpdSuite, Smoke_STS) {
     if (stsFiles().empty())
         GTEST_SKIP() << "No STS files in res/";
-    runScoredSuite("Smoke_STS", stsFiles(), { .nodes = 200'000 }, { .baseline = 7837, .minimum = 7600 });
+    runScoredSuite("Smoke_STS", stsFiles(), { .nodes = 100'000, .perFile = 25 }, { .baseline = 1707, .minimum = 1650 });
 }
 
-// --- Extended tier, what CI runs: the smoke suites with more budget ---
+// --- Extended tier, what CI runs: the smoke suites with more budget, all of STS, and Arasan 2024 ---
 
 TEST_F(EpdSuite, Extended_WinAtChess) {
     runSuite("Extended_WinAtChess", "wac_new.epd", { .nodes = 4'000'000 }, { .baseline = 288, .minimum = 282 });
