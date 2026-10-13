@@ -5,9 +5,10 @@
 namespace ElephantTest {
 
 namespace {
-// positions sharing a bucket: the same low bits pick the bucket, the top 16 bits are the key.
-constexpr u64 bucketBits = 0x1234;
-constexpr u64 inBucket(u16 key) { return ((u64)key << 48) | bucketBits; }
+// positions sharing a bucket: the high bits pick the bucket, the low 16 bits are the key. With the low 32 bits clear
+// the key can't move the hash into the next bucket.
+constexpr u64 bucketBits = 0x1234567800000000ull;
+constexpr u64 inBucket(u16 key) { return bucketBits | key; }
 
 struct ProbeResult {
     bool hit = false;
@@ -150,6 +151,57 @@ TEST(TranspositionTest, Clear_EmptiesTheTableAndResetsAge) {
 
     EXPECT_FALSE(probe(table, inBucket(1)).hit);
     EXPECT_EQ(0, table.getAge());
+}
+
+TEST(TranspositionTest, Size_AnyMegabyteCountIsUsed) {
+    TranspositionTable table(100);
+    EXPECT_EQ(100u * 1024 * 1024, table.size_bytes());
+    EXPECT_EQ(100u * 1024 * 1024 / 8, table.size());
+
+    table.resize(3);
+    EXPECT_EQ(3u * 1024 * 1024, table.size_bytes());
+}
+
+TEST(TranspositionTest, Resize_StoresAndProbesAcrossTheWholeTable) {
+    TranspositionTable table(3);
+    // hashes spread over the 64-bit range land in every part of a table that isn't a power of two.
+    for (u64 i = 0; i < 64; ++i) {
+        const u64 hash = (i * 0x0400000000000000ull) | 0x5A5A;
+        table.store(hash, PackedMove(Square::E2, Square::E4), static_cast<i16>(i), 5, TTF_CUT_EXACT);
+    }
+    for (u64 i = 0; i < 64; ++i) {
+        const u64 hash = (i * 0x0400000000000000ull) | 0x5A5A;
+        ProbeResult result = probe(table, hash);
+        EXPECT_TRUE(result.hit) << "i " << i;
+        EXPECT_EQ(static_cast<i16>(i), result.score);
+    }
+}
+
+TEST(TranspositionTest, Clear_WithThreadsEmptiesEveryBucket) {
+    TranspositionTable table(5);
+    for (u64 i = 0; i < 64; ++i)
+        table.store((i * 0x0400000000000000ull) | 0x77, PackedMove(Square::E2, Square::E4), 1, 3, TTF_CUT_EXACT);
+
+    table.clear(7);
+
+    for (u64 i = 0; i < 64; ++i)
+        EXPECT_FALSE(probe(table, (i * 0x0400000000000000ull) | 0x77).hit) << "i " << i;
+    EXPECT_EQ(0u, table.hashfull());
+}
+
+TEST(TranspositionTest, Hashfull_CountsEntriesOfTheCurrentSearch) {
+    TranspositionTable table(1);
+    table.incrementAge();
+    EXPECT_EQ(0u, table.hashfull());
+
+    // the first bucket, hash 0 up to the first bucket boundary, every key a different position.
+    for (u16 key = 1; key <= 8; ++key)
+        table.store(key, PackedMove(Square::E2, Square::E4), 0, 4, TTF_CUT_EXACT);
+    EXPECT_EQ(8u, table.hashfull());
+
+    // entries of an earlier search don't count.
+    table.incrementAge();
+    EXPECT_EQ(0u, table.hashfull());
 }
 
 } // namespace ElephantTest

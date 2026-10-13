@@ -24,6 +24,9 @@
 
 #pragma once
 #include <xmmintrin.h>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 #include <system/platform.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
@@ -38,6 +41,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <thread>
 
 
 struct PackedMove;
@@ -47,7 +51,7 @@ namespace transposition_table {
 
     namespace constants {
     // absolute maximum size of the transposition table
-    constexpr u32 c_tableMaxSize = 1024; // 1 gb
+    constexpr u32 c_tableMaxSize = 32768; // 32 gb
     constexpr u8 c_maxAge = 255;
     constexpr u32 c_bucketEntries = 8;
     } // namespace constants
@@ -63,6 +67,23 @@ struct alignas(64) bucket {
 
 static_assert(sizeof(bucket) == 64, "transposition table bucket must be exactly one cache line");
 static_assert(std::is_trivial_v<bucket>, "transposition table bucket must be a trivial type");
+// without lock-free 64-bit atomics atomic_ref falls back to a lock per access, the table would still work but crawl.
+static_assert(std::atomic_ref<u64>::is_always_lock_free, "transposition table entries must be lock-free 64-bit atomics");
+
+// The high 64 bits of a * b, maps a hash onto [0, b) using its high bits, any b works, not just powers of two.
+inline u64 mul_hi64(u64 a, u64 b) {
+#if defined(__SIZEOF_INT128__)
+    // __extension__, __int128 isn't ISO C++ and -Wpedantic would warn about it.
+    __extension__ using u128 = unsigned __int128;
+    return static_cast<u64>((static_cast<u128>(a) * b) >> 64);
+#elif defined(_MSC_VER) && defined(_M_X64)
+    return __umulh(a, b);
+#else
+    const u64 aLow = a & 0xFFFFFFFF, aHigh = a >> 32, bLow = b & 0xFFFFFFFF, bHigh = b >> 32;
+    const u64 middle = (aLow * bLow >> 32) + (aHigh * bLow & 0xFFFFFFFF) + aLow * bHigh;
+    return aHigh * bHigh + (aHigh * bLow >> 32) + (middle >> 32);
+#endif
+}
 
 } // namespace transposition_table
 
@@ -134,9 +155,10 @@ struct TTStats<true> {
 template<bool Debug>
 class TranspositionTableImpl {
 private:
-    std::vector<transposition_table::bucket> m_table;
-    size_t m_size;       // Number of entries
-    size_t m_mask;       // bucket count - 1, for fast modulo
+    // trivial buckets, allocated uninitialized and zeroed by clear() with several threads.
+    std::unique_ptr<transposition_table::bucket[]> m_table;
+    size_t m_bucketCount = 0;
+    size_t m_size = 0;   // Number of entries
     u8 m_age;       // Current age counter (0-63)
 
     //[[no_unique_address]]
@@ -149,8 +171,9 @@ private:
     static u64 pack(u16 key, PackedMove move, Score score, u8 depth, TranspositionFlag bound, u8 age);
     // Unpack 64-bit data into components
     static void unpack(u64 data, u16& key, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound, u8& age);
-    // The key is the top 16 bits of the hash, the bucket index comes from the low bits.
-    static u16 hash_key(u64 hash) { return (u16)(hash >> 48); }
+    // The bucket comes from the high bits of the hash (mul_hi64), the key is the low 16 bits.
+    static u16 hash_key(u64 hash) { return (u16)hash; }
+    transposition_table::bucket& bucket_for(u64 hash) const { return m_table[transposition_table::mul_hi64(hash, m_bucketCount)]; }
     // Extract just the key for fast verification
     static u16 extract_key(u64 data) { return (u16)(data >> 48); }
     static u16 extract_move(u64 data) { return (u16)(data >> 32); }
@@ -168,13 +191,13 @@ private:
     i32 worth(u64 data) const;
 
 public:
-    // size_mb: Size of table in megabytes (will be rounded down to power of 2)
+    // size_mb: Size of table in megabytes, all of it is used.
     explicit TranspositionTableImpl(size_t size_mb = 64);
 
     // --- Probe and Store ---
     bool probe(u64 hash, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound);
     void store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound);
-    void prefetch(u64 hash) const { _mm_prefetch(reinterpret_cast<const char*>(&m_table[hash & m_mask]), _MM_HINT_T0); }
+    void prefetch(u64 hash) const { _mm_prefetch(reinterpret_cast<const char*>(&bucket_for(hash)), _MM_HINT_T0); }
     
     // --- Age Management ---    
     void incrementAge() { m_age = (m_age + 1) & 0x3F;  /* Wrap at 64 */ }    
@@ -182,10 +205,13 @@ public:
     void setAge(u8 age) { m_age = age & 0x3F; }
 
     // --- Table Management ---    
-    void clear();
-    void resize(size_t size_mb);    
+    // threads split the table between them, a large Hash clears in a fraction of the time.
+    void clear(u32 threads = 1);
+    void resize(size_t size_mb, u32 threads = 1);
     size_t size() const { return m_size; }
-    size_t size_bytes() const { return m_table.size() * sizeof(transposition_table::bucket); }
+    size_t size_bytes() const { return m_bucketCount * sizeof(transposition_table::bucket); }
+    // UCI hashfull, permille of the first 1000 entries that were stored during the current search.
+    u32 hashfull() const;
     size_t size_mb() const { return size_bytes() / (1024 * 1024); }
     
     // ========================================================================
@@ -228,26 +254,35 @@ TranspositionTableImpl<Debug>::TranspositionTableImpl(size_t size_mb)
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::resize(size_t size_mb) {
-    clear();
-    size_t size_bytes = size_mb * 1024 * 1024;
-    size_t num_buckets = size_bytes / sizeof(transposition_table::bucket);
-    
-    // Round down to power of 2 for fast masking
-    size_t power = 0;
-    while ((1ULL << (power + 1)) <= num_buckets) {
-        power++;
-    }
-    num_buckets = (size_t)1 << power;
-    m_mask = num_buckets - 1;
-    
-    m_table.resize(num_buckets);
+void TranspositionTableImpl<Debug>::resize(size_t size_mb, u32 threads) {
+    size_mb = std::clamp<size_t>(size_mb, 1, transposition_table::constants::c_tableMaxSize);
+    const size_t num_buckets = size_mb * 1024 * 1024 / sizeof(transposition_table::bucket);
+
+    // the old table is released first, both at once may not fit.
+    m_table.reset();
+    m_table.reset(new transposition_table::bucket[num_buckets]);
+    m_bucketCount = num_buckets;
     m_size = num_buckets * transposition_table::constants::c_bucketEntries;
+    clear(threads);
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::clear() {
-    std::fill(m_table.begin(), m_table.end(), transposition_table::bucket{});
+void TranspositionTableImpl<Debug>::clear(u32 threads) {
+    threads = std::clamp<u32>(threads, 1, 64);
+    const size_t chunk = (m_bucketCount + threads - 1) / threads;
+    auto clearRange = [this, chunk](size_t first) {
+        const size_t last = std::min(first + chunk, m_bucketCount);
+        if (first < last)
+            std::memset(static_cast<void*>(&m_table[first]), 0, (last - first) * sizeof(transposition_table::bucket));
+    };
+
+    std::vector<std::thread> workers;
+    for (u32 i = 1; i < threads; ++i)
+        workers.emplace_back(clearRange, i * chunk);
+    clearRange(0);
+    for (std::thread& worker : workers)
+        worker.join();
+
     m_age = 0;
     if constexpr (Debug) {
         m_stats.reset();
@@ -260,7 +295,7 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
         m_stats.record_probe();
     }
     
-    transposition_table::bucket& bucket = m_table[hash & m_mask];
+    transposition_table::bucket& bucket = bucket_for(hash);
     const u16 search_key = hash_key(hash);
 
     for (u64& entry : bucket.entries) {
@@ -299,7 +334,7 @@ void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score
         spdlog::warn("TT TRAP STORE: Suspicious Score! Hash:{:X} Score:{} (0x{:X}) Depth:{}", hash, score, score, depth);
     }
 
-    transposition_table::bucket& bucket = m_table[hash & m_mask];
+    transposition_table::bucket& bucket = bucket_for(hash);
     const u16 key = hash_key(hash);
 
     // the slot is this position's own entry or the first empty one, otherwise the least valuable entry in the bucket.
@@ -368,3 +403,17 @@ i32 TranspositionTableImpl<Debug>::worth(u64 data) const {
     return static_cast<i32>(extract_depth(data)) - 8 * searches_old;
 }
 
+template<bool Debug>
+u32 TranspositionTableImpl<Debug>::hashfull() const {
+    // 125 buckets of 8 are 1000 entries, the table always has more.
+    constexpr size_t sampleBuckets = 1000 / transposition_table::constants::c_bucketEntries;
+    u32 used = 0;
+    for (size_t i = 0; i < std::min(sampleBuckets, m_bucketCount); ++i) {
+        for (u64& entry : m_table[i].entries) {
+            u64 data = std::atomic_ref<u64>(entry).load(std::memory_order_relaxed);
+            if (!is_empty(data) && extract_age(data) == m_age)
+                ++used;
+        }
+    }
+    return used;
+}

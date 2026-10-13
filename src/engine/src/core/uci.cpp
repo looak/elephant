@@ -119,7 +119,7 @@ UCI::SetOption(const std::list<std::string> args)
         else if (name == "Hash") {
             size_t newSize = static_cast<size_t>(std::max(1, toInt()));
             m_options["Hash"] = value;
-            m_context.editTranspositionTable().resize(newSize);
+            m_context.editTranspositionTable().resize(newSize, m_threadCount);
         }
         else if (name == "Move Overhead") {
             u32 overhead = static_cast<u32>(std::max(0, toInt()));
@@ -225,7 +225,7 @@ UCI::NewGame()
     // games are independent, nothing from the last game may carry over. The TT (and its age) is the only search state
     // that outlives a go, the killers & history are built per search in ThreadSearchContext. Not part of
     // GameContext::NewGame, "position startpos" calls that every move.
-    m_context.editTranspositionTable().clear();
+    m_context.editTranspositionTable().clear(m_threadCount);
     return true;
 }
 
@@ -445,8 +445,13 @@ bool UCI::Bench(std::list<std::string>)
     timer.Start();
     u64 nodes = 0;
 
+    // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
+    // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0,
+    // the same as a new one, the node count doesn't change.
+    GameContext context;
     for (const auto& fen : bench::fens) {
-        GameContext context;
+        context.Reset();
+        context.editTranspositionTable().clear();
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
         Search search(context);
