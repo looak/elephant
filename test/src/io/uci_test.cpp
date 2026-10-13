@@ -198,16 +198,15 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
-TEST_F(UciFixture, DISABLED_position_fen_perft)
+// EPD style perft annotations after the fen, ";D1 20 ;D2 400 ;D3 8902", end the fen and are ignored.
+TEST_F(UciFixture, position_fen_PerftAnnotationsAreIgnored)
 {
     // setup
     m_uci.Enable();
-    std::string gocFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ;D1 20 ;D2 400 ;D3 8902";
-    GameContext expected;
-    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
+    const std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     // do
-    std::string commandLine = "position fen " + gocFen;
+    std::string commandLine = "position fen " + startFen + " ;D1 20 ;D2 400 ;D3 8902";
     std::list<std::string> args;
     extractArgsFromCommand(commandLine, args);
     args.pop_front();  // pop position
@@ -215,18 +214,19 @@ TEST_F(UciFixture, DISABLED_position_fen_perft)
 
     // verify
     EXPECT_TRUE(result);
-    EXPECT_EQ(Set::BLACK, m_uci.readGameContext().readToPlay());
-    // EXPECT_EQ(0, m_uci.readGameContext().readMoveHistory().size());
+    EXPECT_EQ(Set::WHITE, m_uci.readGameContext().readToPlay());
 
-    const auto& board = m_uci.readGameContext().readChessPosition();    
-    EXPECT_EQ(WHITEKING, board.pieceAt(Square::G1));
-    EXPECT_EQ(BLACKKING, board.pieceAt(Square::G8));
-
-    EXPECT_FALSE(board.castling().hasAny());
+    const auto& board = m_uci.readGameContext().readChessPosition();
+    EXPECT_EQ(WHITEKING, board.pieceAt(Square::E1));
+    EXPECT_EQ(BLACKKING, board.pieceAt(Square::E8));
+    EXPECT_EQ(WHITEQUEEN, board.pieceAt(Square::D1));
+    EXPECT_EQ(BLACKQUEEN, board.pieceAt(Square::D8));
+    EXPECT_TRUE(board.castling().hasAll());
+    EXPECT_FALSE(board.enPassant());
 
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
-    EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
+    EXPECT_STREQ(startFen.c_str(), outputFen.c_str());
 }
 
 TEST_F(UciFixture, go_depth_3_DoesASearchAndReturnsAMove)
