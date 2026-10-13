@@ -59,6 +59,8 @@ struct SearchParameters {
     // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
     // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
     std::vector<PackedMove> SearchMoves;
+    // uci debug on, the helper threads also report their completed iterations as info strings.
+    bool ThreadInfo = false;
 };
 
 // What the threads of one search share. The main thread (id 0) sets stop once it's done so the helpers unwind, every

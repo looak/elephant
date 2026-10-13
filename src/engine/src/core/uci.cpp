@@ -406,6 +406,7 @@ UCI::Go(std::list<std::string> args)
 
     Search searcher(m_context);
     searchParams.ThreadCount = m_threadCount;
+    searchParams.ThreadInfo = m_debug;
 
     SearchResult result;
     if (m_context.readToPlay() == Set::WHITE) {

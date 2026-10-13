@@ -4,8 +4,10 @@
 #include <move/move.hpp>
 #include <core/uci.hpp>
 
-bool UCICommands::DebugCommand(std::list<std::string>, UCI&)
+bool UCICommands::DebugCommand(std::list<std::string> args, UCI& interface)
 {
+    if (args.empty() == false)
+        interface.Debug(args.front() == "on");
     return true;
 }
 

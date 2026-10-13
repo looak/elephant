@@ -168,6 +168,9 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         // Only the main thread reports, the helpers are silent.
         if (context.isMainThread())
             reportResult(itrResult, itrDepth, context.totalNodes(), context.clock.now());
+        else if (params.ThreadInfo)
+            io::printer::uci("info string thread {} depth {} score {} nodes {} pv {}", context.threadId, itrDepth,
+                itrResult.score, context.nodeCount + context.qNodeCount, itrResult.pvLine.toString());
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);

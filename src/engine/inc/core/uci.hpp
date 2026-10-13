@@ -59,6 +59,9 @@ public:
      * even during an ongoing search, without interrupting the search process.  */
     bool IsReady() const;
 
+    // debug on|off, with debug on the Lazy SMP helper threads report their iterations as info strings.
+    void Debug(bool enabled) { m_debug = enabled; }
+
     /**
      * option name [name] value [value]
      * sets a option on the engine. An unknown option or bad value is reported with an info string and returns false,
@@ -112,6 +115,7 @@ private:
 
     bool m_enabled;
     u16 m_threadCount = 1;
+    bool m_debug = false;
     TimeManager m_timeManager;
     GameContext m_context;
     std::atomic<bool> m_isSearching;
