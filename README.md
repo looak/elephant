@@ -177,7 +177,14 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 ## Running the tests
 
-Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft and EPD (Win at Chess, Arasan) suites.
+Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft and EPD (Win at Chess, Arasan, STS) suites, in two tiers:
+
+| Tier | Runs | Takes | When |
+|:--|:--|:--|:--|
+| smoke | `ElephantSuite --gtest_filter=PerftFixture.*:EpdSuite.Smoke*` | about a minute | before every merge |
+| extended | `ElephantSuite --gtest_filter=EpdSuite.Extended*` | about eight minutes | before a release or merging a search change |
+
+The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so each suite's minimum sits just below it and a drop means the engine plays differently. `EG_EPD_NODES`, `EG_EPD_DEPTH`, `EG_EPD_MOVETIME`, `EG_EPD_THREADS`, `EG_EPD_HASH` and `EG_EPD_MIN_PASSED` override a suite's settings for experiments, see `test/suite/epd_suite_test.cpp`. Every run appends its score to `logs/epd_results.csv`.
 
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 
