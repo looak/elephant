@@ -179,12 +179,12 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft and EPD (Win at Chess, Arasan, STS) suites, in two tiers:
 
-| Tier | Runs | Takes | When |
+| Tier | Runs | Takes | What |
 |:--|:--|:--|:--|
-| smoke | `ElephantSuite --gtest_filter=PerftFixture.*:EpdSuite.Smoke*` | about a minute | before every merge |
-| extended | `ElephantSuite --gtest_filter=EpdSuite.Extended*` | about eight minutes | before a release or merging a search change |
+| smoke | `test/smoke.sh` (`test\smoke.ps1` from PowerShell) | about nine minutes | the local sanity check before a merge: unit tests, perft, bench, then WAC with 1 & 4 threads, Arasan 2024 with 4 threads and STS |
+| extended | `ElephantSuite --gtest_filter=EpdSuite.Extended*` | about 25 minutes | the same suites with more budget and Arasan 2024 with 1 thread too, CI runs it with perft on pull requests to main |
 
-The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so each suite's minimum sits just below it and a drop means the engine plays differently. `EG_EPD_NODES`, `EG_EPD_DEPTH`, `EG_EPD_MOVETIME`, `EG_EPD_THREADS`, `EG_EPD_HASH` and `EG_EPD_MIN_PASSED` override a suite's settings for experiments, see `test/suite/epd_suite_test.cpp`. Every run appends its score to `logs/epd_results.csv`.
+The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. `EG_EPD_NODES`, `EG_EPD_DEPTH`, `EG_EPD_MOVETIME`, `EG_EPD_THREADS`, `EG_EPD_HASH` and `EG_EPD_MIN_PASSED` override a suite's settings for experiments, see `test/suite/epd_suite_test.cpp`. Every run appends its score to `logs/epd_results.csv`.
 
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 

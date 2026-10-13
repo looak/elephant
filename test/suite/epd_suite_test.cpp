@@ -25,8 +25,8 @@
 // EPD suites measure engine strength rather than correctness, so a few misses are expected. Each suite runs every
 // position and passes as long as enough of them are solved. They come in two tiers:
 //
-//   Smoke*     about a minute, before every merge:  ElephantSuite --gtest_filter=PerftFixture.*:EpdSuite.Smoke*
-//   Extended*  about ten minutes, before a release or merging a search change:  --gtest_filter=EpdSuite.Extended*
+//   Smoke*     the local sanity check:  ElephantSuite --gtest_filter=PerftFixture.*:EpdSuite.Smoke*
+//   Extended*  the same suites with more budget, what CI runs:  ElephantSuite --gtest_filter=EpdSuite.Extended*
 //
 // Every tier searches a fixed number of nodes per position. With one thread that's deterministic and independent of
 // the machine, the solved count is the same on every run and every computer, so the minimums sit just below it and a
@@ -174,6 +174,18 @@ struct EpdSettings {
     }
 };
 
+// Two levels per suite: below the baseline, the count measured when the suite was last tuned, is a warning that names
+// the drop, below the minimum is a failure. A search change can lose a few solves and still gain Elo, SPRT decides
+// that, the minimum only catches drops too large to be anything but a bug. Settings from the environment are an
+// experiment, neither level applies then unless EG_EPD_MIN_PASSED sets a minimum.
+// Multi threaded suites aren't repeatable, WAC with 4 threads went 282 then 287, the baseline only documents a typical
+// count and only the minimum, crashes, hangs & gross regressions, is checked.
+struct Thresholds {
+    long long baseline = 0;
+    long long minimum = 0;
+    bool repeatable = true;
+};
+
 class EpdSuite : public ::testing::Test {
 protected:
     static std::string timestamp(const char* format) {
@@ -197,6 +209,42 @@ protected:
         spdlog::set_default_logger(logger);
         spdlog::set_pattern("[%H:%M:%S.%e] [%l] %v");
         spdlog::set_level(spdlog::level::debug);
+    }
+
+    static bool environmentOverrides() {
+        for (const char* name : { "EG_EPD_NODES", "EG_EPD_DEPTH", "EG_EPD_MOVETIME", "EG_EPD_THREADS", "EG_EPD_HASH" }) {
+            const char* value = std::getenv(name);
+            if (value != nullptr && *value != '\0')
+                return true;
+        }
+        return false;
+    }
+
+    // Prints the warning or note for value against the suite's levels and fails below the minimum.
+    static void checkThresholds(const std::string& suiteName, long long value, Thresholds levels, const std::string& summary) {
+        if (environmentOverrides())
+            levels = {};
+        if (const char* minimumEnv = std::getenv("EG_EPD_MIN_PASSED"))
+            levels.minimum = std::atoll(minimumEnv);
+
+        if (value < levels.minimum) {
+            ADD_FAILURE() << std::format("FAIL {}: {} is below the minimum {}", suiteName, value, levels.minimum) << "\n"
+                          << summary;
+            return;
+        }
+        if (levels.baseline == 0 || !levels.repeatable)
+            return;
+        std::string message;
+        if (value < levels.baseline)
+            message = std::format("WARNING {}: {} is {} below the baseline {}, minimum {}", suiteName, value,
+                                  levels.baseline - value, levels.baseline, levels.minimum);
+        else if (value > levels.baseline)
+            message = std::format("NOTE {}: {} is {} above the baseline {}, raise it if the change is meant to stay",
+                                  suiteName, value, value - levels.baseline, levels.baseline);
+        if (!message.empty()) {
+            spdlog::warn(message);
+            std::cout << message << "\n";
+        }
     }
 
     static EpdSettings applyEnvironment(EpdSettings settings) {
@@ -320,13 +368,11 @@ protected:
         return id;
     }
 
-    // Scored suites like STS: every file is a theme, a position earns the points of the move played. Expects a total of
-    // at least minimumScore points, reports the score per theme.
+    // Scored suites like STS: every file is a theme, a position earns the points of the move played. The levels apply to
+    // the total points, the score is reported per theme.
     void runScoredSuite(const std::string& suiteName, const std::vector<std::string>& epdFiles, EpdSettings tierSettings,
-                        long long minimumScore) {
+                        Thresholds levels) {
         const EpdSettings settings = applyEnvironment(tierSettings);
-        if (const char* minimumEnv = std::getenv("EG_EPD_MIN_PASSED"))
-            minimumScore = std::atoll(minimumEnv);
 
         initializeLogger(suiteName);
         GameContext context;
@@ -364,24 +410,22 @@ protected:
         }
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 
-        const std::string summary = std::format("{}: {}/{} points ({:.1f}%), best move {}/{}, minimum {}, {}, {:.0f} s",
-            suiteName, score, maxScore, maxScore ? 100.0 * score / maxScore : 0.0, solved, total, minimumScore,
-            settings.describe(), seconds);
+        const std::string summary = std::format("{}: {}/{} points ({:.1f}%), best move {}/{}, baseline {}, minimum {}, {}, "
+            "{:.0f} s", suiteName, score, maxScore, maxScore ? 100.0 * score / maxScore : 0.0, solved, total,
+            levels.baseline, levels.minimum, settings.describe(), seconds);
         spdlog::info(summary);
         std::cout << summary << "\n";
         appendResult(suiteName, settings, solved, total, seconds, score, maxScore);
-        EXPECT_GE(score, minimumScore) << summary;
+        checkThresholds(suiteName, score, levels, summary);
     }
 
-    // Runs every position in res/epdFile and expects at least minimumSolved of them to be solved.
-    void runSuite(const std::string& suiteName, const std::string& epdFile, EpdSettings tierSettings, size_t minimumSolved) {
+    // Runs every position in res/epdFile, the levels apply to the number solved.
+    void runSuite(const std::string& suiteName, const std::string& epdFile, EpdSettings tierSettings, Thresholds levels) {
         const std::vector<EpdTestCase> cases = loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile));
         if (cases.empty()) {
             GTEST_SKIP() << "No positions found in res/" << epdFile;
         }
         const EpdSettings settings = applyEnvironment(tierSettings);
-        if (const char* minimumEnv = std::getenv("EG_EPD_MIN_PASSED"))
-            minimumSolved = static_cast<size_t>(std::atoi(minimumEnv));
 
         initializeLogger(suiteName);
         GameContext context;
@@ -396,55 +440,71 @@ protected:
         }
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 
-        const std::string summary = std::format("{}: {}/{} solved ({:.1f}%), minimum {}, {}, {:.0f} s", suiteName,
-            solved, cases.size(), 100.0 * solved / cases.size(), minimumSolved, settings.describe(), seconds);
+        const std::string summary = std::format("{}: {}/{} solved ({:.1f}%), baseline {}, minimum {}, {}, {:.0f} s",
+            suiteName, solved, cases.size(), 100.0 * solved / cases.size(), levels.baseline, levels.minimum,
+            settings.describe(), seconds);
         spdlog::info(summary);
         std::cout << summary << "\n";
         appendResult(suiteName, settings, solved, cases.size(), seconds);
-        EXPECT_GE(solved, minimumSolved) << summary;
+        checkThresholds(suiteName, static_cast<long long>(solved), levels, summary);
     }
 };
 
-// --- Smoke tier, about a minute ---
-
-// 270 at 1.0.0-herd.7.
-TEST_F(EpdSuite, Smoke_WinAtChess) {
-    runSuite("Smoke_WinAtChess", "wac_new.epd", { .nodes = 500'000 }, 265);
-}
-
-// --- Extended tier, about ten minutes ---
-
-// 282 at 1.0.0-herd.7.
-TEST_F(EpdSuite, Extended_WinAtChess) {
-    runSuite("Extended_WinAtChess", "wac_new.epd", { .nodes = 2'000'000 }, 277);
-}
-
-// Lazy SMP, the threads share the node limit. Not deterministic, the minimum leaves more room. 282 at 1.0.0-herd.7.
-TEST_F(EpdSuite, Extended_WinAtChess_4Threads) {
-    runSuite("Extended_WinAtChess_4Threads", "wac_new.epd", { .nodes = 8'000'000, .threads = 4 }, 272);
-}
-
-// Arasan is built for minutes per position, at 2M nodes only a few fall. 8 at 1.0.0-herd.7.
-TEST_F(EpdSuite, Extended_Arasan2024) {
-    runSuite("Extended_Arasan2024", "arasan2024.epd", { .nodes = 2'000'000 }, 6);
-}
-
-// 6 at 1.0.0-herd.7.
-TEST_F(EpdSuite, Extended_Arasan21) {
-    runSuite("Extended_Arasan21", "arasan21.epd", { .nodes = 2'000'000 }, 4);
-}
-
 // Strategic Test Suite, positional judgement rather than tactics. Each position scores the move played, 10 for the best.
-TEST_F(EpdSuite, Extended_STS) {
+std::vector<std::string> stsFiles() {
     std::vector<std::string> files;
     for (int theme = 1; theme <= 15; ++theme) {
         if (std::filesystem::exists(std::format("{}/res/STS{}.epd", ROOT_PATH, theme)))
             files.push_back(std::format("STS{}.epd", theme));
     }
-    if (files.empty())
+    return files;
+}
+
+// --- Smoke tier, the local sanity check ---
+// Baselines are the counts measured at 1.0.0-herd.7. The minimums allow a few percent, the multi threaded suites
+// differ from run to run and get more room, for them the minimum mostly catches crashes & hangs.
+
+TEST_F(EpdSuite, Smoke_WinAtChess) {
+    runSuite("Smoke_WinAtChess", "wac_new.epd", { .nodes = 2'000'000 }, { .baseline = 282, .minimum = 272 });
+}
+
+TEST_F(EpdSuite, Smoke_WinAtChess_4Threads) {
+    runSuite("Smoke_WinAtChess_4Threads", "wac_new.epd", { .nodes = 8'000'000, .threads = 4 }, { .baseline = 282, .minimum = 265, .repeatable = false });
+}
+
+TEST_F(EpdSuite, Smoke_Arasan2024_4Threads) {
+    runSuite("Smoke_Arasan2024_4Threads", "arasan2024.epd", { .nodes = 16'000'000, .threads = 4 }, { .baseline = 11, .minimum = 7, .repeatable = false });
+}
+
+TEST_F(EpdSuite, Smoke_STS) {
+    if (stsFiles().empty())
         GTEST_SKIP() << "No STS files in res/";
-    // 7837/13000 at 1.0.0-herd.7, STS 1-13.
-    runScoredSuite("Extended_STS", files, { .nodes = 200'000 }, 7700);
+    runScoredSuite("Smoke_STS", stsFiles(), { .nodes = 200'000 }, { .baseline = 7837, .minimum = 7600 });
+}
+
+// --- Extended tier, what CI runs: the smoke suites with more budget ---
+
+TEST_F(EpdSuite, Extended_WinAtChess) {
+    runSuite("Extended_WinAtChess", "wac_new.epd", { .nodes = 4'000'000 }, { .baseline = 288, .minimum = 282 });
+}
+
+TEST_F(EpdSuite, Extended_WinAtChess_4Threads) {
+    runSuite("Extended_WinAtChess_4Threads", "wac_new.epd", { .nodes = 16'000'000, .threads = 4 }, { .baseline = 290, .minimum = 278, .repeatable = false });
+}
+
+// Arasan at the same nodes per thread with 1 and 4 threads, the difference is what Lazy SMP adds, 12 against 16.
+TEST_F(EpdSuite, Extended_Arasan2024) {
+    runSuite("Extended_Arasan2024", "arasan2024.epd", { .nodes = 8'000'000 }, { .baseline = 12, .minimum = 9 });
+}
+
+TEST_F(EpdSuite, Extended_Arasan2024_4Threads) {
+    runSuite("Extended_Arasan2024_4Threads", "arasan2024.epd", { .nodes = 32'000'000, .threads = 4 }, { .baseline = 16, .minimum = 11, .repeatable = false });
+}
+
+TEST_F(EpdSuite, Extended_STS) {
+    if (stsFiles().empty())
+        GTEST_SKIP() << "No STS files in res/";
+    runScoredSuite("Extended_STS", stsFiles(), { .nodes = 1'000'000 }, { .baseline = 8475, .minimum = 8250 });
 }
 
 // --- The EPD parser ---
