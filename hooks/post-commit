@@ -1,0 +1,18 @@
+#!/bin/sh
+# Promotes in flight smoke runs: a run recorded on a dirty tree becomes the record of the commit that has exactly that
+# tree, see test/RESULTS.md. Quiet unless something was promoted, never fails the commit.
+#
+# This tracked copy is the source, git runs it from .git/hooks. Install or update once per clone, from the repo root:
+#   cp hooks/post-commit .git/hooks/ && chmod +x .git/hooks/post-commit
+
+root="$(git rev-parse --show-toplevel)"
+[ -d "$root/logs/results/inflight" ] || exit 0
+ls "$root/logs/results/inflight/"*.json >/dev/null 2>&1 || exit 0
+
+for candidate in python3 python py; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "import sys; sys.exit(sys.version_info < (3, 9))" 2>/dev/null; then
+        "$candidate" "$root/test/results.py" promote --quiet 2>/dev/null
+        exit 0
+    fi
+done
+exit 0

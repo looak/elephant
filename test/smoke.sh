@@ -7,6 +7,9 @@
 # Bench is built with ob_build/makefile and g++ like the commit hook and OpenBench do, through WSL on Windows. It only
 # warns when it differs from the last commit's bench line, a search change is supposed to change it. An EPD suite
 # below its baseline warns as well, below its minimum it fails (test/suite/epd_suite_test.cpp).
+#
+# Every position the EPD suites search is recorded with test/results.py and compared with the nearest ancestor commit's
+# smoke run, see test/RESULTS.md. On a dirty tree the run is in flight until a commit with exactly that tree is made.
 
 root="$(git rev-parse --show-toplevel)"
 build="${1:-$root/build}"
@@ -68,9 +71,11 @@ fi
 # --- 3. perft & the EPD smoke tier ---
 echo "== perft & EPD smoke tier: $suite"
 start=$(date +%s)
+started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 suite_log="$log_dir/smoke_suite_$stamp.log"
+checks="$log_dir/smoke_checks_$stamp.jsonl"
 # from the root, the EPD suites write their logs to logs/.
-if (cd "$root" && "$suite" --gtest_filter='PerftFixture.*:EpdSuite.Smoke*:EpdParser.*') 2>&1 | tee "$suite_log" \
+if (cd "$root" && EG_RESULTS_CHECKS="$checks" "$suite" --gtest_filter='PerftFixture.*:EpdSuite.Smoke*:EpdParser.*') 2>&1 | tee "$suite_log" \
         | grep -aE "solved \(|points \(|^WARNING|^NOTE|^FAIL|FAILED  \]"; then :; fi
 if grep -aq "^\[  FAILED  \]" "$suite_log" || ! grep -aq "^\[  PASSED  \]" "$suite_log"; then
     failed=1
@@ -86,6 +91,33 @@ while IFS= read -r line; do
 done <<EOF
 $(grep -aE "^(WARNING|NOTE) " "$suite_log")
 EOF
+
+# --- 4. results: record the positions, compare with history ---
+python=""
+for candidate in python3 python py; do
+    command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "import sys; sys.exit(sys.version_info < (3, 9))" 2>/dev/null \
+        && { python="$candidate"; break; }
+done
+if [ -z "$python" ]; then
+    add_summary WARN results "no python 3.9+, the positions weren't recorded"
+elif [ ! -s "$checks" ]; then
+    add_summary WARN results "the suites wrote no results, nothing recorded"
+elif record="$("$python" "$root/test/results.py" record --checks "$checks" --kind smoke --started "$started_at")"; then
+    echo "$record"
+    comparison="$("$python" "$root/test/results.py" compare)"
+    echo "$comparison"
+    while IFS= read -r line; do
+        case "$line" in
+            "  "[A-Za-z]*:*) add_summary INFO results "${line#  }" ;;
+            results:*) add_summary INFO results "${line#results: }" ;;
+        esac
+    done <<EOF
+$(printf '%s\n' "$comparison" | grep -aE "^(  [A-Za-z]|results:)")
+EOF
+    rm -f "$checks"
+else
+    add_summary WARN results "recording failed, the checks are in $checks"
+fi
 
 echo
 echo "== smoke summary"

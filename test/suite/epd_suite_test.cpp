@@ -8,6 +8,7 @@
 #include <format>
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <optional>
 #include <regex>
 #include <sstream>
@@ -169,6 +170,65 @@ std::vector<EpdTestCase> loadEpdFile(const std::string& filePath) {
 }
 
 // What a suite searches with, a tier's defaults overridden by the environment.
+// --- Results records, see test/RESULTS.md ---
+// With EG_RESULTS_CHECKS=path every suite appends one check, every position it searched included, as a JSON line.
+// test/results.py adds the run (commit, branch, tree, host) and keeps the history.
+std::string jsonString(const std::string& text) {
+    std::string out = "\"";
+    for (const char c : text) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20)
+                    out += std::format("\\u{:04x}", static_cast<int>(c));
+                else
+                    out += c;
+        }
+    }
+    return out + "\"";
+}
+
+std::string jsonStrings(const std::vector<std::string>& values) {
+    std::string out = "[";
+    for (size_t i = 0; i < values.size(); ++i)
+        out += (i ? "," : "") + jsonString(values[i]);
+    return out + "]";
+}
+
+// the build a result belongs to, the same commit built differently can search differently.
+std::string buildJson() {
+#if defined(__clang__)
+    const std::string compiler = std::format("clang {}.{}.{}", __clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(_MSC_VER)
+    const std::string compiler = std::format("msvc {}", _MSC_FULL_VER);
+#elif defined(__GNUC__)
+    const std::string compiler = std::format("gcc {}.{}.{}", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#else
+    const std::string compiler = "unknown";
+#endif
+#if defined(NDEBUG)
+    const char* config = "release";
+#else
+    const char* config = "debug";
+#endif
+#if defined(ASSERTIONS_ENABLED)
+    const bool assertions = true;
+#else
+    const bool assertions = false;
+#endif
+#if defined(EXCEPTIONS_ENABLED)
+    const bool exceptions = true;
+#else
+    const bool exceptions = false;
+#endif
+    return std::format(R"({{"compiler":{},"config":"{}","assertions":{},"exceptions":{},"bits":{}}})", jsonString(compiler),
+                       config, assertions, exceptions, sizeof(void*) * 8);
+}
+
 struct EpdSettings {
     u64 nodes = 0;
     u8 depth = 0;
@@ -192,6 +252,25 @@ struct EpdSettings {
             cases.resize(perFile);
         return cases;
     }
+};
+
+struct CaseResult {
+    bool solved = false;
+    int points = 0;   // scored suites, the points of the move played
+    bool error = false;   // the case couldn't run as written, a FEN or a bm/am the parsers rejected
+    std::string played;
+    i32 score = 0;
+    bool mate = false;
+    u64 nodes = 0;
+    long long timeMs = 0;
+    std::string pv;
+};
+
+// a position as it ran, for the results record.
+struct CaseRecord {
+    const EpdTestCase* testCase;
+    std::string file;
+    CaseResult result;
 };
 
 // Two levels per suite: below the baseline, the count measured when the suite was last tuned, is a warning that names
@@ -240,20 +319,27 @@ protected:
         return false;
     }
 
-    // Prints the warning or note for value against the suite's levels and fails below the minimum.
-    static void checkThresholds(const std::string& suiteName, long long value, Thresholds levels, const std::string& summary) {
+    // the levels a suite is held to, none when the environment overrides its settings.
+    static Thresholds effectiveLevels(Thresholds levels) {
         if (environmentOverrides())
-            levels = {};
+            levels = { .repeatable = levels.repeatable };
         if (const char* minimumEnv = std::getenv("EG_EPD_MIN_PASSED"))
             levels.minimum = std::atoll(minimumEnv);
+        return levels;
+    }
 
+    // Prints the warning or note for value against the suite's levels and fails below the minimum. Returns the engine's
+    // verdict for the results record: "fail", "warn" below the baseline, "pass", or "none" without levels.
+    static std::string checkThresholds(const std::string& suiteName, long long value, Thresholds levels,
+                                       const std::string& summary) {
+        levels = effectiveLevels(levels);
         if (value < levels.minimum) {
             ADD_FAILURE() << std::format("FAIL {}: {} is below the minimum {}", suiteName, value, levels.minimum) << "\n"
                           << summary;
-            return;
+            return "fail";
         }
         if (levels.baseline == 0 || !levels.repeatable)
-            return;
+            return levels.minimum > 0 ? "pass" : "none";
         std::string message;
         if (value < levels.baseline)
             message = std::format("WARNING {}: {} is {} below the baseline {}, minimum {}", suiteName, value,
@@ -265,6 +351,59 @@ protected:
             spdlog::warn(message);
             std::cout << message << "\n";
         }
+        return value < levels.baseline ? "warn" : "pass";
+    }
+
+    // Appends the suite to EG_RESULTS_CHECKS as one JSON line, a check in test/RESULTS.md's format: the settings, the
+    // totals and every position searched.
+    static void writeCheck(const std::string& suiteName, const std::vector<std::string>& epdFiles,
+                           const EpdSettings& settings, const Thresholds& levels, const std::string& verdict,
+                           size_t solved, size_t total, long long score, long long maxScore, bool scored,
+                           double seconds, const std::vector<CaseRecord>& records) {
+        const char* path = std::getenv("EG_RESULTS_CHECKS");
+        if (path == nullptr || *path == '\0')
+            return;
+
+        // one id per suite family, the files' content hashes are added by test/results.py.
+        std::string family = epdFiles.size() > 1 ? "sts" : std::filesystem::path(epdFiles.front()).stem().string();
+        const char* limitType = settings.nodes ? "nodes" : settings.depth ? "depth" : "movetime";
+        const u64 limitValue = settings.nodes ? settings.nodes : settings.depth ? settings.depth : settings.moveTime;
+        const bool deterministic = settings.threads == 1 && settings.moveTime == 0;
+
+        std::string line = std::format(R"({{"id":{},"version":1,"name":{},"status":"pass","deterministic":{},)",
+            jsonString("epd." + family), jsonString(suiteName), deterministic);
+        line += std::format(R"("params":{{"limit":{{"type":"{}","value":{}}},"threads":{},"hash_mb":{},"per_file":{},)"
+                            R"("files":{},"experiment":{}}},)", limitType, limitValue, settings.threads,
+                            settings.hashMb, settings.perFile, jsonStrings(epdFiles), environmentOverrides());
+        line += std::format(R"("metrics":{{"solved":{{"value":{}}},"total":{{"value":{}}},)", solved, total);
+        if (scored)
+            line += std::format(R"("points":{{"value":{}}},"max_points":{{"value":{}}},)", score, maxScore);
+        line += std::format(R"("duration":{{"value":{:.1f},"unit":"s"}}}},)", seconds);
+        line += std::format(R"("engine_verdict":{{"baseline":{},"minimum":{},"repeatable":{},"result":"{}"}},)",
+                            levels.baseline, levels.minimum, levels.repeatable, verdict);
+        line += std::format(R"("build":{},"cases":[)", buildJson());
+        for (size_t i = 0; i < records.size(); ++i) {
+            const EpdTestCase& tc = *records[i].testCase;
+            const CaseResult& r = records[i].result;
+            const char* status = r.error ? "error" : r.solved ? "pass" : "fail";
+            line += std::format(R"({}{{"id":{},"file":{},"fen":{},"status":"{}","expected":{},"avoid":{},"got":{},)",
+                i ? "," : "", jsonString(tc.id), jsonString(records[i].file), jsonString(tc.fen), status,
+                jsonStrings(tc.bestMoves), jsonStrings(tc.avoidMoves), jsonString(r.played));
+            if (scored) {
+                // a position without a score list earns 10 for its best move, as STS scores them.
+                const bool unscored = tc.moveScores.empty();
+                line += std::format(R"("points":{},"max_points":{},)", unscored ? (r.solved ? 10 : 0) : r.points,
+                                    unscored ? 10 : tc.maxScore());
+            }
+            line += std::format(R"("score":{},"mate":{},"nodes":{},"time_ms":{},"pv":{}}})", r.score, r.mate, r.nodes,
+                                r.timeMs, jsonString(r.pv));
+        }
+        line += "]}";
+
+        std::ofstream out(path, std::ios::app);
+        if (!out)
+            ADD_FAILURE() << "Can't write the results record to " << path;
+        out << line << "\n";
     }
 
     static EpdSettings applyEnvironment(EpdSettings settings) {
@@ -321,11 +460,6 @@ protected:
         }
     }
 
-    struct CaseResult {
-        bool solved = false;
-        int points = 0;   // scored suites, the points of the move played
-    };
-
     // Searches the position, solved when the engine played one of the best moves and none of the avoid moves. A scored
     // position also earns the points of the move played. Misses are printed unless printMisses is off.
     CaseResult runCase(GameContext& context, const EpdTestCase& tc, const EpdSettings& settings, bool printMisses = true) {
@@ -333,8 +467,9 @@ protected:
         context.editTranspositionTable().clear();
         if (!io::fen_parser::deserialize(tc.fen.c_str(), context.editChessboard())) {
             ADD_FAILURE() << "FEN parser failed on " << tc;
-            return {};
+            return { .error = true };
         }
+        const auto caseStart = std::chrono::steady_clock::now();
 
         SearchParameters params;
         params.SearchDepth = settings.depth;
@@ -354,6 +489,8 @@ protected:
             result = searcher.go<Set::BLACK>(params, timeManager);
         }
 
+        const long long timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - caseStart).count();
         const std::string played = result.move().toString();
         auto contains = [&played](const std::vector<PackedMove>& moves) {
             return std::any_of(moves.begin(), moves.end(), [&](PackedMove move) { return move.toString() == played; });
@@ -377,7 +514,10 @@ protected:
                 std::cout << std::format("  miss {:<14} expected {:<14} engine {:<6} score {:>6} nodes {:>10}  pv {}\n",
                     tc.id, expected, played, result.score, result.count, result.pvLine.toString());
         }
-        return { solved, points };
+        return { .solved = solved, .points = points,
+                 .error = best.size() != tc.bestMoves.size() || avoid.size() != tc.avoidMoves.size(),
+                 .played = played, .score = result.score, .mate = result.ForcedMate, .nodes = result.count,
+                 .timeMs = timeMs, .pv = trim(result.pvLine.toString()) };
     }
 
     // score & maxScore only for scored suites, 0 otherwise.
@@ -419,8 +559,11 @@ protected:
         const auto start = std::chrono::steady_clock::now();
         size_t solved = 0, total = 0;
         long long score = 0, maxScore = 0;
+        std::vector<CaseRecord> records;
+        std::list<std::vector<EpdTestCase>> fileCases;   // the records point into these, a list keeps them in place
         for (const std::string& epdFile : epdFiles) {
-            const std::vector<EpdTestCase> cases = settings.select(loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile)));
+            fileCases.push_back(settings.select(loadEpdFile(std::format("{}/res/{}", ROOT_PATH, epdFile))));
+            const std::vector<EpdTestCase>& cases = fileCases.back();
             if (cases.empty()) {
                 ADD_FAILURE() << "No positions found in res/" << epdFile;
                 continue;
@@ -429,6 +572,7 @@ protected:
             size_t themeSolved = 0;
             for (const auto& tc : cases) {
                 const CaseResult result = runCase(context, tc, settings, false);
+                records.push_back({ &tc, epdFile, result });
                 themeSolved += result.solved ? 1 : 0;
                 // a position without a score list earns 10 for its best move, as STS scores them.
                 const bool unscored = tc.moveScores.empty();
@@ -453,7 +597,9 @@ protected:
         spdlog::info(summary);
         std::cout << summary << "\n";
         appendResult(suiteName, settings, solved, total, seconds, score, maxScore);
-        checkThresholds(suiteName, score, levels, summary);
+        const std::string verdict = checkThresholds(suiteName, score, levels, summary);
+        writeCheck(suiteName, epdFiles, settings, effectiveLevels(levels), verdict, solved, total, score, maxScore, true,
+                   seconds, records);
     }
 
     // Runs every position in res/epdFile, the levels apply to the number solved.
@@ -471,8 +617,10 @@ protected:
 
         const auto start = std::chrono::steady_clock::now();
         size_t solved = 0;
+        std::vector<CaseRecord> records;
         for (const auto& tc : cases) {
-            if (runCase(context, tc, settings).solved)
+            records.push_back({ &tc, epdFile, runCase(context, tc, settings) });
+            if (records.back().result.solved)
                 ++solved;
         }
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
@@ -483,7 +631,9 @@ protected:
         spdlog::info(summary);
         std::cout << summary << "\n";
         appendResult(suiteName, settings, solved, cases.size(), seconds);
-        checkThresholds(suiteName, static_cast<long long>(solved), levels, summary);
+        const std::string verdict = checkThresholds(suiteName, static_cast<long long>(solved), levels, summary);
+        writeCheck(suiteName, { epdFile }, settings, effectiveLevels(levels), verdict, solved, cases.size(), 0, 0, false,
+                   seconds, records);
     }
 };
 

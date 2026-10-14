@@ -25,8 +25,31 @@ jobs:
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target ElephantSuite
 
+    - name: Results folder
+      run: cmake -E make_directory ${{github.workspace}}/logs
+
     - name: Suite
       working-directory: ${{github.workspace}}/build
       # Perft and the extended EPD tier, the smoke tier is the local subset of it. Verbose so the perft numbers and EPD
       # scores show up in the log even when passing.
       run: ctest -C ${{env.BUILD_TYPE}} -L suite -E "EpdSuite\.Smoke" --verbose
+      env:
+        # every position searched, recorded as a run below, see test/RESULTS.md.
+        EG_RESULTS_CHECKS: ${{github.workspace}}/logs/extended_checks.jsonl
+
+    - name: Record results
+      if: always()
+      shell: bash
+      run: |
+        [ -s logs/extended_checks.jsonl ] || { echo "no results written"; exit 0; }
+        py="$(command -v python3 || command -v python)"
+        trigger="${{ github.event_name == 'workflow_dispatch' && 'request' || 'push' }}"
+        "$py" test/results.py record --checks logs/extended_checks.jsonl --kind extended --trigger "$trigger"
+
+    - name: Upload results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: results-${{ matrix.os }}
+        path: logs/results/
+        if-no-files-found: ignore

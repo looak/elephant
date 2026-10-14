@@ -1,0 +1,420 @@
+#!/usr/bin/env python3
+"""Smoke & extended EPD results: records runs and keeps their history, see test/RESULTS.md.
+
+    python test/results.py record --checks FILE --kind smoke    the checks ElephantSuite wrote, as a run
+    python test/results.py promote                              in flight runs whose tree got committed become history
+    python test/results.py compare [RUN] [--against RUN]        positions that changed, newest run vs its ancestor
+    python test/results.py case WAC.297                         one position through history
+    python test/results.py list                                 the recorded runs
+
+A run on a dirty working tree is in flight: it's compared with history but isn't part of it. It records the tree its
+files would commit as, and once a commit has exactly that tree the run becomes that commit's record (promote, run by
+the post-commit hook). Runs are compared along the commit graph, a branch with the commit it descends from, so
+branches waiting on SPRT don't mix.
+
+Standard library only, the store is logs/results/ (per machine, ignored by git) unless --store says otherwise.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+SCHEMA_VERSION = 1
+ROOT = Path(__file__).resolve().parent.parent
+
+
+# --- git ---
+
+def git(*args: str, env: dict | None = None, check: bool = True) -> str:
+    result = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, env=env)
+    if check and result.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
+    return result.stdout.strip()
+
+
+def working_tree() -> str:
+    """The tree id the working copy would commit as with everything added, untracked files included."""
+    with tempfile.TemporaryDirectory() as tmp:
+        index = Path(tmp) / "index"
+        git_index = Path(git("rev-parse", "--git-path", "index"))
+        if not git_index.is_absolute():
+            git_index = ROOT / git_index
+        if git_index.exists():
+            shutil.copy(git_index, index)
+        env = {**os.environ, "GIT_INDEX_FILE": str(index)}
+        git("add", "-A", env=env)
+        return git("write-tree", env=env)
+
+
+def ancestors(commit: str, limit: int = 5000) -> list[str]:
+    """commit and its ancestors, nearest first."""
+    out = git("rev-list", f"--max-count={limit}", commit, check=False)
+    return out.split() if out else []
+
+
+def commit_for_tree(tree: str) -> str | None:
+    """the newest commit, on any branch, whose tree is tree."""
+    out = git("log", "--all", "--format=%H %T", "-n", "2000", check=False)
+    for line in out.splitlines():
+        commit, commit_tree = line.split()
+        if commit_tree == tree:
+            return commit
+    return None
+
+
+def subject(commit: str) -> str:
+    return git("log", "-1", "--format=%s", commit, check=False)
+
+
+# --- store ---
+
+def store_dirs(store: Path) -> tuple[Path, Path]:
+    history, inflight = store / "history", store / "inflight"
+    history.mkdir(parents=True, exist_ok=True)
+    inflight.mkdir(parents=True, exist_ok=True)
+    return history, inflight
+
+
+def load_runs(store: Path) -> list[tuple[Path, dict]]:
+    runs = []
+    for folder in store_dirs(store):
+        for path in folder.glob("*.json"):
+            try:
+                runs.append((path, json.loads(path.read_text(encoding="utf-8"))))
+            except (OSError, json.JSONDecodeError) as error:
+                print(f"results: skipping {path}: {error}", file=sys.stderr)
+    runs.sort(key=lambda item: item[1]["run"]["recorded_at"])
+    return runs
+
+
+def write_run(path: Path, run: dict) -> None:
+    path.write_text(json.dumps(run, separators=(",", ":")), encoding="utf-8")
+
+
+def run_label(run: dict) -> str:
+    r = run["run"]
+    where = r["commit"][:10] if r["commit"] else f"in flight on {r['base_commit'][:10]}"
+    return f"{r['kind']} {where} ({r['branch']}) {r['recorded_at']}"
+
+
+# --- record ---
+
+def sha256(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def host() -> dict:
+    cpu = platform.processor() or platform.machine()
+    try:
+        if sys.platform.startswith("linux"):
+            for line in Path("/proc/cpuinfo").read_text().splitlines():
+                if line.startswith("model name"):
+                    cpu = line.split(":", 1)[1].strip()
+                    break
+    except OSError:
+        pass
+    return {"name": platform.node(), "os": f"{platform.system()} {platform.release()}", "cpu": cpu,
+            "logical_cores": os.cpu_count()}
+
+
+def record(args: argparse.Namespace) -> int:
+    checks = []
+    for line in Path(args.checks).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            checks.append(json.loads(line))
+    if not checks:
+        print(f"results: no checks in {args.checks}", file=sys.stderr)
+        return 1
+
+    # the suite files' content, an edited EPD reusing old ids isn't comparable with its history.
+    for check in checks:
+        params = check.get("params", {})
+        params["file_sha256"] = {name: sha256(ROOT / "res" / name) for name in params.get("files", [])}
+
+    builds = {json.dumps(check.get("build"), sort_keys=True) for check in checks}
+    head = git("rev-parse", "HEAD")
+    tree = working_tree()
+    clean = tree == git("rev-parse", "HEAD^{tree}")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    run = {
+        "schema_version": SCHEMA_VERSION,
+        "run": {
+            "kind": args.kind,
+            "trigger": args.trigger,
+            "request_id": None,
+            "state": "committed" if clean else "in_flight",
+            "commit": head if clean else None,
+            "base_commit": head,
+            "tree": tree,
+            "branch": os.environ.get("GITHUB_HEAD_REF") or os.environ.get("GITHUB_REF_NAME")
+                      or git("rev-parse", "--abbrev-ref", "HEAD"),
+            "version": (ROOT / "version.txt").read_text(encoding="utf-8").strip(),
+            "started_at": args.started or now,
+            "finished_at": now,
+            "recorded_at": now,
+            "host": host(),
+            "build": json.loads(builds.pop()) if len(builds) == 1 else None,
+        },
+        "checks": checks,
+    }
+    if os.environ.get("GITHUB_RUN_ID"):
+        server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+        run["run"]["ci"] = {"workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
+                            "url": f"{server}/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}
+
+    history, inflight = store_dirs(Path(args.store))
+    stamp = now.replace(":", "").replace("-", "")[:15]
+    path = (history / f"{head[:12]}-{args.kind}-{stamp}.json") if clean \
+        else (inflight / f"{tree[:12]}-{args.kind}-{stamp}.json")
+    write_run(path, run)
+    if not args.quiet:
+        print(f"results: recorded {run_label(run)} -> {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
+    return 0
+
+
+# --- promote ---
+
+def promote(args: argparse.Namespace) -> int:
+    store = Path(args.store)
+    history, _ = store_dirs(store)
+    promoted = 0
+    for path, run in load_runs(store):
+        r = run["run"]
+        if r["state"] != "in_flight":
+            continue
+        commit = commit_for_tree(r["tree"])
+        if commit is None:
+            continue
+        r["state"], r["commit"] = "committed", commit
+        r["promoted_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        write_run(history / f"{commit[:12]}-{r['kind']}-{path.stem.rsplit('-', 1)[-1]}.json", run)
+        path.unlink()
+        promoted += 1
+        print(f"results: promoted {run_label(run)}, {subject(commit)}")
+    if not args.quiet and promoted == 0:
+        print("results: nothing to promote")
+    return 0
+
+
+# --- compare ---
+
+def check_key(check: dict, build: dict | None) -> str:
+    """checks with equal keys searched the same way: the same limit, threads, hash & build. per_file only picks
+    positions, every position is searched on its own, so it isn't part of the key."""
+    params = check.get("params", {})
+    key = {"id": check["id"], "version": check.get("version"), "limit": params.get("limit"),
+           "threads": params.get("threads"), "hash_mb": params.get("hash_mb"),
+           "experiment": params.get("experiment", False),
+           "build": {k: (build or {}).get(k) for k in ("compiler", "config", "assertions", "exceptions", "bits")}}
+    return json.dumps(key, sort_keys=True)
+
+
+def comparable_checks(run: dict) -> dict[str, dict]:
+    return {check_key(c, c.get("build") or run["run"].get("build")): c for c in run["checks"]}
+
+
+def case_key(check: dict, case: dict) -> tuple[str, str | None]:
+    return case["id"], check.get("params", {}).get("file_sha256", {}).get(case.get("file"))
+
+
+def find_run(runs: list[tuple[Path, dict]], name: str | None) -> dict | None:
+    if name is None:
+        return runs[-1][1] if runs else None
+    for path, run in reversed(runs):
+        r = run["run"]
+        if name in (path.name, path.stem) or (r["commit"] or "").startswith(name) or r["tree"].startswith(name):
+            return run
+    return None
+
+
+def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
+    """the newest committed run on the nearest ancestor of the target, with at least one comparable check."""
+    t = target["run"]
+    lineage = ancestors(t["base_commit"])
+    if t["commit"]:
+        lineage = lineage[1:]   # a committed run compares with what came before it
+    position = {commit: i for i, commit in enumerate(lineage)}
+    keys = set(comparable_checks(target))
+    best, best_position = None, None
+    for _, run in runs:
+        r = run["run"]
+        if r["state"] != "committed" or r["commit"] not in position or run is target:
+            continue
+        if not keys & set(comparable_checks(run)):
+            continue
+        p = position[r["commit"]]
+        if best is None or p < best_position or (p == best_position and r["recorded_at"] > best["run"]["recorded_at"]):
+            best, best_position = run, p
+    return best
+
+
+def describe_case(case: dict) -> str:
+    text = f"{case['id']:<36} {case['status']:<5} got {case.get('got', ''):<6}"
+    if "points" in case:
+        text += f" {case['points']:>2}/{case.get('max_points', 10)}"
+    return text
+
+
+def compare_runs(target: dict, baseline: dict, brief: bool) -> list[str]:
+    lines = [f"compare {run_label(target)}", f"   with {run_label(baseline)}"
+             + (f", {subject(baseline['run']['commit'])}" if baseline["run"]["commit"] else "")]
+    base_checks = comparable_checks(baseline)
+    same_tree = target["run"]["tree"] == baseline["run"]["tree"]
+    for key, check in comparable_checks(target).items():
+        base = base_checks.get(key)
+        name = check.get("name", check["id"])
+        if base is None:
+            lines.append(f"  {name}: no comparable run")
+            continue
+        metric = lambda c, m: c.get("metrics", {}).get(m, {}).get("value")
+        totals = f"solved {metric(base, 'solved')} -> {metric(check, 'solved')}"
+        if metric(check, "points") is not None:
+            totals += f", points {metric(base, 'points')} -> {metric(check, 'points')}"
+        if not check.get("deterministic", True):
+            lines.append(f"  {name}: {totals} (multi threaded, totals only)")
+            continue
+        base_cases = {case_key(base, c): c for c in base.get("cases", [])}
+        newly_failing, newly_passing, points_changed, moves_changed = [], [], [], []
+        compared = 0
+        for case in check.get("cases", []):
+            before = base_cases.get(case_key(check, case))
+            if before is None:
+                continue
+            compared += 1
+            if before["status"] == "pass" and case["status"] != "pass":
+                newly_failing.append((before, case))
+            elif before["status"] != "pass" and case["status"] == "pass":
+                newly_passing.append((before, case))
+            elif case.get("points", 0) != before.get("points", 0):
+                points_changed.append((before, case))
+            elif case.get("got") != before.get("got"):
+                moves_changed.append((before, case))
+        summary = f"  {name}: {totals}, {compared} positions compared: {len(newly_failing)} newly failing, " \
+                  f"{len(newly_passing)} newly passing"
+        if points_changed:
+            summary += f", {len(points_changed)} with other points"
+        if moves_changed:
+            summary += f", {len(moves_changed)} other moves, same result"
+        lines.append(summary)
+        if same_tree and (newly_failing or newly_passing or points_changed or moves_changed):
+            lines.append("    NOT DETERMINISTIC: the same tree and build searched differently")
+        if brief:
+            continue
+        for label, changes in (("newly failing", newly_failing), ("newly passing", newly_passing),
+                               ("other points", points_changed)):
+            for before, case in changes:
+                lines.append(f"    {label:<14} {describe_case(case)}   was {before.get('got', '')}"
+                             + (f" {before['points']}/{before.get('max_points', 10)}" if "points" in before else ""))
+    return lines
+
+
+def compare(args: argparse.Namespace) -> int:
+    runs = load_runs(Path(args.store))
+    target = find_run(runs, args.run)
+    if target is None:
+        print("results: no runs recorded yet" if args.run is None else f"results: no run matches {args.run}")
+        return 1
+    baseline = find_run(runs, args.against) if args.against else find_baseline(runs, target)
+    if baseline is None:
+        print(f"results: nothing to compare {run_label(target)} with, no comparable run on an ancestor commit")
+        return 0
+    print("\n".join(compare_runs(target, baseline, args.brief)))
+    return 0
+
+
+# --- case ---
+
+def case_history(args: argparse.Namespace) -> int:
+    runs = load_runs(Path(args.store))
+    order = {commit: i for i, commit in enumerate(reversed(ancestors(args.at or "HEAD")))}
+    rows = []
+    for _, run in runs:
+        r = run["run"]
+        anchor = r["commit"] or r["base_commit"]
+        if anchor not in order:
+            continue
+        for check in run["checks"]:
+            if args.check and check["id"] != args.check:
+                continue
+            for case in check.get("cases", []):
+                if case["id"] == args.case:
+                    rows.append((order[anchor], r["recorded_at"], run, check, case))
+    if not rows:
+        print(f"results: {args.case} isn't in any run on the history of {args.at or 'HEAD'}")
+        return 1
+    rows.sort(key=lambda row: (row[0], row[1]))
+    last_pass = None
+    for _, _, run, check, case in rows:
+        r = run["run"]
+        where = r["commit"][:10] if r["commit"] else "in flight"
+        limit = check.get("params", {}).get("limit", {})
+        print(f"  {where:<10} {r['kind']:<8} {check.get('name', check['id']):<28} {limit.get('type')} "
+              f"{limit.get('value'):<9} {describe_case(case)}  {r['branch']}")
+        if case["status"] == "pass" and r["commit"]:
+            last_pass = r["commit"]
+    latest = rows[-1][4]
+    if latest["status"] != "pass":
+        print(f"  {args.case} last passed at {last_pass[:10]}, {subject(last_pass)}" if last_pass
+              else f"  {args.case} hasn't passed in any recorded run")
+    return 0
+
+
+def list_runs(args: argparse.Namespace) -> int:
+    for path, run in load_runs(Path(args.store)):
+        summary = ", ".join(
+            f"{c.get('name', c['id'])} {c.get('metrics', {}).get('points', c.get('metrics', {}).get('solved', {})).get('value')}"
+            for c in run["checks"])
+        print(f"  {run_label(run)}: {summary}")
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--store", default=str(ROOT / "logs" / "results"), help="where runs are kept")
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    p = commands.add_parser("record", help="record the checks ElephantSuite wrote as a run")
+    p.add_argument("--checks", required=True, help="the EG_RESULTS_CHECKS file")
+    p.add_argument("--kind", required=True, choices=["smoke", "extended"])
+    p.add_argument("--trigger", default="local", help="local, push, schedule, request")
+    p.add_argument("--started", help="when the run started, ISO 8601")
+    p.add_argument("--quiet", action="store_true")
+    p.set_defaults(func=record)
+
+    p = commands.add_parser("promote", help="in flight runs whose tree got committed become history")
+    p.add_argument("--quiet", action="store_true", help="say nothing when nothing was promoted")
+    p.set_defaults(func=promote)
+
+    p = commands.add_parser("compare", help="positions that changed between two runs")
+    p.add_argument("run", nargs="?", help="a run: file name, commit or tree prefix (default the newest)")
+    p.add_argument("--against", help="the run to compare with (default the nearest ancestor's)")
+    p.add_argument("--brief", action="store_true", help="totals only, no positions")
+    p.set_defaults(func=compare)
+
+    p = commands.add_parser("case", help="one position through history")
+    p.add_argument("case", help="the EPD id, e.g. WAC.297")
+    p.add_argument("--check", help="only this check, e.g. epd.wac_new")
+    p.add_argument("--at", help="the history of this commit or branch (default HEAD)")
+    p.set_defaults(func=case_history)
+
+    p = commands.add_parser("list", help="the recorded runs")
+    p.set_defaults(func=list_runs)
+
+    args = parser.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
