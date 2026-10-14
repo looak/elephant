@@ -1,2 +1,3 @@
-# git hooks are shell scripts, CRLF breaks them.
+# git hooks & shell scripts, CRLF breaks them.
 hooks/* text eol=lf
+*.sh text eol=lf

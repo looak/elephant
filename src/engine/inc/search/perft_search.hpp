@@ -84,9 +84,9 @@ struct DivideResult {
 
 /**
  * @brief Perft, templated on a move generator policy (see move_gen_policy.hpp) so generators can be A/B tested:
- *     perft.Run(depth);                           // legacy generator
- *     perft.Run<move_gen_policy::Tusk>(depth);    // tusk generator
- * Run & Divide are explicitly instantiated for move_gen_policy::Legacy and move_gen_policy::Tusk.   */
+ *     perft.Run(depth);                           // tusk generator
+ *     perft.Run<move_gen_policy::Tusk>(depth);    // the same, a new generator's policy goes here to A/B it
+ * Run & Divide are explicitly instantiated for move_gen_policy::Tusk.   */
 class PerftSearch {
 public:
     PerftSearch(GameContext& context);
@@ -95,7 +95,7 @@ public:
      * @brief Runs the perft search to the specified depth.
      * @param depth The depth to search to.
      * @return The result of the perft search.     */    
-    template<typename TMoveGen = move_gen_policy::Legacy>
+    template<typename TMoveGen = move_gen_policy::Tusk>
     PerftResult Run(int depth);
 
     /**
@@ -107,7 +107,7 @@ public:
      * @brief Divides the perft search into a node search per move at origin.
      * @param atDepth The depth to divide the search at.
      * @return A vector of results from the divided searches.    */
-    template<typename TMoveGen = move_gen_policy::Legacy>
+    template<typename TMoveGen = move_gen_policy::Tusk>
     std::vector<DivideResult> Divide(int atDepth);
     
 

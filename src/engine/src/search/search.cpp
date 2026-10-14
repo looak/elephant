@@ -2,6 +2,7 @@
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
 #include <io/printer.hpp>
+#include <search/transposition_table.hpp>
 
 Search::Search(GameContext& context)
     : m_transpositionTable(context.editTranspositionTable())
@@ -23,20 +24,22 @@ void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u
         // UCI reports moves, not plies. Mating takes (plies + 1) / 2 of our moves, being mated plies / 2 of theirs.
         const i32 plies = checkmateDistance - 1;
         const i32 mateInMoves = searchResult.score > 0 ? (plies + 1) / 2 : -(plies / 2);
-        io::printer::uci("info score mate {} depth {} nodes {} time {} pv {}",
+        io::printer::uci("info score mate {} depth {} nodes {} time {} hashfull {} pv {}",
             mateInMoves,
             itrDepth,
             nodes,
             elapsedTime,
+            m_transpositionTable.hashfull(),
             searchResult.pvLine.toString());
         return;
     }
 
     i32 centipawn = searchResult.score;
-    io::printer::uci("info score cp {} depth {} nodes {} time {} pv {}",
+    io::printer::uci("info score cp {} depth {} nodes {} time {} hashfull {} pv {}",
         centipawn,
         itrDepth,
         nodes,
         elapsedTime,
+        m_transpositionTable.hashfull(),
         searchResult.pvLine.toString());
 }

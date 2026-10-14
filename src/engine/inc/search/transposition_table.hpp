@@ -24,6 +24,9 @@
 
 #pragma once
 #include <xmmintrin.h>
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 #include <system/platform.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/move.hpp>
@@ -36,7 +39,9 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <memory>
+#include <thread>
 
 
 struct PackedMove;
@@ -46,35 +51,39 @@ namespace transposition_table {
 
     namespace constants {
     // absolute maximum size of the transposition table
-    constexpr u32 c_tableMaxSize = 1024; // 1 gb
+    constexpr u32 c_tableMaxSize = 32768; // 32 gb
     constexpr u8 c_maxAge = 255;
+    constexpr u32 c_bucketEntries = 8;
     } // namespace constants
-    
-    /**
- * Transposition Table Entry Structure 10 bytes -- padded to 16.
- *  move        : 2 bytes
- * data         : 8 bytes
- *  - key       : 4 bytes
- *  - score     : 2 bytes
- *  - depth     : 1 byte
- *  - flags
- *      & age   : 1 byte  */
-struct alignas(16) entry {    
-    // Written last, read first (atomic 64-bit)
-    // Layout: [32-bit key][16-bit score][8-bit depth][2-bit flags][6-bit age]
-    // Written first, read last.
-    u64 data;
 
-    // [16-bits move]
-    // Written last, read first.
-    PackedMove move;
-
-    // paddoing  -- 6 bytes
-    u8 padding[6];
+/**
+ * A bucket is one cache line of 8 entries, a probe reads a single line. Each entry is one 64-bit word, read and
+ * written atomically, so threads sharing the table never see half an entry.
+ * Entry layout: [16-bit key][16-bit move][16-bit score][8-bit depth][2-bit bound][6-bit age]
+ * The bucket index comes from the low bits of the hash and the key from the top 16, an entry with no bound is empty. */
+struct alignas(64) bucket {
+    u64 entries[constants::c_bucketEntries];
 };
 
-static_assert(sizeof(entry) == 16, "transposition table entry must be exactly 16 bytes");
-static_assert(std::is_trivial_v<entry>, "transposition table entry must be a trivial type");
+static_assert(sizeof(bucket) == 64, "transposition table bucket must be exactly one cache line");
+static_assert(std::is_trivial_v<bucket>, "transposition table bucket must be a trivial type");
+// without lock-free 64-bit atomics atomic_ref falls back to a lock per access, the table would still work but crawl.
+static_assert(std::atomic_ref<u64>::is_always_lock_free, "transposition table entries must be lock-free 64-bit atomics");
+
+// The high 64 bits of a * b, maps a hash onto [0, b) using its high bits, any b works, not just powers of two.
+inline u64 mul_hi64(u64 a, u64 b) {
+#if defined(__SIZEOF_INT128__)
+    // __extension__, __int128 isn't ISO C++ and -Wpedantic would warn about it.
+    __extension__ using u128 = unsigned __int128;
+    return static_cast<u64>((static_cast<u128>(a) * b) >> 64);
+#elif defined(_MSC_VER) && defined(_M_X64)
+    return __umulh(a, b);
+#else
+    const u64 aLow = a & 0xFFFFFFFF, aHigh = a >> 32, bLow = b & 0xFFFFFFFF, bHigh = b >> 32;
+    const u64 middle = (aLow * bLow >> 32) + (aHigh * bLow & 0xFFFFFFFF) + aLow * bHigh;
+    return aHigh * bHigh + (aHigh * bLow >> 32) + (middle >> 32);
+#endif
+}
 
 } // namespace transposition_table
 
@@ -146,39 +155,49 @@ struct TTStats<true> {
 template<bool Debug>
 class TranspositionTableImpl {
 private:
-    std::vector<transposition_table::entry> m_table;
-    size_t m_size;       // Number of entries
-    size_t m_mask;       // m_size - 1, for fast modulo
+    // trivial buckets, allocated uninitialized and zeroed by clear() with several threads.
+    std::unique_ptr<transposition_table::bucket[]> m_table;
+    size_t m_bucketCount = 0;
+    size_t m_size = 0;   // Number of entries
     u8 m_age;       // Current age counter (0-63)
-    
-    //[[no_unique_address]] 
+
+    //[[no_unique_address]]
     TTStats<Debug> m_stats;
-    
+
 
     // --- Packing and Unpacking ---
-    // Pack data into 64-bit atomic value
-    // Layout: [32-bit key][16-bit score][8-bit depth][2-bit flags][6-bit age]
-    static u64 pack(u32 key, Score score, u8 depth, TranspositionFlag bound, u8 age);
+    // Pack an entry into its 64-bit word
+    // Layout: [16-bit key][16-bit move][16-bit score][8-bit depth][2-bit flags][6-bit age]
+    static u64 pack(u16 key, PackedMove move, Score score, u8 depth, TranspositionFlag bound, u8 age);
     // Unpack 64-bit data into components
-    static void unpack(u64 data, u32& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age);
+    static void unpack(u64 data, u16& key, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound, u8& age);
+    // The bucket comes from the high bits of the hash (mul_hi64), the key is the low 16 bits.
+    static u16 hash_key(u64 hash) { return (u16)hash; }
+    transposition_table::bucket& bucket_for(u64 hash) const { return m_table[transposition_table::mul_hi64(hash, m_bucketCount)]; }
     // Extract just the key for fast verification
-    static u32 extract_key(u64 data) { return (u32)(data >> 32); }    
+    static u16 extract_key(u64 data) { return (u16)(data >> 48); }
+    static u16 extract_move(u64 data) { return (u16)(data >> 32); }
     // Extract just the age for replacement policy
-    static u8 extract_age(u64 data) { return (u8)(data & 0x3F); }    
+    static u8 extract_age(u64 data) { return (u8)(data & 0x3F); }
     // Extract just the depth for replacement policy
     static u8 extract_depth(u64 data) { return (u8)(data >> 8); }
-    
-    // --- Replacement Policy ---    
-    bool should_replace(u64 oldData, u8 newData) const;
+    static TranspositionFlag extract_bound(u64 data) { return (TranspositionFlag)((data >> 6) & 0x3); }
+    // A stored entry always has a bound, a cleared one is all zero.
+    static bool is_empty(u64 data) { return extract_bound(data) == TTF_NONE; }
 
-public:    
-    // size_mb: Size of table in megabytes (will be rounded down to power of 2)
+    // --- Replacement Policy ---
+    // How much an entry is worth keeping when a different position needs its slot, deep and recent entries are worth
+    // more. The least valuable entry in the bucket is replaced.
+    i32 worth(u64 data) const;
+
+public:
+    // size_mb: Size of table in megabytes, all of it is used.
     explicit TranspositionTableImpl(size_t size_mb = 64);
-    
-    // --- Probe and Store ---    
+
+    // --- Probe and Store ---
     bool probe(u64 hash, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound);
     void store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound);
-    void prefetch(u64 hash) const { _mm_prefetch(reinterpret_cast<const char*>(&m_table[hash & m_mask]), _MM_HINT_T0); }
+    void prefetch(u64 hash) const { _mm_prefetch(reinterpret_cast<const char*>(&bucket_for(hash)), _MM_HINT_T0); }
     
     // --- Age Management ---    
     void incrementAge() { m_age = (m_age + 1) & 0x3F;  /* Wrap at 64 */ }    
@@ -186,10 +205,13 @@ public:
     void setAge(u8 age) { m_age = age & 0x3F; }
 
     // --- Table Management ---    
-    void clear();
-    void resize(size_t size_mb);    
+    // threads split the table between them, a large Hash clears in a fraction of the time.
+    void clear(u32 threads = 1);
+    void resize(size_t size_mb, u32 threads = 1);
     size_t size() const { return m_size; }
-    size_t size_bytes() const { return m_size * sizeof(transposition_table::entry); }
+    size_t size_bytes() const { return m_bucketCount * sizeof(transposition_table::bucket); }
+    // UCI hashfull, permille of the first 1000 entries that were stored during the current search.
+    u32 hashfull() const;
     size_t size_mb() const { return size_bytes() / (1024 * 1024); }
     
     // ========================================================================
@@ -232,26 +254,35 @@ TranspositionTableImpl<Debug>::TranspositionTableImpl(size_t size_mb)
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::resize(size_t size_mb) {
-    clear();
-    size_t size_bytes = size_mb * 1024 * 1024;
-    size_t num_entries = size_bytes / sizeof(transposition_table::entry);
-    
-    // Round down to power of 2 for fast masking
-    size_t power = 0;
-    while ((1ULL << (power + 1)) <= num_entries) {
-        power++;
-    }
-    num_entries = (size_t)1 << power;
-    m_mask = num_entries - 1;
-    
-    m_table.resize(num_entries);
-    m_size = num_entries;
+void TranspositionTableImpl<Debug>::resize(size_t size_mb, u32 threads) {
+    size_mb = std::clamp<size_t>(size_mb, 1, transposition_table::constants::c_tableMaxSize);
+    const size_t num_buckets = size_mb * 1024 * 1024 / sizeof(transposition_table::bucket);
+
+    // the old table is released first, both at once may not fit.
+    m_table.reset();
+    m_table.reset(new transposition_table::bucket[num_buckets]);
+    m_bucketCount = num_buckets;
+    m_size = num_buckets * transposition_table::constants::c_bucketEntries;
+    clear(threads);
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::clear() {
-    std::fill(m_table.begin(), m_table.end(), transposition_table::entry{});
+void TranspositionTableImpl<Debug>::clear(u32 threads) {
+    threads = std::clamp<u32>(threads, 1, 64);
+    const size_t chunk = (m_bucketCount + threads - 1) / threads;
+    auto clearRange = [this, chunk](size_t first) {
+        const size_t last = std::min(first + chunk, m_bucketCount);
+        if (first < last)
+            std::memset(static_cast<void*>(&m_table[first]), 0, (last - first) * sizeof(transposition_table::bucket));
+    };
+
+    std::vector<std::thread> workers;
+    for (u32 i = 1; i < threads; ++i)
+        workers.emplace_back(clearRange, i * chunk);
+    clearRange(0);
+    for (std::thread& worker : workers)
+        worker.join();
+
     m_age = 0;
     if constexpr (Debug) {
         m_stats.reset();
@@ -264,43 +295,34 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
         m_stats.record_probe();
     }
     
-    // Get the entry index from lower bits of hash
-    size_t index = hash & m_mask;
-    transposition_table::entry& entry = m_table[index];
-    
-    // Step 1: Atomically read the 64-bit data block
-    std::atomic_ref<u64> atomic_data(entry.data);
-    u64 data = atomic_data.load(std::memory_order_acquire);
-    
-    // Step 2: Verify the hash key (upper 32 bits)    
-    u32 search_key = (u32)(hash >> 32);        
-    if (search_key != extract_key(data)) {
-        // Key mismatch - either empty, different position, or write in progress
+    transposition_table::bucket& bucket = bucket_for(hash);
+    const u16 search_key = hash_key(hash);
+
+    for (u64& entry : bucket.entries) {
+        // the whole entry is one atomic word, a matching key always comes with its own move & score.
+        u64 data = std::atomic_ref<u64>(entry).load(std::memory_order_relaxed);
+        if (is_empty(data) || extract_key(data) != search_key)
+            continue;
+
+        u16 stored_key;
+        u8 stored_age;
+        unpack(data, stored_key, move, score, depth, bound, stored_age);
+
         if constexpr (Debug) {
-            if (extract_key(data) != 0) {
-                m_stats.record_collision();
-            }
-            m_stats.record_miss();
+            m_stats.record_hit();
         }
-        return false;
+
+        // TRAP: Did we retrieve a mangled score?
+        if (score > 16000 && score < 23000) {
+             spdlog::warn("TT TRAP PROBE: Suspicious Score Retrieved! Hash:{:X} Score:{} (0x{:X})", hash, score, score);
+        }
+        return true;
     }
-    
-    // Step 3: Key matches! Now it's safe to read the move
-    move = entry.move;
-    
-    // Step 4: Unpack the data
-    u8 stored_age;
-    unpack(data, search_key, score, depth, bound, stored_age);
-    
+
     if constexpr (Debug) {
-        m_stats.record_hit();
+        m_stats.record_miss();
     }
-    
-    // TRAP: Did we retrieve a mangled score?
-    if (score > 16000 && score < 23000) {
-         spdlog::warn("TT TRAP PROBE: Suspicious Score Retrieved! Hash:{:X} Score:{} (0x{:X})", hash, score, score);
-    }
-    return true;
+    return false;
 }
 
 template<bool Debug>
@@ -312,38 +334,51 @@ void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score
         spdlog::warn("TT TRAP STORE: Suspicious Score! Hash:{:X} Score:{} (0x{:X}) Depth:{}", hash, score, score, depth);
     }
 
-    // Get the entry index from lower bits of hash
-    size_t index = hash & m_mask;
-    transposition_table::entry& entry = m_table[index];
-    std::atomic_ref<u64> atomic_data(entry.data);
-    
-    // Check replacement policy
-    u64 old_data = atomic_data.load(std::memory_order_relaxed);
-    u32 old_key = extract_key(old_data);
-    
-    if (old_key != 0 && old_key != (u32)(hash >> 32)) {
-        // Different position - check if we should replace
-        if (!should_replace(old_data, depth)) {
-            return;  // Keep existing entry
+    transposition_table::bucket& bucket = bucket_for(hash);
+    const u16 key = hash_key(hash);
+
+    // the slot is this position's own entry or the first empty one, otherwise the least valuable entry in the bucket.
+    // Entries fill a bucket from the front, so the empty ones come after any match.
+    u64* slot = nullptr;
+    u64 old_data = 0;
+    i32 lowest_worth = std::numeric_limits<i32>::max();
+    for (u64& entry : bucket.entries) {
+        u64 data = std::atomic_ref<u64>(entry).load(std::memory_order_relaxed);
+        if (is_empty(data) || extract_key(data) == key) {
+            slot = &entry;
+            old_data = data;
+            break;
         }
-        if constexpr (Debug) {
-            m_stats.record_overwrite();
+        i32 entry_worth = worth(data);
+        if (entry_worth < lowest_worth) {
+            lowest_worth = entry_worth;
+            slot = &entry;
+            old_data = data;
         }
     }
-    
-    // Step 1: Write the move (non-atomic)
-    entry.move = move;
-    
-    // Step 2: Pack and atomically write the 64-bit data block
-    u32 key = (u32)(hash >> 32);
-    u64 new_data = pack(key, score, depth, bound, m_age);
-    atomic_data.store(new_data, std::memory_order_release);
+
+    if (!is_empty(old_data) && extract_key(old_data) == key) {
+        // the same position is always replaced, the newest result is the most relevant. Keeping a deeper bound from an
+        // earlier iteration over it pushed the null move zugzwang test (search_test.cpp) from depth 18 to 24.
+        // A fail-low has no best move, keep the one found earlier.
+        if (move.isNull())
+            move = PackedMove(extract_move(old_data));
+    }
+    else if constexpr (Debug) {
+        if (!is_empty(old_data)) {
+            m_stats.record_overwrite();
+            m_stats.record_collision();
+        }
+    }
+
+    std::atomic_ref<u64>(*slot).store(pack(key, move, score, depth, bound, m_age), std::memory_order_relaxed);
 }
 
 template<bool Debug>
-u64 TranspositionTableImpl<Debug>::pack(u32 key, Score score, u8 depth, TranspositionFlag bound, u8 age) {
+u64 TranspositionTableImpl<Debug>::pack(u16 key, PackedMove move, Score score, u8 depth, TranspositionFlag bound, u8 age) {
     u64 data = 0;
-    data |= (u64)key << 32;                    // Bits 63-32: key
+    data |= (u64)key << 48;                    // Bits 63-48: key
+    data |= (u64)move.read() << 32;            // Bits 47-32: move
     data |= (u64)(uint16_t)score << 16;        // Bits 31-16: score
     data |= (u64)depth << 8;                   // Bits 15-8:  depth
     data |= (u64)((u8)bound & 0x3) << 6;       // Bits 7-6:   flags
@@ -352,30 +387,33 @@ u64 TranspositionTableImpl<Debug>::pack(u32 key, Score score, u8 depth, Transpos
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::unpack(u64 data, u32& key, Score& score, u8& depth, TranspositionFlag& bound, u8& age) {
-    key = (u32)(data >> 32);
+void TranspositionTableImpl<Debug>::unpack(u64 data, u16& key, PackedMove& move, Score& score, u8& depth, TranspositionFlag& bound, u8& age) {
+    key = extract_key(data);
+    move = PackedMove(extract_move(data));
     score = (Score)(uint16_t)(data >> 16);
-    depth = (u8)(data >> 8);
-    bound = (TranspositionFlag)((data >> 6) & 0x3);
-    age = (u8)(data & 0x3F);
+    depth = extract_depth(data);
+    bound = extract_bound(data);
+    age = extract_age(data);
 }
 
 template<bool Debug>
-bool TranspositionTableImpl<Debug>::should_replace(u64 oldData, u8 newDepth) const {
-    u8 oldDepth = extract_depth(oldData);
-    u8 oldAge = extract_age(oldData);
-    
-    // Always replace if from a previous search (old age)
-    if (oldAge != m_age) {
-        return true;
-    }
-    
-    // Replace if new search is deeper
-    if (newDepth > oldDepth) {
-        return true;
-    }
-    
-    // Otherwise keep existing entry
-    return false;
+i32 TranspositionTableImpl<Debug>::worth(u64 data) const {
+    // searches since the entry was stored, the age wraps at 64.
+    const i32 searches_old = (m_age - extract_age(data)) & 0x3F;
+    return static_cast<i32>(extract_depth(data)) - 8 * searches_old;
 }
 
+template<bool Debug>
+u32 TranspositionTableImpl<Debug>::hashfull() const {
+    // 125 buckets of 8 are 1000 entries, the table always has more.
+    constexpr size_t sampleBuckets = 1000 / transposition_table::constants::c_bucketEntries;
+    u32 used = 0;
+    for (size_t i = 0; i < std::min(sampleBuckets, m_bucketCount); ++i) {
+        for (u64& entry : m_table[i].entries) {
+            u64 data = std::atomic_ref<u64>(entry).load(std::memory_order_relaxed);
+            if (!is_empty(data) && extract_age(data) == m_age)
+                ++used;
+        }
+    }
+    return used;
+}

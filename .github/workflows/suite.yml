@@ -1,6 +1,6 @@
 name: Suite
 
-# Long running perft & EPD suites (ElephantSuite), too slow to run on every push.
+# Long running perft & extended EPD suites (ElephantSuite), too slow to run on every push.
 on:
   workflow_dispatch:
   pull_request:
@@ -27,5 +27,6 @@ jobs:
 
     - name: Suite
       working-directory: ${{github.workspace}}/build
-      # Verbose so the perft numbers and EPD scores show up in the log even when passing
-      run: ctest -C ${{env.BUILD_TYPE}} -L suite --verbose
+      # Perft and the extended EPD tier, the smoke tier is the local subset of it. Verbose so the perft numbers and EPD
+      # scores show up in the log even when passing.
+      run: ctest -C ${{env.BUILD_TYPE}} -L suite -E "EpdSuite\.Smoke" --verbose

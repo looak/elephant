@@ -5,7 +5,6 @@
 #include <io/fen_parser.hpp>
 #include <position/hash_zobrist.hpp>
 #include <move/move.hpp>
-#include <move/generation/move_generator.hpp>
 #include <move/move_executor.hpp>
 #include <search/search.hpp>
 

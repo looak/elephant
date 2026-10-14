@@ -4,6 +4,7 @@
 #include <io/fen_parser.hpp>
 #include <core/chessboard.hpp>
 #include <io/printer.hpp>
+#include <position/hash_zobrist.hpp>
 
 #include "chess_positions.hpp"
 
@@ -104,6 +105,8 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     expected.editState().moveCount = 136;
     expected.editState().plyCount = 2;
     expected.editState().whiteToMove = false;
+    // black to move, the hash carries the black to move key like the one loaded from the FEN.
+    expected.editPosition().hash() = zobrist::updateBlackToMoveHash(expected.readPosition().hash());
 
     auto&& expitr = expected.readPosition().begin();
     auto&& resitr = resultBoard.readPosition().begin();

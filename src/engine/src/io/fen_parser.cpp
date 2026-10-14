@@ -11,6 +11,7 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 #include <position/castling_state_info.hpp>
+#include <position/hash_zobrist.hpp>
 #include <system/platform.hpp>
 
 namespace io {
@@ -114,23 +115,40 @@ bool
 deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
 {
     char value = (char)std::tolower(toPlayStr[0]);
+    bool whiteToMove;
     if (value == 'w')
-        outputBoard.editState().whiteToMove = true;
+        whiteToMove = true;
     else if (value == 'b')
-        outputBoard.editState().whiteToMove = false;
+        whiteToMove = false;
     else
         return false;
+
+    // the hash carries the black to move key whenever black is to move, toggle it when the side to move changes so the
+    // hash matches zobrist::computeBoardHash and the same position reached by moves.
+    if (outputBoard.readState().whiteToMove != whiteToMove) {
+        auto& hash = outputBoard.editPosition().hash();
+        hash = zobrist::updateBlackToMoveHash(hash);
+    }
+    outputBoard.editState().whiteToMove = whiteToMove;
 
     return true;
 }
 
 bool
-deserializeEnPassant(std::string_view enPassantStr, PositionEditor position) {
+deserializeEnPassant(std::string_view enPassantStr, PositionEditor position, Set toPlay) {
     position.enPassant().clear();
     if (enPassantStr.size() > 1) {
         byte file = checked_cast<byte>(enPassantStr[0] - 'a');
         byte rank = checked_cast<byte>(std::atoi(&enPassantStr[1]) - 1);
-        position.enPassant().writeSquare(to_square(file, rank));
+        const Square epSqr = to_square(file, rank);
+        // the pawn that double pushed stands one rank further from its own side than the en passant square.
+        const Square pushedPawn = rank < 4 ? shift_north(epSqr) : shift_south(epSqr);
+        // drop an en passant square no pawn of the side to move could capture on, it doesn't change the position and
+        // keeping it would make the hash differ from the same position reached by moves. Pins are ignored, see
+        // en_passant::capture_possible.
+        const u64 capturers = position.material().read(toPlay, pawnId).read();
+        if (en_passant::capture_possible(capturers, pushedPawn))
+            position.enPassant().writeSquare(epSqr);
     }
     return true;
 }
@@ -168,7 +186,7 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
 
     tokens.pop_front();
 
-    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition()))
+    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition(), outputBoard.readToPlay()))
         return false;
 
     tokens.pop_front();
@@ -223,7 +241,7 @@ bool deserialize(const char* input, Chessboard& outputBoard)
 
     tokens.pop_front();
 
-    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition()))
+    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition(), outputBoard.readToPlay()))
         return false;
 
     tokens.pop_front();

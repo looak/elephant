@@ -30,6 +30,7 @@ set(TEST_SOURCE_INCLUDE ${TEST_SOURCE_INCLUDE}
 ## /...
     ${TEST_INC_DIR}/bitboard_test_helpers.hpp
     ${TEST_INC_DIR}/chess_positions.hpp
+    ${TEST_INC_DIR}/move_gen_ab.hpp
     ${TEST_INC_DIR}/search_cases.hpp
 )
 
@@ -50,9 +51,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 
 ## /move/...
     ${TEST_SRC_DIR}/move/checkmate_test.cpp
-    ${TEST_SRC_DIR}/move/move_bulk_generator_test.cpp
     ${TEST_SRC_DIR}/move/move_executor_test.cpp
-    ${TEST_SRC_DIR}/move/move_gen_isolation_test.cpp
     ${TEST_SRC_DIR}/move/move_generator_test.cpp
     ${TEST_SRC_DIR}/move/packed_move_test.cpp
     ${TEST_SRC_DIR}/move/tusk_move_generator_test.cpp
@@ -65,15 +64,14 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/evaluation_test.cpp
     ${TEST_SRC_DIR}/position/pesto_accumulator_test.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
-    ## ${TEST_SRC_DIR}/position/notation_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
-    ## ${TEST_SRC_DIR}/position/position_test.cpp
+    ${TEST_SRC_DIR}/position/square_notation_test.cpp
 
 ## /search/...
     ${TEST_SRC_DIR}/search/search_test.cpp
     ${TEST_SRC_DIR}/search/static_exchange_test.cpp
-    ## ${TEST_SRC_DIR}/search/transposition_test.cpp
+    ${TEST_SRC_DIR}/search/transposition_test.cpp
 
 ## /system/...
     ${TEST_SRC_DIR}/system/time_manager_test.cpp

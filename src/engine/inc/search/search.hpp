@@ -20,6 +20,8 @@
 #include <search/search_results.hpp>
 
 #include <optional>
+#include <atomic>
+#include <vector>
 
 // forward-declare
 struct ThreadSearchContext;
@@ -49,6 +51,23 @@ struct SearchParameters {
 
     u32 MovesToGo = 0;
     bool Infinite = false;
+
+    // stop once a search thread has visited this many nodes (nodes + qnodes), 0 = no node limit. The first iteration
+    // always completes, so the count can overshoot when the limit is smaller than a depth 1 search.
+    u64 NodeLimit = 0;
+
+    // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
+    // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
+    std::vector<PackedMove> SearchMoves;
+    // uci debug on, the helper threads also report their completed iterations as info strings.
+    bool ThreadInfo = false;
+};
+
+// What the threads of one search share. The main thread (id 0) sets stop once it's done so the helpers unwind, every
+// thread adds its node count to nodes as it searches.
+struct SharedSearchState {
+    std::atomic<bool> stop{false};
+    std::atomic<u64> nodes{0};
 };
 
 class Search {
@@ -88,4 +107,5 @@ private:
     GameContext& m_gameContext;
 
     PositionReader m_originPosition;
+    SharedSearchState m_shared;
 };

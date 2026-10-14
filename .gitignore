@@ -39,3 +39,5 @@ elephant_gambit_config.h
 
 # Logs
 *.log
+# EPD suite logs & results, per machine
+logs/

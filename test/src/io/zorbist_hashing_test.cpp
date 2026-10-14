@@ -58,6 +58,7 @@ TEST(ZobristHashing, IncrementalMatchesComputedThroughTree)
         { "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 4 },
         { "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 3 },
         { "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 3 },
+        { "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq - 0 1", 3 },   // kiwipete, black to move
     };
 
     for (const auto& [fen, depth] : positions) {
@@ -188,13 +189,19 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
     PositionReader positionReader = game.readChessPosition();
     u64 initialHash = positionReader.hash();
 
-    PackedMove move(Square::E2, Square::E4);
+    // 1. e4 d5 2. e5 f5, the en passant square f6 is only recorded because the e5 pawn could capture on it.
+    game.MakeMove<true>(PackedMove(Square::E2, Square::E4));
+    game.MakeMove<true>(PackedMove(Square::D7, Square::D5));
+    game.MakeMove<true>(PackedMove(Square::E4, Square::E5));
+    initialHash = positionReader.hash();
+    PackedMove move(Square::F7, Square::F5);
     game.MakeMove<true>(move);
     
     u64 afterMoveHash = positionReader.hash();
 
     EXPECT_NE(initialHash, afterMoveHash) << "Hash should change after making a move.";
     EXPECT_TRUE(positionReader.enPassant()) << "En passant should be available after the move.";
+    EXPECT_EQ(Square::F6, positionReader.enPassant().readSquare());
 
     // test clear and reset enPassant
     u64 hashWithEnPassant = positionReader.hash();
@@ -228,6 +235,166 @@ TEST(ZobristHashing, HashToMove_Unmake_Rehash)
     newHash = zobrist::updateBlackToMoveHash(newHash);
     EXPECT_EQ(initialHash, newHash) << "Hash should revert to initial value after updating";
 
+}
+
+// A FEN with black to move has to carry the black to move key, issue #13. Loading it gives the same hash as a full
+// recompute, and the same hash as reaching the position by moves from a white to move FEN.
+TEST(ZobristHashing, BlackToMoveFen_HashMatchesComputedAndPositionReachedByMoves)
+{
+    zobrist::internals::initialize();
+
+    const std::string blackToMove = "r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 3 2";
+    GameContext loaded;
+    ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
+    ASSERT_EQ(Set::BLACK, loaded.readToPlay());
+    EXPECT_EQ(zobrist::computeBoardHash(loaded.readChessboard()), loaded.readChessPosition().hash());
+
+    // 1. Nf3 Nc6 2. Nc3, no pawn moves so neither an en passant square nor the halfmove clock tells the two apart.
+    GameContext played;
+    ASSERT_TRUE(io::fen_parser::deserialize(std::string(c_startPositionFen), played.editChessboard()));
+    played.MakeMove(PackedMove(Square::G1, Square::F3));
+    played.MakeMove(PackedMove(Square::B8, Square::C6));
+    played.MakeMove(PackedMove(Square::B1, Square::C3));
+    ASSERT_EQ(Set::BLACK, played.readToPlay());
+
+    std::string playedFen;
+    io::fen_parser::serialize(played.readChessboard(), playedFen);
+    ASSERT_EQ(blackToMove, playedFen);
+
+    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
+    EXPECT_EQ(zobrist::computeBoardHash(played.readChessboard()), played.readChessPosition().hash());
+
+    // the same position with white to move differs only by the black to move key.
+    GameContext whiteToMove;
+    ASSERT_TRUE(io::fen_parser::deserialize("r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R w KQkq - 3 2", whiteToMove.editChessboard()));
+    EXPECT_EQ(zobrist::updateBlackToMoveHash(whiteToMove.readChessPosition().hash()), loaded.readChessPosition().hash());
+
+    // reloading a black to move FEN into a board that already has black to move keeps the key exactly once.
+    ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
+    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
+}
+
+
+////////////////////////////////////////////////////////////////
+// En passant squares are only recorded (and hashed) when an enemy pawn stands beside the double pushed pawn, otherwise
+// the position is the same as one reached without a double push and repetition detection needs equal hashes.
+
+static u64 hashAfterMoves(const char* fen, std::initializer_list<PackedMove> moves, bool* hasEnPassant = nullptr)
+{
+    GameContext context;
+    io::fen_parser::deserialize(fen, context.editChessboard());
+    for (const auto& move : moves)
+        context.MakeMove<true>(move);
+    if (hasEnPassant)
+        *hasEnPassant = context.readChessPosition().enPassant();
+    return context.readChessPosition().hash();
+}
+
+TEST(ZobristHashing, DoublePush_NoAdjacentEnemyPawn_NoEnPassantAndSameHashAsQuietMove)
+{
+    zobrist::internals::initialize();
+
+    struct Case { const char* fenDoublePush; const char* fenSinglePush; Square from; Square to; };
+    const Case cases[] = {
+        // lone pawn
+        { "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1", "4k3/8/8/8/8/4P3/8/4K3 w - - 0 1", Square::E2, Square::E4 },
+        // black pawn two files away
+        { "4k3/8/8/8/2p5/8/4P3/4K3 w - - 0 1", "4k3/8/8/8/2p5/4P3/8/4K3 w - - 0 1", Square::E2, Square::E4 },
+        // black pawn on an adjacent file but the wrong rank
+        { "4k3/8/8/3p4/8/8/4P3/4K3 w - - 0 1", "4k3/8/8/3p4/8/4P3/8/4K3 w - - 0 1", Square::E2, Square::E4 },
+        // h-file push, a black pawn on a5 mustn't wrap around as a neighbour
+        { "4k3/8/8/p7/8/8/7P/4K3 w - - 0 1", "4k3/8/8/p7/8/7P/8/4K3 w - - 0 1", Square::H2, Square::H4 },
+        // black a-file push, a white pawn on h5 mustn't wrap around either
+        { "4k3/p7/8/7P/8/8/8/4K3 b - - 0 1", "4k3/8/p7/7P/8/8/8/4K3 b - - 0 1", Square::A7, Square::A5 },
+        // white pawn on an adjacent file but a pawn of the pushing side
+        { "4k3/p7/8/1p6/8/8/8/4K3 b - - 0 1", "4k3/8/p7/1p6/8/8/8/4K3 b - - 0 1", Square::A7, Square::A5 },
+    };
+
+    for (const auto& c : cases) {
+        bool hasEnPassant = true;
+        const u64 doublePush = hashAfterMoves(c.fenDoublePush, { PackedMove(c.from, c.to) }, &hasEnPassant);
+        EXPECT_FALSE(hasEnPassant) << c.fenDoublePush;
+
+        // the same position, reached with a single step from one rank further.
+        const Square middle = static_cast<Square>((to_index(c.from) + to_index(c.to)) / 2);
+        const u64 singlePush = hashAfterMoves(c.fenSinglePush, { PackedMove(middle, c.to) });
+        EXPECT_EQ(doublePush, singlePush) << c.fenDoublePush;
+    }
+}
+
+TEST(ZobristHashing, DoublePush_AdjacentEnemyPawn_EnPassantSetAndCapturable)
+{
+    zobrist::internals::initialize();
+
+    for (const Square capturer : { Square::D4, Square::F4 }) {
+        GameContext context;
+        io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1", context.editChessboard());
+        context.editChessPosition().placePiece(BLACKPAWN, capturer);
+        const u64 beforePush = context.readChessPosition().hash();
+
+        context.MakeMove<true>(PackedMove(Square::E2, Square::E4));
+        PositionReader position = context.readChessPosition();
+        ASSERT_TRUE(position.enPassant());
+        EXPECT_EQ(Square::E3, position.enPassant().readSquare());
+        EXPECT_EQ(zobrist::computeBoardHash(context.readChessboard()), position.hash());
+        const u64 afterPush = position.hash();
+
+        // the generator offers the en passant capture.
+        PackedMove epCapture;
+        move_gen_policy::Tusk::forEachMove<Set::BLACK>(position, [&](PackedMove move) {
+            if (move.isEnPassant())
+                epCapture = move;
+        });
+        ASSERT_FALSE(epCapture.isNull());
+        EXPECT_EQ(capturer, epCapture.sourceSqr());
+        EXPECT_EQ(Square::E3, epCapture.targetSqr());
+
+        context.MakeMove<true>(epCapture);
+        // position reads the live board.
+        EXPECT_EQ(ChessPiece::None(), position.pieceAt(Square::E4));
+        EXPECT_EQ(BLACKPAWN, position.pieceAt(Square::E3));
+        EXPECT_FALSE(position.enPassant());
+        EXPECT_EQ(zobrist::computeBoardHash(context.readChessboard()), position.hash());
+
+        EXPECT_TRUE(context.UnmakeMove());
+        EXPECT_EQ(afterPush, context.readChessPosition().hash());
+        EXPECT_EQ(Square::E3, context.readChessPosition().enPassant().readSquare());
+        EXPECT_TRUE(context.UnmakeMove());
+        EXPECT_EQ(beforePush, context.readChessPosition().hash());
+    }
+}
+
+TEST(ZobristHashing, Fen_EnPassantWithoutCapturer_DroppedAndHashesAsNone)
+{
+    zobrist::internals::initialize();
+
+    struct Case { const char* withSquare; const char* withoutSquare; bool kept; };
+    const Case cases[] = {
+        // 1. e4 from the start position, no black pawn on d4/f4.
+        { "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", false },
+        // 1. e4 c5, the c5 pawn isn't beside a white pawn.
+        { "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2", "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", false },
+        // the white pawn on e5 can capture d6 en passant, the square stays.
+        { "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", "rnbqkbnr/ppp1pppp/8/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3", true },
+    };
+
+    for (const auto& c : cases) {
+        GameContext withSquare;
+        GameContext withoutSquare;
+        ASSERT_TRUE(io::fen_parser::deserialize(c.withSquare, withSquare.editChessboard()));
+        ASSERT_TRUE(io::fen_parser::deserialize(c.withoutSquare, withoutSquare.editChessboard()));
+
+        EXPECT_EQ(c.kept, static_cast<bool>(withSquare.readChessPosition().enPassant())) << c.withSquare;
+        if (c.kept)
+            EXPECT_NE(withoutSquare.readChessPosition().hash(), withSquare.readChessPosition().hash()) << c.withSquare;
+        else
+            EXPECT_EQ(withoutSquare.readChessPosition().hash(), withSquare.readChessPosition().hash()) << c.withSquare;
+
+        // serializing writes the square only when it was kept.
+        std::string fen;
+        io::fen_parser::serialize(withSquare.readChessboard(), fen);
+        EXPECT_EQ(std::string(c.kept ? c.withSquare : c.withoutSquare), fen);
+    }
 }
 
 } // namespace ElephantTest
