@@ -118,6 +118,10 @@ def upgrade(run: dict) -> bool:
         r["source"], changed = ("ci" if r.get("ci") else "dev"), True
     if r.get("state") == "in_flight":
         r["state"], changed = "wip", True
+    if "promoted_at" in r:   # the first client's name for committed_at
+        r.setdefault("committed_at", r["promoted_at"])
+        del r["promoted_at"]
+        changed = True
     if "ancestors" not in r or len(r["ancestors"]) == 100:   # recorded before the ancestry went to 300
         r["ancestors"], changed = ancestors(r["commit"] or r["base_commit"], ANCESTORS), True
     return changed
@@ -285,30 +289,46 @@ def sync(args: argparse.Namespace) -> int:
             print("results: nyayo isn't configured (git config nyayo.url), runs stay local")
         return 0
 
-    # what nyayo has, per run id the hash of the version it was sent.
+    # what nyayo has: per run id the hash of the version sent, and the versions it rejected with why. A rejected
+    # version isn't sent again, the run is once it changes (promoted, published).
     sent_path = store / "uploaded.json"
     try:
-        sent = json.loads(sent_path.read_text(encoding="utf-8"))
+        state = json.loads(sent_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        sent = {}
-    uploaded, failed = 0, 0
+        state = {}
+    if "sent" not in state:   # the first format, run id -> hash
+        state = {"sent": state, "rejected": {}}
+    sent, rejected = state["sent"], state["rejected"]
+
+    uploaded, refused = 0, []
     for _, run in load_runs(store):
         digest = hashlib.sha256(json.dumps(run, sort_keys=True).encode("utf-8")).hexdigest()
         run_id = run["run"]["id"]
-        if sent.get(run_id) == digest:
+        if sent.get(run_id) == digest or rejected.get(run_id, {}).get("hash") == digest:
             continue
         try:
             upload(url, token, run)
+        except urllib.error.HTTPError as error:
+            reason = error.read().decode("utf-8", "replace").strip()[:300] or error.reason
+            if error.code in (401, 403) or error.code >= 500:
+                # the token or the server, every run would fail the same way: stop, retry next time.
+                print(f"results: nyayo refused the upload, HTTP {error.code} {reason}; sync retries later")
+                break
+            # this run: 400 invalid, 409 a change nyayo doesn't allow under its id. Note it and carry on.
+            rejected[run_id] = {"hash": digest, "status": error.code, "reason": reason, "at": now_iso()}
+            refused.append(f"{run_label(run)}: HTTP {error.code} {reason}")
+            continue
         except (OSError, urllib.error.URLError, RuntimeError) as error:
-            failed += 1
-            if failed == 1:
-                print(f"results: nyayo upload failed, {error}; sync retries the rest later")
+            print(f"results: nyayo unreachable, {error}; sync retries later")
             break
         sent[run_id] = digest
+        rejected.pop(run_id, None)
         uploaded += 1
-    sent_path.write_text(json.dumps(sent, indent=0), encoding="utf-8")
+    sent_path.write_text(json.dumps(state, indent=1), encoding="utf-8")
     if uploaded or not args.quiet:
         print(f"results: {uploaded} run(s) uploaded to {url}")
+    for line in refused:
+        print(f"results: nyayo rejected {line}")
     return 0
 
 
