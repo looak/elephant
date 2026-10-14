@@ -365,7 +365,8 @@ def find_run(runs: list[tuple[Path, dict]], name: str | None) -> dict | None:
 
 
 def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
-    """the newest committed or published run on the nearest ancestor of the target with a comparable check."""
+    """the run on the nearest ancestor of the target with a comparable check: at the same commit published before
+    committed, then the newest. wip runs are never a baseline."""
     t = target["run"]
     lineage = ancestors(t["base_commit"])
     if t["commit"]:
@@ -379,10 +380,15 @@ def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
             continue
         if not keys & set(comparable_checks(run)):
             continue
-        p = position[r["commit"]]
-        if best is None or p < best_position or (p == best_position and r["recorded_at"] > best["run"]["recorded_at"]):
-            best, best_position = run, p
+        rank = (position[r["commit"]], r["state"] != "published", _negated(r["recorded_at"]))
+        if best is None or rank < best_position:
+            best, best_position = run, rank
     return best
+
+
+def _negated(timestamp: str) -> tuple:
+    """sorts ISO timestamps newest first."""
+    return tuple(-ord(ch) for ch in timestamp)
 
 
 def find_previous(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
@@ -408,26 +414,34 @@ def compare_runs(target: dict, baseline: dict, brief: bool) -> list[str]:
     lines = [f"compare {run_label(target)}", f"   with {run_label(baseline)}"
              + (f", {subject(baseline['run']['commit'])}" if baseline["run"]["commit"] else "")]
     base_checks = comparable_checks(baseline)
+    target_checks = comparable_checks(target)
     same_tree = target["run"]["tree"] == baseline["run"]["tree"]
-    for key, check in comparable_checks(target).items():
+    metric = lambda c, m: c.get("metrics", {}).get(m, {}).get("value")
+    for key, check in target_checks.items():
         base = base_checks.get(key)
         name = check.get("name", check["id"])
+        harness = "" if check.get("status", "pass") == "pass" else f" [harness {check['status']}]"
         if base is None:
-            lines.append(f"  {name}: no comparable run")
+            same_id = [c for c in base_checks.values() if c["id"] == check["id"]]
+            why = "the same suite ran with other settings or another build" if same_id else "a new check"
+            lines.append(f"  {name}: no comparable run, {why}{harness}")
             continue
-        metric = lambda c, m: c.get("metrics", {}).get(m, {}).get("value")
         totals = f"solved {metric(base, 'solved')} -> {metric(check, 'solved')}"
         if metric(check, "points") is not None:
             totals += f", points {metric(base, 'points')} -> {metric(check, 'points')}"
         if not check.get("deterministic", True):
-            lines.append(f"  {name}: {totals} (multi threaded, totals only)")
+            lines.append(f"  {name}: {totals} (multi threaded, totals only){harness}")
             continue
+        changed_files = sorted(f for f, sha in check.get("params", {}).get("file_sha256", {}).items()
+                               if base.get("params", {}).get("file_sha256", {}).get(f) not in (None, sha))
         base_cases = {case_key(base, c): c for c in base.get("cases", [])}
+        target_keys = {case_key(check, c) for c in check.get("cases", [])}
         newly_failing, newly_passing, points_changed, moves_changed = [], [], [], []
-        compared = 0
+        compared = new = 0
         for case in check.get("cases", []):
             before = base_cases.get(case_key(check, case))
             if before is None:
+                new += 1
                 continue
             compared += 1
             if before["status"] == "pass" and case["status"] != "pass":
@@ -438,13 +452,21 @@ def compare_runs(target: dict, baseline: dict, brief: bool) -> list[str]:
                 points_changed.append((before, case))
             elif case.get("got") != before.get("got"):
                 moves_changed.append((before, case))
+        missing = sum(1 for k in base_cases if k not in target_keys)
         summary = f"  {name}: {totals}, {compared} positions compared: {len(newly_failing)} newly failing, " \
                   f"{len(newly_passing)} newly passing"
         if points_changed:
             summary += f", {len(points_changed)} with other points"
         if moves_changed:
             summary += f", {len(moves_changed)} other moves, same result"
-        lines.append(summary)
+        if changed_files:
+            summary += f"; suite file changed ({', '.join(changed_files)}), its positions aren't comparable"
+        else:
+            if new:
+                summary += f"; {new} new positions"
+            if missing:
+                summary += f"; {missing} positions missing"
+        lines.append(summary + harness)
         if same_tree and (newly_failing or newly_passing or points_changed or moves_changed):
             lines.append("    NOT DETERMINISTIC: the same tree and build searched differently")
         if brief:
@@ -454,6 +476,9 @@ def compare_runs(target: dict, baseline: dict, brief: bool) -> list[str]:
             for before, case in changes:
                 lines.append(f"    {label:<14} {describe_case(case)}   was {before.get('got', '')}"
                              + (f" {before['points']}/{before.get('max_points', 10)}" if "points" in before else ""))
+    for key, base in base_checks.items():
+        if key not in target_checks:
+            lines.append(f"  {base.get('name', base['id'])}: missing, the baseline ran it")
     return lines
 
 
@@ -498,6 +523,8 @@ def case_history(args: argparse.Namespace) -> int:
         print(f"results: {args.case} isn't in any run on the history of {args.at or 'HEAD'}")
         return 1
     rows.sort(key=lambda row: (row[0], row[1]))
+    # "last passed" only counts runs that searched the latest one's way, the same check, settings & build.
+    latest_key = check_key(rows[-1][3], rows[-1][3].get("build") or rows[-1][2]["run"].get("build"))
     last_pass = None
     for _, _, run, check, case in rows:
         r = run["run"]
@@ -505,12 +532,13 @@ def case_history(args: argparse.Namespace) -> int:
         limit = check.get("params", {}).get("limit", {})
         print(f"  {where:<10} {r['state']:<9} {r['kind']:<8} {check.get('name', check['id']):<28} {limit.get('type')} "
               f"{limit.get('value'):<9} {describe_case(case)}  {r['branch']}")
-        if case["status"] == "pass" and r["commit"]:
+        if case["status"] == "pass" and r["commit"] and check_key(check, check.get("build") or r.get("build")) == latest_key:
             last_pass = r["commit"]
-    latest = rows[-1][4]
+    latest_check, latest = rows[-1][3], rows[-1][4]
     if latest["status"] != "pass":
-        print(f"  {args.case} last passed at {last_pass[:10]}, {subject(last_pass)}" if last_pass
-              else f"  {args.case} hasn't passed in any recorded run")
+        name = latest_check.get("name", latest_check["id"])
+        print(f"  {args.case} last passed in {name} at {last_pass[:10]}, {subject(last_pass)}" if last_pass
+              else f"  {args.case} hasn't passed in {name} in any recorded run")
     return 0
 
 
