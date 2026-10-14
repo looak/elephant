@@ -48,6 +48,7 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org][lichess-link] |
 |:-------:|:---:|:---:|:---:|:---:|
+|[v1.0.0][v1.0.0-link]|~140 million| N/A | ~4.5 million | testing |
 |[v0.15.0][v0.15.0-link]|~139 million| N/A | ~5 million | testing |
 |[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | testing |
 |[v0.7.0][v0.7.0-link]|~19.5 million| N/A | ~1.65 million | ~1600 elo |
@@ -57,9 +58,9 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 |[v0.4.0][v0.4.0-link]|~5 million|~110 million best case | ~600k | ~1350 elo |
 |[v0.2.0-alpha.1][v0.2.0-alpha.1-link]| ~4 million | ~35 million best case | ~250k | ~1350 elo |
 
-*moves p/s is perft from the start position, nodes p/s is search from the start position. v0.15.0 is measured with the g++ build OpenBench and the release binaries use (`-O3 -march=native`) on an AMD Ryzen 9 9900X. v0.13.3 on the same CPU, but from a 32-bit build with assertions compiled in, which understates it. Earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
+*moves p/s is perft from the start position, nodes p/s is search from the start position, one thread. v1.0.0 and v0.15.0 are measured with the g++ build OpenBench and the release binaries use (`-O3 -march=native`) on an AMD Ryzen 9 9900X. v0.13.3 on the same CPU, but from a 32-bit build with assertions compiled in, which understates it. Earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
 
-v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link]. v0.15.0's search and speed work is another +224 Elo over v0.13.7 in self-play, see the [v0.15.0 release][v0.15.0-link].
+v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link]. v0.15.0's search and speed work is another +224 Elo over v0.13.7 in self-play, see the [v0.15.0 release][v0.15.0-link]. v1.0.0 adds Lazy SMP: on four threads it's about +200 Elo over v0.15.2 on one, see the [v1.0.0 release][v1.0.0-link].
 
 
 ## Features
@@ -227,6 +228,7 @@ For the versions available, see the [tags on this repository](https://github.com
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
 [head-link]:            https://github.com/looak/elephant/
+[v1.0.0-link]:          https://github.com/looak/elephant/releases/tag/1.0.0
 [v0.15.0-link]:         https://github.com/looak/elephant/releases/tag/0.15.0
 [v0.13.3-link]:         https://github.com/looak/elephant/releases/tag/0.13.3
 [v0.7.0-link]:          https://github.com/looak/elephant/releases/tag/0.7.0
