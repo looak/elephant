@@ -49,8 +49,8 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 | Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org][lichess-link] |
 |:-------:|:---:|:---:|:---:|:---:|
 |[v1.0.0][v1.0.0-link]|~140 million| N/A | ~4.5 million | testing |
-|[v0.15.0][v0.15.0-link]|~139 million| N/A | ~5 million | testing |
-|[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | testing |
+|[v0.15.0][v0.15.0-link]|~139 million| N/A | ~5 million | ~2250 elo |
+|[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | N/A |
 |[v0.7.0][v0.7.0-link]|~19.5 million| N/A | ~1.65 million | ~1600 elo |
 |[v0.6.5][v0.6.5-link]|~16.45 million| N/A | ~1.24 million | ~1500 elo |
 |[v0.6.1][v0.6.0-link]|~20 million| N/A | ~1.97 million | N/A |
