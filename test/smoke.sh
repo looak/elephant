@@ -9,7 +9,8 @@
 # below its baseline warns as well, below its minimum it fails (test/suite/epd_suite_test.cpp).
 #
 # Every position the EPD suites search is recorded with test/results.py and compared with the nearest ancestor commit's
-# smoke run, see test/RESULTS.md. On a dirty tree the run is in flight until a commit with exactly that tree is made.
+# smoke run, see test/RESULTS.md. On a dirty tree the run is wip until a commit with exactly that tree is made. Runs
+# are uploaded to nyayo when it's configured (git config nyayo.url).
 
 root="$(git rev-parse --show-toplevel)"
 build="${1:-$root/build}"
@@ -106,6 +107,7 @@ elif record="$("$python" "$root/test/results.py" record --checks "$checks" --kin
     echo "$record"
     comparison="$("$python" "$root/test/results.py" compare)"
     echo "$comparison"
+    "$python" "$root/test/results.py" sync --quiet
     while IFS= read -r line; do
         case "$line" in
             "  "[A-Za-z]*:*) add_summary INFO results "${line#  }" ;;

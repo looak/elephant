@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
-"""Smoke & extended EPD results: records runs and keeps their history, see test/RESULTS.md.
+"""Smoke & extended EPD results: records runs, keeps their history and syncs them to nyayo, see test/RESULTS.md.
 
     python test/results.py record --checks FILE --kind smoke    the checks ElephantSuite wrote, as a run
-    python test/results.py promote                              in flight runs whose tree got committed become history
-    python test/results.py compare [RUN] [--against RUN]        positions that changed, newest run vs its ancestor
+    python test/results.py sync                                 update run states, upload what nyayo hasn't got
+    python test/results.py compare [RUN] [--against RUN]        positions that changed, a run vs its ancestor's
+    python test/results.py compare --previous                   ... vs the previous run on the same branch
     python test/results.py case WAC.297                         one position through history
     python test/results.py list                                 the recorded runs
 
-A run on a dirty working tree is in flight: it's compared with history but isn't part of it. It records the tree its
-files would commit as, and once a commit has exactly that tree the run becomes that commit's record (promote, run by
-the post-commit hook). Runs are compared along the commit graph, a branch with the commit it descends from, so
-branches waiting on SPRT don't mix.
+A run is wip, committed or published. A run on a dirty working tree is wip: it records the tree its files would commit
+as, is compared with history but isn't part of it. Once a commit has exactly that tree the run is that commit's,
+committed, and once the commit is on a remote branch it's published, only published runs are history for good. sync,
+run by test/smoke.sh and the post-commit hook, moves runs along and uploads them. Runs are compared along the commit
+graph, a branch with the commit it descends from, so branches waiting on SPRT don't mix.
+
+nyayo: git config nyayo.url & nyayo.token, or NYAYO_URL & NYAYO_TOKEN. Without them runs stay local. CI runs aren't
+uploaded, nyayo pulls them from the workflow's artifacts.
 
 Standard library only, the store is logs/results/ (per machine, ignored by git) unless --store says otherwise.
 """
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -25,11 +31,15 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import urllib.error
+import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 SCHEMA_VERSION = 1
 ROOT = Path(__file__).resolve().parent.parent
+ANCESTORS = 300   # commits of ancestry a run carries (topo order), enough for nyayo to place it without a clone
 
 
 # --- git ---
@@ -57,7 +67,7 @@ def working_tree() -> str:
 
 def ancestors(commit: str, limit: int = 5000) -> list[str]:
     """commit and its ancestors, nearest first."""
-    out = git("rev-list", f"--max-count={limit}", commit, check=False)
+    out = git("rev-list", "--topo-order", f"--max-count={limit}", commit, check=False)
     return out.split() if out else []
 
 
@@ -71,17 +81,46 @@ def commit_for_tree(tree: str) -> str | None:
     return None
 
 
+def is_published(commit: str) -> bool:
+    """on a remote branch, as far as the last fetch knows."""
+    return bool(git("branch", "-r", "--contains", commit, check=False))
+
+
 def subject(commit: str) -> str:
     return git("log", "-1", "--format=%s", commit, check=False)
 
 
 # --- store ---
 
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 def store_dirs(store: Path) -> tuple[Path, Path]:
-    history, inflight = store / "history", store / "inflight"
+    history, wip = store / "history", store / "wip"
     history.mkdir(parents=True, exist_ok=True)
-    inflight.mkdir(parents=True, exist_ok=True)
-    return history, inflight
+    wip.mkdir(parents=True, exist_ok=True)
+    legacy = store / "inflight"   # before wip had its name
+    if legacy.is_dir():
+        for path in legacy.glob("*.json"):
+            path.replace(wip / path.name)
+        legacy.rmdir()
+    return history, wip
+
+
+def upgrade(run: dict) -> bool:
+    """fills in what runs recorded before ids, ancestry & the wip/committed/published states lack."""
+    r = run["run"]
+    changed = False
+    if "id" not in r:
+        r["id"], changed = str(uuid.uuid4()), True
+    if "source" not in r:
+        r["source"], changed = ("ci" if r.get("ci") else "dev"), True
+    if r.get("state") == "in_flight":
+        r["state"], changed = "wip", True
+    if "ancestors" not in r or len(r["ancestors"]) == 100:   # recorded before the ancestry went to 300
+        r["ancestors"], changed = ancestors(r["commit"] or r["base_commit"], ANCESTORS), True
+    return changed
 
 
 def load_runs(store: Path) -> list[tuple[Path, dict]]:
@@ -89,9 +128,13 @@ def load_runs(store: Path) -> list[tuple[Path, dict]]:
     for folder in store_dirs(store):
         for path in folder.glob("*.json"):
             try:
-                runs.append((path, json.loads(path.read_text(encoding="utf-8"))))
+                run = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError) as error:
                 print(f"results: skipping {path}: {error}", file=sys.stderr)
+                continue
+            if upgrade(run):
+                write_run(path, run)
+            runs.append((path, run))
     runs.sort(key=lambda item: item[1]["run"]["recorded_at"])
     return runs
 
@@ -102,8 +145,8 @@ def write_run(path: Path, run: dict) -> None:
 
 def run_label(run: dict) -> str:
     r = run["run"]
-    where = r["commit"][:10] if r["commit"] else f"in flight on {r['base_commit'][:10]}"
-    return f"{r['kind']} {where} ({r['branch']}) {r['recorded_at']}"
+    where = r["commit"][:10] if r["commit"] else f"on {r['base_commit'][:10]}"
+    return f"{r['kind']} {r['state']} {where} ({r['branch']}) {r['recorded_at']}"
 
 
 # --- record ---
@@ -147,19 +190,24 @@ def record(args: argparse.Namespace) -> int:
     head = git("rev-parse", "HEAD")
     tree = working_tree()
     clean = tree == git("rev-parse", "HEAD^{tree}")
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    ci = bool(os.environ.get("GITHUB_ACTIONS"))
+    state = "wip" if not clean else "published" if ci or is_published(head) else "committed"
+    now = now_iso()
     run = {
         "schema_version": SCHEMA_VERSION,
         "run": {
+            "id": str(uuid.uuid4()),
             "kind": args.kind,
+            "source": "ci" if ci else "dev",
             "trigger": args.trigger,
             "request_id": None,
-            "state": "committed" if clean else "in_flight",
+            "state": state,
             "commit": head if clean else None,
             "base_commit": head,
             "tree": tree,
             "branch": os.environ.get("GITHUB_HEAD_REF") or os.environ.get("GITHUB_REF_NAME")
                       or git("rev-parse", "--abbrev-ref", "HEAD"),
+            "ancestors": ancestors(head, ANCESTORS),
             "version": (ROOT / "version.txt").read_text(encoding="utf-8").strip(),
             "started_at": args.started or now,
             "finished_at": now,
@@ -169,42 +217,98 @@ def record(args: argparse.Namespace) -> int:
         },
         "checks": checks,
     }
-    if os.environ.get("GITHUB_RUN_ID"):
+    if ci and os.environ.get("GITHUB_RUN_ID"):
         server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
         run["run"]["ci"] = {"workflow_run_id": int(os.environ["GITHUB_RUN_ID"]),
                             "url": f"{server}/{os.environ.get('GITHUB_REPOSITORY', '')}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}
 
-    history, inflight = store_dirs(Path(args.store))
+    history, wip = store_dirs(Path(args.store))
     stamp = now.replace(":", "").replace("-", "")[:15]
     path = (history / f"{head[:12]}-{args.kind}-{stamp}.json") if clean \
-        else (inflight / f"{tree[:12]}-{args.kind}-{stamp}.json")
+        else (wip / f"{tree[:12]}-{args.kind}-{stamp}.json")
     write_run(path, run)
     if not args.quiet:
-        print(f"results: recorded {run_label(run)} -> {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
+        print(f"results: recorded {run_label(run)}")
     return 0
 
 
-# --- promote ---
+# --- sync: states & nyayo ---
 
-def promote(args: argparse.Namespace) -> int:
-    store = Path(args.store)
+def advance_states(store: Path, quiet: bool) -> None:
+    """wip runs whose tree got committed become that commit's, committed runs on a remote branch become published."""
     history, _ = store_dirs(store)
-    promoted = 0
     for path, run in load_runs(store):
         r = run["run"]
-        if r["state"] != "in_flight":
+        if r["state"] == "wip":
+            commit = commit_for_tree(r["tree"])
+            if commit is None:
+                continue
+            r["state"], r["commit"], r["committed_at"] = "committed", commit, now_iso()
+            r["ancestors"] = ancestors(commit, ANCESTORS)
+            target = history / f"{commit[:12]}-{r['kind']}-{path.stem.rsplit('-', 1)[-1]}.json"
+            write_run(target, run)
+            path.unlink()
+            print(f"results: {run_label(run)}, {subject(commit)}")
+            path = target
+        if r["state"] == "committed" and is_published(r["commit"]):
+            r["state"], r["published_at"] = "published", now_iso()
+            write_run(path, run)
+            if not quiet:
+                print(f"results: {run_label(run)}")
+
+
+def nyayo_config() -> tuple[str | None, str | None]:
+    url = os.environ.get("NYAYO_URL") or git("config", "--get", "nyayo.url", check=False) or None
+    token = os.environ.get("NYAYO_TOKEN") or git("config", "--get", "nyayo.token", check=False) or None
+    return (url.rstrip("/") if url else None), token
+
+
+def upload(url: str, token: str | None, run: dict) -> None:
+    """PUT /api/runs/{id}, the whole run each time: idempotent, a state change is the same call again."""
+    body = gzip.compress(json.dumps(run, separators=(",", ":")).encode("utf-8"))
+    request = urllib.request.Request(f"{url}/api/runs/{run['run']['id']}", data=body, method="PUT",
+                                     headers={"Content-Type": "application/json", "Content-Encoding": "gzip"})
+    if token:
+        request.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(request, timeout=15) as response:
+        if response.status not in (200, 201, 204):
+            raise RuntimeError(f"HTTP {response.status}")
+
+
+def sync(args: argparse.Namespace) -> int:
+    store = Path(args.store)
+    advance_states(store, args.quiet)
+
+    url, token = nyayo_config()
+    if url is None:
+        if not args.quiet:
+            print("results: nyayo isn't configured (git config nyayo.url), runs stay local")
+        return 0
+
+    # what nyayo has, per run id the hash of the version it was sent.
+    sent_path = store / "uploaded.json"
+    try:
+        sent = json.loads(sent_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        sent = {}
+    uploaded, failed = 0, 0
+    for _, run in load_runs(store):
+        digest = hashlib.sha256(json.dumps(run, sort_keys=True).encode("utf-8")).hexdigest()
+        run_id = run["run"]["id"]
+        if sent.get(run_id) == digest:
             continue
-        commit = commit_for_tree(r["tree"])
-        if commit is None:
-            continue
-        r["state"], r["commit"] = "committed", commit
-        r["promoted_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        write_run(history / f"{commit[:12]}-{r['kind']}-{path.stem.rsplit('-', 1)[-1]}.json", run)
-        path.unlink()
-        promoted += 1
-        print(f"results: promoted {run_label(run)}, {subject(commit)}")
-    if not args.quiet and promoted == 0:
-        print("results: nothing to promote")
+        try:
+            upload(url, token, run)
+        except (OSError, urllib.error.URLError, RuntimeError) as error:
+            failed += 1
+            if failed == 1:
+                print(f"results: nyayo upload failed, {error}; sync retries the rest later")
+            break
+        sent[run_id] = digest
+        uploaded += 1
+    sent_path.write_text(json.dumps(sent, indent=0), encoding="utf-8")
+    if uploaded or not args.quiet:
+        print(f"results: {uploaded} run(s) uploaded to {url}")
     return 0
 
 
@@ -234,13 +338,14 @@ def find_run(runs: list[tuple[Path, dict]], name: str | None) -> dict | None:
         return runs[-1][1] if runs else None
     for path, run in reversed(runs):
         r = run["run"]
-        if name in (path.name, path.stem) or (r["commit"] or "").startswith(name) or r["tree"].startswith(name):
+        if name in (path.name, path.stem, r["id"]) or (r["commit"] or "").startswith(name) \
+                or r["tree"].startswith(name) or r["id"].startswith(name):
             return run
     return None
 
 
 def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
-    """the newest committed run on the nearest ancestor of the target, with at least one comparable check."""
+    """the newest committed or published run on the nearest ancestor of the target with a comparable check."""
     t = target["run"]
     lineage = ancestors(t["base_commit"])
     if t["commit"]:
@@ -250,7 +355,7 @@ def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
     best, best_position = None, None
     for _, run in runs:
         r = run["run"]
-        if r["state"] != "committed" or r["commit"] not in position or run is target:
+        if r["state"] == "wip" or r["commit"] not in position or run is target:
             continue
         if not keys & set(comparable_checks(run)):
             continue
@@ -258,6 +363,18 @@ def find_baseline(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
         if best is None or p < best_position or (p == best_position and r["recorded_at"] > best["run"]["recorded_at"]):
             best, best_position = run, p
     return best
+
+
+def find_previous(runs: list[tuple[Path, dict]], target: dict) -> dict | None:
+    """the run before the target on its branch, wip runs included, with a comparable check."""
+    keys = set(comparable_checks(target))
+    previous = None
+    for _, run in runs:
+        if run is target:
+            break
+        if run["run"]["branch"] == target["run"]["branch"] and keys & set(comparable_checks(run)):
+            previous = run
+    return previous
 
 
 def describe_case(case: dict) -> str:
@@ -326,9 +443,15 @@ def compare(args: argparse.Namespace) -> int:
     if target is None:
         print("results: no runs recorded yet" if args.run is None else f"results: no run matches {args.run}")
         return 1
-    baseline = find_run(runs, args.against) if args.against else find_baseline(runs, target)
+    if args.against:
+        baseline = find_run(runs, args.against)
+    elif args.previous:
+        baseline = find_previous(runs, target)
+    else:
+        baseline = find_baseline(runs, target)
     if baseline is None:
-        print(f"results: nothing to compare {run_label(target)} with, no comparable run on an ancestor commit")
+        where = "earlier on its branch" if args.previous else "on an ancestor commit"
+        print(f"results: nothing to compare {run_label(target)} with, no comparable run {where}")
         return 0
     print("\n".join(compare_runs(target, baseline, args.brief)))
     return 0
@@ -358,9 +481,9 @@ def case_history(args: argparse.Namespace) -> int:
     last_pass = None
     for _, _, run, check, case in rows:
         r = run["run"]
-        where = r["commit"][:10] if r["commit"] else "in flight"
+        where = r["commit"][:10] if r["commit"] else "wip"
         limit = check.get("params", {}).get("limit", {})
-        print(f"  {where:<10} {r['kind']:<8} {check.get('name', check['id']):<28} {limit.get('type')} "
+        print(f"  {where:<10} {r['state']:<9} {r['kind']:<8} {check.get('name', check['id']):<28} {limit.get('type')} "
               f"{limit.get('value'):<9} {describe_case(case)}  {r['branch']}")
         if case["status"] == "pass" and r["commit"]:
             last_pass = r["commit"]
@@ -393,13 +516,14 @@ def main() -> int:
     p.add_argument("--quiet", action="store_true")
     p.set_defaults(func=record)
 
-    p = commands.add_parser("promote", help="in flight runs whose tree got committed become history")
-    p.add_argument("--quiet", action="store_true", help="say nothing when nothing was promoted")
-    p.set_defaults(func=promote)
+    p = commands.add_parser("sync", help="move runs to committed & published, upload what nyayo hasn't got")
+    p.add_argument("--quiet", action="store_true", help="only say what changed")
+    p.set_defaults(func=sync)
 
     p = commands.add_parser("compare", help="positions that changed between two runs")
-    p.add_argument("run", nargs="?", help="a run: file name, commit or tree prefix (default the newest)")
+    p.add_argument("run", nargs="?", help="a run: id, file name, commit or tree prefix (default the newest)")
     p.add_argument("--against", help="the run to compare with (default the nearest ancestor's)")
+    p.add_argument("--previous", action="store_true", help="compare with the previous run on the same branch")
     p.add_argument("--brief", action="store_true", help="totals only, no positions")
     p.set_defaults(func=compare)
 
