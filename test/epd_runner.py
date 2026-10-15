@@ -3,6 +3,7 @@
 
     python test/epd_runner.py --engine build/Release/bin/ElephantGambit --tier smoke --out checks.jsonl
     python test/epd_runner.py --engine ... --tier extended --check Extended_STS --jobs 8
+    python test/epd_runner.py --engine ... --tier extended --leave 4 --low-priority   keep working meanwhile
     python test/epd_runner.py --engine ... --tier smoke --nodes 300000        an experiment, compared only with experiments
 
 Any UCI engine works. Every position is its own game: ucinewgame, position fen, go with the check's limit. With one
@@ -43,6 +44,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CASE_TIMEOUT = 600.0   # seconds a single position may take before the engine is considered hung
+LOW_PRIORITY = False   # --low-priority
 
 
 # --- EPD ---
@@ -158,10 +160,17 @@ class Engine:
     """one engine process, talked to over UCI. A reader thread queues its output lines."""
 
     def __init__(self, command: list[str], options: dict[str, str]):
+        # low priority: the machine's other work comes first, the engines get what's left.
+        priority = {}
+        if LOW_PRIORITY:
+            if sys.platform == "win32":
+                priority["creationflags"] = subprocess.BELOW_NORMAL_PRIORITY_CLASS
+            else:
+                priority["preexec_fn"] = lambda: os.nice(10)
         try:
             self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                             stderr=subprocess.DEVNULL, text=True, bufsize=1,
-                                            cwd=Path(command[0]).parent)
+                                            cwd=Path(command[0]).parent, **priority)
         except OSError as error:
             raise EngineError(f"can't start {command[0]}: {error}") from error
         self.lines: queue.Queue[str | None] = queue.Queue()
@@ -415,7 +424,11 @@ def main() -> int:
     parser.add_argument("--config", default=str(ROOT / "test" / "epd_tiers.json"))
     parser.add_argument("--epd-dir", default=str(ROOT / "res"), help="where the EPD files are")
     parser.add_argument("--check", action="append", help="only these checks, by name (repeatable)")
-    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1, help="engine threads in use at once")
+    parser.add_argument("--jobs", type=int, help="engine threads in use at once (default every logical core)")
+    parser.add_argument("--leave", type=int, default=0, metavar="N",
+                        help="keep N logical cores free for other work, e.g. 4 to keep using the machine")
+    parser.add_argument("--low-priority", action="store_true",
+                        help="run the engines below normal priority (nice 10), other programs come first")
     parser.add_argument("--out", help="append each check as a JSON line here, for test/results.py record")
     parser.add_argument("--quiet", action="store_true", help="no progress counter, also off when not on a terminal")
     experiment = parser.add_argument_group("experiments, override every check's settings")
@@ -426,6 +439,9 @@ def main() -> int:
     experiment.add_argument("--hash", type=int)
     args = parser.parse_args()
     args.quiet = args.quiet or not sys.stdout.isatty()
+    args.jobs = max(1, (args.jobs or os.cpu_count() or 1) - args.leave)
+    global LOW_PRIORITY
+    LOW_PRIORITY = args.low_priority
 
     tiers = json.loads(Path(args.config).read_text(encoding="utf-8"))
     if args.tier not in tiers or args.tier.startswith("_"):
