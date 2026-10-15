@@ -3,6 +3,7 @@
 #include "elephant_cli.hpp"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
+#include <core/build_info.hpp>
 #include <core/game_context.hpp>
 #include <diagnostics/logger.hpp>
 
@@ -31,14 +32,14 @@ Application::Application() {
     prnt::out << "                         88                                               *j*m" << std::endl;
     prnt::out << "\n                                                            a uci chess engine" << std::endl;
     prnt::out << "                                                                     v: " << ELEPHANT_GAMBIT_VERSION_FULL << std::endl;
-    prnt::out << "                                                                      " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
+    prnt::out << "                                                                      " << build_info::shortCommit() << std::endl;
 
 #ifdef DEVELOPMENT_BUILD
     prnt::out << "---------DEVELOPMENT BUILD---------" << std::endl;
     prnt::out << " versions numbers:" << std::endl;
     prnt::out << " engine: " << ELEPHANT_GAMBIT_VERSION_FULL << std::endl;
     prnt::out << "    cli: " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE << ELEPHANT_CLI_VERSION_SUFFIX << std::endl;
-    prnt::out << "    git: " << ELEPHANT_GAMBIT_GIT_HASH << std::endl;
+    prnt::out << "    git: " << build_info::shortCommit() << std::endl;
     prnt::out << " timestamps:" << std::endl;
     prnt::out << "  cmake:  " << ELEPHANT_GAMBIT_BUILD_TIMESTAMP << std::endl;
     prnt::out << "  binary: " << __DATE__ << " at " << __TIME__ << std::endl;

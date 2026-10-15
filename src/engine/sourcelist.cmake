@@ -27,6 +27,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/bitboard/rays/rays.hpp
 
 ## /core/...
+    ${ENGINE_INC_DIR}/core/build_info.hpp
     ${ENGINE_INC_DIR}/core/chessboard.hpp
     ${ENGINE_INC_DIR}/core/game_context.hpp
     ${ENGINE_INC_DIR}/core/square.hpp
@@ -114,6 +115,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/bitboard/rays.cpp
 
 ## /core/...
+    ${ENGINE_SRC_DIR}/core/build_info.cpp
     ${ENGINE_SRC_DIR}/core/chessboard.cpp
     ${ENGINE_SRC_DIR}/core/game_context.cpp
     ${ENGINE_SRC_DIR}/core/uci.cpp

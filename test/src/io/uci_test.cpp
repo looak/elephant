@@ -2,6 +2,7 @@
 
 #include <io/fen_parser.hpp>
 #include <core/uci.hpp>
+#include <elephant_gambit_config.h>
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
@@ -9,6 +10,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <map>
+#include <sstream>
 #include <thread>
 
 namespace ElephantTest {
@@ -81,6 +84,32 @@ TEST_F(UciFixture, isready_Outputs_readyok)
     // verify
     EXPECT_STREQ("readyok\n", testOutput.str().c_str());
     EXPECT_TRUE(result);
+}
+
+// buildinfo is non standard, a test runner reads it to tell builds apart. Every line is "buildinfo <key> <value>",
+// the version & the build settings are always there.
+TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
+{
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        EXPECT_TRUE(m_uci.BuildInfo());
+    }
+
+    std::map<std::string, std::string> entries;
+    std::string line;
+    while (std::getline(testOutput, line)) {
+        ASSERT_TRUE(line.starts_with("buildinfo ")) << line;
+        const auto keyEnd = line.find(' ', 10);
+        ASSERT_NE(keyEnd, std::string::npos) << line;
+        entries[line.substr(10, keyEnd - 10)] = line.substr(keyEnd + 1);
+    }
+
+    EXPECT_EQ(ELEPHANT_GAMBIT_VERSION_FULL, entries["version"]);
+    for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
+        EXPECT_FALSE(entries[key].empty()) << key;
+    if (entries.contains("commit"))
+        EXPECT_EQ(40u, entries["commit"].size());
 }
 
 TEST_F(UciFixture, Enabled_Outputs_uciok)

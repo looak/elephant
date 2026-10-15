@@ -1,6 +1,7 @@
 #include <core/uci.hpp>
 
 #include <elephant_gambit_config.h>
+#include <core/build_info.hpp>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>
@@ -478,6 +479,17 @@ bool UCI::Bench(std::list<std::string>)
     i64 elapsedMilliseconds = timer.getElapsedTime();    
     io::printer::uci("info string {} seconds", elapsedSeconds);
     io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
+    return true;
+}
+
+bool
+UCI::BuildInfo() const
+{
+    for (const auto& [key, value] : build_info::entries()) {
+        if (!value.empty())
+            io::printer::uci("buildinfo {} {}", key, value);
+    }
+    io::printer::uci_flush();
     return true;
 }
 
