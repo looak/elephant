@@ -40,11 +40,16 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CASE_TIMEOUT = 600.0   # seconds a single position may take before the engine is considered hung
 LOW_PRIORITY = False   # --low-priority
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
 # --- EPD ---
@@ -333,13 +338,13 @@ def run_check(check: dict, args: argparse.Namespace, engine_command: list[str]) 
         if engine is not None:
             engine.close()
 
-    start = time.monotonic()
+    started_at, start = utc_now(), time.monotonic()
     pool = [threading.Thread(target=work) for _ in range(workers)]
     for thread in pool:
         thread.start()
     for thread in pool:
         thread.join()
-    seconds = time.monotonic() - start
+    seconds, finished_at = time.monotonic() - start, utc_now()
     if not args.quiet:
         print("\r", end="")
 
@@ -373,6 +378,7 @@ def run_check(check: dict, args: argparse.Namespace, engine_command: list[str]) 
                    "file_sha256": hashes, "experiment": experiment, "workers": workers},
         "metrics": metrics,
         "engine_verdict": {"baseline": baseline, "minimum": minimum, "repeatable": repeatable, "result": verdict},
+        "started_at": started_at, "finished_at": finished_at,
         "build": build_record(name, build, engine_command[0]),
         "cases": records,
     }

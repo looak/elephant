@@ -135,6 +135,7 @@ Schema version 1:
       "metrics": { "solved": { "value": 260 }, "total": { "value": 300 },
                    "points": { "value": 1707 }, "max_points": { "value": 3250 },   // scored suites (STS)
                    "duration": { "value": 14.2, "unit": "s" } },
+      "started_at": "2026-10-14T01:57:08+00:00", "finished_at": "2026-10-14T01:57:22+00:00",
       "engine_verdict": { "baseline": 260, "minimum": 252, "repeatable": true, "result": "pass" },
       "build": { "engine": "Elephant Gambit 1.0.0", "version": "1.0.0", "commit": "...", "dirty": false,
                  "branch": "main", "compiler": "msvc 195136260", "config": "release", "assertions": false,
