@@ -103,6 +103,12 @@ public:
      *  Non standard UCI, used for benchmarking engine.     */
     bool Bench(std::list<std::string> args);
 
+    /**
+     * Non standard UCI: what the binary was built from and how, one "buildinfo <key> <value>" line per entry of
+     * build_info::entries(), empty values left out. Engines ignore commands they don't know, so a test runner sends
+     * "buildinfo" then "isready" and reads whatever arrives before "readyok".     */
+    bool BuildInfo() const;
+
     const GameContext& readGameContext() { return m_context; }
     GameContext& editGameContext() { return m_context; }
 private:

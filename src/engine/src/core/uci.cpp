@@ -1,6 +1,7 @@
 #include <core/uci.hpp>
 
 #include <elephant_gambit_config.h>
+#include <core/build_info.hpp>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>
@@ -413,6 +414,7 @@ UCI::Go(std::list<std::string> args)
     searchParams.ThreadInfo = m_debug;
 
     SearchResult result;
+    const auto searchStart = std::chrono::steady_clock::now();
     if (m_context.readToPlay() == Set::WHITE) {
         m_timeManager.applyTimeSettings(searchParams, Set::WHITE);
         result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
@@ -421,6 +423,13 @@ UCI::Go(std::list<std::string> args)
         m_timeManager.applyTimeSettings(searchParams, Set::BLACK);
         result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
     }
+
+    // the iteration lines only count completed iterations, this one counts every node searched, all threads together,
+    // like Stockfish's last line. Test runners & GUIs read the total from it.
+    const u64 searchMs = static_cast<u64>(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - searchStart).count());
+    io::printer::uci("info nodes {} time {} nps {}", result.count, searchMs,
+                     searchMs > 0 ? result.count * 1000 / searchMs : result.count);
 
     // UCI: an infinite or ponder search may only send bestmove after "stop" or "ponderhit", also when it ended on its
     // own (mate, ply limit).
@@ -478,6 +487,17 @@ bool UCI::Bench(std::list<std::string>)
     i64 elapsedMilliseconds = timer.getElapsedTime();    
     io::printer::uci("info string {} seconds", elapsedSeconds);
     io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
+    return true;
+}
+
+bool
+UCI::BuildInfo() const
+{
+    for (const auto& [key, value] : build_info::entries()) {
+        if (!value.empty())
+            io::printer::uci("buildinfo {} {}", key, value);
+    }
+    io::printer::uci_flush();
     return true;
 }
 

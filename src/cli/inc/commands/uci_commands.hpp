@@ -46,6 +46,7 @@ bool NewGameCommand(std::list<std::string> args, UCI& context);
 bool PositionCommand(std::list<std::string> args, UCI& context);
 bool GoCommand(std::list<std::string> args, UCI& context);
 bool BenchCommand(std::list<std::string> args, UCI& context);
+bool BuildInfoCommand(std::list<std::string> args, UCI& context);
 bool StopCommand(std::list<std::string> args, UCI& context);
 bool PonderHitCommand(std::list<std::string> args, UCI& context);
 bool PrintCommand(std::list<std::string> args, UCI& context);
@@ -60,6 +61,7 @@ static UCICommandsMap commands = {
     { "position", PositionCommand },
     { "go", GoCommand },
     { "bench", BenchCommand },
+    { "buildinfo", BuildInfoCommand },
     { "stop", StopCommand },
     { "ponderhit", PonderHitCommand },
     { "print", PrintCommand },

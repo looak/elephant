@@ -4,6 +4,7 @@
 #include "commands/command_api.hpp"
 #include "elephant_cli_config.h"
 #include "elephant_gambit_config.h"
+#include <core/build_info.hpp>
 #include "printer/printer.hpp"
 
 
@@ -19,7 +20,7 @@ public:
         prnt::out << " Elephant Gambit Open Source Chess Engine 2021-2025";
         prnt::out << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE
                     << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_FULL;
-        prnt::out << " Source: https://github.com/looak/elephant current git hash: " << ELEPHANT_GAMBIT_GIT_HASH;
+        prnt::out << " Source: https://github.com/looak/elephant current git hash: " << build_info::shortCommit();
         prnt::out << " Author: Alexander Loodin Ek";
         prnt::out << " Contact: alexander.loodin.ek(at)gmail.com";
         return true;

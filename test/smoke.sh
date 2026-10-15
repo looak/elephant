@@ -2,11 +2,16 @@
 # The local sanity check before a merge, in order: unit tests, perft, bench, the EPD smoke tier. Prints a summary and
 # exits non-zero when a step fails. CI runs the extended EPD tier instead, see .github/workflows/suite.yml.
 #
-#   test/smoke.sh [build dir]     default: build, the CMake build with ElephantTest & ElephantSuite in it
+#   test/smoke.sh [build dir]     default: build, the CMake build with ElephantTest, ElephantSuite & ElephantGambit
 #
 # Bench is built with ob_build/makefile and g++ like the commit hook and OpenBench do, through WSL on Windows. It only
-# warns when it differs from the last commit's bench line, a search change is supposed to change it. An EPD suite
-# below its baseline warns as well, below its minimum it fails (test/suite/epd_suite_test.cpp).
+# warns when it differs from the last commit's bench line, a search change is supposed to change it.
+#
+# The EPD smoke tier is test/epd_runner.py playing the positions with ElephantGambit over UCI, one engine per core
+# (test/epd_tiers.json). A suite below its baseline warns, below its minimum it fails. Every position is recorded with
+# test/results.py and compared with the nearest ancestor commit's smoke run, see test/RESULTS.md. On a dirty tree the
+# run is wip until a commit with exactly that tree is made. Runs are uploaded to nyayo when it's configured
+# (git config nyayo.url).
 
 root="$(git rev-parse --show-toplevel)"
 build="${1:-$root/build}"
@@ -29,10 +34,17 @@ find_binary() {
 
 unit="$(find_binary ElephantTest)"
 suite="$(find_binary ElephantSuite)"
-if [ -z "$unit" ] || [ -z "$suite" ]; then
-    echo "smoke: ElephantTest or ElephantSuite not found under $build, build them first" >&2
+engine="$(find_binary ElephantGambit)"
+if [ -z "$unit" ] || [ -z "$suite" ] || [ -z "$engine" ]; then
+    echo "smoke: ElephantTest, ElephantSuite or ElephantGambit not found under $build, build them first" >&2
     exit 2
 fi
+
+python=""
+for candidate in python3 python py; do
+    command -v "$candidate" >/dev/null 2>&1 && "$candidate" -c "import sys; sys.exit(sys.version_info < (3, 9))" 2>/dev/null \
+        && { python="$candidate"; break; }
+done
 
 # --- 1. unit tests ---
 echo "== unit tests: $unit"
@@ -65,27 +77,70 @@ else
     add_summary PASS bench "$bench_line"
 fi
 
-# --- 3. perft & the EPD smoke tier ---
-echo "== perft & EPD smoke tier: $suite"
+# --- 3. perft ---
+echo "== perft: $suite"
 start=$(date +%s)
 suite_log="$log_dir/smoke_suite_$stamp.log"
-# from the root, the EPD suites write their logs to logs/.
-if (cd "$root" && "$suite" --gtest_filter='PerftFixture.*:EpdSuite.Smoke*:EpdParser.*') 2>&1 | tee "$suite_log" \
-        | grep -aE "solved \(|points \(|^WARNING|^NOTE|^FAIL|FAILED  \]"; then :; fi
-if grep -aq "^\[  FAILED  \]" "$suite_log" || ! grep -aq "^\[  PASSED  \]" "$suite_log"; then
-    failed=1
-    add_summary FAIL suite "see $suite_log"
+if (cd "$root" && "$suite" --gtest_filter='PerftFixture.*:EpdParser.*') > "$suite_log" 2>&1 \
+        && grep -aq "^\[  PASSED  \]" "$suite_log"; then
+    add_summary PASS perft "$(( $(date +%s) - start )) s"
 else
-    add_summary PASS suite "perft & EPD smoke tier, $(( $(date +%s) - start )) s"
+    failed=1
+    add_summary FAIL perft "see $suite_log"
+    grep -a "FAILED" "$suite_log" | head -n 20
 fi
-while IFS= read -r line; do
-    case "$line" in
-        WARNING*) add_summary WARN epd "${line#WARNING }" ;;
-        NOTE*)    add_summary NOTE epd "${line#NOTE }" ;;
-    esac
-done <<EOF
-$(grep -aE "^(WARNING|NOTE) " "$suite_log")
+
+# --- 4. the EPD smoke tier ---
+echo "== EPD smoke tier: $engine"
+start=$(date +%s)
+started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+epd_log="$log_dir/smoke_epd_$stamp.log"
+checks="$log_dir/smoke_checks_$stamp.jsonl"
+if [ -z "$python" ]; then
+    failed=1
+    add_summary FAIL epd "no python 3.9+ for test/epd_runner.py"
+else
+    "$python" "$root/test/epd_runner.py" --engine "$engine" --tier smoke --out "$checks" 2>&1 | tee "$epd_log"
+    if grep -aqE "^(FAIL|ERROR) |^epd_runner:" "$epd_log"; then
+        failed=1
+    else
+        add_summary PASS epd "EPD smoke tier, $(( $(date +%s) - start )) s"
+    fi
+    while IFS= read -r line; do
+        case "$line" in
+            WARNING*) add_summary WARN epd "${line#WARNING }" ;;
+            NOTE*)    add_summary NOTE epd "${line#NOTE }" ;;
+            FAIL*)    add_summary FAIL epd "${line#FAIL }" ;;
+            ERROR*)   add_summary FAIL epd "${line#ERROR }" ;;
+            epd_runner:*) add_summary FAIL epd "${line#epd_runner: }" ;;
+        esac
+    done <<EOF
+$(grep -aE "^(WARNING|NOTE|FAIL|ERROR) |^epd_runner:" "$epd_log")
 EOF
+fi
+
+# --- 5. results: record the positions, compare with history ---
+if [ -z "$python" ]; then
+    :
+elif [ ! -s "$checks" ]; then
+    add_summary WARN results "the runner wrote no results, nothing recorded"
+elif record="$("$python" "$root/test/results.py" record --checks "$checks" --kind smoke --started "$started_at")"; then
+    echo "$record"
+    comparison="$("$python" "$root/test/results.py" compare)"
+    echo "$comparison"
+    "$python" "$root/test/results.py" sync --quiet
+    while IFS= read -r line; do
+        case "$line" in
+            "  "[A-Za-z]*:*) add_summary INFO results "${line#  }" ;;
+            results:*) add_summary INFO results "${line#results: }" ;;
+        esac
+    done <<EOF
+$(printf '%s\n' "$comparison" | grep -aE "^(  [A-Za-z]|results:)")
+EOF
+    rm -f "$checks"
+else
+    add_summary WARN results "recording failed, the checks are in $checks"
+fi
 
 echo
 echo "== smoke summary"

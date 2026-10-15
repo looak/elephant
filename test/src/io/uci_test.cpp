@@ -2,6 +2,7 @@
 
 #include <io/fen_parser.hpp>
 #include <core/uci.hpp>
+#include <elephant_gambit_config.h>
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
@@ -9,6 +10,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <map>
+#include <sstream>
 #include <thread>
 
 namespace ElephantTest {
@@ -81,6 +84,32 @@ TEST_F(UciFixture, isready_Outputs_readyok)
     // verify
     EXPECT_STREQ("readyok\n", testOutput.str().c_str());
     EXPECT_TRUE(result);
+}
+
+// buildinfo is non standard, a test runner reads it to tell builds apart. Every line is "buildinfo <key> <value>",
+// the version & the build settings are always there.
+TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
+{
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        EXPECT_TRUE(m_uci.BuildInfo());
+    }
+
+    std::map<std::string, std::string> entries;
+    std::string line;
+    while (std::getline(testOutput, line)) {
+        ASSERT_TRUE(line.starts_with("buildinfo ")) << line;
+        const auto keyEnd = line.find(' ', 10);
+        ASSERT_NE(keyEnd, std::string::npos) << line;
+        entries[line.substr(10, keyEnd - 10)] = line.substr(keyEnd + 1);
+    }
+
+    EXPECT_EQ(ELEPHANT_GAMBIT_VERSION_FULL, entries["version"]);
+    for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
+        EXPECT_FALSE(entries[key].empty()) << key;
+    if (entries.contains("commit"))
+        EXPECT_EQ(40u, entries["commit"].size());
 }
 
 TEST_F(UciFixture, Enabled_Outputs_uciok)
@@ -369,7 +398,7 @@ TEST_F(UciFixture, position_PromotingPawn)
 }
 
 namespace {
-// the largest "nodes" value of the info lines, the node count of the last completed iteration.
+// the largest "nodes" value of the iteration lines, the node count of the last completed iteration.
 u64 lastReportedNodes(const std::string& output)
 {
     u64 nodes = 0;
@@ -379,6 +408,13 @@ u64 lastReportedNodes(const std::string& output)
         nodes = std::max<u64>(nodes, std::stoull(output.substr(pos)));
     }
     return nodes;
+}
+
+// the final "info nodes N" line before bestmove, every node searched.
+u64 finalReportedNodes(const std::string& output)
+{
+    const size_t pos = output.rfind("info nodes ");
+    return pos == std::string::npos ? 0 : std::stoull(output.substr(pos + 11));
 }
 }  // namespace
 
@@ -397,12 +433,18 @@ TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
         result = m_uci.Go({ "nodes", "5000" });
     }
 
-    // verify, completed iterations never report more than the limit.
+    // verify, completed iterations never report more than the limit. The final line counts every node, the limit plus
+    // at most the nodes counted while unwinding, and comes right before bestmove.
+    const std::string output = testOutput.str();
     EXPECT_TRUE(result);
-    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
-    EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove 0000"));
-    EXPECT_GT(lastReportedNodes(testOutput.str()), 0u);
-    EXPECT_LE(lastReportedNodes(testOutput.str()), 5000u);
+    EXPECT_NE(std::string::npos, output.find("bestmove"));
+    EXPECT_EQ(std::string::npos, output.find("bestmove 0000"));
+    const std::string iterations = output.substr(0, output.rfind("info nodes "));
+    EXPECT_GT(lastReportedNodes(iterations), 0u);
+    EXPECT_LE(lastReportedNodes(iterations), 5000u);
+    EXPECT_GE(finalReportedNodes(output), 5000u);
+    EXPECT_LE(finalReportedNodes(output), 5000u + c_maxSearchDepth);
+    EXPECT_LT(output.rfind("info nodes "), output.rfind("bestmove"));
 }
 
 TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)

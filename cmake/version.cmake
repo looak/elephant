@@ -17,20 +17,7 @@ set(VAR_ELEPHANT_PATCH ${CMAKE_MATCH_3} CACHE INTERNAL "Patch Version")
 set(VAR_ELEPHANT_VERSION_PRERELEASE "${CMAKE_MATCH_4}" CACHE INTERNAL "Pre-release label")
 set(VAR_ELEPHANT_VERSION ${VAR_ELEPHANT_MAJOR}.${VAR_ELEPHANT_MINOR}.${VAR_ELEPHANT_PATCH} CACHE INTERNAL "Version")
 
-# --- Add Git Hash ---
-find_package(Git QUIET)
-if(GIT_FOUND)
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE VAR_ELEPHANT_GIT_HASH
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-endif()
-if(NOT VAR_ELEPHANT_GIT_HASH)
-    set(VAR_ELEPHANT_GIT_HASH "nogit") # Fallback if not a git repo or git fails
-endif()
+# The git commit is written on every build by cmake/build_info.cmake, at configure time it goes stale.
 
 # --- Add Build Timestamp ---
 string(TIMESTAMP VAR_ELEPHANT_BUILD_TIMESTAMP "%b %d %Y at %H:%M:%S")

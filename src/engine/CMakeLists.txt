@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 add_library(${ENGINE_LIB} STATIC)
+set(ELEPHANT_BUILD_INFO_DIR ${CMAKE_CURRENT_BINARY_DIR}/gen)
 
 target_compile_features(${ENGINE_LIB} PRIVATE cxx_std_20)
 set_target_properties(${ENGINE_LIB} PROPERTIES 
@@ -32,7 +33,19 @@ target_sources(${ENGINE_LIB}
 target_include_directories(${ENGINE_LIB}
     PUBLIC
         ${ENGINE_INC_DIR}
+    PRIVATE
+        ${ELEPHANT_BUILD_INFO_DIR}
 )
+
+# the commit, dirty state & branch for "buildinfo", see cmake/build_info.cmake. Runs on every build, rewrites the
+# header only when it changed.
+add_custom_target(elephant_build_info
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${ElephantGambit_SOURCE_DIR} -DOUTPUT=${ELEPHANT_BUILD_INFO_DIR}/elephant_gambit_build.h
+            -DCONFIG=$<CONFIG> -P ${ElephantGambit_SOURCE_DIR}/cmake/build_info.cmake
+    BYPRODUCTS ${ELEPHANT_BUILD_INFO_DIR}/elephant_gambit_build.h
+    COMMENT "Elephant build info"
+    VERBATIM)
+add_dependencies(${ENGINE_LIB} elephant_build_info)
 
 target_link_libraries(${ENGINE_LIB}
     PRIVATE
