@@ -12,7 +12,9 @@
     { "id": "epd.wac_new", "name": "Smoke_WinAtChess_4Threads", "files": ["wac_new.epd"],
       "limit": { "nodes": 400000 }, "threads": 4, "baseline": 258, "minimum": 240, "repeatable": false },
     { "id": "epd.sts", "name": "Smoke_STS", "files": ["STS*.epd"], "per_file": 25, "scored": true,
-      "limit": { "nodes": 100000 }, "baseline": 1910, "minimum": 1650 }
+      "limit": { "nodes": 100000 }, "baseline": 1910, "minimum": 1650 },
+    { "id": "epd.regression", "name": "Smoke_Regression", "files": ["regression.epd"],
+      "limit": { "depth": 23 }, "baseline": 3, "minimum": 3 }
   ],
   "extended": [
     { "id": "epd.wac_new", "name": "Extended_WinAtChess", "files": ["wac_new.epd"],

@@ -23,6 +23,11 @@ entry there, no rebuild. A check below its `baseline` warns, below its `minimum`
 standard library only and knows nothing about Elephant, SAN is matched against the engine's move without a move
 generator.
 
+**Regression suite.** `res/regression.epd` holds positions the engine once got wrong, every one must pass
+(`Smoke_Regression`, minimum = the count, depth 23 since the cases are depth bound, REG.003 is found at 22). A fixed bug that shows up as a
+wrong move, from an OpenBench loss, a bwawa game or an issue, adds a line: `bm` or `am` in SAN, the next `REG.NNN` id
+and a `c1` note saying where it came from. Raise `baseline` & `minimum` with it, and the depth if a case needs more.
+
 **buildinfo.** The runner asks the engine what it was built from with a non standard command. Engines ignore commands
 they don't know, as UCI says, so whatever arrives before `readyok` is the answer and an engine without it still works:
 
