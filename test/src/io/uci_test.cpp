@@ -398,7 +398,7 @@ TEST_F(UciFixture, position_PromotingPawn)
 }
 
 namespace {
-// the largest "nodes" value of the info lines, the node count of the last completed iteration.
+// the largest "nodes" value of the iteration lines, the node count of the last completed iteration.
 u64 lastReportedNodes(const std::string& output)
 {
     u64 nodes = 0;
@@ -408,6 +408,13 @@ u64 lastReportedNodes(const std::string& output)
         nodes = std::max<u64>(nodes, std::stoull(output.substr(pos)));
     }
     return nodes;
+}
+
+// the final "info nodes N" line before bestmove, every node searched.
+u64 finalReportedNodes(const std::string& output)
+{
+    const size_t pos = output.rfind("info nodes ");
+    return pos == std::string::npos ? 0 : std::stoull(output.substr(pos + 11));
 }
 }  // namespace
 
@@ -426,12 +433,18 @@ TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
         result = m_uci.Go({ "nodes", "5000" });
     }
 
-    // verify, completed iterations never report more than the limit.
+    // verify, completed iterations never report more than the limit. The final line counts every node, the limit plus
+    // at most the nodes counted while unwinding, and comes right before bestmove.
+    const std::string output = testOutput.str();
     EXPECT_TRUE(result);
-    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
-    EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove 0000"));
-    EXPECT_GT(lastReportedNodes(testOutput.str()), 0u);
-    EXPECT_LE(lastReportedNodes(testOutput.str()), 5000u);
+    EXPECT_NE(std::string::npos, output.find("bestmove"));
+    EXPECT_EQ(std::string::npos, output.find("bestmove 0000"));
+    const std::string iterations = output.substr(0, output.rfind("info nodes "));
+    EXPECT_GT(lastReportedNodes(iterations), 0u);
+    EXPECT_LE(lastReportedNodes(iterations), 5000u);
+    EXPECT_GE(finalReportedNodes(output), 5000u);
+    EXPECT_LE(finalReportedNodes(output), 5000u + c_maxSearchDepth);
+    EXPECT_LT(output.rfind("info nodes "), output.rfind("bestmove"));
 }
 
 TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
