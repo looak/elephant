@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "EPD tiers for test/epd_runner.py, see test/RESULTS.md. Each check runs files from the EPD directory with one limit.",
+    "files are names or globs in the EPD directory. limit is {nodes|depth|movetime: N}, nodes for all threads together.",
+    "per_file runs the first N positions of each file. scored checks total the c0 points (STS) rather than solves.",
+    "baseline warns below it, minimum fails below it. repeatable false (multi threaded): only the minimum is checked.",
+    "Baselines are the counts measured by ElephantSuite at 1.0.0-herd.10."
+  ],
+  "smoke": [
+    { "id": "epd.wac_new", "name": "Smoke_WinAtChess", "files": ["wac_new.epd"],
+      "limit": { "nodes": 150000 }, "baseline": 260, "minimum": 252 },
+    { "id": "epd.wac_new", "name": "Smoke_WinAtChess_4Threads", "files": ["wac_new.epd"],
+      "limit": { "nodes": 400000 }, "threads": 4, "baseline": 258, "minimum": 240, "repeatable": false },
+    { "id": "epd.sts", "name": "Smoke_STS", "files": ["STS*.epd"], "per_file": 25, "scored": true,
+      "limit": { "nodes": 100000 }, "baseline": 1707, "minimum": 1650 }
+  ],
+  "extended": [
+    { "id": "epd.wac_new", "name": "Extended_WinAtChess", "files": ["wac_new.epd"],
+      "limit": { "nodes": 4000000 }, "baseline": 288, "minimum": 282 },
+    { "id": "epd.wac_new", "name": "Extended_WinAtChess_4Threads", "files": ["wac_new.epd"],
+      "limit": { "nodes": 16000000 }, "threads": 4, "baseline": 290, "minimum": 278, "repeatable": false },
+    { "id": "epd.arasan2024", "name": "Extended_Arasan2024", "files": ["arasan2024.epd"],
+      "limit": { "nodes": 8000000 }, "baseline": 12, "minimum": 9 },
+    { "id": "epd.arasan2024", "name": "Extended_Arasan2024_4Threads", "files": ["arasan2024.epd"],
+      "limit": { "nodes": 32000000 }, "threads": 4, "baseline": 16, "minimum": 11, "repeatable": false },
+    { "id": "epd.sts", "name": "Extended_STS", "files": ["STS*.epd"], "scored": true,
+      "limit": { "nodes": 1000000 }, "baseline": 8475, "minimum": 8250 }
+  ]
+}

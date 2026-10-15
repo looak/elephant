@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke & extended EPD results: records runs, keeps their history and syncs them to nyayo, see test/RESULTS.md.
 
-    python test/results.py record --checks FILE --kind smoke    the checks ElephantSuite wrote, as a run
+    python test/results.py record --checks FILE --kind smoke    the checks test/epd_runner.py wrote, as a run
     python test/results.py sync                                 update run states, upload what nyayo hasn't got
     python test/results.py compare [RUN] [--against RUN]        positions that changed, a run vs its ancestor's
     python test/results.py compare --previous                   ... vs the previous run on the same branch
@@ -185,15 +185,28 @@ def record(args: argparse.Namespace) -> int:
         print(f"results: no checks in {args.checks}", file=sys.stderr)
         return 1
 
-    # the suite files' content, an edited EPD reusing old ids isn't comparable with its history.
+    # the suite files' content, an edited EPD reusing old ids isn't comparable with its history. The runner hashes
+    # the files it read, older checks didn't.
     for check in checks:
         params = check.get("params", {})
-        params["file_sha256"] = {name: sha256(ROOT / "res" / name) for name in params.get("files", [])}
+        if "file_sha256" not in params:
+            params["file_sha256"] = {name: sha256(ROOT / "res" / name) for name in params.get("files", [])}
 
     builds = {json.dumps(check.get("build"), sort_keys=True) for check in checks}
+    build = json.loads(builds.pop()) if len(builds) == 1 else None
     head = git("rev-parse", "HEAD")
+    # the engine says what it was built from (buildinfo), a binary from another commit isn't this commit's result.
+    built_from = (build or {}).get("commit")
+    if built_from and built_from != head:
+        print(f"results: the engine was built from {built_from[:10]}, HEAD is {head[:10]}; rebuild it, nothing "
+              "recorded", file=sys.stderr)
+        return 1
     tree = working_tree()
     clean = tree == git("rev-parse", "HEAD^{tree}")
+    if (build or {}).get("dirty") is False and not clean:
+        print("results: the engine was built from a clean tree, the working tree has changed since; rebuild it, "
+              "nothing recorded", file=sys.stderr)
+        return 1
     ci = bool(os.environ.get("GITHUB_ACTIONS"))
     state = "wip" if not clean else "published" if ci or is_published(head) else "committed"
     now = now_iso()
@@ -212,12 +225,12 @@ def record(args: argparse.Namespace) -> int:
             "branch": os.environ.get("GITHUB_HEAD_REF") or os.environ.get("GITHUB_REF_NAME")
                       or git("rev-parse", "--abbrev-ref", "HEAD"),
             "ancestors": ancestors(head, ANCESTORS),
-            "version": (ROOT / "version.txt").read_text(encoding="utf-8").strip(),
+            "version": (build or {}).get("version") or (ROOT / "version.txt").read_text(encoding="utf-8").strip(),
             "started_at": args.started or now,
             "finished_at": now,
             "recorded_at": now,
             "host": host(),
-            "build": json.loads(builds.pop()) if len(builds) == 1 else None,
+            "build": build,
         },
         "checks": checks,
     }
@@ -556,8 +569,8 @@ def main() -> int:
     parser.add_argument("--store", default=str(ROOT / "logs" / "results"), help="where runs are kept")
     commands = parser.add_subparsers(dest="command", required=True)
 
-    p = commands.add_parser("record", help="record the checks ElephantSuite wrote as a run")
-    p.add_argument("--checks", required=True, help="the EG_RESULTS_CHECKS file")
+    p = commands.add_parser("record", help="record the checks test/epd_runner.py wrote as a run")
+    p.add_argument("--checks", required=True, help="the runner's --out file")
     p.add_argument("--kind", required=True, choices=["smoke", "extended"])
     p.add_argument("--trigger", default="local", help="local, push, schedule, request")
     p.add_argument("--started", help="when the run started, ISO 8601")

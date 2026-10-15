@@ -1,6 +1,6 @@
 name: Suite
 
-# Long running perft & extended EPD suites (ElephantSuite), too slow to run on every push.
+# Long running perft (ElephantSuite) & the extended EPD tier (test/epd_runner.py), too slow to run on every push.
 on:
   workflow_dispatch:
   pull_request:
@@ -23,19 +23,23 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target ElephantSuite
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target ElephantSuite ElephantGambit
 
     - name: Results folder
       run: cmake -E make_directory ${{github.workspace}}/logs
 
-    - name: Suite
+    - name: Perft
       working-directory: ${{github.workspace}}/build
-      # Perft and the extended EPD tier, the smoke tier is the local subset of it. Verbose so the perft numbers and EPD
-      # scores show up in the log even when passing.
-      run: ctest -C ${{env.BUILD_TYPE}} -L suite -E "EpdSuite\.Smoke" --verbose
-      env:
-        # every position searched, recorded as a run below, see test/RESULTS.md.
-        EG_RESULTS_CHECKS: ${{github.workspace}}/logs/extended_checks.jsonl
+      # Verbose so the perft numbers show up in the log even when passing. The EPD suites run through UCI below.
+      run: ctest -C ${{env.BUILD_TYPE}} -L suite -E "EpdSuite\." --verbose
+
+    - name: EPD extended tier
+      shell: bash
+      # every position searched, recorded as a run below, see test/RESULTS.md. The smoke tier is the local subset.
+      run: |
+        engine="$(find build -type f \( -name ElephantGambit -o -name ElephantGambit.exe \) -not -path "*CMakeFiles*" | head -n 1)"
+        py="$(command -v python3 || command -v python)"
+        "$py" test/epd_runner.py --engine "$engine" --tier extended --out logs/extended_checks.jsonl --quiet
 
     - name: Record results
       if: always()

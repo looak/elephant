@@ -5,10 +5,49 @@ which positions a branch newly fails or solves, and since which commit a positio
 stay with OpenBench, these records are about behaviour. The results format belongs to
 [nyayo](https://github.com/looak/nyayo), which collects the runs; this file describes what Elephant produces.
 
+## The runner
+
+`test/epd_runner.py` plays the EPD suites with any UCI engine and writes every position's result. Each position is its
+own game, `ucinewgame`, `position fen`, `go` with the check's limit, so the positions are spread over one engine
+process per core (`--jobs`, a check with 4 threads gets jobs / 4 engines). The smoke tier takes seconds.
+
+```sh
+python test/epd_runner.py --engine <binary> --tier smoke --out checks.jsonl     # the tiers in test/epd_tiers.json
+python test/epd_runner.py --engine <binary> --tier extended --check Extended_STS
+python test/epd_runner.py --engine <binary> --tier smoke --nodes 300000         # an experiment, see below
+```
+
+The tiers, checks, limits and levels are data in `test/epd_tiers.json`: a new suite is an EPD file in `res/` and an
+entry there, no rebuild. A check below its `baseline` warns, below its `minimum` it fails (exit code 1). The runner is
+standard library only and knows nothing about Elephant, SAN is matched against the engine's move without a move
+generator.
+
+**buildinfo.** The runner asks the engine what it was built from with a non standard command. Engines ignore commands
+they don't know, as UCI says, so whatever arrives before `readyok` is the answer and an engine without it still works:
+
+```
+> buildinfo
+> isready
+< buildinfo version 1.0.0
+< buildinfo commit 9db97f8c3e...        the full hash, written on every build
+< buildinfo dirty false                 the working tree had changes when it was built
+< buildinfo branch main                 left out on a detached HEAD
+< buildinfo compiler gcc 13.3.0
+< buildinfo config release
+< buildinfo assertions false
+< buildinfo exceptions true
+< buildinfo bits 64
+< readyok
+```
+
+Any keys go, `compiler`, `config`, `assertions`, `exceptions` & `bits` decide which runs are comparable. Without
+buildinfo the build is the engine's `id name` and the binary's SHA-256. `results.py record` refuses checks from a
+binary built from another commit than HEAD, or from a clean tree when the working tree has changed since.
+
 ## Workflow
 
 ```sh
-test/smoke.sh                                  # records the smoke run, compares it, syncs
+test/smoke.sh                                  # runs the smoke tier, records the run, compares it, syncs
 python test/results.py compare                 # the newest run against the nearest ancestor commit's run
 python test/results.py compare --previous      # against the previous run on the same branch, wip included
 python test/results.py compare --against <run> # against a chosen run: id, file name, commit or tree prefix
@@ -59,8 +98,8 @@ mark a check `experiment: true`, it only compares with experiments.
 
 ## Format
 
-ElephantSuite writes checks with `EG_RESULTS_CHECKS=<file>`, one JSON line per suite; `test/results.py record` adds
-the run and the suite files' hashes. Schema version 1:
+`test/epd_runner.py --out <file>` writes checks, one JSON line per suite; `test/results.py record` adds the run.
+Schema version 1:
 
 ```json
 {
@@ -81,7 +120,7 @@ the run and the suite files' hashes. Schema version 1:
     "started_at": "2026-10-14T01:57:01Z", "finished_at": "...", "recorded_at": "...",
     "committed_at": "...", "published_at": "...",
     "host": { "name": "BABYLON", "os": "Windows 11", "cpu": "...", "logical_cores": 24 },
-    "build": { "compiler": "msvc 195136260", "config": "release", "assertions": true, "exceptions": true, "bits": 64 },
+    "build": { "...": "as the checks' build" },
     "ci": { "workflow_run_id": 123, "url": "..." }   // CI only
   },
   "checks": [
@@ -90,17 +129,20 @@ the run and the suite files' hashes. Schema version 1:
       "status": "pass",                    // the harness: pass ran to completion | error | skipped
       "deterministic": true,
       "params": { "limit": { "type": "nodes", "value": 150000 }, "threads": 1, "hash_mb": 64, "per_file": 0,
-                  "files": ["wac_new.epd"], "file_sha256": { "wac_new.epd": "..." }, "experiment": false },
+                  "files": ["wac_new.epd"], "file_sha256": { "wac_new.epd": "..." }, "experiment": false,
+                  "workers": 24 },                                     // engine processes, not part of the key
       "metrics": { "solved": { "value": 260 }, "total": { "value": 300 },
                    "points": { "value": 1707 }, "max_points": { "value": 3250 },   // scored suites (STS)
                    "duration": { "value": 14.2, "unit": "s" } },
       "engine_verdict": { "baseline": 260, "minimum": 252, "repeatable": true, "result": "pass" },
-      "build": { "...": "as run.build" },
+      "build": { "engine": "Elephant Gambit 1.0.0", "version": "1.0.0", "commit": "...", "dirty": false,
+                 "branch": "main", "compiler": "msvc 195136260", "config": "release", "assertions": false,
+                 "exceptions": false, "bits": 64, "binary_sha256": "..." },   // buildinfo, see above
       "cases": [
         { "id": "WAC.001", "file": "wac_new.epd", "fen": "...", "status": "pass",   // pass | fail | error
           "expected": ["Qg6"], "avoid": [], "got": "g3g6",
           "points": 10, "max_points": 10,                                             // scored suites
-          "score": 23996, "mate": true, "nodes": 141388, "time_ms": 54, "pv": "g3g6 f7g6 e5g6" }
+          "score": 2, "mate": true, "nodes": 141388, "time_ms": 54, "pv": "g3g6 f7g6 e5g6" }
       ]
     }
   ]
@@ -109,5 +151,7 @@ the run and the suite files' hashes. Schema version 1:
 
 A case passes when the move played is one of `expected` (bm, SAN) and none of `avoid` (am); `got` is the move played
 in coordinate notation. For STS it earns the points of its c0 list, `status` still says whether it was the best
-move. `error` is a case the harness couldn't run as written, a FEN or a bm/am the parsers rejected. `engine_verdict`
-is the suite's own baseline & minimum, for information: whether a change is a regression is worked out from history.
+move. `error` is a case the runner couldn't judge: a bm/am it can't read, or an engine that crashed or hung, said in
+the case's `error` field. `score`, `mate`, `nodes` & `pv` are the engine's last `info` line, `score` is centipawns or,
+with `mate`, moves to mate. `engine_verdict` is the check's baseline & minimum, for information: whether a change is a
+regression is worked out from history.
