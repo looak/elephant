@@ -15,6 +15,7 @@ process per core (`--jobs`, a check with 4 threads gets jobs / 4 engines). The s
 python test/epd_runner.py --engine <binary> --tier smoke --out checks.jsonl     # the tiers in test/epd_tiers.json
 python test/epd_runner.py --engine <binary> --tier extended --check Extended_STS
 python test/epd_runner.py --engine <binary> --tier smoke --nodes 300000         # an experiment, see below
+python test/epd_runner.py --engine <binary> --tier extended --leave 4 --low-priority   # keep using the machine
 ```
 
 The tiers, checks, limits and levels are data in `test/epd_tiers.json`: a new suite is an EPD file in `res/` and an
