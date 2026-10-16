@@ -74,7 +74,7 @@ Evaluator::gamePhase() const
 
 i16 Evaluator::EvaluatePawnStructure() const {
     i16 result = 0;
-    float egCoeficient = calculateEndGameCoeficient();
+    const i16 doubledPawn = evaluator_data::doubledPawnScore * gamePhase();
 
     Bitboard whitePawns = m_position.material().whitePawns();
     Bitboard blackPawns = m_position.material().blackPawns();
@@ -82,10 +82,10 @@ i16 Evaluator::EvaluatePawnStructure() const {
     for (i8 idx = 0; idx < 8; ++idx) {
         // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
         // result in 1 if we have 3 pawns this will result in 1. Maybe we should use and 2?
-        result += (evaluator_data::doubledPawnScore * egCoeficient) *
-            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
-        result -= (evaluator_data::doubledPawnScore * egCoeficient) *
-            (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
+        result += static_cast<i16>(doubledPawn *
+            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1));
+        result -= static_cast<i16>(doubledPawn *
+            (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1));
     }
 
     //result += EvaluatePawnManhattanDistance(board);
@@ -190,7 +190,7 @@ i16 Evaluator::EvaluatePassedPawn() const {
         }
 
         if ((pawnMask & opPawns).empty()) {
-            result += evaluator_data::passedPawnScore * calculateEndGameCoeficient();
+            result += static_cast<i16>(evaluator_data::passedPawnScore * gamePhase());
             i16 pawnProtection = EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]);
             i16 newPawnProtection = pawnProtection * evaluator_data::guardedPassedPawnBonus;
             result += static_cast<i16>(newPawnProtection);

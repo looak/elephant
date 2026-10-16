@@ -35,7 +35,7 @@
 struct PestoAccumulator {
     i32 midgame = 0;   // white - black, material & piece square tables
     i32 endgame = 0;
-    i32 phase = 0;     // uncapped, promotions can push it past maxGamePhase
+    i32 phase = 0;     // uncapped, promotions can push it past maxGamePhase, taper caps it
     i32 material = 0;  // white - black, piece_constants::value
     i32 pieceCount = 0;       // every piece on the board, kings included
     i32 nonKingMaterial = 0;  // white + black, piece_constants::value of everything but the kings
@@ -43,11 +43,8 @@ struct PestoAccumulator {
     void add(ChessPiece piece, Square sqr) { apply(piece, sqr, 1); }
     void remove(ChessPiece piece, Square sqr) { apply(piece, sqr, -1); }
 
-    // tapered PeSTO score from white's perspective.
-    [[nodiscard]] i32 taperedScore() const {
-        const i32 cappedPhase = phase < evaluator_data::maxGamePhase ? phase : evaluator_data::maxGamePhase;
-        return (midgame * cappedPhase + endgame * (evaluator_data::maxGamePhase - cappedPhase)) / evaluator_data::maxGamePhase;
-    }
+    // tapered PeSTO score from white's perspective, the same taper as every tapered weight.
+    [[nodiscard]] i32 taperedScore() const { return evaluator_data::taper(midgame, endgame, phase); }
 
     // Material is a MaterialPositionMask, templated so this header doesn't need it.
     template<typename Material>
@@ -73,8 +70,10 @@ private:
         const u32 tableSqr = piece.isWhite() ? evaluator_data::flip(static_cast<u32>(sqr)) : static_cast<u32>(sqr);
         const i32 setSign = piece.isWhite() ? sign : -sign;
 
-        midgame += setSign * (evaluator_data::pestoMaterial_mg[pieceId] + evaluator_data::pestoTables_mg[pieceId][tableSqr]);
-        endgame += setSign * (evaluator_data::pestoMaterial_eg[pieceId] + evaluator_data::pestoTables_eg[pieceId][tableSqr]);
+        const TaperedScore pieceScore = evaluator_data::pestoMaterial[pieceId];
+        const TaperedScore squareScore = (*evaluator_data::pestoTables[pieceId])[tableSqr];
+        midgame += setSign * (pieceScore.midgame + squareScore.midgame);
+        endgame += setSign * (pieceScore.endgame + squareScore.endgame);
         phase += sign * evaluator_data::gamePhaseIncrement[pieceId];
         material += setSign * static_cast<i32>(piece_constants::value[pieceId]);
         pieceCount += sign;

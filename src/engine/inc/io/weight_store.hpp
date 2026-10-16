@@ -22,6 +22,7 @@
 #include <limits>
 
 #include <system/platform.hpp>
+#include <eval/tapered.hpp>
 
 /**
  * @file weight_store.hpp
@@ -120,37 +121,41 @@ protected:
 };
 
 // ----------------------------------------------------------------------------
-// Tapered Weight (Fixed Point Implementation)
+// Tapered Weight, a midgame & endgame pair tapered on the game phase, see eval/tapered.hpp
 // ----------------------------------------------------------------------------
 template<typename T>
 class TaperedWeight : IWeight {
     static_assert(std::is_integral_v<T>, "TaperedWeight requires integer type");
 
 public:
-    TaperedWeight(std::string name, T& a, T& b);
+    TaperedWeight(std::string name, Tapered<T>& value);
 
     virtual void accept(WeightStore& store, const std::string& newValue) override;
-    
-    [[nodiscard]] T operator*(float phase0to1) const {
-        // We accept a float 'phase' (0.0 to 1.0) for API compatibility, but immediately convert to fixed point.
-        const T phase = static_cast<T>(phase0to1 * WEIGHT_SCALE);
-        
-        // Linear Interpolation: A + (B - A) * t
-        // We use (Value * Phase) >> 8 to divide by 256
-        int result = m_a + ((m_b - m_a) * phase) / WEIGHT_SCALE;
-        return static_cast<T>(result);
-    }
 
-    [[nodiscard]] T interpolate(int phase0to256) const {
-        // Overload for when you already have a fixed point phase (0-256)
-        int result = m_a + ((m_b - m_a) * phase0to256) / WEIGHT_SCALE;
-        return static_cast<T>(result);
-    }
+    // the same taper as PestoAccumulator::taperedScore(), gamePhase from maxGamePhase (midgame) to 0 (endgame).
+    [[nodiscard]] T operator*(i32 gamePhase) const { return m_value * gamePhase; }
 
 private:
     friend class WeightStore;
-    T& m_a; // opening value
-    T& m_b; // endgame value
+    Tapered<T>& m_value;
+};
+
+// ----------------------------------------------------------------------------
+// Tapered Table Weight, N tapered pairs, e.g. a piece square table. Written as N midgame values then N endgame values,
+// the way the tables are published.
+// ----------------------------------------------------------------------------
+template<typename T, std::size_t N>
+class TaperedTableWeight : IWeight {
+    static_assert(std::is_integral_v<T>, "TaperedTableWeight requires integer type");
+
+public:
+    TaperedTableWeight(std::string name, std::array<Tapered<T>, N>& table);
+
+    virtual void accept(WeightStore& store, const std::string& newValue) override;
+
+private:
+    friend class WeightStore;
+    std::array<Tapered<T>, N>& m_table;
 };
 
 // ----------------------------------------------------------------------------
@@ -219,6 +224,9 @@ public:
 
     template<typename T>
     void visit(TaperedWeight<T>& weight, const std::string& a, const std::string& b);
+
+    template<typename T, std::size_t N>
+    void visit(TaperedTableWeight<T, N>& weight, const std::string& newValues);
     
     void visit(MultiplierWeight& weight, const std::string& newValue);
 
@@ -245,8 +253,23 @@ void WeightStore::visit(TaperedWeight<T>& weight, const std::string& a, const st
     T new_b = fromString<T>(b);
 
     // commit
-    weight.m_a = new_a;
-    weight.m_b = new_b;
+    weight.m_value = { new_a, new_b };
+}
+
+template<typename T, std::size_t N>
+void WeightStore::visit(TaperedTableWeight<T, N>& weight, const std::string& newValues) {
+    // N midgame values then N endgame values, all parsed before any is committed.
+    std::stringstream ss(newValues);
+    std::array<T, 2 * N> values{};
+    for (std::size_t i = 0; i < 2 * N; ++i) {
+        std::string token;
+        if (!(ss >> token))
+            throw ephant::io_error("Expected " + std::to_string(2 * N) + " values, got " + std::to_string(i));
+        values[i] = fromString<T>(token);
+    }
+
+    for (std::size_t i = 0; i < N; ++i)
+        weight.m_table[i] = { values[i], values[N + i] };
 }
 
 // implementation
@@ -265,10 +288,9 @@ void Weight<T>::accept(WeightStore& store, const std::string& newValue)
 }
 
 template<typename T>
-TaperedWeight<T>::TaperedWeight(std::string name, T& a, T& b) 
-    : IWeight(name)
-    , m_a(a)
-    , m_b(b)
+TaperedWeight<T>::TaperedWeight(std::string name, Tapered<T>& value) 
+    : IWeight(std::move(name))
+    , m_value(value)
 {
     WeightStore::get()->book(this);
 }
@@ -282,20 +304,46 @@ void TaperedWeight<T>::accept(WeightStore& store, const std::string& newValue)
     store.visit(*this, a, b);
 }
 
+template<typename T, std::size_t N>
+TaperedTableWeight<T, N>::TaperedTableWeight(std::string name, std::array<Tapered<T>, N>& table)
+    : IWeight(std::move(name))
+    , m_table(table)
+{
+    WeightStore::get()->book(this);
+}
+
+template<typename T, std::size_t N>
+void TaperedTableWeight<T, N>::accept(WeightStore& store, const std::string& newValue)
+{
+    store.visit(*this, newValue);
+}
+
 // ----------------------------------------------------------------------------
 // Macros
+//
+// Weights are compiled in as constexpr values unless the build is configured with ELEPHANT_TUNABLE, then they are
+// mutable and booked in the WeightStore so res/weights.ini (and later tuning) can change them. Code reads `name` the
+// same way in both. The TUNABLE_ variants are always booked, for the store's own tests.
 // ----------------------------------------------------------------------------
 #define STRINGIZE(x) #x
-#define WEIGHT(name, type, defaultValue) \
-    type name = defaultValue;  \
-    Weight<type> weight_##name(STRINGIZE(name), name);
 
-#define TAPERED_WEIGHT(name, type, a, b) \
-    type name##_a = a; \
-    type name##_b = b; \
-    TaperedWeight<type> name(STRINGIZE(name), name##_a, name##_b);
+#define TUNABLE_WEIGHT(name, type, defaultValue)     inline type name = defaultValue;     inline Weight<type> weight_##name(STRINGIZE(name), name);
 
-#define MULTIPLIER(name, defaultValue) \
-    i16 name = static_cast<i16>(defaultValue * 1024); \
-    MultiplierWeight weight_##name(STRINGIZE(name), name);
+#define TUNABLE_TAPERED_WEIGHT(name, type, midgame, endgame)     inline Tapered<type> name{ midgame, endgame };     inline TaperedWeight<type> weight_##name(STRINGIZE(name), name);
 
+// a table of tapered pairs zipped from two published tables, see zipTapered.
+#define TUNABLE_TAPERED_TABLE(name, type, midgameTable, endgameTable)     inline auto name = zipTapered<type>(midgameTable, endgameTable);     inline TaperedTableWeight<type, std::size(midgameTable)> weight_##name(STRINGIZE(name), name);
+
+#define TUNABLE_MULTIPLIER(name, defaultValue)     inline i16 name = static_cast<i16>(defaultValue * 1024);     inline MultiplierWeight weight_##name(STRINGIZE(name), name);
+
+#ifdef ELEPHANT_TUNABLE
+#define WEIGHT(name, type, defaultValue) TUNABLE_WEIGHT(name, type, defaultValue)
+#define TAPERED_WEIGHT(name, type, midgame, endgame) TUNABLE_TAPERED_WEIGHT(name, type, midgame, endgame)
+#define TAPERED_TABLE(name, type, midgameTable, endgameTable) TUNABLE_TAPERED_TABLE(name, type, midgameTable, endgameTable)
+#define MULTIPLIER(name, defaultValue) TUNABLE_MULTIPLIER(name, defaultValue)
+#else
+#define WEIGHT(name, type, defaultValue)     inline constexpr type name = defaultValue;
+#define TAPERED_WEIGHT(name, type, midgame, endgame)     inline constexpr Tapered<type> name{ midgame, endgame };
+#define TAPERED_TABLE(name, type, midgameTable, endgameTable)     inline constexpr auto name = zipTapered<type>(midgameTable, endgameTable);
+#define MULTIPLIER(name, defaultValue)     inline constexpr i16 name = static_cast<i16>(defaultValue * 1024);
+#endif

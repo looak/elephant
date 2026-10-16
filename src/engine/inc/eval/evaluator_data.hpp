@@ -25,19 +25,10 @@
 #pragma once
 #include <system/platform.hpp>
 #include <eval/pesto_tables.hpp>
+#include <eval/tapered.hpp>
 #include <io/weight_store.hpp>
 
-struct TaperedScore
-{
-    i32 midgame;
-    i32 endgame;
-};
-
-inline i32 operator*(const TaperedScore& lhs, const float& rhs)
-{
-    // rhs is the endgame coefficient, 0 is midgame and 1 is endgame.
-    return lhs.midgame + static_cast<i32>((float)(lhs.endgame - lhs.midgame) * rhs);
-}
+// Tapered weights are tapered with weight * gamePhase, see eval/tapered.hpp.
 
 namespace evaluator_data
 {
@@ -45,24 +36,23 @@ namespace evaluator_data
 /**
  * Idea here is that doubling pawns early or midgame will hurt your structure,
  * later in the game it's not as important where there are less pawns on the board.  */
- //static constexpr TaperedScore doubledPawnScore{-50, -25};
-TAPERED_WEIGHT(doubledPawnScore, i16, -50, -25);
+TAPERED_WEIGHT(doubledPawnScore, i16, -50, -25)
 
 /**
  * Idea here is that isolated pawns are bad but will be worse in the endgame.  */
-static constexpr TaperedScore isolatedPawnScore{-25, -50};
+TAPERED_WEIGHT(isolatedPawnScore, i32, -25, -50)
 
 /**
  * Passed pawns are a strong factor in the endgame and something to strive for. */
-static constexpr TaperedScore passedPawnScore{ 25, 100 };
+TAPERED_WEIGHT(passedPawnScore, i32, 25, 100)
 
 /*
 * if the passed pawn is guarded, this will be multiplied with the passedPawnScore. */
-MULTIPLIER(guardedPassedPawnBonus, 2);
+MULTIPLIER(guardedPassedPawnBonus, 2)
 
 /*
 * Idea here is that pawns that ar guarded by other pawns are stronger and more valuable.*/
-WEIGHT(guardedPawnScore, i16, 8);
+WEIGHT(guardedPawnScore, i16, 8)
 
 constexpr i32 center_bias[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,

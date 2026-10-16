@@ -16,11 +16,14 @@
 
 /**
  * @file pesto_tables.hpp
- * @brief PeSTO's material values, piece square tables & game phase weights. All constexpr, safe to include anywhere,
- * split out of evaluator_data.hpp so the position's PestoAccumulator can use them.    */
+ * @brief PeSTO's material values, piece square tables & game phase weights, split out of evaluator_data.hpp so the
+ * position's PestoAccumulator can use them. Safe to include anywhere: the tapered tables are inline variables,
+ * constexpr unless the build is tunable (ELEPHANT_TUNABLE), see io/weight_store.hpp.    */
 
 #pragma once
 #include <system/platform.hpp>
+#include <eval/tapered.hpp>
+#include <io/weight_store.hpp>
 
 namespace evaluator_data
 {
@@ -39,9 +42,9 @@ constexpr u32 flip(const u32 index) {
 constexpr i32 pestoMaterial_mg[6] = { 82, 337, 365, 477, 1025, 0 };
 constexpr i32 pestoMaterial_eg[6] = { 94, 281, 297, 512,  936, 0 };
 
-// game phase each piece adds, 24 with all pieces on the board. Promotions can push it past, it's capped there.
+// game phase each piece adds, maxGamePhase (tapered.hpp) with all pieces on the board. Promotions can push it past,
+// the taper caps it there.
 constexpr i32 gamePhaseIncrement[6] = { 0, 1, 1, 2, 4, 0 };
-constexpr i32 maxGamePhase = 24;
 
 constexpr i32 pestoPawn_mg[64] = {
     //   A    B    C    D    E    F    G    H
@@ -176,12 +179,20 @@ constexpr i32 pestoKing_eg[64] = {
     -53, -34, -21, -11, -28, -14, -24, -43
 };
 
-constexpr const i32* pestoTables_mg[6] = {
-    pestoPawn_mg, pestoKnight_mg, pestoBishop_mg, pestoRook_mg, pestoQueen_mg, pestoKing_mg
-};
+/**
+ * The tables above as tapered pairs, what the evaluation reads. Each is one weight in a tunable build, written in
+ * res/weights.ini as its 64 midgame values then its 64 endgame values (6 & 6 for the material). */
+TAPERED_TABLE(pestoMaterial, i32, pestoMaterial_mg, pestoMaterial_eg)
+TAPERED_TABLE(pestoPawn, i32, pestoPawn_mg, pestoPawn_eg)
+TAPERED_TABLE(pestoKnight, i32, pestoKnight_mg, pestoKnight_eg)
+TAPERED_TABLE(pestoBishop, i32, pestoBishop_mg, pestoBishop_eg)
+TAPERED_TABLE(pestoRook, i32, pestoRook_mg, pestoRook_eg)
+TAPERED_TABLE(pestoQueen, i32, pestoQueen_mg, pestoQueen_eg)
+TAPERED_TABLE(pestoKing, i32, pestoKing_mg, pestoKing_eg)
 
-constexpr const i32* pestoTables_eg[6] = {
-    pestoPawn_eg, pestoKnight_eg, pestoBishop_eg, pestoRook_eg, pestoQueen_eg, pestoKing_eg
+// by piece index, pawn to king.
+inline constexpr const std::array<TaperedScore, 64>* pestoTables[6] = {
+    &pestoPawn, &pestoKnight, &pestoBishop, &pestoRook, &pestoQueen, &pestoKing
 };
 
 } // namespace evaluator_data

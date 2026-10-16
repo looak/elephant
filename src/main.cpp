@@ -20,12 +20,15 @@ main(int argc, char* argv[])
 
     ASSERT(engine_initialized);
     ASSERT(cli_initialized);
+#ifdef ELEPHANT_TUNABLE
+    // only a tunable build has weights to set, the others have them compiled in.
     try {
         WeightStore::get()->loadFromFile(std::format("{}/res/weights.ini", ROOT_PATH));
     }
     catch (const std::exception& ex) {
         spdlog::error("Failed to load weights file: {}", ex.what());
     }
+#endif
 
 
     if (argc > 1) {

@@ -35,10 +35,15 @@ void WeightStore::loadFromFile(const std::string& filename) {
             continue;
         }
 
-        // Parse the line: paramName [value] [valueB]
+        // Parse the line: paramName value... , one value for a weight, two for a tapered weight, a midgame and an
+        // endgame table for a tapered table. The weight parses its own values.
         std::stringstream ss(line);
-        std::string paramName, valueAStr, valueBStr;
-        ss >> paramName >> valueAStr >> valueBStr;
+        std::string paramName;
+        ss >> paramName;
+        std::string values;
+        std::getline(ss >> std::ws, values);
+        // trailing spaces or a \r from a CRLF file would fail a single value's parse.
+        values.erase(values.find_last_not_of(" \t\r\n") + 1);
 
         // Find the parameter and set its value (using templates)
         auto it = m_weights.find(paramName);
@@ -46,16 +51,9 @@ void WeightStore::loadFromFile(const std::string& filename) {
             IWeight* paramPtr = it->second;
             if (paramPtr) {
                 try {
-                    // If valueBStr is provided, it's a tapered weight; pass both values
-                    // Otherwise, pass just the first value
-                    if (!valueBStr.empty()) {
-                        paramPtr->accept(*this, std::format("{} {}", valueAStr, valueBStr));
-                        LOG_TRACE("Set parameter '{}' to {} {}", paramName, valueAStr, valueBStr);
-                    } else {
-                        paramPtr->accept(*this, valueAStr);
-                        LOG_TRACE("Set parameter '{}' to {}", paramName, valueAStr);
-                    }
-                } catch (const std::invalid_argument& e) {
+                    paramPtr->accept(*this, values);
+                    LOG_TRACE("Set parameter '{}' to {}", paramName, values);
+                } catch (const std::exception& e) {
                     LOG_ERROR("Error setting parameter '{}': {}", paramName, e.what());
                 }
             }

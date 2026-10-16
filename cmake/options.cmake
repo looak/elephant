@@ -5,6 +5,9 @@ set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, wa
 # so Release & RelWithDebInfo run (and profile) like the OpenBench build. CI's unit tests turn both on.
 set(ASSERTIONS_ENABLED OFF CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
 set(EXCEPTIONS_ENABLED OFF CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
+# Evaluation weights (PeSTO's tables included) are constexpr unless this is on, then ElephantGambit reads them from
+# res/weights.ini at startup. For tuning only, a tunable build evaluates like any other until weights.ini changes.
+set(ELEPHANT_TUNABLE OFF CACHE BOOL "Evaluation weights read from res/weights.ini instead of compiled in")
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
 set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
@@ -36,6 +39,7 @@ set(PRECOMPILE_OPTIONS
     EXCEPTIONS_ENABLED
     OUTPUT_LOG_TO_FILE
     DEBUG_SEARCH_TREE
+    ELEPHANT_TUNABLE
 )
 
 # Library to hold our shared compiler warning flags

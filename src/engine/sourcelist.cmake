@@ -45,6 +45,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
     ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp
     ${ENGINE_INC_DIR}/eval/pesto_tables.hpp
+    ${ENGINE_INC_DIR}/eval/tapered.hpp
 
 ## /io/...
     ${ENGINE_INC_DIR}/io/fen_parser.hpp
