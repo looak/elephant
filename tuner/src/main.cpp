@@ -1,7 +1,7 @@
 // ElephantTuner, the offline evaluation tuner, see tuner/CMakeLists.txt.
 //
 //   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
-//                 [--out DIR] [--held-back N]
+//                 [--out DIR] [--held-back N] [--free-mobility]
 //
 //   dataset          a text file, one position per line: a FEN and the game's result, see dataset.hpp
 //   --limit          only the first N positions
@@ -14,6 +14,7 @@
 //   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
 //   --held-back      every Nth position is kept out of the fit to check it with, 20 by default, 0 for none
+//   --free-mobility  don't keep mobility's tables centred, they then shift piece values (see fit.hpp)
 //
 // Phase 0: every position resolved to a quiet one with quiescence search, traced and kept as an entry.
 // Phase 1: K, the scale between the evaluation and the game's result, and the current evaluation's error at it.
@@ -48,7 +49,7 @@ namespace {
 
 int usage() {
     std::cerr << "usage: ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]\n"
-                 "                     [--tune LIST] [--out DIR] [--held-back N]\n"
+                 "                     [--tune LIST] [--out DIR] [--held-back N] [--free-mobility]\n"
                  "  dataset:         one position per line, a FEN and the game's result from white's side,\n"
                  "                   e.g. [1.0], c9 \"1/2-1/2\"; or a bare 0-1\n"
                  "  --limit:         only the first N positions\n"
@@ -58,7 +59,8 @@ int usage() {
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
                  "  --tune:          groups the fit moves, of material, psqt & mobility, psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
-                 "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n";
+                 "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
+                 "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
     return 2;
 }
 
@@ -124,6 +126,9 @@ int main(int argc, char* argv[]) {
         }
         else if (std::strcmp(argv[i], "--out") == 0 && hasValue) {
             outDir = argv[++i];
+        }
+        else if (std::strcmp(argv[i], "--free-mobility") == 0) {
+            settings.centreMobility = false;
         }
         else if (std::strcmp(argv[i], "--held-back") == 0 && hasValue) {
             if (!parseCount(argv[++i], heldBackEvery))

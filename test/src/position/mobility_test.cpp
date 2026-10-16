@@ -62,12 +62,14 @@ TEST(Mobility, SlidersStopAtPieces_BlackCountsNegative) {
     EXPECT_EQ(-1, trace.pieces[0].sign);
 }
 
-TEST(Mobility, UntunedTablesScoreNothing) {
-    // until tuned every mobility value is S(0, 0), mobility changes no evaluation.
-    GameContext context;
-    io::fen_parser::deserialize("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
-                                context.editChessboard());
-    EXPECT_EQ(S(0, 0), mobilityScore(context.readChessPosition().material()));
+TEST(Mobility, MirroredPositionsScoreNothing) {
+    // white's pieces are black's mirrored, their mobility cancels whatever the tables say.
+    for (const char* fen : { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                             "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4" }) {
+        GameContext context;
+        io::fen_parser::deserialize(fen, context.editChessboard());
+        EXPECT_EQ(S(0, 0), mobilityScore(context.readChessPosition().material())) << fen;
+    }
 }
 
 }  // namespace ElephantTest

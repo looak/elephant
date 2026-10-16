@@ -68,6 +68,12 @@
  * position's evaluation. That's how a new term joins an evaluation the search is used to: with PeSTO's tables fixed,
  * mobility's values are fitted alongside them and only take what PeSTO doesn't already say.
  *
+ * Mobility's tables are kept centred: after every step each piece's table is moved up or down so its average, weighted
+ * by how often each count occurs in the positions, is 0. Every piece has exactly one mobility value, so a table's
+ * average works like the piece's material value, and left free the fit uses it to change what pieces are worth
+ * (it lowered every piece's midgame value by ~60 that way, the kind of shift that cost Elo in the tables' retune).
+ * Centred, mobility only says how much a free piece is worth over a hemmed in one. --free-mobility turns this off.
+ *
  * Material is never tuned together with the piece square tables by default: adding the same amount to every square of
  * a piece's table is the same as adding it to the piece's material, the two can trade values forever without the
  * error changing. Squares no position uses (pawns on the first & last rank, a knight with 9 safe squares) get no
@@ -103,6 +109,9 @@ struct FitSettings {
     bool tuneMaterial = false;
     bool tunePsqt = true;
     bool tuneMobility = true;
+
+    // mobility tables kept centred, their usage weighted average at 0, see "What's kept fixed" above.
+    bool centreMobility = true;
 
     [[nodiscard]] bool tunes(params::Group group) const {
         return group == params::Group::Material ? tuneMaterial : group == params::Group::Psqt ? tunePsqt : tuneMobility;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <core/game_context.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/mobility.hpp>
 #include <io/fen_parser.hpp>
 
 struct EvaluationTestCase {
@@ -28,6 +29,13 @@ i32 evaluate(const std::string& fen) {
     Position position;
     io::fen_parser::deserialize(fen.c_str(), position.edit());
     return Evaluator(position.read()).Evaluate();
+}
+
+// mobility's midgame part of a position, white's side, see mobility.hpp.
+i32 mobilityMidgame(const std::string& fen) {
+    Position position;
+    io::fen_parser::deserialize(fen.c_str(), position.edit());
+    return mg_score(mobilityScore(position.read().material()));
 }
 
 i32 gamePhase(const std::string& fen) {
@@ -78,13 +86,17 @@ TEST(EvaluationPesto, PawnAdvancementIsRewarded)
     EXPECT_EQ(blackPawnA2 - blackPawnA7, -(178 - 13));
 }
 
-// At full phase only the midgame tables count, knight g1 is -19 and f3 is 17.
+// At full phase only the midgame tables count, knight g1 is -19 and f3 is 17. The move also changes the knight's
+// mobility, its midgame part is added on.
 TEST(EvaluationPesto, MidgameTablesAtFullPhase)
 {
-    const i32 start = evaluate("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    const i32 knightF3 = evaluate("rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1");
+    const std::string startFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    const std::string knightF3Fen = "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1";
+    const i32 start = evaluate(startFen);
+    const i32 knightF3 = evaluate(knightF3Fen);
     EXPECT_EQ(start, 0);
-    EXPECT_EQ(knightF3 - start, 17 - (-19));
+    const i32 mobilityChange = mobilityMidgame(knightF3Fen) - mobilityMidgame(startFen);
+    EXPECT_EQ(knightF3 - start, 17 - (-19) + mobilityChange);
 }
 
 TEST(EvaluationPesto, GamePhase)

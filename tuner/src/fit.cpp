@@ -149,6 +149,37 @@ struct Adam {
     }
 };
 
+// how much each value is used over the positions, the sum of its coefficients' sizes: a count most pieces have
+// weighs a lot, a count that hardly ever happens next to nothing.
+std::vector<double> usage(const TunerData& data, std::size_t values) {
+    std::vector<double> used(values, 0.0);
+    for (const Coefficient& c : data.coefficients)
+        used[c.index()] += std::abs(c.value());
+    return used;
+}
+
+// Moves each piece's mobility table up or down so its average, weighted by how much each count is used, is 0. Every
+// piece has exactly one mobility value, so a table's average works like the piece's material value: centred, mobility
+// can't change what a piece is worth on average, only how much a free piece is worth over a hemmed in one.
+void centreMobility(Values& values, const std::vector<double>& used) {
+    for (u32 pieceId = 1; pieceId <= 4; ++pieceId) {
+        double weight = 0.0, mgSum = 0.0, egSum = 0.0;
+        for (u32 safe = 0; safe < params::mobilityCounts[pieceId]; ++safe) {
+            const u32 i = params::mobility(pieceId, safe);
+            weight += used[i];
+            mgSum += used[i] * values.mg[i];
+            egSum += used[i] * values.eg[i];
+        }
+        if (weight == 0.0)
+            continue;
+        for (u32 safe = 0; safe < params::mobilityCounts[pieceId]; ++safe) {
+            const u32 i = params::mobility(pieceId, safe);
+            values.mg[i] -= mgSum / weight;
+            values.eg[i] -= egSum / weight;
+        }
+    }
+}
+
 } // namespace
 
 double fitError(const TunerData& data, const Values& values, double k, std::size_t threads) {
@@ -161,6 +192,10 @@ void fit(const TunerData& data, Values& values, const FitSettings& settings,
     std::vector<Adam> mgAdam(values.mg.size());
     std::vector<Adam> egAdam(values.eg.size());
     std::vector<double> mgGradient, egGradient;
+    const bool centring = settings.tuneMobility && settings.centreMobility;
+    const std::vector<double> used = centring ? usage(data, values.mg.size()) : std::vector<double>{};
+    if (centring)
+        centreMobility(values, used);
 
     for (std::size_t epoch = 1; epoch <= settings.epochs; ++epoch) {
         const double error = pass(data, values, settings.k, settings.threads, mgGradient, egGradient);
@@ -172,6 +207,9 @@ void fit(const TunerData& data, Values& values, const FitSettings& settings,
             values.mg[i] -= mgAdam[i].step(mgGradient[i], settings.rate, epoch);
             values.eg[i] -= egAdam[i].step(egGradient[i], settings.rate, epoch);
         }
+        // the step may have moved a table's average, it's put back so only the table's shape changes.
+        if (centring)
+            centreMobility(values, used);
 
         progress(epoch, error);
     }
