@@ -87,6 +87,17 @@ struct PrepareReport {
 };
 
 /**
+ * Splits data into positions to fit on and positions held back to check the fit with: every everyNth position
+ * (0, everyNth, 2 * everyNth, ...) is held back. The fit never sees those, so their error tells whether it learned
+ * something that holds for positions in general or memorised the ones it was given, which shows as the held back
+ * error rising while the fitted one keeps falling. everyNth 0 holds nothing back.    */
+struct SplitData {
+    TunerData fit;
+    TunerData heldBack;
+};
+SplitData splitHeldBack(TunerData&& data, std::size_t everyNth);
+
+/**
  * Phase 0: reads the dataset at path (its first limit positions, 0 for all) with threads threads, resolves each
  * position to a quiet one with the engine's quiescence search, traces its PeSTO terms and keeps an entry. Prints
  * progress to stderr.    */

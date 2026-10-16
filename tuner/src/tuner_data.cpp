@@ -54,6 +54,35 @@ std::uint64_t TunerData::checksum() const {
     return hash;
 }
 
+SplitData splitHeldBack(TunerData&& data, std::size_t everyNth) {
+    SplitData split;
+    if (everyNth == 0) {
+        split.fit = std::move(data);
+        return split;
+    }
+
+    // copies each entry & its coefficients to one side or the other, coefficient starts point into the new side.
+    auto copyEntry = [&data](TunerData& to, const TunerEntry& entry) {
+        TunerEntry copy = entry;
+        copy.coefficientStart = static_cast<u32>(to.coefficients.size());
+        to.coefficients.insert(to.coefficients.end(), data.coefficients.begin() + entry.coefficientStart,
+                               data.coefficients.begin() + entry.coefficientStart + entry.coefficientCount);
+        to.entries.push_back(copy);
+    };
+
+    const std::size_t heldBack = (data.entries.size() + everyNth - 1) / everyNth;
+    split.heldBack.entries.reserve(heldBack);
+    split.fit.entries.reserve(data.entries.size() - heldBack);
+    // a little over each side's share, coefficients per position vary.
+    split.heldBack.coefficients.reserve(data.coefficients.size() / everyNth + data.coefficients.size() / 100);
+    split.fit.coefficients.reserve(data.coefficients.size());
+    for (std::size_t i = 0; i < data.entries.size(); ++i)
+        copyEntry(i % everyNth == 0 ? split.heldBack : split.fit, data.entries[i]);
+
+    data = TunerData{};
+    return split;
+}
+
 void PrepareReport::append(const PrepareReport& next) {
     positions += next.positions;
     decided += next.decided;
