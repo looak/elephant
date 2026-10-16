@@ -74,7 +74,7 @@ Evaluator::gamePhase() const
 
 i16 Evaluator::EvaluatePawnStructure() const {
     i16 result = 0;
-    const i16 doubledPawn = evaluator_data::doubledPawnScore * gamePhase();
+    const i16 doubledPawn = static_cast<i16>(evaluator_data::taper(evaluator_data::doubledPawnScore, gamePhase()));
 
     Bitboard whitePawns = m_position.material().whitePawns();
     Bitboard blackPawns = m_position.material().blackPawns();
@@ -190,9 +190,9 @@ i16 Evaluator::EvaluatePassedPawn() const {
         }
 
         if ((pawnMask & opPawns).empty()) {
-            result += static_cast<i16>(evaluator_data::passedPawnScore * gamePhase());
+            result += static_cast<i16>(evaluator_data::taper(evaluator_data::passedPawnScore, gamePhase()));
             i16 pawnProtection = EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]);
-            i16 newPawnProtection = pawnProtection * evaluator_data::guardedPassedPawnBonus;
+            i16 newPawnProtection = static_cast<i16>(pawnProtection * evaluator_data::guardedPassedPawnBonus);
             result += static_cast<i16>(newPawnProtection);
         }
     }
