@@ -101,6 +101,7 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 
 ## Goals & todo
 
+* evaluation: king safety, passed pawns and pawn structure on top of PeSTO ([plan](doc/plans/handcrafted-eval.md))
 * evaluation: an NNUE trained on the engine's own games
 * search: singular extensions, continuation history, history adjusted reductions, SPSA tuning of the search parameters
 * time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
