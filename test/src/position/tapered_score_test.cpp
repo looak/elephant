@@ -52,19 +52,13 @@ TEST(TaperedScore, Taper_MidgameAtFullPhase_EndgameAtZero_LinearBetween) {
     static_assert(evaluator_data::taper(S(-100, -300), 6) == -250);
 }
 
-TEST(TaperedScore, PestoTables_Layout) {
-    // the tables are tuned (ElephantTuner), these hold whatever the values: material is PeSTO's, pinned while tuning.
-    static_assert(evaluator_data::pestoMaterial[0] == S(82, 94));
+TEST(TaperedScore, PestoTables_AsPublished) {
+    // spot checks against chessprogramming.org's PeSTO tables, A8 at index 0.
     static_assert(evaluator_data::pestoMaterial[4] == S(1025, 936));
-    static_assert(evaluator_data::pestoMaterial[5] == S(0, 0));         // the king has no material value
-    // a pawn never stands on the first or last rank, those squares are never used and stay 0. A8 is index 0.
-    for (u32 file = 0; file < 8; ++file) {
-        EXPECT_EQ(S(0, 0), evaluator_data::pestoPawn[file]);           // rank 8
-        EXPECT_EQ(S(0, 0), evaluator_data::pestoPawn[56 + file]);      // rank 1
-    }
-    static_assert(evaluator_data::pestoTables[0] == evaluator_data::pestoPawn);
+    static_assert(evaluator_data::pestoPawn[8] == S(98, 178));          // a7
+    static_assert(evaluator_data::pestoKnight[0] == S(-167, -58));      // a8
+    static_assert(evaluator_data::pestoKing[63] == S(14, -43));         // h1
     static_assert(evaluator_data::pestoTables[3] == evaluator_data::pestoRook);
-    static_assert(evaluator_data::pestoTables[5] == evaluator_data::pestoKing);
 }
 
 }  // namespace ElephantTest

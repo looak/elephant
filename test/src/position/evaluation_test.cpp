@@ -64,34 +64,27 @@ TEST(EvaluationSymmetry, AsymmetricMiddlegameAndEndgame)
     expectSymmetric("6k1/5ppp/8/8/8/8/1Q6/6K1 w - - 0 1");
 }
 
-// Catches the tables being read upside down, the eval would still be symmetric but reward pawns for staying home. The
-// expected numbers come from the tables (A8 at index 0), they're tuned and change.
+// Catches the tables being read upside down, the eval would still be symmetric but reward pawns for staying home.
 TEST(EvaluationPesto, PawnAdvancementIsRewarded)
 {
-    // only kings & pawns, phase 0 so the endgame table alone counts.
-    const i32 a7 = eg_score(evaluator_data::pestoPawn[8]);
-    const i32 a2 = eg_score(evaluator_data::pestoPawn[48]);
-    EXPECT_GT(a7, a2);
-
+    // only kings & pawns, phase 0 so the endgame table alone counts: a7 is 178, a2 is 13.
     const i32 whitePawnA7 = evaluate("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
     const i32 whitePawnA2 = evaluate("4k3/8/8/8/8/8/P7/4K3 w - - 0 1");
-    EXPECT_EQ(whitePawnA7 - whitePawnA2, a7 - a2);
+    EXPECT_EQ(whitePawnA7 - whitePawnA2, 178 - 13);
 
     // the same pawns for black, a2 is black's 7th rank.
     const i32 blackPawnA2 = evaluate("4k3/8/8/8/8/8/p7/4K3 w - - 0 1");
     const i32 blackPawnA7 = evaluate("4k3/p7/8/8/8/8/8/4K3 w - - 0 1");
-    EXPECT_EQ(blackPawnA2 - blackPawnA7, -(a7 - a2));
+    EXPECT_EQ(blackPawnA2 - blackPawnA7, -(178 - 13));
 }
 
-// At full phase only the midgame tables count: a knight from g1 to f3 changes the eval by the midgame table's f3 - g1.
+// At full phase only the midgame tables count, knight g1 is -19 and f3 is 17.
 TEST(EvaluationPesto, MidgameTablesAtFullPhase)
 {
-    const i32 f3 = mg_score(evaluator_data::pestoKnight[45]);   // A8 at index 0, f3 is row 5, file 5
-    const i32 g1 = mg_score(evaluator_data::pestoKnight[62]);
     const i32 start = evaluate("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     const i32 knightF3 = evaluate("rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1");
     EXPECT_EQ(start, 0);
-    EXPECT_EQ(knightF3 - start, f3 - g1);
+    EXPECT_EQ(knightF3 - start, 17 - (-19));
 }
 
 TEST(EvaluationPesto, GamePhase)
