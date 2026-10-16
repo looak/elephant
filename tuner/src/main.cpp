@@ -7,11 +7,13 @@
 //   --threads   threads to use, every logical core by default
 //   --leave     cores to keep free, taken off --threads
 //
-// Phase 0 so far: every position resolved to a quiet one with quiescence search, traced and kept as an entry. Then
-// finding K and fitting the values.
+// Phase 0: every position resolved to a quiet one with quiescence search, traced and kept as an entry.
+// Phase 1: K, the scale between the evaluation and the game's result, and the current evaluation's error at it.
+// Then fitting the values.
 
 #include <algorithm>
 #include <charconv>
+#include <chrono>
 #include <cstring>
 #include <exception>
 #include <format>
@@ -20,6 +22,7 @@
 #include <thread>
 
 #include <dataset.hpp>
+#include <find_k.hpp>
 #include <system/static_initializer.hpp>
 #include <tuner_data.hpp>
 
@@ -116,5 +119,37 @@ int main(int argc, char* argv[]) {
 
     if (data.entries.empty())
         return 1;
-    return report.accumulatorMismatch == 0 && report.rebuildMismatch == 0 ? 0 : 3;
+    if (report.accumulatorMismatch != 0 || report.rebuildMismatch != 0)
+        return 3;
+
+    // --- Phase 1: K, see find_k.hpp ---
+    const auto kStart = std::chrono::steady_clock::now();
+    const tuner::KSearch search = tuner::findK(data, report.threads);
+    const double kSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - kStart).count();
+
+    std::cout << "\nPhase 1, K: the scale that turns an evaluation into an expected result\n";
+
+    // the first 31 tries are the coarse pass, K = 0.0 to 3.0, they show the error's valley.
+    std::cout << "  error by K (coarse pass)\n";
+    for (std::size_t i = 0; i < search.tried.size() && i < 31; i += 3) {
+        const auto [k, error] = search.tried[i];
+        std::cout << std::format("    K {:.1f}  error {:.6f}\n", k, error);
+    }
+
+    // a prediction that knows nothing says 0.5 for every position, its error is the bar any evaluation has to clear.
+    double knowNothing = 0.0;
+    for (const tuner::TunerEntry& entry : data.entries)
+        knowNothing += (entry.result - 0.5) * (entry.result - 0.5);
+    knowNothing /= static_cast<double>(data.entries.size());
+
+    std::cout << std::format("  best K       {:.4f}, {} errors computed in {:.1f} s\n", search.k, search.tried.size(),
+                             kSeconds);
+    std::cout << std::format("  error        {:.6f} with the current evaluation, the baseline tuning has to beat\n",
+                             search.error);
+    std::cout << std::format("               {:.6f} predicting 0.5 for every position, knowing nothing\n", knowNothing);
+    std::cout << std::format("  meaning      at this K white is expected to score");
+    for (int eval : { 50, 100, 200, 400 })
+        std::cout << std::format("  {:.0f}% at +{}", 100.0 * tuner::expectedResult(eval, search.k), eval);
+    std::cout << '\n';
+    return 0;
 }
