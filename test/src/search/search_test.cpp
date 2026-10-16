@@ -197,9 +197,8 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
         // (64 MB hash). 0.15.1's IIR, applied at every node without a TT or PV move now that PVs are cleared, finds it
         // at 19, 20 leaves a ply of margin. Raise this when new pruning pushes it out of reach.
-        // 1.0.3's tuned PeSTO tables (ElephantTuner) prefer g7g3 at 20 & 22, the line plays d4e3 a move later; d4e3
-        // itself is found at 24.
-        testingParams.SearchDepth = 24;
+        // The shape only tuned tables find it at 19 too; the tuned tables with their averages moved needed 24.
+        testingParams.SearchDepth = 20;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);
