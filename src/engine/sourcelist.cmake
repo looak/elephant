@@ -40,7 +40,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/diagnostics/logger.hpp
 
 ## /eval/...
-    ${ENGINE_INC_DIR}/eval/evaluation_table.hpp
     ${ENGINE_INC_DIR}/eval/evaluator.hpp
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
     ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp
