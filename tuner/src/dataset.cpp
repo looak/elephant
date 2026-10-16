@@ -90,7 +90,8 @@ std::optional<TuningPosition> parseLine(std::string_view line) {
     return std::nullopt;
 }
 
-std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& report) {
+void forEachPosition(const std::string& path, LoadReport& report, std::size_t limit,
+                     const std::function<bool(const TuningPosition&, std::size_t lineNumber)>& handle) {
     std::ifstream file(path);
     if (!file.is_open())
         throw std::runtime_error(std::format("Can't open dataset {}", path));
@@ -100,9 +101,9 @@ std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& rep
             report.firstErrors.push_back(std::format("{}: {}", lineNumber, reason));
     };
 
-    std::vector<TuningPosition> positions;
+    std::size_t handled = 0;
     std::string line;
-    while (std::getline(file, line)) {
+    while ((limit == 0 || handled < limit) && std::getline(file, line)) {
         ++report.lines;
         if (!line.empty() && line.back() == '\r')
             line.pop_back();
@@ -112,29 +113,36 @@ std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& rep
             continue;
         }
 
-        std::optional<TuningPosition> position = parseLine(line);
+        const std::optional<TuningPosition> position = parseLine(line);
         if (!position) {
             ++report.noResult;
             refuse(report.lines, "no result found");
             continue;
         }
 
+        ++handled;
+        if (!handle(*position, report.lines)) {
+            ++report.badFen;
+            refuse(report.lines, std::format("invalid FEN '{}'", position->fen));
+        }
+    }
+}
+
+std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& report) {
+    std::vector<TuningPosition> positions;
+    forEachPosition(path, report, 0, [&positions](const TuningPosition& position, std::size_t) {
         bool valid = false;
         try {
             Chessboard board;
-            valid = io::fen_parser::deserialize(position->fen, board);
+            valid = io::fen_parser::deserialize(position.fen, board);
         }
         catch (const std::exception&) {
             valid = false;
         }
-        if (!valid) {
-            ++report.badFen;
-            refuse(report.lines, std::format("invalid FEN '{}'", position->fen));
-            continue;
-        }
-
-        positions.push_back(std::move(*position));
-    }
+        if (valid)
+            positions.push_back(position);
+        return valid;
+    });
     return positions;
 }
 

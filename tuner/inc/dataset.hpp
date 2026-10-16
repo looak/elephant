@@ -29,6 +29,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -55,8 +56,15 @@ struct LoadReport {
 std::optional<TuningPosition> parseLine(std::string_view line);
 
 /**
- * Reads every position of a dataset file, each FEN checked with the engine's FEN parser. Throws when the file can't
- * be opened, lines that can't be used are counted in the report.    */
+ * Streams a dataset file: calls handle for every position in it, in order, without keeping them. handle returns false
+ * for a position it couldn't use (an invalid FEN), counted in report.badFen. Stops after limit positions were handled,
+ * 0 for all of them. Throws when the file can't be opened.    */
+void forEachPosition(const std::string& path, LoadReport& report, std::size_t limit,
+                     const std::function<bool(const TuningPosition&, std::size_t lineNumber)>& handle);
+
+/**
+ * Reads every position of a dataset file into memory, each FEN checked with the engine's FEN parser. For small
+ * files, a large one is better streamed with forEachPosition.    */
 std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& report);
 
 }  // namespace tuner
