@@ -20,8 +20,9 @@
  *
  * What is being changed
  * ---------------------
- * The values are the numbers in the evaluation: PeSTO's material and its piece square tables, each a midgame and an
- * endgame number (the two halves of S(mg, eg)). 390 values, 780 numbers. Phase 0 recorded, for every position, which
+ * The values are the numbers in the evaluation: PeSTO's material and its piece square tables, and mobility's tables,
+ * each a midgame and an endgame number (the two halves of S(mg, eg)). 456 values, 912 numbers, in three groups that
+ * can each be tuned or left as they are (see What's kept fixed). Phase 0 recorded, for every position, which
  * values it uses and how often (its coefficients), so a position's evaluation can be recomputed from any set of
  * values without the engine:
  *
@@ -63,9 +64,14 @@
  *
  * What's kept fixed
  * -----------------
- * Material stays as it is unless asked otherwise: adding the same amount to every square of a piece's table is the
- * same as adding it to the piece's material, the two can trade values forever without the error changing. Squares
- * no position uses (pawns on the first & last rank) get no gradient and keep their value.    */
+ * Only the groups asked for move (FitSettings, --tune), the others stay as they are but still count in every
+ * position's evaluation. That's how a new term joins an evaluation the search is used to: with PeSTO's tables fixed,
+ * mobility's values are fitted alongside them and only take what PeSTO doesn't already say.
+ *
+ * Material is never tuned together with the piece square tables by default: adding the same amount to every square of
+ * a piece's table is the same as adding it to the piece's material, the two can trade values forever without the
+ * error changing. Squares no position uses (pawns on the first & last rank, a knight with 9 safe squares) get no
+ * gradient and keep their value.    */
 
 #pragma once
 
@@ -93,7 +99,14 @@ struct FitSettings {
     double k = 1.0;             // phase 1's K, fixed
     std::size_t epochs = 1000;  // passes over every position
     double rate = 1.0;          // Adam's step, about how many centipawns a number moves per pass at most
-    bool tuneMaterial = false;  // material is pinned unless set, see above
+    // which groups of values move, the others stay as they are, see "What's kept fixed" above.
+    bool tuneMaterial = false;
+    bool tunePsqt = true;
+    bool tuneMobility = true;
+
+    [[nodiscard]] bool tunes(params::Group group) const {
+        return group == params::Group::Material ? tuneMaterial : group == params::Group::Psqt ? tunePsqt : tuneMobility;
+    }
     std::size_t threads = 1;
 };
 

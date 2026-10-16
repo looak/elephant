@@ -50,6 +50,27 @@ void replaceBody(std::string& header, const std::string& declaration, const std:
 
 } // namespace
 
+std::string rewriteMobilityTables(const std::string& header, const std::vector<TaperedScore>& values) {
+    const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";
+
+    std::string result = header;
+    const char* names[6] = { nullptr, "knightMobility", "bishopMobility", "rookMobility", "queenMobility", nullptr };
+    for (u32 pieceId = 1; pieceId <= 4; ++pieceId) {
+        // eight values to a line: "    S(   0,   0), S(  12,  -3), ...,".
+        const u32 counts = params::mobilityCounts[pieceId];
+        std::string body;
+        for (u32 safe = 0; safe < counts; ++safe) {
+            const TaperedScore score = values[params::mobility(pieceId, safe)];
+            body += safe % 8 == 0 ? "    " : " ";
+            body += std::format("S({:4},{:4}),", mg_score(score), eg_score(score));
+            if (safe % 8 == 7 || safe + 1 == counts)
+                body += newline;
+        }
+        replaceBody(result, std::format("constexpr TaperedScore {}[{}]", names[pieceId], counts), body, newline);
+    }
+    return result;
+}
+
 std::string rewritePestoTables(const std::string& header, const std::vector<TaperedScore>& values) {
     // whatever line ending the file has, the rewritten lines get the same.
     const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";

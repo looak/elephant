@@ -45,5 +45,5 @@ logs/
 # tuning datasets, hundreds of MB, kept out of the repo
 res/tuning_positions/
 
-# ElephantTuner output, copied over src/engine/inc/eval/pesto_tables.hpp when it is taken
-pesto_tables.tuned.hpp
+# ElephantTuner output, copied over src/engine/inc/eval/<file>.hpp when it is taken
+*.tuned.hpp

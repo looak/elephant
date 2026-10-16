@@ -20,7 +20,8 @@
  * position uses each of them: white's uses minus black's. The evaluation of a position is then the sum of
  * coefficient * value over its coefficients, tapered on its phase.
  *
- * Fitted today: PeSTO's material and piece square tables, as the engine's PestoAccumulator adds them up.    */
+ * Fitted: PeSTO's material and piece square tables, as the engine's PestoAccumulator adds them up, and mobility, as
+ * mobilityScore counts it. Each is a group the fit can tune or leave as it is.    */
 
 #pragma once
 
@@ -28,6 +29,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <eval/mobility_tables.hpp>
 #include <eval/pesto_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <system/platform.hpp>
@@ -36,12 +38,25 @@ namespace tuner {
 
 namespace params {
 
+// the groups of values, in the order they're laid out.
+enum class Group { Material, Psqt, Mobility };
+
 constexpr u32 materialOffset = 0;  // 6, by piece index pawn to king
 constexpr u32 psqtOffset = 6;      // 6 * 64, by piece index then table square (A8 = 0, see pesto_tables.hpp)
-constexpr u32 count = psqtOffset + 6 * 64;
+constexpr u32 mobilityOffset = psqtOffset + 6 * 64;  // knight 0-8, bishop 0-13, rook 0-14, queen 0-27 safe squares
+
+// how many counts each piece's mobility table has, by piece index, and where each starts within mobility's values.
+constexpr u32 mobilityCounts[6] = { 0, 9, 14, 15, 28, 0 };
+constexpr u32 mobilityStarts[6] = { 0, 0, 9, 23, 38, 66 };
+constexpr u32 count = mobilityOffset + 66;
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
 constexpr u32 psqt(u32 pieceId, u32 tableSqr) { return psqtOffset + pieceId * 64 + tableSqr; }
+constexpr u32 mobility(u32 pieceId, u32 safeSquares) { return mobilityOffset + mobilityStarts[pieceId] + safeSquares; }
+
+constexpr Group groupOf(u32 index) {
+    return index < psqtOffset ? Group::Material : index < mobilityOffset ? Group::Psqt : Group::Mobility;
+}
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {
@@ -50,6 +65,8 @@ inline std::vector<TaperedScore> current() {
         values[material(pieceId)] = evaluator_data::pestoMaterial[pieceId];
         for (u32 sqr = 0; sqr < 64; ++sqr)
             values[psqt(pieceId, sqr)] = evaluator_data::pestoTables[pieceId][sqr];
+        for (u32 safe = 0; safe < mobilityCounts[pieceId]; ++safe)
+            values[mobility(pieceId, safe)] = evaluator_data::mobilityTables[pieceId][safe];
     }
     return values;
 }
@@ -81,14 +98,19 @@ private:
 };
 
 /**
- * Records one position's coefficients, handed to PestoAccumulator::computeFromScratch as its trace. clear() before
- * each position, coefficients() after.    */
-class PestoTrace {
+ * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch and to
+ * mobilityScore. clear() before each position, coefficients() after.    */
+class EvalTrace {
 public:
     // see NoPestoTrace in pesto_accumulator.hpp.
     void piece(u32 pieceId, u32 tableSqr, i32 sign) {
         add(params::material(pieceId), sign);
         add(params::psqt(pieceId, tableSqr), sign);
+    }
+
+    // see NoMobilityTrace in mobility.hpp.
+    void mobility(u32 pieceId, u32 safeSquares, i32 sign) {
+        add(params::mobility(pieceId, safeSquares), sign);
     }
 
     void clear() {

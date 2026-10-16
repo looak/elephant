@@ -7,6 +7,7 @@
 #include <material/chess_piece.hpp>
 #include <core/chessboard.hpp>
 #include <eval/evaluator_data.hpp>
+#include <eval/mobility.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
 #include <search/search_constants.hpp>
@@ -22,8 +23,8 @@ Evaluator::Evaluate()
         return -c_checkmateConstant;
     }
 
-    // material and piece positions, PeSTO's tables carry their own material values.
-    i16 score = EvaluatePesto();
+    // material, piece positions & mobility, PeSTO's tables carry their own material values.
+    i16 score = static_cast<i16>(EvaluateTapered());
     // LOG_DEBUG() << "PeSTO score: " << score;
 
     // piece_constants material, only decides whether mop up applies.
@@ -59,11 +60,12 @@ Evaluator::EvaluateMaterial() const
     return static_cast<i16>(m_accumulator.material);
 }
 
-i16
-Evaluator::EvaluatePesto() const
+i32
+Evaluator::EvaluateTapered() const
 {
-    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator.
-    return static_cast<i16>(m_accumulator.taperedScore());
+    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator. Mobility is
+    // counted here, added to them packed and tapered once with them.
+    return evaluator_data::taper(m_accumulator.psqt + mobilityScore(m_position.material()), m_accumulator.phase);
 }
 
 i32

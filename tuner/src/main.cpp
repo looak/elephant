@@ -1,7 +1,7 @@
 // ElephantTuner, the offline evaluation tuner, see tuner/CMakeLists.txt.
 //
-//   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune-material]
-//                 [--out FILE] [--held-back N]
+//   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
+//                 [--out DIR] [--held-back N]
 //
 //   dataset          a text file, one position per line: a FEN and the game's result, see dataset.hpp
 //   --limit          only the first N positions
@@ -9,8 +9,10 @@
 //   --leave          cores to keep free, taken off --threads
 //   --epochs         passes of the fit, 1000 by default; 0 only checks the writer
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
-//   --tune-material  tune PeSTO's material too, it's pinned by default (see fit.hpp)
-//   --out            where the tuned pesto_tables.hpp is written, pesto_tables.tuned.hpp by default
+//   --tune           the groups of values the fit moves, of material, psqt & mobility, psqt,mobility by default;
+//                    the others stay as they are (see fit.hpp)
+//   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
+//                    *.tuned.hpp, the current folder by default
 //   --held-back      every Nth position is kept out of the fit to check it with, 20 by default, 0 for none
 //
 // Phase 0: every position resolved to a quiet one with quiescence search, traced and kept as an entry.
@@ -29,6 +31,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <thread>
 
 #include <dataset.hpp>
@@ -45,7 +48,7 @@ namespace {
 
 int usage() {
     std::cerr << "usage: ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]\n"
-                 "                     [--tune-material] [--out FILE] [--held-back N]\n"
+                 "                     [--tune LIST] [--out DIR] [--held-back N]\n"
                  "  dataset:         one position per line, a FEN and the game's result from white's side,\n"
                  "                   e.g. [1.0], c9 \"1/2-1/2\"; or a bare 0-1\n"
                  "  --limit:         only the first N positions\n"
@@ -53,8 +56,8 @@ int usage() {
                  "  --leave:         cores to keep free, taken off --threads\n"
                  "  --epochs:        passes of the fit, 1000 by default; 0 only checks the writer\n"
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
-                 "  --tune-material: tune PeSTO's material too, it's pinned by default\n"
-                 "  --out:           where the tuned pesto_tables.hpp is written, pesto_tables.tuned.hpp by default\n"
+                 "  --tune:          groups the fit moves, of material, psqt & mobility, psqt,mobility by default\n"
+                 "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n";
     return 2;
 }
@@ -86,7 +89,7 @@ int main(int argc, char* argv[]) {
     std::size_t threads = std::max(1u, std::thread::hardware_concurrency());
     std::size_t leave = 0;
     tuner::FitSettings settings;
-    std::string outPath = "pesto_tables.tuned.hpp";
+    std::string outDir = ".";
     std::size_t heldBackEvery = 20;   // 5% of the positions
     for (int i = 1; i < argc; ++i) {
         const bool hasValue = i + 1 < argc;
@@ -110,11 +113,17 @@ int main(int argc, char* argv[]) {
             if (!parseNumber(argv[++i], settings.rate) || settings.rate <= 0.0)
                 return usage();
         }
-        else if (std::strcmp(argv[i], "--tune-material") == 0) {
-            settings.tuneMaterial = true;
+        else if (std::strcmp(argv[i], "--tune") == 0 && hasValue) {
+            // a comma separated list of groups, e.g. "mobility" or "psqt,mobility".
+            const std::string list = argv[++i];
+            settings.tuneMaterial = list.find("material") != std::string::npos;
+            settings.tunePsqt = list.find("psqt") != std::string::npos;
+            settings.tuneMobility = list.find("mobility") != std::string::npos;
+            if (!settings.tuneMaterial && !settings.tunePsqt && !settings.tuneMobility)
+                return usage();
         }
         else if (std::strcmp(argv[i], "--out") == 0 && hasValue) {
-            outPath = argv[++i];
+            outDir = argv[++i];
         }
         else if (std::strcmp(argv[i], "--held-back") == 0 && hasValue) {
             if (!parseCount(argv[++i], heldBackEvery))
@@ -225,9 +234,16 @@ int main(int argc, char* argv[]) {
     // from phase 1's error by that rounding only.
     const double startError = tuner::fitError(fitted, values, settings.k, settings.threads);
     const double startHeldBack = checking ? tuner::fitError(heldBack, values, settings.k, settings.threads) : 0.0;
-    std::cout << std::format("  start        error {:.6f}, held back {:.6f}; {} passes at rate {}, material {}\n",
-                             startError, startHeldBack, settings.epochs, settings.rate,
-                             settings.tuneMaterial ? "tuned" : "pinned");
+    std::string tuning;
+    for (auto [group, name] : { std::pair{ tuner::params::Group::Material, "material" },
+                                std::pair{ tuner::params::Group::Psqt, "psqt" },
+                                std::pair{ tuner::params::Group::Mobility, "mobility" } }) {
+        if (settings.tunes(group))
+            tuning += tuning.empty() ? name : std::string(", ") + name;
+    }
+    std::cout << std::format("  start        error {:.6f}, held back {:.6f}; {} passes at rate {}, tuning {}, the "
+                             "rest kept\n",
+                             startError, startHeldBack, settings.epochs, settings.rate, tuning);
 
     const auto fitStart = std::chrono::steady_clock::now();
     tuner::fit(fitted, values, settings, [&](std::size_t epoch, double error) {
@@ -269,30 +285,51 @@ int main(int argc, char* argv[]) {
         std::cout << std::format("    {:7} {:5.1f} / {:5.1f}\n", pieceNames[pieceId], mgMoved / 64.0, egMoved / 64.0);
     }
 
-    // written as a new pesto_tables.hpp: the engine's file with only the numbers in its tables replaced.
-    const std::string headerPath = std::string(ROOT_PATH) + "/src/engine/inc/eval/pesto_tables.hpp";
-    std::string header;
-    std::string rewritten;
-    try {
-        header = readFile(headerPath);
-        rewritten = tuner::rewritePestoTables(header, after);
-        std::ofstream out(outPath, std::ios::binary);
-        out << rewritten;
-        if (!out)
-            throw std::runtime_error("Can't write " + outPath);
+    // mobility's values as tuned, by safe squares: how much a piece gains as it gets freer.
+    if (settings.tuneMobility) {
+        std::cout << "  mobility     midgame / endgame centipawns by safe squares, 0 first\n";
+        for (u32 pieceId = 1; pieceId <= 4; ++pieceId) {
+            std::cout << std::format("    {:7}", pieceNames[pieceId]);
+            for (u32 safe = 0; safe < tuner::params::mobilityCounts[pieceId]; ++safe) {
+                const TaperedScore score = after[tuner::params::mobility(pieceId, safe)];
+                std::cout << std::format(" {}/{}", mg_score(score), eg_score(score));
+            }
+            std::cout << '\n';
+        }
     }
-    catch (const std::exception& error) {
-        std::cerr << error.what() << '\n';
-        return 1;
-    }
-    std::cout << std::format("  written      {}, from {}\n", outPath, headerPath);
 
-    // no passes means the values went out as they came in: the file has to be the engine's, byte for byte.
+    // written as new headers: the engine's own files with only the numbers in their tables replaced.
+    struct Written {
+        const char* file;
+        std::string (*rewrite)(const std::string&, const std::vector<TaperedScore>&);
+    };
+    const Written files[2] = { { "pesto_tables", tuner::rewritePestoTables },
+                               { "mobility_tables", tuner::rewriteMobilityTables } };
+    bool unchanged = true;
+    for (const Written& file : files) {
+        const std::string from = std::format("{}/src/engine/inc/eval/{}.hpp", ROOT_PATH, file.file);
+        const std::string to = std::format("{}/{}.tuned.hpp", outDir, file.file);
+        try {
+            const std::string header = readFile(from);
+            const std::string rewritten = file.rewrite(header, after);
+            unchanged = unchanged && rewritten == header;
+            std::ofstream out(to, std::ios::binary);
+            out << rewritten;
+            if (!out)
+                throw std::runtime_error("Can't write " + to);
+        }
+        catch (const std::exception& error) {
+            std::cerr << error.what() << '\n';
+            return 1;
+        }
+        std::cout << std::format("  written      {}, from {}\n", to, from);
+    }
+
+    // no passes means the values went out as they came in: the files have to be the engine's, byte for byte.
     if (settings.epochs == 0) {
-        const bool same = rewritten == header;
-        std::cout << std::format("  writer check {}\n", same ? "the untuned tables were written back unchanged"
-                                                               : "FAILED, the untuned tables came out different");
-        return same ? 0 : 4;
+        std::cout << std::format("  writer check {}\n", unchanged ? "the untuned tables were written back unchanged"
+                                                                    : "FAILED, the untuned tables came out different");
+        return unchanged ? 0 : 4;
     }
     return 0;
 }

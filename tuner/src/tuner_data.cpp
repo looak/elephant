@@ -10,6 +10,7 @@
 
 #include <core/chessboard.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/mobility.hpp>
 #include <eval/pesto_accumulator.hpp>
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
@@ -121,7 +122,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     data.entries.reserve(expected);
     data.coefficients.reserve(expected * 16);
 
-    PestoTrace trace;
+    EvalTrace trace;
     std::size_t unreported = 0;
     forEachPosition(path, range, part.load, [&](const TuningPosition& position) {
         Chessboard board;
@@ -154,20 +155,23 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
             report.longestLine = std::max<std::size_t>(report.longestLine, line.length);
         }
 
-        // the quiet position's terms, traced from scratch, and the incremental sums the line's moves left behind.
+        // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
+        // left behind, and mobility's.
         trace.clear();
         const PestoAccumulator traced = PestoAccumulator::computeFromScratch(context.position.read().material(), trace);
         if (!(traced == context.accumulator))
             ++report.accumulatorMismatch;
+        (void)mobilityScore(context.position.read().material(), trace);
 
+        // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
         Evaluator evaluator(context.position.read(), traced);
         const i32 staticEval = evaluator.Evaluate();
-        const i32 pesto = traced.taperedScore();
+        const i32 tapered = evaluator.EvaluateTapered();
 
         TunerEntry entry{};
         entry.result = static_cast<float>(position.result);
         entry.staticEval = static_cast<i16>(staticEval);
-        entry.fixedOffset = static_cast<i16>(staticEval - pesto);
+        entry.fixedOffset = static_cast<i16>(staticEval - tapered);
         entry.phase = static_cast<u8>(std::min(traced.phase, evaluator_data::maxGamePhase));
         entry.coefficientStart = static_cast<u32>(data.coefficients.size());
         for (const Coefficient& c : trace.coefficients())
@@ -176,7 +180,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
 
         if (entry.fixedOffset != 0)
             ++report.withOffset;
-        if (data.fittedScore(entry, current) != pesto)
+        if (data.fittedScore(entry, current) != tapered)
             ++report.rebuildMismatch;
 
         data.entries.push_back(entry);

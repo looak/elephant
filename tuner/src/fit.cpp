@@ -166,9 +166,8 @@ void fit(const TunerData& data, Values& values, const FitSettings& settings,
         const double error = pass(data, values, settings.k, settings.threads, mgGradient, egGradient);
 
         for (std::size_t i = 0; i < values.mg.size(); ++i) {
-            const bool isMaterial = i < params::psqtOffset;
-            if (isMaterial && !settings.tuneMaterial)
-                continue;   // pinned, see "What's kept fixed" in fit.hpp
+            if (!settings.tunes(params::groupOf(static_cast<u32>(i))))
+                continue;   // kept as it is, see "What's kept fixed" in fit.hpp
             // against the gradient: the direction that lowers the error.
             values.mg[i] -= mgAdam[i].step(mgGradient[i], settings.rate, epoch);
             values.eg[i] -= egAdam[i].step(egGradient[i], settings.rate, epoch);

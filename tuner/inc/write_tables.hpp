@@ -34,4 +34,9 @@ namespace tuner {
  * replaced by values (params:: layout), formatted the way the file has them. Throws when a table isn't found.    */
 std::string rewritePestoTables(const std::string& header, const std::vector<TaperedScore>& values);
 
+/**
+ * header is the text of mobility_tables.hpp. Returns it with the bodies of the four mobility tables replaced by
+ * values (params:: layout), eight to a line as the file has them. Throws when a table isn't found.    */
+std::string rewriteMobilityTables(const std::string& header, const std::vector<TaperedScore>& values);
+
 } // namespace tuner
