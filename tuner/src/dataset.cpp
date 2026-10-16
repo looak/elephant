@@ -1,10 +1,12 @@
 #include <dataset.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <exception>
 #include <format>
 #include <fstream>
+#include <ios>
 #include <stdexcept>
 
 #include <core/chessboard.hpp>
@@ -13,8 +15,6 @@
 namespace tuner {
 
 namespace {
-
-constexpr std::size_t c_maxReportedErrors = 5;
 
 std::vector<std::string_view> splitWhitespace(std::string_view line) {
     std::vector<std::string_view> tokens;
@@ -90,25 +90,95 @@ std::optional<TuningPosition> parseLine(std::string_view line) {
     return std::nullopt;
 }
 
-void forEachPosition(const std::string& path, LoadReport& report, std::size_t limit,
-                     const std::function<bool(const TuningPosition&, std::size_t lineNumber)>& handle) {
-    std::ifstream file(path);
+void LoadReport::append(const LoadReport& next) {
+    for (const LoadError& error : next.firstErrors) {
+        if (firstErrors.size() < c_maxErrors)
+            firstErrors.push_back({ lines + error.line, error.reason });
+    }
+    lines += next.lines;
+    skipped += next.skipped;
+    noResult += next.noResult;
+    badFen += next.badFen;
+}
+
+namespace {
+
+// binary, so byte offsets are exact whatever the line endings. getline leaves a CRLF file's \r, lines strip it.
+std::ifstream openDataset(const std::string& path) {
+    std::ifstream file(path, std::ios::binary);
     if (!file.is_open())
         throw std::runtime_error(std::format("Can't open dataset {}", path));
+    return file;
+}
 
-    auto refuse = [&report](std::size_t lineNumber, std::string_view reason) {
-        if (report.firstErrors.size() < c_maxReportedErrors)
-            report.firstErrors.push_back(std::format("{}: {}", lineNumber, reason));
+bool isSkipped(std::string_view line) {
+    const std::size_t first = line.find_first_not_of(" \t\r");
+    return first == std::string_view::npos || line[first] == '#';
+}
+
+// the offset of the line start at or after offset, moving past the rest of a line offset falls inside.
+std::uint64_t nextLineStart(std::ifstream& file, std::uint64_t offset, std::uint64_t size) {
+    if (offset == 0 || offset >= size)
+        return offset >= size ? size : 0;
+    file.clear();
+    file.seekg(static_cast<std::streamoff>(offset - 1));
+    std::string rest;
+    std::getline(file, rest);
+    return std::min(size, offset - 1 + rest.size() + 1);
+}
+
+}  // namespace
+
+std::vector<ByteRange> splitDataset(const std::string& path, std::size_t count, std::size_t limit) {
+    std::ifstream file = openDataset(path);
+    file.seekg(0, std::ios::end);
+    std::uint64_t end = static_cast<std::uint64_t>(file.tellg());
+    file.seekg(0);
+
+    // the first limit positions end where the line after the last of them starts.
+    if (limit != 0) {
+        std::uint64_t offset = 0;
+        std::size_t positions = 0;
+        std::string line;
+        while (positions < limit && std::getline(file, line)) {
+            offset += line.size() + 1;
+            if (!isSkipped(line))
+                ++positions;
+        }
+        end = std::min(end, offset);
+    }
+
+    std::vector<ByteRange> ranges;
+    std::uint64_t begin = 0;
+    for (std::size_t i = 1; i <= count && begin < end; ++i) {
+        const std::uint64_t target = i == count ? end : end * i / count;
+        const std::uint64_t split = std::min(end, nextLineStart(file, std::max(target, begin), end));
+        if (split > begin) {
+            ranges.push_back({ begin, split });
+            begin = split;
+        }
+    }
+    return ranges;
+}
+
+void forEachPosition(const std::string& path, ByteRange range, LoadReport& report,
+                     const std::function<bool(const TuningPosition&)>& handle) {
+    std::ifstream file = openDataset(path);
+    file.seekg(static_cast<std::streamoff>(range.begin));
+
+    auto refuse = [&report](std::string_view reason) {
+        if (report.firstErrors.size() < LoadReport::c_maxErrors)
+            report.firstErrors.push_back({ report.lines, std::string(reason) });
     };
 
-    std::size_t handled = 0;
+    std::uint64_t offset = range.begin;
     std::string line;
-    while ((limit == 0 || handled < limit) && std::getline(file, line)) {
+    while (offset < range.end && std::getline(file, line)) {
+        offset += line.size() + 1;
         ++report.lines;
         if (!line.empty() && line.back() == '\r')
             line.pop_back();
-        const std::size_t first = line.find_first_not_of(" \t");
-        if (first == std::string::npos || line[first] == '#') {
+        if (isSkipped(line)) {
             ++report.skipped;
             continue;
         }
@@ -116,33 +186,33 @@ void forEachPosition(const std::string& path, LoadReport& report, std::size_t li
         const std::optional<TuningPosition> position = parseLine(line);
         if (!position) {
             ++report.noResult;
-            refuse(report.lines, "no result found");
+            refuse("no result found");
             continue;
         }
-
-        ++handled;
-        if (!handle(*position, report.lines)) {
+        if (!handle(*position)) {
             ++report.badFen;
-            refuse(report.lines, std::format("invalid FEN '{}'", position->fen));
+            refuse(std::format("invalid FEN '{}'", position->fen));
         }
     }
 }
 
 std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& report) {
     std::vector<TuningPosition> positions;
-    forEachPosition(path, report, 0, [&positions](const TuningPosition& position, std::size_t) {
-        bool valid = false;
-        try {
-            Chessboard board;
-            valid = io::fen_parser::deserialize(position.fen, board);
-        }
-        catch (const std::exception&) {
-            valid = false;
-        }
-        if (valid)
-            positions.push_back(position);
-        return valid;
-    });
+    for (const ByteRange& range : splitDataset(path, 1, 0)) {
+        forEachPosition(path, range, report, [&positions](const TuningPosition& position) {
+            bool valid = false;
+            try {
+                Chessboard board;
+                valid = io::fen_parser::deserialize(position.fen, board);
+            }
+            catch (const std::exception&) {
+                valid = false;
+            }
+            if (valid)
+                positions.push_back(position);
+            return valid;
+        });
+    }
     return positions;
 }
 

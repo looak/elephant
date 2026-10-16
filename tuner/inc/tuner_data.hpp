@@ -17,11 +17,16 @@
 /**
  * @file tuner_data.hpp
  * @brief Phase 0 of tuning, preparing the data: every position of a dataset resolved to a quiet one, traced, and kept
- * as a compact entry. The FENs are dropped, the later phases (K, then the fit) work from the entries alone.    */
+ * as a compact entry. The FENs are dropped, the later phases (K, then the fit) work from the entries alone.
+ *
+ * Threads each read their own byte range of the dataset with their own search context and keep their own entries &
+ * reports, nothing is shared while they run but a progress counter. Their results are joined in range order, so the
+ * entries come out the same, in the same order, for any number of threads.    */
 
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -55,6 +60,12 @@ struct TunerData {
         return evaluator_data::taper(sum, entry.phase);
     }
 
+    // adds next's entries after this one's, their coefficient starts moved on by this one's coefficients.
+    void append(TunerData&& next);
+
+    // a hash of every entry & coefficient, equal for equal data, to compare runs.
+    [[nodiscard]] std::uint64_t checksum() const;
+
     [[nodiscard]] std::size_t bytes() const {
         return entries.capacity() * sizeof(TunerEntry) + coefficients.capacity() * sizeof(Coefficient);
     }
@@ -69,12 +80,17 @@ struct PrepareReport {
     std::size_t withOffset = 0;     // entries whose static evaluation has unfitted terms (mop-up)
     std::size_t accumulatorMismatch = 0;  // incremental PeSTO sums after the line differ from the traced ones
     std::size_t rebuildMismatch = 0;      // coefficients * current values differ from the engine's PeSTO score
+    std::size_t threads = 0;
     double seconds = 0.0;
+
+    void append(const PrepareReport& next);
 };
 
 /**
- * Phase 0: streams the dataset at path (limit positions, 0 for all), resolves each to a quiet position with the
- * engine's quiescence search, traces its PeSTO terms and keeps an entry. Prints progress to stderr.    */
-TunerData prepare(const std::string& path, std::size_t limit, LoadReport& load, PrepareReport& report);
+ * Phase 0: reads the dataset at path (its first limit positions, 0 for all) with threads threads, resolves each
+ * position to a quiet one with the engine's quiescence search, traces its PeSTO terms and keeps an entry. Prints
+ * progress to stderr.    */
+TunerData prepare(const std::string& path, std::size_t limit, std::size_t threads, LoadReport& load,
+                  PrepareReport& report);
 
 } // namespace tuner

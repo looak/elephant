@@ -16,37 +16,22 @@
 
 /**
  * @file quiet.hpp
- * @brief Resolves a position to a quiet one for the tuner: the engine's quiescence search, mirrored here with a
- * principal variation, then that line played out. The evaluation is fitted on the position the line ends in, where
- * no capture is pending that the static evaluation can't see.
- *
- * Search::quiescence returns only a score, the engine's hot path stays as it is. This copy follows it step for step,
- * stand pat, captures only, delta & SEE pruning, every evasion in check, and the same depth limit, built from the
- * engine's own move source, move executor & evaluation.    */
+ * @brief Resolves a position to a quiet one for the tuner: the engine's own quiescence search records the line it
+ * plays (Search::quiescenceLine), then that line is played out. The evaluation is fitted on the position the line ends
+ * in, where no capture is pending that the static evaluation can't see.    */
 
 #pragma once
 
-#include <array>
-
-#include <move/move.hpp>
+#include <search/search_results.hpp>
 #include <search/search_threadcontext.hpp>
-#include <system/platform.hpp>
 
 namespace tuner {
 
-// the longest quiescence line followed, the engine's ply limit bounds it anyway.
-constexpr u32 c_maxQuietLine = 64;
-
-struct QuietLine {
-    std::array<PackedMove, c_maxQuietLine> moves{};
-    u32 length = 0;
-};
-
 /**
- * Searches context's position with quiescence and plays its principal variation on context, leaving context's
- * position & accumulator on the quiet position at its end. Returns that line, empty when the position already was
- * quiet. Sets decided, and leaves context as it was, when the search finds a mate for either side: the line ends in a
- * mated position, there's no quiet one to fit. context needs stopEnabled false.    */
-QuietLine resolveToQuiet(ThreadSearchContext& context, bool& decided);
+ * Searches context's position with quiescence and plays its line on context, leaving context's position & accumulator
+ * on the quiet position at its end. Returns that line, empty when the position already was quiet. Sets decided, and
+ * leaves context as it was, when the search finds a mate for either side: the line ends in a mated position, there's
+ * no quiet one to fit. context needs stopEnabled false.    */
+PVLine resolveToQuiet(ThreadSearchContext& context, bool& decided);
 
 } // namespace tuner

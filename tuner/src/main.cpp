@@ -1,19 +1,23 @@
 // ElephantTuner, the offline evaluation tuner, see tuner/CMakeLists.txt.
 //
-//   ElephantTuner <dataset> [--limit N]
+//   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N]
 //
-//   dataset   a text file, one position per line: a FEN and the game's result, see dataset.hpp
-//   --limit   only the first N positions
+//   dataset     a text file, one position per line: a FEN and the game's result, see dataset.hpp
+//   --limit     only the first N positions
+//   --threads   threads to use, every logical core by default
+//   --leave     cores to keep free, taken off --threads
 //
 // Phase 0 so far: every position resolved to a quiet one with quiescence search, traced and kept as an entry. Then
 // finding K and fitting the values.
 
+#include <algorithm>
 #include <charconv>
 #include <cstring>
 #include <exception>
 #include <format>
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include <dataset.hpp>
 #include <system/static_initializer.hpp>
@@ -24,11 +28,18 @@ bool g_initialized = static_initializer::initialize();
 namespace {
 
 int usage() {
-    std::cerr << "usage: ElephantTuner <dataset> [--limit N]\n"
-                 "  dataset: one position per line, a FEN and the game's result from white's side,\n"
-                 "           e.g. [1.0], c9 \"1/2-1/2\"; or a bare 0-1\n"
-                 "  --limit: only the first N positions\n";
+    std::cerr << "usage: ElephantTuner <dataset> [--limit N] [--threads N] [--leave N]\n"
+                 "  dataset:   one position per line, a FEN and the game's result from white's side,\n"
+                 "             e.g. [1.0], c9 \"1/2-1/2\"; or a bare 0-1\n"
+                 "  --limit:   only the first N positions\n"
+                 "  --threads: threads to use, every logical core by default\n"
+                 "  --leave:   cores to keep free, taken off --threads\n";
     return 2;
+}
+
+bool parseCount(const char* text, std::size_t& out) {
+    const auto [end, error] = std::from_chars(text, text + std::strlen(text), out);
+    return error == std::errc{} && *end == '\0';
 }
 
 } // namespace
@@ -36,11 +47,20 @@ int usage() {
 int main(int argc, char* argv[]) {
     std::string path;
     std::size_t limit = 0;
+    std::size_t threads = std::max(1u, std::thread::hardware_concurrency());
+    std::size_t leave = 0;
     for (int i = 1; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--limit") == 0 && i + 1 < argc) {
-            const char* value = argv[++i];
-            const auto [end, error] = std::from_chars(value, value + std::strlen(value), limit);
-            if (error != std::errc{} || *end != '\0')
+        const bool hasValue = i + 1 < argc;
+        if (std::strcmp(argv[i], "--limit") == 0 && hasValue) {
+            if (!parseCount(argv[++i], limit))
+                return usage();
+        }
+        else if (std::strcmp(argv[i], "--threads") == 0 && hasValue) {
+            if (!parseCount(argv[++i], threads) || threads == 0)
+                return usage();
+        }
+        else if (std::strcmp(argv[i], "--leave") == 0 && hasValue) {
+            if (!parseCount(argv[++i], leave))
                 return usage();
         }
         else if (path.empty() && argv[i][0] != '-') {
@@ -52,12 +72,13 @@ int main(int argc, char* argv[]) {
     }
     if (path.empty())
         return usage();
+    threads = threads > leave ? threads - leave : 1;
 
     tuner::LoadReport load;
     tuner::PrepareReport report;
     tuner::TunerData data;
     try {
-        data = tuner::prepare(path, limit, load, report);
+        data = tuner::prepare(path, limit, threads, load, report);
     }
     catch (const std::exception& error) {
         std::cerr << error.what() << '\n';
@@ -78,20 +99,20 @@ int main(int argc, char* argv[]) {
     std::cout << std::format("{}: {} lines read, {} positions with a valid FEN\n", path, load.lines, report.positions);
     std::cout << std::format("  not used     {} empty or comment, {} without a result, {} invalid FEN, {} decided (mate)\n",
                              load.skipped, load.noResult, load.badFen, report.decided);
-    for (const std::string& error : load.firstErrors)
-        std::cout << "    line " << error << '\n';
+    for (const tuner::LoadError& error : load.firstErrors)
+        std::cout << std::format("    line {}: {}\n", error.line, error.reason);
     std::cout << std::format("  quiescence   {} already quiet, {} resolved ({:.2f} moves on average, longest {})\n",
                              data.entries.size() - report.resolved, report.resolved, perLine, report.longestLine);
     std::cout << std::format("  entries      {}  white {}  draw {}  black {}\n", data.entries.size(), whiteWins, draws,
                              blackWins);
-    std::cout << std::format("               {} coefficients, {:.1f} MB, {} with unfitted terms (mop-up)\n",
+    std::cout << std::format("               {} coefficients, {:.1f} MB, {} with unfitted terms (mop-up), checksum {:016x}\n",
                              data.coefficients.size(), static_cast<double>(data.bytes()) / (1024.0 * 1024.0),
-                             report.withOffset);
+                             report.withOffset, data.checksum());
     std::cout << std::format("  checks       {} traced sums differ from the incremental ones, {} rebuilt scores differ "
                              "from the engine's\n",
                              report.accumulatorMismatch, report.rebuildMismatch);
-    std::cout << std::format("  time         {:.1f} s, {:.0f} positions/s\n", report.seconds,
-                             static_cast<double>(report.positions) / std::max(report.seconds, 1e-9));
+    std::cout << std::format("  time         {:.1f} s on {} threads, {:.0f} positions/s\n", report.seconds,
+                             report.threads, static_cast<double>(report.positions) / std::max(report.seconds, 1e-9));
 
     if (data.entries.empty())
         return 1;
