@@ -41,3 +41,9 @@ elephant_gambit_config.h
 *.log
 # EPD suite logs & results, per machine
 logs/
+
+# tuning datasets, hundreds of MB, kept out of the repo
+res/tuning_positions/
+
+# ElephantTuner output, copied over src/engine/inc/eval/<file>.hpp when it is taken
+*.tuned.hpp

@@ -53,6 +53,8 @@ else()
     message(STATUS "## Link time optimization: not supported, ${IPO_OUTPUT}")
 endif()
 
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Target the build machine's instruction set (popcnt, tzcnt, lzcnt...). Turn off for portable binaries, the release
 # binaries are built by ob_build/makefile with an explicit ARCH.
 option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
@@ -80,6 +82,11 @@ add_subdirectory(third_party)
 
 # defines targets and sources
 add_subdirectory(src)
+
+option(ELEPHANT_BUILD_TUNER "Build ElephantTuner, the offline evaluation tuner" ON)
+if(ELEPHANT_BUILD_TUNER)
+    add_subdirectory(tuner)
+endif()
 
 # enable testing and define tests
 enable_testing()

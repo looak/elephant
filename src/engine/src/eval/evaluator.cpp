@@ -7,6 +7,7 @@
 #include <material/chess_piece.hpp>
 #include <core/chessboard.hpp>
 #include <eval/evaluator_data.hpp>
+#include <eval/mobility.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
 #include <search/search_constants.hpp>
@@ -22,8 +23,8 @@ Evaluator::Evaluate()
         return -c_checkmateConstant;
     }
 
-    // material and piece positions, PeSTO's tables carry their own material values.
-    i16 score = EvaluatePesto();
+    // material, piece positions & mobility, PeSTO's tables carry their own material values.
+    i16 score = static_cast<i16>(EvaluateTapered());
     // LOG_DEBUG() << "PeSTO score: " << score;
 
     // piece_constants material, only decides whether mop up applies.
@@ -59,11 +60,12 @@ Evaluator::EvaluateMaterial() const
     return static_cast<i16>(m_accumulator.material);
 }
 
-i16
-Evaluator::EvaluatePesto() const
+i32
+Evaluator::EvaluateTapered() const
 {
-    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator.
-    return static_cast<i16>(m_accumulator.taperedScore());
+    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator. Mobility is
+    // counted here, added to them packed and tapered once with them.
+    return evaluator_data::taper(m_accumulator.psqt + mobilityScore(m_position.material()), m_accumulator.phase);
 }
 
 i32
@@ -74,7 +76,7 @@ Evaluator::gamePhase() const
 
 i16 Evaluator::EvaluatePawnStructure() const {
     i16 result = 0;
-    float egCoeficient = calculateEndGameCoeficient();
+    const i16 doubledPawn = static_cast<i16>(evaluator_data::taper(evaluator_data::doubledPawnScore, gamePhase()));
 
     Bitboard whitePawns = m_position.material().whitePawns();
     Bitboard blackPawns = m_position.material().blackPawns();
@@ -82,10 +84,10 @@ i16 Evaluator::EvaluatePawnStructure() const {
     for (i8 idx = 0; idx < 8; ++idx) {
         // popcnt >> 1, if we have 1 pawn this will result in 0, if we have 2 pawns, this will
         // result in 1 if we have 3 pawns this will result in 1. Maybe we should use and 2?
-        result += (evaluator_data::doubledPawnScore * egCoeficient) *
-            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1);
-        result -= (evaluator_data::doubledPawnScore * egCoeficient) *
-            (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1);
+        result += static_cast<i16>(doubledPawn *
+            (intrinsics::popcnt(whitePawns.read() & board_constants::fileMasks[idx]) >> 1));
+        result -= static_cast<i16>(doubledPawn *
+            (intrinsics::popcnt(blackPawns.read() & board_constants::fileMasks[idx]) >> 1));
     }
 
     //result += EvaluatePawnManhattanDistance(board);
@@ -190,9 +192,9 @@ i16 Evaluator::EvaluatePassedPawn() const {
         }
 
         if ((pawnMask & opPawns).empty()) {
-            result += evaluator_data::passedPawnScore * calculateEndGameCoeficient();
+            result += static_cast<i16>(evaluator_data::taper(evaluator_data::passedPawnScore, gamePhase()));
             i16 pawnProtection = EvaluatePawnProtection<us>(squareMaskTable[pawnSqr]);
-            i16 newPawnProtection = pawnProtection * evaluator_data::guardedPassedPawnBonus;
+            i16 newPawnProtection = static_cast<i16>(pawnProtection * evaluator_data::guardedPassedPawnBonus);
             result += static_cast<i16>(newPawnProtection);
         }
     }

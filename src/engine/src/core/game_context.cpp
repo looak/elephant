@@ -28,25 +28,6 @@ GameContext::NewGame()
     chess::NewGame(m_board);
 }
 
-bool
-GameContext::GameOver() const
-{
-    // if (m_fiftyMoveRule >= 50) // not fully implemented yet
-    //     return true;
-    // if (readChessboard().isCheckmated(m_toPlay))
-    //     return true;
-    // if (readChessboard().isStalemated(m_toPlay))
-    //     return true;
-
-    // Set opSet = ChessPiece::FlipSet(m_toPlay);
-    // if (readChessboard().isCheckmated(opSet))
-    //     return true;
-    // if (readChessboard().isStalemated(opSet))
-    //     return true;
-
-    return false;
-}
-
 template<bool validation>
 void GameContext::MakeMove(const PackedMove move)
 {
@@ -82,11 +63,6 @@ bool GameContext::UnmakeMove()
     m_history.age--;
 
     return result;
-}
-
-bool GameContext::isGameOver() const
-{
-    return false;
 }
 
 bool GameHistory::IsRepetition(u64 hashKey) const {

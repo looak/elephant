@@ -50,13 +50,6 @@ public:
     void MakeMove(const PackedMove move);
     bool UnmakeMove();
 
-    bool GameOver() const;
-    
-
-    /**
-     * @brief Checks if the game is over.    */
-    bool isGameOver() const;
-
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }

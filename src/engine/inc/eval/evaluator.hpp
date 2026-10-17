@@ -47,6 +47,12 @@ public:
     i16 EvaluatePlus(PackedMove move);
 
     /**
+     * @brief The tapered terms of the evaluation, white's side: PeSTO's material & piece square tables and mobility,
+     * summed as one midgame & endgame TaperedScore and tapered once by the game phase. Evaluate adds mop-up to it.
+     * The tuner fits exactly these terms.    */
+    i32 EvaluateTapered() const;
+
+    /**
      * @brief Calculates the end game coeficient.
      * Used for tapered evaluation.
      * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */    
@@ -59,8 +65,6 @@ public:
 
 private:
     i16 EvaluateMaterial() const;
-    // PeSTO material & piece/sq tables, tapered by gamePhase.
-    i16 EvaluatePesto() const;
     i16 EvaluatePawnStructure() const;
     i16 EvaluatePawnManhattanDistance() const;
     i16 EvaluateKingSafety() const;

@@ -13,12 +13,14 @@
 
 #include <optional>
 
-template<Set us>
-i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, SearchMoveSource<us>* leafMoves) {
+template<Set us, typename Line>
+i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, SearchMoveSource<us>* leafMoves) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
     ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
                "The incremental hash differs from the position's in quiescence.");
+
+    line.reset();
 
     // hard ply limit, the static eval is the best we can do even when in check.
     if (ply >= c_maxSearchDepth - 1)
@@ -65,6 +67,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     // check, and the ply limit above.
     const u8 childDepth = (inCheck || depth == 0) ? depth : static_cast<u8>(depth - 1);
     u32 movesSearched = 0;
+    Line childLine;
     PrioritizedMove ordered = moves.next();
 
     while (!ordered.move.isNull()) {
@@ -96,7 +99,7 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         u16 fiftyMoveCounter = ply;
         executor.makeMove(move, undoState, fiftyMoveCounter);
         
-        i16 qEval = -quiescence<opposing_set<us>()>(context, childDepth, -beta, -alpha, ply + 1);
+        i16 qEval = -quiescence<opposing_set<us>()>(context, childDepth, -beta, -alpha, ply + 1, childLine);
         context.qNodeCount++;
 
         executor.unmakeMove(undoState);
@@ -113,8 +116,10 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         if (bestEval >= beta)
             return bestEval;
         
-        if (bestEval > alpha)
+        if (bestEval > alpha) {
             alpha = bestEval;
+            line.raise(move, childLine);
+        }
 
         ordered = moves.next();
     }
@@ -130,5 +135,15 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
     return bestEval;
 }
 
-template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16, SearchMoveSource<Set::WHITE>*);
-template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16, SearchMoveSource<Set::BLACK>*);
+template<Set us>
+i16 Search::quiescenceLine(ThreadSearchContext& context, PVLine& line) {
+    return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, static_cast<i16>(-c_infinity),
+                          static_cast<i16>(c_infinity), 1, line);
+}
+
+template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::WHITE>*);
+template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::BLACK>*);
+template i16 Search::quiescence<Set::WHITE>(ThreadSearchContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::WHITE>*);
+template i16 Search::quiescence<Set::BLACK>(ThreadSearchContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::BLACK>*);
+template i16 Search::quiescenceLine<Set::WHITE>(ThreadSearchContext&, PVLine&);
+template i16 Search::quiescenceLine<Set::BLACK>(ThreadSearchContext&, PVLine&);

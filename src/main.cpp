@@ -20,12 +20,6 @@ main(int argc, char* argv[])
 
     ASSERT(engine_initialized);
     ASSERT(cli_initialized);
-    try {
-        WeightStore::get()->loadFromFile(std::format("{}/res/weights.ini", ROOT_PATH));
-    }
-    catch (const std::exception& ex) {
-        spdlog::error("Failed to load weights file: {}", ex.what());
-    }
 
 
     if (argc > 1) {
