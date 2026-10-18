@@ -10,7 +10,8 @@
 //   --epochs         passes of the fit, 1000 by default; 0 only checks the writer
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
 //   --tune           the groups of values the fit moves, comma separated names from params::groupInfos (material,
-//                    psqt, mobility, pawns_passed, pawns_structure, pawns_passed_extras), psqt,mobility by default;
+//                    psqt_pawn to psqt_king, mobility, pawns_passed, pawns_structure, pawns_passed_extras; psqt names
+//                    all six piece square tables), psqt,mobility by default;
 //                    the others stay as they are (see fit.hpp)
 //   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
@@ -81,8 +82,9 @@ int usage() {
                  "  --leave:         cores to keep free, taken off --threads\n"
                  "  --epochs:        passes of the fit, 1000 by default; 0 only checks the writer\n"
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
-                 "  --tune:          groups the fit moves, comma separated: material, psqt, mobility, pawns_passed,\n"
-                 "                   pawns_structure, pawns_passed_extras; psqt,mobility by default\n"
+                 "  --tune:          groups the fit moves, comma separated: material, psqt (all six tables) or\n"
+                 "                   psqt_pawn ... psqt_king, mobility, pawns_passed, pawns_structure,\n"
+                 "                   pawns_passed_extras; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
                  "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
@@ -106,6 +108,11 @@ bool parseTune(const std::string& list, tuner::FitSettings& settings) {
     while (!rest.empty()) {
         const std::size_t comma = rest.find(',');
         const std::string_view name = rest.substr(0, comma);
+        if (name == "psqt") {
+            settings.tuned |= tuner::params::psqtGroups;
+            rest = comma == std::string_view::npos ? std::string_view{} : rest.substr(comma + 1);
+            continue;
+        }
         const auto info = std::ranges::find(tuner::params::groupInfos, name, &tuner::params::GroupInfo::name);
         if (info == tuner::params::groupInfos.end())
             return false;
