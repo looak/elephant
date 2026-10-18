@@ -2,7 +2,7 @@
 
 The offline tuner for Elephant's evaluation. It takes positions from real games, each labelled with the game's
 result, and adjusts the evaluation's numbers until the evaluation predicts those results as well as it can. The output
-is new copies of `pesto_tables.hpp` and `mobility_tables.hpp`, ready to drop into the engine.
+is new copies of `pesto_tables.hpp`, `mobility_tables.hpp` and `pawn_tables.hpp`, ready to drop into the engine.
 
 - [How evaluation tuning works](#how-evaluation-tuning-works), the idea in general
 - [How this tuner works](#how-this-tuner-works), phase by phase
@@ -118,7 +118,7 @@ flowchart TD
     end
 
     P2 --> W["Rewrite the engine's headers<br/>with the new numbers (write_tables.cpp)"]
-    W --> O[/"pesto_tables.tuned.hpp<br/>mobility_tables.tuned.hpp"/]
+    W --> O[/"pesto_tables.tuned.hpp<br/>mobility_tables.tuned.hpp<br/>pawn_tables.tuned.hpp"/]
 ```
 
 ### Phase 0: preparing the data
@@ -132,21 +132,28 @@ The tuner never keeps the FENs. Each position becomes a ~16-byte `TunerEntry` pl
 ```mermaid
 flowchart LR
     F["FEN + result"] --> Q["quiescence line<br/>played out"]
-    Q --> T["EvalTrace<br/>while PeSTO and mobility<br/>are computed from scratch"]
+    Q --> T["EvalTrace<br/>while PeSTO, mobility and<br/>the pawn terms are computed<br/>from scratch"]
     T --> C["coefficients<br/>(index, count) pairs"]
     T --> PH["phase 0–24"]
     T --> OFF["fixedOffset<br/>= static eval − traced terms<br/>(mop-up, untuned)"]
     C & PH & OFF --> ENT["TunerEntry"]
 ```
 
-The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 456 in all, each with a
+The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 510 in all, each with a
 midgame and an endgame number:
 
-| Group      | Indexes   | What                                                         |
-|------------|-----------|--------------------------------------------------------------|
-| `material` | 0–5       | piece values, pawn to king                                   |
-| `psqt`     | 6–389     | 6 piece-square tables × 64 squares                           |
-| `mobility` | 390–455   | knight 0–8, bishop 0–13, rook 0–14, queen 0–27 safe squares  |
+| Group                 | Indexes   | What                                                                       |
+|-----------------------|-----------|----------------------------------------------------------------------------|
+| `material`            | 0–5       | piece values, pawn to king                                                 |
+| `psqt`                | 6–389     | 6 piece-square tables × 64 squares                                         |
+| `mobility`            | 390–455   | knight 0–8, bishop 0–13, rook 0–14, queen 0–27 safe squares                |
+| `pawns_passed`        | 456–461   | passed pawns by relative rank 2–7                                          |
+| `pawns_structure`     | 462–479   | isolated, doubled & backward by file folded onto a–d, connected by rank 2–7 |
+| `pawns_passed_extras` | 480–509   | passed pawns by own & enemy king distance 0–7, blocked & free path by rank 2–7, own & enemy rook behind |
+
+A group is the unit `--tune` switches on or off, its parts are only where each term's values sit inside it. A new
+group is an entry in `params::Group`, a name in `groupInfos` and a start in `groupStarts`; the `static_assert`s on
+the group boundaries fail the build when the layout and the groups disagree.
 
 Two checks guard this phase. If either finds a mismatch, the tuner stops with exit code 3:
 
@@ -217,9 +224,10 @@ thread count.
 ### Writing the result
 
 The tuned values are rounded to whole centipawns, the form the engine stores them in. The tuner prints the rounded
-error too, so you can see what rounding costs. Then it rewrites the engine's own `pesto_tables.hpp` and
-`mobility_tables.hpp`, replacing only the numbers inside the tables and keeping comments and layout, and saves them as
-`*.tuned.hpp` in `--out`.
+error too, so you can see what rounding costs. Then it rewrites the engine's own `pesto_tables.hpp`,
+`mobility_tables.hpp` and `pawn_tables.hpp`, replacing only the numbers inside the tables and keeping comments and
+layout, and saves them as `*.tuned.hpp` in `--out`. Copying one over the engine's file is the change; the comment at
+the top of the table file is where to note the run (dataset, K, passes, error before and after).
 
 `--epochs 0` writes the untouched values back out. The files must come out byte-identical to the engine's, which checks
 the writer itself (exit code 4 if they don't).

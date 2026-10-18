@@ -1,8 +1,9 @@
 set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
 set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
-# Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, off by default
-# so Release & RelWithDebInfo run (and profile) like the OpenBench build. CI's unit tests turn both on.
+# Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, on by default:
+# a development build catches what the tests and the tuner run into. Turn both off to run (and profile) Release like
+# the OpenBench build, ob_build/makefile defines neither. A build directory keeps what its cache says.
 set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
 set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
 
