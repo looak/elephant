@@ -40,18 +40,19 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/diagnostics/logger.hpp
 
 ## /eval/...
-    ${ENGINE_INC_DIR}/eval/evaluation_table.hpp
     ${ENGINE_INC_DIR}/eval/evaluator.hpp
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
+    ${ENGINE_INC_DIR}/eval/mobility.hpp
+    ${ENGINE_INC_DIR}/eval/mobility_tables.hpp
     ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp
     ${ENGINE_INC_DIR}/eval/pesto_tables.hpp
+    ${ENGINE_INC_DIR}/eval/tapered_score.hpp
 
 ## /io/...
     ${ENGINE_INC_DIR}/io/fen_parser.hpp
     ${ENGINE_INC_DIR}/io/pgn_parser.hpp
     ${ENGINE_INC_DIR}/io/printer.hpp
     ${ENGINE_INC_DIR}/io/san_parser.hpp
-    ${ENGINE_INC_DIR}/io/weight_store.hpp    
 
 ## /material/...
     ${ENGINE_INC_DIR}/material/chess_piece.hpp
@@ -131,7 +132,6 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/io/pgn_parser.cpp
     ${ENGINE_SRC_DIR}/io/printer.cpp
     ${ENGINE_SRC_DIR}/io/san_parser.cpp
-    ${ENGINE_SRC_DIR}/io/weight_store.cpp
 
 ## /material/...
     ${ENGINE_SRC_DIR}/material/chess_piece.cpp

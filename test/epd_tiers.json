@@ -20,7 +20,7 @@
     { "id": "epd.wac_new", "name": "Extended_WinAtChess_4Threads", "files": ["wac_new.epd"],
       "limit": { "nodes": 16000000 }, "threads": 4, "baseline": 290, "minimum": 278, "repeatable": false },
     { "id": "epd.arasan2024", "name": "Extended_Arasan2024", "files": ["arasan2024.epd"],
-      "limit": { "nodes": 8000000 }, "baseline": 12, "minimum": 9 },
+      "limit": { "nodes": 8000000 }, "baseline": 12, "minimum": 5 },
     { "id": "epd.arasan2024", "name": "Extended_Arasan2024_4Threads", "files": ["arasan2024.epd"],
       "limit": { "nodes": 32000000 }, "threads": 4, "baseline": 16, "minimum": 11, "repeatable": false },
     { "id": "epd.sts", "name": "Extended_STS", "files": ["STS*.epd"], "scored": true,

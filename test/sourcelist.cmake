@@ -46,7 +46,6 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/io/fen_parser_test.cpp
     ${TEST_SRC_DIR}/io/san_parser_test.cpp
     ${TEST_SRC_DIR}/io/uci_test.cpp
-    ${TEST_SRC_DIR}/io/weight_store_test.cpp
     ${TEST_SRC_DIR}/io/zorbist_hashing_test.cpp
 
 ## /move/...
@@ -64,8 +63,10 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/evaluation_test.cpp
     ${TEST_SRC_DIR}/position/pesto_accumulator_test.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
+    ${TEST_SRC_DIR}/position/mobility_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
+    ${TEST_SRC_DIR}/position/tapered_score_test.cpp
     ${TEST_SRC_DIR}/position/square_notation_test.cpp
 
 ## /search/...

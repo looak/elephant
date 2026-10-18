@@ -3,8 +3,8 @@ set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, wa
 
 # Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, off by default
 # so Release & RelWithDebInfo run (and profile) like the OpenBench build. CI's unit tests turn both on.
-set(ASSERTIONS_ENABLED OFF CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
-set(EXCEPTIONS_ENABLED OFF CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
+set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
+set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
 
 set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
 set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
@@ -41,26 +41,36 @@ set(PRECOMPILE_OPTIONS
 # Library to hold our shared compiler warning flags
 add_library(common_warnings INTERFACE)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    # cl.exe and clang-cl: MSVC-style driver. Check this first, clang-cl reports COMPILER_ID "Clang".
     set(PROJECT_WARNING_FLAGS
-        "-Wall"                # Enable all core warnings
+        "/W4"                  # High warning level, similar to -Wall/-Wextra
+        "/permissive-"         # Strict conformance, similar to -pedantic
+    )
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        # clang-cl passes -W flags through to clang, so the extras still apply.
+        list(APPEND PROJECT_WARNING_FLAGS
+            "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
+            "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
+            "-Wshadow"          # Warn on variable shadowing
+            "-Wconversion"      # Warn on type conversions that may alter a value
+            "-Wsign-conversion" # Warn on sign conversions
+        )
+    endif()
+    message(STATUS "## Applying MSVC-style warning flags.")
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    # gcc, clang, clang++: GNU-style driver.
+    set(PROJECT_WARNING_FLAGS
+        "-Wall"                # Enable all core warnings (includes unused variable/parameter)
         "-Wextra"              # Enable extra warnings
         "-pedantic"            # Enforce strict standard conformance
         "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
         "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
         "-Wshadow"          # Warn on variable shadowing
         "-Wconversion"      # Warn on type conversions that may alter a value
-        "-Wsign-conversion" # Warn on sign conversions        
-        "-Wunused-variable"     # Warn on unused variables
-        "-Wunused-parameter"    # Warn on unused parameters
+        "-Wsign-conversion" # Warn on sign conversions
     )
     message(STATUS "## Applying GCC/Clang warning flags.")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    set(PROJECT_WARNING_FLAGS
-        "/W4"                  # High warning level, similar to -Wall/-Wextra
-        "/permissive-"         # Strict conformance, similar to -pedantic
-    )
-    message(STATUS "## Applying MSVC warning flags.")
 endif()
 
 
