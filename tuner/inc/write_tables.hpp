@@ -40,7 +40,7 @@ std::string rewritePestoTables(const std::string& header, const std::vector<Tape
 std::string rewriteMobilityTables(const std::string& header, const std::vector<TaperedScore>& values);
 
 /**
- * header is the text of pawn_tables.hpp. Returns it with the bodies of the five pawn tables replaced by values
+ * header is the text of pawn_tables.hpp. Returns it with the bodies of the ten pawn tables replaced by values
  * (params:: layout), one line each as the file has them. Throws when a table isn't found.    */
 std::string rewritePawnTables(const std::string& header, const std::vector<TaperedScore>& values);
 

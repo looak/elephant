@@ -80,11 +80,16 @@ std::string rewritePawnTables(const std::string& header, const std::vector<Taper
         u32 (*index)(u32);
         u32 first;  // what index() takes for the table's first value: rank 2 is 1, file a is 0
     };
-    const Table tables[5] = { { "passedPawn", 6, params::passed, 1 },
-                              { "isolatedPawn", 4, params::isolated, 0 },
-                              { "doubledPawn", 4, params::doubled, 0 },
-                              { "backwardPawn", 4, params::backward, 0 },
-                              { "connectedPawn", 6, params::connected, 1 } };
+    const Table tables[10] = { { "passedPawn", 6, params::passed, 1 },
+                               { "isolatedPawn", 4, params::isolated, 0 },
+                               { "doubledPawn", 4, params::doubled, 0 },
+                               { "backwardPawn", 4, params::backward, 0 },
+                               { "connectedPawn", 6, params::connected, 1 },
+                               { "passedOwnKing", 8, params::passedOwnKing, 0 },
+                               { "passedEnemyKing", 8, params::passedEnemyKing, 0 },
+                               { "passedBlocked", 6, params::passedBlocked, 1 },
+                               { "passedFreePath", 6, params::passedFreePath, 1 },
+                               { "passedRookBehind", 2, params::passedRookBehind, 0 } };
     std::string result = header;
     for (const Table& table : tables) {
         // one line: "    S(   0,   0), S(  12,  -3), ...,".
