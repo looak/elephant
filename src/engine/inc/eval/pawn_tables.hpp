@@ -20,7 +20,10 @@
  * for rank 2; isolated, doubled and backward pawns by file folded onto a to d, index 0 for the a & h files. Written by
  * ElephantTuner, laid out the way it writes them. All constexpr, safe to include anywhere.
  *
- * Not tuned yet, all 0: the terms are traced and scored but don't change the evaluation.    */
+ * Tuned by ElephantTuner with PeSTO's and mobility's tables kept as they are (--tune pawns_passed,pawns_structure):
+ * E12.52-1M-D12-Resolved, K 1.1537, 1000 passes at rate 1, error 0.088897 -> 0.087448 (held back positions 1.56%
+ * lower). They're what's left over after the pawn piece square tables, which already pay for an average pawn on each
+ * square: a passed pawn far back scores less than the table gives it, an advanced one more.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -31,27 +34,27 @@ namespace evaluator_data
 
 // a passed pawn, relative rank 2 to 7.
 constexpr TaperedScore passedPawn[6] = {
-    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+    S( -13,  13), S( -23,  19), S( -14,  38), S(  13,  49), S(  36,  41), S(  52, -13),
 };
 
 // an isolated pawn, file a & h to d & e.
 constexpr TaperedScore isolatedPawn[4] = {
-    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+    S(  16,  -6), S( -10, -10), S( -11,  -8), S( -14, -18),
 };
 
 // a doubled pawn, one for each pawn with one of its own in front of it, file a & h to d & e.
 constexpr TaperedScore doubledPawn[4] = {
-    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+    S( -29, -35), S( -25, -18), S( -10,  -4), S( -16,  -9),
 };
 
 // a backward pawn, file a & h to d & e.
 constexpr TaperedScore backwardPawn[4] = {
-    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+    S(   2, -12), S(  -3, -16), S(  -8, -13), S(  -5, -22),
 };
 
 // a connected pawn, beside or defended by one of its own, relative rank 2 to 7.
 constexpr TaperedScore connectedPawn[6] = {
-    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+    S(   3,   2), S(   5,   8), S(   5,   6), S(   6,   3), S(  25,  11), S( 159,  25),
 };
 
 } // namespace evaluator_data

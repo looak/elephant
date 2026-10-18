@@ -2,6 +2,7 @@
 #include <core/game_context.hpp>
 #include <eval/evaluator.hpp>
 #include <eval/mobility.hpp>
+#include <eval/pawn_tables.hpp>
 #include <io/fen_parser.hpp>
 
 struct EvaluationTestCase {
@@ -75,15 +76,17 @@ TEST(EvaluationSymmetry, AsymmetricMiddlegameAndEndgame)
 // Catches the tables being read upside down, the eval would still be symmetric but reward pawns for staying home.
 TEST(EvaluationPesto, PawnAdvancementIsRewarded)
 {
-    // only kings & pawns, phase 0 so the endgame table alone counts: a7 is 178, a2 is 13.
+    // only kings & pawns, phase 0 so the endgame tables alone count: a7 is 178, a2 is 13. The pawn is passed on both,
+    // its passed value by rank is added on; it's isolated on both, that cancels.
+    const i32 passed = eg_score(evaluator_data::passedPawn[5]) - eg_score(evaluator_data::passedPawn[0]);
     const i32 whitePawnA7 = evaluate("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
     const i32 whitePawnA2 = evaluate("4k3/8/8/8/8/8/P7/4K3 w - - 0 1");
-    EXPECT_EQ(whitePawnA7 - whitePawnA2, 178 - 13);
+    EXPECT_EQ(whitePawnA7 - whitePawnA2, 178 - 13 + passed);
 
     // the same pawns for black, a2 is black's 7th rank.
     const i32 blackPawnA2 = evaluate("4k3/8/8/8/8/8/p7/4K3 w - - 0 1");
     const i32 blackPawnA7 = evaluate("4k3/p7/8/8/8/8/8/4K3 w - - 0 1");
-    EXPECT_EQ(blackPawnA2 - blackPawnA7, -(178 - 13));
+    EXPECT_EQ(blackPawnA2 - blackPawnA7, -(178 - 13 + passed));
 }
 
 // At full phase only the midgame tables count, knight g1 is -19 and f3 is 17. The move also changes the knight's
