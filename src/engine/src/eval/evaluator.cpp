@@ -8,6 +8,7 @@
 #include <core/chessboard.hpp>
 #include <eval/evaluator_data.hpp>
 #include <eval/mobility.hpp>
+#include <eval/pawn_structure.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
 #include <search/search_constants.hpp>
@@ -63,9 +64,10 @@ Evaluator::EvaluateMaterial() const
 i32
 Evaluator::EvaluateTapered() const
 {
-    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator. Mobility is
-    // counted here, added to them packed and tapered once with them.
-    return evaluator_data::taper(m_accumulator.psqt + mobilityScore(m_position.material()), m_accumulator.phase);
+    // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator. Mobility and
+    // pawn structure are counted here, added to them packed and tapered once with them.
+    const auto& material = m_position.material();
+    return evaluator_data::taper(m_accumulator.psqt + mobilityScore(material) + pawnScore(material), m_accumulator.phase);
 }
 
 i32
