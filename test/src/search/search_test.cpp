@@ -196,8 +196,9 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
         // (64 MB hash). 0.15.1's IIR, applied at every node without a TT or PV move now that PVs are cleared, finds it
-        // at 19, 20 leaves a ply of margin. Raise this when new pruning pushes it out of reach.
-        testingParams.SearchDepth = 20;
+        // at 19. With pawn structure in the evaluation it's found at 22, 23 leaves a ply of margin. Raise this when new
+        // pruning or evaluation pushes it out of reach.
+        testingParams.SearchDepth = 23;
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);
