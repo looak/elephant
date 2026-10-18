@@ -192,7 +192,7 @@ void fit(const TunerData& data, Values& values, const FitSettings& settings,
     std::vector<Adam> mgAdam(values.mg.size());
     std::vector<Adam> egAdam(values.eg.size());
     std::vector<double> mgGradient, egGradient;
-    const bool centring = settings.tuneMobility && settings.centreMobility;
+    const bool centring = settings.tunes(params::Group::Mobility) && settings.centreMobility;
     const std::vector<double> used = centring ? usage(data, values.mg.size()) : std::vector<double>{};
     if (centring)
         centreMobility(values, used);

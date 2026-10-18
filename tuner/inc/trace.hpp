@@ -35,11 +35,21 @@
 #include <system/platform.hpp>
 
 namespace tuner {
-
 namespace params {
 
 // the groups of values, in the order they're laid out.
-enum class Group { Material, Psqt, Mobility };
+enum class Group : u8 { Material, Psqt, Mobility, Pawns_Passed, Pawns_Structure, Count };
+struct GroupInfo { Group group; std::string_view name; };
+inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupInfos = {{
+    { Group::Material, "material" },
+    { Group::Psqt, "psqt" },
+    { Group::Mobility, "mobility" },
+    { Group::Pawns_Passed, "pawns_passed" },
+    { Group::Pawns_Structure, "pawns_structure" }
+}};
+
+constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
+static_assert(static_cast<u32>(Group::Count) <= 32, "FitSettings::tuned is a u32");
 
 constexpr u32 materialOffset = 0;  // 6, by piece index pawn to king
 constexpr u32 psqtOffset = 6;      // 6 * 64, by piece index then table square (A8 = 0, see pesto_tables.hpp)
@@ -48,15 +58,46 @@ constexpr u32 mobilityOffset = psqtOffset + 6 * 64;  // knight 0-8, bishop 0-13,
 // how many counts each piece's mobility table has, by piece index, and where each starts within mobility's values.
 constexpr u32 mobilityCounts[6] = { 0, 9, 14, 15, 28, 0 };
 constexpr u32 mobilityStarts[6] = { 0, 0, 9, 23, 38, 66 };
-constexpr u32 count = mobilityOffset + 66;
+
+// passed pawns, by relative rank 2-7. Structure: isolated, doubled and backward by file mirrored a-d, then
+// connected by relative rank 2-7.
+constexpr u32 pawnsPassedOffset = mobilityOffset + mobilityStarts[5];
+constexpr u32 pawnsStructureOffset = pawnsPassedOffset + 6;
+constexpr u32 isolatedOffset = pawnsStructureOffset;
+constexpr u32 doubledOffset = isolatedOffset + 4;
+constexpr u32 backwardOffset = doubledOffset + 4;
+constexpr u32 connectedOffset = backwardOffset + 4;
+constexpr u32 count = connectedOffset + 6;
+
+// where each group's values start, in Group order, and count where the last one ends.
+constexpr u32 groupCount = static_cast<u32>(Group::Count);
+constexpr std::array<u32, groupCount + 1> groupStarts = {
+    materialOffset, psqtOffset, mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, count
+};
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
 constexpr u32 psqt(u32 pieceId, u32 tableSqr) { return psqtOffset + pieceId * 64 + tableSqr; }
 constexpr u32 mobility(u32 pieceId, u32 safeSquares) { return mobilityOffset + mobilityStarts[pieceId] + safeSquares; }
 
+// relRank 0-7 from the pawn's own side (rank 2 = 1), file 0-7 (a = 0), folded so a and h share a value.
+constexpr u32 mirroredFile(u32 file) { return file < 4 ? file : 7 - file; }
+constexpr u32 passed(u32 relRank) { return pawnsPassedOffset + relRank - 1; }
+constexpr u32 isolated(u32 file) { return isolatedOffset + mirroredFile(file); }
+constexpr u32 doubled(u32 file) { return doubledOffset + mirroredFile(file); }
+constexpr u32 backward(u32 file) { return backwardOffset + mirroredFile(file); }
+constexpr u32 connected(u32 relRank) { return connectedOffset + relRank - 1; }
+
 constexpr Group groupOf(u32 index) {
-    return index < psqtOffset ? Group::Material : index < mobilityOffset ? Group::Psqt : Group::Mobility;
+    u32 group = 0;
+    while (group + 1 < groupCount && index >= groupStarts[group + 1])
+        ++group;
+    return static_cast<Group>(group);
 }
+
+static_assert(groupOf(psqtOffset - 1) == Group::Material && groupOf(psqtOffset) == Group::Psqt);
+static_assert(groupOf(mobilityOffset) == Group::Mobility && groupOf(pawnsPassedOffset - 1) == Group::Mobility);
+static_assert(groupOf(passed(6)) == Group::Pawns_Passed && groupOf(isolated(0)) == Group::Pawns_Structure);
+static_assert(groupOf(count - 1) == Group::Pawns_Structure && connected(6) == count - 1);
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {

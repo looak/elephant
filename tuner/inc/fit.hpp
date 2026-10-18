@@ -105,16 +105,14 @@ struct FitSettings {
     double k = 1.0;             // phase 1's K, fixed
     std::size_t epochs = 1000;  // passes over every position
     double rate = 1.0;          // Adam's step, about how many centipawns a number moves per pass at most
-    // which groups of values move, the others stay as they are, see "What's kept fixed" above.
-    bool tuneMaterial = false;
-    bool tunePsqt = true;
-    bool tuneMobility = true;
+    // which groups of values move, a bit per params::Group, the others stay as they are, see "What's kept fixed" above.
+    u32 tuned = bit(params::Group::Psqt) | bit(params::Group::Mobility);
 
     // mobility tables kept centred, their usage weighted average at 0, see "What's kept fixed" above.
     bool centreMobility = true;
 
     [[nodiscard]] bool tunes(params::Group group) const {
-        return group == params::Group::Material ? tuneMaterial : group == params::Group::Psqt ? tunePsqt : tuneMobility;
+        return (tuned & bit(group)) != 0;
     }
     std::size_t threads = 1;
 };

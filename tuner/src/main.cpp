@@ -9,7 +9,8 @@
 //   --leave          cores to keep free, taken off --threads
 //   --epochs         passes of the fit, 1000 by default; 0 only checks the writer
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
-//   --tune           the groups of values the fit moves, of material, psqt & mobility, psqt,mobility by default;
+//   --tune           the groups of values the fit moves, comma separated names from params::groupInfos (material,
+//                    psqt, mobility, pawns_passed, pawns_structure), psqt,mobility by default;
 //                    the others stay as they are (see fit.hpp)
 //   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
@@ -80,7 +81,8 @@ int usage() {
                  "  --leave:         cores to keep free, taken off --threads\n"
                  "  --epochs:        passes of the fit, 1000 by default; 0 only checks the writer\n"
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
-                 "  --tune:          groups the fit moves, of material, psqt & mobility, psqt,mobility by default\n"
+                 "  --tune:          groups the fit moves, comma separated: material, psqt, mobility, pawns_passed,\n"
+                 "                   pawns_structure; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
                  "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
@@ -99,10 +101,18 @@ bool parseNumber(const char* text, double& out) {
 
 // a comma separated list of groups, e.g. "mobility" or "psqt,mobility". False when it names none.
 bool parseTune(const std::string& list, tuner::FitSettings& settings) {
-    settings.tuneMaterial = list.find("material") != std::string::npos;
-    settings.tunePsqt = list.find("psqt") != std::string::npos;
-    settings.tuneMobility = list.find("mobility") != std::string::npos;
-    return settings.tuneMaterial || settings.tunePsqt || settings.tuneMobility;
+    settings.tuned = 0;
+    std::string_view rest = list;
+    while (!rest.empty()) {
+        const std::size_t comma = rest.find(',');
+        const std::string_view name = rest.substr(0, comma);
+        const auto info = std::ranges::find(tuner::params::groupInfos, name, &tuner::params::GroupInfo::name);
+        if (info == tuner::params::groupInfos.end())
+            return false;
+        settings.tuned |= tuner::params::bit(info->group);
+        rest = comma == std::string_view::npos ? std::string_view{} : rest.substr(comma + 1);
+    }
+    return settings.tuned != 0;
 }
 
 // the command line's options, nullopt when it's wrong.
@@ -233,11 +243,12 @@ tuner::KSearch searchK(const tuner::TunerData& data, std::size_t threads) {
 // the groups the fit moves, e.g. "psqt, mobility".
 std::string tunedGroups(const tuner::FitSettings& settings) {
     std::string tuning;
-    for (auto [group, name] : { std::pair{ tuner::params::Group::Material, "material" },
-                                std::pair{ tuner::params::Group::Psqt, "psqt" },
-                                std::pair{ tuner::params::Group::Mobility, "mobility" } }) {
-        if (settings.tunes(group))
-            tuning += tuning.empty() ? name : std::string(", ") + name;
+    for (auto [group, name] : tuner::params::groupInfos) {
+        if (!settings.tunes(group))
+            continue;
+        if (!tuning.empty())
+            tuning += ", ";
+        tuning += name;
     }
     return tuning;
 }
@@ -369,7 +380,7 @@ int run(Options& options) {
     const std::vector<TaperedScore> before = tuner::params::current();
     const std::vector<TaperedScore> after = runFit(std::move(data), before, settings, options.heldBackEvery);
     printMoved(before, after);
-    if (settings.tuneMobility)
+    if (settings.tunes(tuner::params::Group::Mobility))
         printMobility(after);
     const bool unchanged = writeTables(options.outDir, after);
 
