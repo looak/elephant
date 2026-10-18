@@ -1,4 +1,5 @@
 #include <io/fen_parser.hpp>
+#include <algorithm>
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
@@ -134,6 +135,14 @@ deserializeToPlay(std::string_view toPlayStr, Chessboard& outputBoard)
     return true;
 }
 
+// a move counter, kept in a byte: clamped to 0-255, a long game's fullmove number goes past 255 and only counts.
+byte
+parseCounter(std::string_view token) {
+    int value = 0;
+    std::from_chars(token.data(), token.data() + token.size(), value);
+    return static_cast<byte>(std::clamp(value, 0, 255));
+}
+
 bool
 deserializeEnPassant(std::string_view enPassantStr, PositionEditor position, Set toPlay) {
     position.enPassant().clear();
@@ -192,10 +201,10 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
+        byte plyCount = parseCounter(tokens.front());
         tokens.pop_front();
 
-        byte moveCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
+        byte moveCount = parseCounter(tokens.front());
         tokens.pop_front();
 
         outputBoard.editState().plyCount = plyCount;
@@ -247,10 +256,10 @@ bool deserialize(const char* input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
+        byte plyCount = parseCounter(tokens.front());
         tokens.pop_front();
 
-        byte moveCount = checked_cast<byte>(std::atoi(&tokens.front()[0]));
+        byte moveCount = parseCounter(tokens.front());
         tokens.pop_front();
 
         outputBoard.editState().plyCount = plyCount;
