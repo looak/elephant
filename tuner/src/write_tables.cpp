@@ -71,6 +71,34 @@ std::string rewriteMobilityTables(const std::string& header, const std::vector<T
     return result;
 }
 
+std::string rewritePawnTables(const std::string& header, const std::vector<TaperedScore>& values) {
+    const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";
+
+    struct Table {
+        const char* name;
+        u32 size;
+        u32 (*index)(u32);
+        u32 first;  // what index() takes for the table's first value: rank 2 is 1, file a is 0
+    };
+    const Table tables[5] = { { "passedPawn", 6, params::passed, 1 },
+                              { "isolatedPawn", 4, params::isolated, 0 },
+                              { "doubledPawn", 4, params::doubled, 0 },
+                              { "backwardPawn", 4, params::backward, 0 },
+                              { "connectedPawn", 6, params::connected, 1 } };
+    std::string result = header;
+    for (const Table& table : tables) {
+        // one line: "    S(   0,   0), S(  12,  -3), ...,".
+        std::string body = "    ";
+        for (u32 i = 0; i < table.size; ++i) {
+            const TaperedScore score = values[table.index(table.first + i)];
+            body += std::format("{}S({:4},{:4}),", i == 0 ? "" : " ", mg_score(score), eg_score(score));
+        }
+        replaceBody(result, std::format("constexpr TaperedScore {}[{}]", table.name, table.size), body + newline,
+                    newline);
+    }
+    return result;
+}
+
 std::string rewritePestoTables(const std::string& header, const std::vector<TaperedScore>& values) {
     // whatever line ending the file has, the rewritten lines get the same.
     const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";

@@ -11,6 +11,7 @@
 #include <core/chessboard.hpp>
 #include <eval/evaluator.hpp>
 #include <eval/mobility.hpp>
+#include <eval/pawn_structure.hpp>
 #include <eval/pesto_accumulator.hpp>
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
@@ -156,12 +157,13 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         }
 
         // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
-        // left behind, and mobility's.
+        // left behind, mobility's and pawn structure's.
         trace.clear();
         const PestoAccumulator traced = PestoAccumulator::computeFromScratch(context.position.read().material(), trace);
         if (!(traced == context.accumulator))
             ++report.accumulatorMismatch;
         (void)mobilityScore(context.position.read().material(), trace);
+        (void)pawnScore(context.position.read().material(), trace);
 
         // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
         Evaluator evaluator(context.position.read(), traced);

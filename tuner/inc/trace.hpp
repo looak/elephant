@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <eval/mobility_tables.hpp>
+#include <eval/pawn_tables.hpp>
 #include <eval/pesto_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <system/platform.hpp>
@@ -109,6 +110,15 @@ inline std::vector<TaperedScore> current() {
         for (u32 safe = 0; safe < mobilityCounts[pieceId]; ++safe)
             values[mobility(pieceId, safe)] = evaluator_data::mobilityTables[pieceId][safe];
     }
+    for (u32 relRank = 1; relRank <= 6; ++relRank) {
+        values[passed(relRank)] = evaluator_data::passedPawn[relRank - 1];
+        values[connected(relRank)] = evaluator_data::connectedPawn[relRank - 1];
+    }
+    for (u32 file = 0; file < 4; ++file) {
+        values[isolated(file)] = evaluator_data::isolatedPawn[file];
+        values[doubled(file)] = evaluator_data::doubledPawn[file];
+        values[backward(file)] = evaluator_data::backwardPawn[file];
+    }
     return values;
 }
 
@@ -139,8 +149,8 @@ private:
 };
 
 /**
- * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch and to
- * mobilityScore. clear() before each position, coefficients() after.    */
+ * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch, mobilityScore
+ * and pawnScore. clear() before each position, coefficients() after.    */
 class EvalTrace {
 public:
     // see NoPestoTrace in pesto_accumulator.hpp.
@@ -153,6 +163,13 @@ public:
     void mobility(u32 pieceId, u32 safeSquares, i32 sign) {
         add(params::mobility(pieceId, safeSquares), sign);
     }
+
+    // see NoPawnTrace in pawn_structure.hpp.
+    void passed(u32 relRank, i32 sign) { add(params::passed(relRank), sign); }
+    void isolated(u32 file, i32 sign) { add(params::isolated(file), sign); }
+    void doubled(u32 file, i32 sign) { add(params::doubled(file), sign); }
+    void backward(u32 file, i32 sign) { add(params::backward(file), sign); }
+    void connected(u32 relRank, i32 sign) { add(params::connected(relRank), sign); }
 
     void clear() {
         for (u32 index : m_touched) {

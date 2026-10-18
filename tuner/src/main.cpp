@@ -336,6 +336,38 @@ void printMobility(const std::vector<TaperedScore>& after) {
     }
 }
 
+// how many positions use each pawn value, counted before the fit: a value few positions use is fitted on noise.
+std::vector<std::size_t> pawnUsage(const tuner::TunerData& data) {
+    std::vector<std::size_t> used(tuner::params::count, 0);
+    for (const tuner::Coefficient& c : data.coefficients)
+        ++used[c.index()];
+    return used;
+}
+
+// the pawn values as tuned, with how many positions use each.
+void printPawns(const std::vector<TaperedScore>& after, const std::vector<std::size_t>& used) {
+    struct Row {
+        const char* name;
+        u32 size;
+        u32 (*index)(u32);
+        u32 first;
+    };
+    const Row rows[5] = { { "passed", 6, tuner::params::passed, 1 },
+                          { "isolated", 4, tuner::params::isolated, 0 },
+                          { "doubled", 4, tuner::params::doubled, 0 },
+                          { "backward", 4, tuner::params::backward, 0 },
+                          { "connected", 6, tuner::params::connected, 1 } };
+    std::cout << "  pawns        midgame / endgame centipawns (positions using it), by rank 2-7 or file a&h-d&e\n";
+    for (const Row& row : rows) {
+        std::cout << std::format("    {:9}", row.name);
+        for (u32 i = 0; i < row.size; ++i) {
+            const u32 index = row.index(row.first + i);
+            std::cout << std::format(" {}/{} ({})", mg_score(after[index]), eg_score(after[index]), used[index]);
+        }
+        std::cout << '\n';
+    }
+}
+
 /**
  * Writes the values as new headers to outDir: the engine's own files with only the numbers in their tables replaced.
  * Returns whether every file came out the same as the engine's. Throws when a file can't be read or written.    */
@@ -344,8 +376,9 @@ bool writeTables(const std::string& outDir, const std::vector<TaperedScore>& aft
         const char* file;
         std::string (*rewrite)(const std::string&, const std::vector<TaperedScore>&);
     };
-    const Written files[2] = { { "pesto_tables", tuner::rewritePestoTables },
-                               { "mobility_tables", tuner::rewriteMobilityTables } };
+    const Written files[3] = { { "pesto_tables", tuner::rewritePestoTables },
+                               { "mobility_tables", tuner::rewriteMobilityTables },
+                               { "pawn_tables", tuner::rewritePawnTables } };
     bool unchanged = true;
     for (const Written& file : files) {
         const std::string from = std::format("{}/src/engine/inc/eval/{}.hpp", ROOT_PATH, file.file);
@@ -378,10 +411,13 @@ int run(Options& options) {
     settings.threads = report.threads;
 
     const std::vector<TaperedScore> before = tuner::params::current();
+    const std::vector<std::size_t> used = pawnUsage(data);
     const std::vector<TaperedScore> after = runFit(std::move(data), before, settings, options.heldBackEvery);
     printMoved(before, after);
     if (settings.tunes(tuner::params::Group::Mobility))
         printMobility(after);
+    if (settings.tunes(tuner::params::Group::Pawns_Passed) || settings.tunes(tuner::params::Group::Pawns_Structure))
+        printPawns(after, used);
     const bool unchanged = writeTables(options.outDir, after);
 
     // no passes means the values went out as they came in: the files have to be the engine's, byte for byte.
