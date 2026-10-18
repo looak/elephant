@@ -10,7 +10,7 @@
 //   --epochs         passes of the fit, 1000 by default; 0 only checks the writer
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
 //   --tune           the groups of values the fit moves, comma separated names from params::groupInfos (material,
-//                    psqt, mobility, pawns_passed, pawns_structure), psqt,mobility by default;
+//                    psqt, mobility, pawns_passed, pawns_structure, pawns_passed_extras), psqt,mobility by default;
 //                    the others stay as they are (see fit.hpp)
 //   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
@@ -82,7 +82,7 @@ int usage() {
                  "  --epochs:        passes of the fit, 1000 by default; 0 only checks the writer\n"
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
                  "  --tune:          groups the fit moves, comma separated: material, psqt, mobility, pawns_passed,\n"
-                 "                   pawns_structure; psqt,mobility by default\n"
+                 "                   pawns_structure, pawns_passed_extras; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
                  "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
@@ -352,14 +352,20 @@ void printPawns(const std::vector<TaperedScore>& after, const std::vector<std::s
         u32 (*index)(u32);
         u32 first;
     };
-    const Row rows[5] = { { "passed", 6, tuner::params::passed, 1 },
-                          { "isolated", 4, tuner::params::isolated, 0 },
-                          { "doubled", 4, tuner::params::doubled, 0 },
-                          { "backward", 4, tuner::params::backward, 0 },
-                          { "connected", 6, tuner::params::connected, 1 } };
-    std::cout << "  pawns        midgame / endgame centipawns (positions using it), by rank 2-7 or file a&h-d&e\n";
+    const Row rows[10] = { { "passed", 6, tuner::params::passed, 1 },
+                           { "isolated", 4, tuner::params::isolated, 0 },
+                           { "doubled", 4, tuner::params::doubled, 0 },
+                           { "backward", 4, tuner::params::backward, 0 },
+                           { "connected", 6, tuner::params::connected, 1 },
+                           { "own king", 8, tuner::params::passedOwnKing, 0 },
+                           { "enemy king", 8, tuner::params::passedEnemyKing, 0 },
+                           { "blocked", 6, tuner::params::passedBlocked, 1 },
+                           { "free path", 6, tuner::params::passedFreePath, 1 },
+                           { "rook behind", 2, tuner::params::passedRookBehind, 0 } };
+    std::cout << "  pawns        midgame / endgame centipawns (positions using it), by rank 2-7, file a&h-d&e, king\n"
+                 "               distance 0-7, or own & enemy rook\n";
     for (const Row& row : rows) {
-        std::cout << std::format("    {:9}", row.name);
+        std::cout << std::format("    {:11}", row.name);
         for (u32 i = 0; i < row.size; ++i) {
             const u32 index = row.index(row.first + i);
             std::cout << std::format(" {}/{} ({})", mg_score(after[index]), eg_score(after[index]), used[index]);
@@ -416,7 +422,8 @@ int run(Options& options) {
     printMoved(before, after);
     if (settings.tunes(tuner::params::Group::Mobility))
         printMobility(after);
-    if (settings.tunes(tuner::params::Group::Pawns_Passed) || settings.tunes(tuner::params::Group::Pawns_Structure))
+    if (settings.tunes(tuner::params::Group::Pawns_Passed) || settings.tunes(tuner::params::Group::Pawns_Structure)
+        || settings.tunes(tuner::params::Group::Pawns_PassedExtras))
         printPawns(after, used);
     const bool unchanged = writeTables(options.outDir, after);
 

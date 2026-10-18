@@ -241,7 +241,7 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 | `--leave`         | 0               | cores to keep free, taken off `--threads`                    |
 | `--epochs`        | 1000            | passes of the fit; 0 only checks the writer                  |
 | `--rate`          | 1.0             | Adam's step, roughly centipawns moved per pass               |
-| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt`, `mobility`, `pawns_passed`, `pawns_structure` |
+| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt`, `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras` |
 | `--out`           | `.`             | folder for the `*.tuned.hpp` files                           |
 | `--held-back`     | 20              | every Nth position is kept out of the fit, 0 for none        |
 | `--free-mobility` | off             | don't keep mobility's tables centred                         |

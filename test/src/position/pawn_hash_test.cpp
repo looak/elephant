@@ -11,7 +11,7 @@ namespace {
 TaperedScore hashed(PawnHashTable& table, const char* fen) {
     GameContext context;
     io::fen_parser::deserialize(fen, context.editChessboard());
-    return table.score(context.readChessPosition().material());
+    return table.probe(context.readChessPosition().material()).score;
 }
 
 TaperedScore counted(const char* fen) {

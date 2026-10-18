@@ -16,11 +16,12 @@
 
 /**
  * @file pawn_hash.hpp
- * @brief A cache of pawnScore by pawn structure. The pawns change on few moves, most positions a search evaluates
- * share their pawns with many others, so their score is looked up instead of counted again.
+ * @brief A cache of pawnInfo by pawn structure. The pawns change on few moves, most positions a search evaluates
+ * share their pawns with many others, so their score and passed pawns are looked up instead of counted again.
  *
- * Each entry keeps both sides' pawn bitboards, a hit is an exact match and never someone else's score. An entry never
- * written holds no pawns and a score of 0, which is right for a position without pawns, there's no empty marker.
+ * Each entry keeps both sides' pawn bitboards, a hit is an exact match and never someone else's info. An entry never
+ * written holds no pawns, a score of 0 and no passed pawns, which is right for a position without pawns, there's no
+ * empty marker.
  * One table per search thread, nothing is shared or locked.    */
 
 #pragma once
@@ -34,24 +35,24 @@
 
 class PawnHashTable {
 public:
-    // 2^14 entries of 24 bytes, 384 KB, about an L2 cache.
+    // 2^14 entries of 40 bytes, 640 KB.
     static constexpr u32 c_indexBits = 14;
 
     PawnHashTable() : m_entries(std::size_t{ 1 } << c_indexBits) {}
 
-    // pawnScore of material, from the table when its pawns are there, counted and stored when not.
+    // pawnInfo of material, from the table when its pawns are there, counted and stored when not.
     template<typename Material>
-    [[nodiscard]] TaperedScore score(const Material& material) {
+    [[nodiscard]] const PawnInfo& probe(const Material& material) {
         const u64 white = material.template pawns<Set::WHITE>().read();
         const u64 black = material.template pawns<Set::BLACK>().read();
         Entry& entry = m_entries[index(white, black)];
         if (entry.white == white && entry.black == black) {
             ++m_hits;
-            return entry.score;
+            return entry.info;
         }
         ++m_misses;
-        entry = { white, black, pawnScore(material) };
-        return entry.score;
+        entry = { white, black, pawnInfo(material) };
+        return entry.info;
     }
 
     void clear() {
@@ -67,7 +68,7 @@ private:
     struct Entry {
         u64 white = 0;
         u64 black = 0;
-        TaperedScore score = S(0, 0);
+        PawnInfo info;
     };
 
     // both bitboards multiplied and the top bits of their mix taken, every pawn moves them. Pawns sit in the middle

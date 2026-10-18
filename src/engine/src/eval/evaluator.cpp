@@ -8,6 +8,7 @@
 #include <core/chessboard.hpp>
 #include <eval/evaluator_data.hpp>
 #include <eval/mobility.hpp>
+#include <eval/passed_pawns.hpp>
 #include <eval/pawn_hash.hpp>
 #include <eval/pawn_structure.hpp>
 #include <io/fen_parser.hpp>
@@ -66,10 +67,12 @@ i32
 Evaluator::EvaluateTapered() const
 {
     // material and piece square sums & game phase are kept incrementally by search, see PestoAccumulator. Mobility and
-    // pawn structure are counted here, added to them packed and tapered once with them.
+    // pawn structure (cached by the pawns when search passes a table) and passed pawn extras are counted here, added to
+    // them packed and tapered once with them.
     const auto& material = m_position.material();
-    const TaperedScore pawns = m_pawnHash != nullptr ? m_pawnHash->score(material) : pawnScore(material);
-    return evaluator_data::taper(m_accumulator.psqt + mobilityScore(material) + pawns, m_accumulator.phase);
+    const PawnInfo pawns = m_pawnHash != nullptr ? m_pawnHash->probe(material) : pawnInfo(material);
+    const TaperedScore score = m_accumulator.psqt + mobilityScore(material) + pawns.score + passerScore(material, pawns);
+    return evaluator_data::taper(score, m_accumulator.phase);
 }
 
 i32

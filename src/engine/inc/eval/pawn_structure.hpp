@@ -73,9 +73,9 @@ constexpr u64 ranksAhead(u32 rank) {
         return rank == 0 ? 0 : ~UINT64_C(0) >> (8 * (8 - rank));
 }
 
-// one side's pawns, scored from its point of view.
+// one side's pawns, scored from its point of view. Its passed pawns are left in passed.
 template<Set us, typename Material, typename Trace>
-TaperedScore sideScore(const Material& material, Trace& trace) {
+TaperedScore sideScore(const Material& material, u64& passed, Trace& trace) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
@@ -85,6 +85,7 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
     const u64 theirAttacks = attacks::pawnAttacks<them>(theirs);
 
     TaperedScore score = S(0, 0);
+    passed = 0;
     for (u64 pawns = ours; pawns != 0; pawns &= pawns - 1) {
         const u32 sqr = intrinsics::lsbIndex(pawns);
         const u32 file = sqr & 7;
@@ -102,6 +103,7 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
         else if ((theirs & (fileMask(file) | beside) & ahead) == 0) {
             score += evaluator_data::passedPawn[relRank - 1];
             trace.passed(relRank, sign);
+            passed |= square;
         }
 
         if ((ours & beside) == 0) {
@@ -123,17 +125,39 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
 
 } // namespace pawn_internals
 
+// What a pawn structure gives the evaluation, all of it from the pawns alone, so it can be cached by them (see
+// pawn_hash.hpp): the score, and each side's passed pawns for passerScore (see passed_pawns.hpp).
+struct PawnInfo {
+    TaperedScore score = S(0, 0);
+    u64 passed[2] = { 0, 0 };  // by Set, white 0 & black 1
+
+    [[nodiscard]] constexpr u64 passedOf(Set set) const { return passed[static_cast<size_t>(set)]; }
+};
+
 /**
- * Pawn structure of both sides, white's minus black's, midgame & endgame packed. Material is a MaterialPositionMask,
- * templated so this header doesn't need it.    */
+ * Pawn structure of both sides, white's minus black's, midgame & endgame packed, and the passed pawns. Material is a
+ * MaterialPositionMask, templated so this header doesn't need it.    */
+template<typename Material, typename Trace>
+[[nodiscard]] PawnInfo pawnInfo(const Material& material, Trace& trace) {
+    PawnInfo info;
+    info.score = pawn_internals::sideScore<Set::WHITE>(material, info.passed[0], trace)
+               - pawn_internals::sideScore<Set::BLACK>(material, info.passed[1], trace);
+    return info;
+}
+
+template<typename Material>
+[[nodiscard]] PawnInfo pawnInfo(const Material& material) {
+    NoPawnTrace none;
+    return pawnInfo(material, none);
+}
+
+// pawnInfo's score alone.
 template<typename Material, typename Trace>
 [[nodiscard]] TaperedScore pawnScore(const Material& material, Trace& trace) {
-    return pawn_internals::sideScore<Set::WHITE>(material, trace)
-         - pawn_internals::sideScore<Set::BLACK>(material, trace);
+    return pawnInfo(material, trace).score;
 }
 
 template<typename Material>
 [[nodiscard]] TaperedScore pawnScore(const Material& material) {
-    NoPawnTrace none;
-    return pawnScore(material, none);
+    return pawnInfo(material).score;
 }

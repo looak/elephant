@@ -57,4 +57,31 @@ constexpr TaperedScore connectedPawn[6] = {
     S(   3,   2), S(   5,   8), S(   5,   6), S(   6,   3), S(  25,  11), S( 159,  25),
 };
 
+// passed pawn extras, see passed_pawns.hpp. Not tuned yet, all 0.
+
+// a passed pawn, by how far its own king is from it, 0 to 7 squares (0 can't happen).
+constexpr TaperedScore passedOwnKing[8] = {
+    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+};
+
+// a passed pawn, by how far the enemy king is from it, 0 to 7 squares (0 can't happen).
+constexpr TaperedScore passedEnemyKing[8] = {
+    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+};
+
+// a passed pawn with a piece on the square in front of it, relative rank 2 to 7.
+constexpr TaperedScore passedBlocked[6] = {
+    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+};
+
+// a passed pawn with nothing in front of it up to the promotion square, relative rank 2 to 7.
+constexpr TaperedScore passedFreePath[6] = {
+    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0),
+};
+
+// a rook behind a passed pawn on its file, nothing between them: its own side's rook, the enemy's.
+constexpr TaperedScore passedRookBehind[2] = {
+    S(   0,   0), S(   0,   0),
+};
+
 } // namespace evaluator_data

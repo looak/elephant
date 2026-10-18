@@ -39,14 +39,15 @@ namespace tuner {
 namespace params {
 
 // the groups of values, in the order they're laid out.
-enum class Group : u8 { Material, Psqt, Mobility, Pawns_Passed, Pawns_Structure, Count };
+enum class Group : u8 { Material, Psqt, Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras, Count };
 struct GroupInfo { Group group; std::string_view name; };
 inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupInfos = {{
     { Group::Material, "material" },
     { Group::Psqt, "psqt" },
     { Group::Mobility, "mobility" },
     { Group::Pawns_Passed, "pawns_passed" },
-    { Group::Pawns_Structure, "pawns_structure" }
+    { Group::Pawns_Structure, "pawns_structure" },
+    { Group::Pawns_PassedExtras, "pawns_passed_extras" }
 }};
 
 constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
@@ -68,12 +69,20 @@ constexpr u32 isolatedOffset = pawnsStructureOffset;
 constexpr u32 doubledOffset = isolatedOffset + 4;
 constexpr u32 backwardOffset = doubledOffset + 4;
 constexpr u32 connectedOffset = backwardOffset + 4;
-constexpr u32 count = connectedOffset + 6;
+
+// passed pawn extras: own & enemy king distance 0-7, blocked & free path by relative rank 2-7, rook behind own & enemy.
+constexpr u32 pawnsPassedExtrasOffset = connectedOffset + 6;
+constexpr u32 passedOwnKingOffset = pawnsPassedExtrasOffset;
+constexpr u32 passedEnemyKingOffset = passedOwnKingOffset + 8;
+constexpr u32 passedBlockedOffset = passedEnemyKingOffset + 8;
+constexpr u32 passedFreePathOffset = passedBlockedOffset + 6;
+constexpr u32 passedRookBehindOffset = passedFreePathOffset + 6;
+constexpr u32 count = passedRookBehindOffset + 2;
 
 // where each group's values start, in Group order, and count where the last one ends.
 constexpr u32 groupCount = static_cast<u32>(Group::Count);
 constexpr std::array<u32, groupCount + 1> groupStarts = {
-    materialOffset, psqtOffset, mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, count
+    materialOffset, psqtOffset, mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, count
 };
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
@@ -87,6 +96,11 @@ constexpr u32 isolated(u32 file) { return isolatedOffset + mirroredFile(file); }
 constexpr u32 doubled(u32 file) { return doubledOffset + mirroredFile(file); }
 constexpr u32 backward(u32 file) { return backwardOffset + mirroredFile(file); }
 constexpr u32 connected(u32 relRank) { return connectedOffset + relRank - 1; }
+constexpr u32 passedOwnKing(u32 distance) { return passedOwnKingOffset + distance; }
+constexpr u32 passedEnemyKing(u32 distance) { return passedEnemyKingOffset + distance; }
+constexpr u32 passedBlocked(u32 relRank) { return passedBlockedOffset + relRank - 1; }
+constexpr u32 passedFreePath(u32 relRank) { return passedFreePathOffset + relRank - 1; }
+constexpr u32 passedRookBehind(u32 whose) { return passedRookBehindOffset + whose; }
 
 constexpr Group groupOf(u32 index) {
     u32 group = 0;
@@ -98,7 +112,8 @@ constexpr Group groupOf(u32 index) {
 static_assert(groupOf(psqtOffset - 1) == Group::Material && groupOf(psqtOffset) == Group::Psqt);
 static_assert(groupOf(mobilityOffset) == Group::Mobility && groupOf(pawnsPassedOffset - 1) == Group::Mobility);
 static_assert(groupOf(passed(6)) == Group::Pawns_Passed && groupOf(isolated(0)) == Group::Pawns_Structure);
-static_assert(groupOf(count - 1) == Group::Pawns_Structure && connected(6) == count - 1);
+static_assert(groupOf(connected(6)) == Group::Pawns_Structure && groupOf(passedOwnKing(0)) == Group::Pawns_PassedExtras);
+static_assert(groupOf(count - 1) == Group::Pawns_PassedExtras && passedRookBehind(1) == count - 1);
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {
@@ -119,6 +134,16 @@ inline std::vector<TaperedScore> current() {
         values[doubled(file)] = evaluator_data::doubledPawn[file];
         values[backward(file)] = evaluator_data::backwardPawn[file];
     }
+    for (u32 distance = 0; distance < 8; ++distance) {
+        values[passedOwnKing(distance)] = evaluator_data::passedOwnKing[distance];
+        values[passedEnemyKing(distance)] = evaluator_data::passedEnemyKing[distance];
+    }
+    for (u32 relRank = 1; relRank <= 6; ++relRank) {
+        values[passedBlocked(relRank)] = evaluator_data::passedBlocked[relRank - 1];
+        values[passedFreePath(relRank)] = evaluator_data::passedFreePath[relRank - 1];
+    }
+    for (u32 whose = 0; whose < 2; ++whose)
+        values[passedRookBehind(whose)] = evaluator_data::passedRookBehind[whose];
     return values;
 }
 
@@ -149,8 +174,8 @@ private:
 };
 
 /**
- * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch, mobilityScore
- * and pawnScore. clear() before each position, coefficients() after.    */
+ * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch, mobilityScore,
+ * pawnInfo and passerScore. clear() before each position, coefficients() after.    */
 class EvalTrace {
 public:
     // see NoPestoTrace in pesto_accumulator.hpp.
@@ -170,6 +195,13 @@ public:
     void doubled(u32 file, i32 sign) { add(params::doubled(file), sign); }
     void backward(u32 file, i32 sign) { add(params::backward(file), sign); }
     void connected(u32 relRank, i32 sign) { add(params::connected(relRank), sign); }
+
+    // see NoPasserTrace in passed_pawns.hpp.
+    void passedOwnKing(u32 distance, i32 sign) { add(params::passedOwnKing(distance), sign); }
+    void passedEnemyKing(u32 distance, i32 sign) { add(params::passedEnemyKing(distance), sign); }
+    void passedBlocked(u32 relRank, i32 sign) { add(params::passedBlocked(relRank), sign); }
+    void passedFreePath(u32 relRank, i32 sign) { add(params::passedFreePath(relRank), sign); }
+    void passedRookBehind(u32 whose, i32 sign) { add(params::passedRookBehind(whose), sign); }
 
     void clear() {
         for (u32 index : m_touched) {
