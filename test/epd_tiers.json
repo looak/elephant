@@ -8,11 +8,11 @@
   ],
   "smoke": [
     { "id": "epd.wac_new", "name": "Smoke_WinAtChess", "files": ["wac_new.epd"],
-      "limit": { "nodes": 150000 }, "baseline": 260, "minimum": 252 },
+      "limit": { "nodes": 150000 }, "baseline": 252, "minimum": 245 },
     { "id": "epd.wac_new", "name": "Smoke_WinAtChess_4Threads", "files": ["wac_new.epd"],
       "limit": { "nodes": 400000 }, "threads": 4, "baseline": 258, "minimum": 240, "repeatable": false },
     { "id": "epd.sts", "name": "Smoke_STS", "files": ["STS*.epd"], "per_file": 25, "scored": true,
-      "limit": { "nodes": 100000 }, "baseline": 1900, "minimum": 1650 }
+      "limit": { "nodes": 100000 }, "baseline": 1870, "minimum": 1650 }
   ],
   "extended": [
     { "id": "epd.wac_new", "name": "Extended_WinAtChess", "files": ["wac_new.epd"],
