@@ -32,13 +32,15 @@
 class Chessboard;
 struct PackedMove;
 class Position;
+class PawnHashTable;
 
 class Evaluator
 {
 public:
-    // accumulator must match position, search keeps one in step through MoveExecutor.
-    Evaluator(PositionReader position, const PestoAccumulator& accumulator) :
-        m_position(position), m_accumulator(accumulator) {}
+    // accumulator must match position, search keeps one in step through MoveExecutor. pawnHash caches pawn structure
+    // scores, search passes its thread's table; without one they're counted every time.
+    Evaluator(PositionReader position, const PestoAccumulator& accumulator, PawnHashTable* pawnHash = nullptr) :
+        m_position(position), m_accumulator(accumulator), m_pawnHash(pawnHash) {}
     // computes the accumulator from scratch, for one off evaluations outside search.
     Evaluator(PositionReader position) :
         m_position(position), m_accumulator(PestoAccumulator::computeFromScratch(position.material())) {}
@@ -82,5 +84,6 @@ private:
 
     PositionProxy<PositionReadOnlyPolicy> m_position;
     PestoAccumulator m_accumulator;
+    PawnHashTable* m_pawnHash = nullptr;
 
 };

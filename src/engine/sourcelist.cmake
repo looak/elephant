@@ -44,6 +44,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
     ${ENGINE_INC_DIR}/eval/mobility.hpp
     ${ENGINE_INC_DIR}/eval/mobility_tables.hpp
+    ${ENGINE_INC_DIR}/eval/pawn_hash.hpp
     ${ENGINE_INC_DIR}/eval/pawn_structure.hpp
     ${ENGINE_INC_DIR}/eval/pawn_tables.hpp
     ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp

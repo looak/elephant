@@ -28,6 +28,7 @@
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/pawn_hash.hpp>
 #include <eval/pesto_accumulator.hpp>
 #include <move/move_executor.hpp>
 
@@ -42,6 +43,8 @@ struct ThreadSearchContext {
     Position position;
     // PeSTO sums for position, kept in step by the executors from executor() & read by evaluate().
     PestoAccumulator accumulator;
+    // this thread's pawn structure scores, see pawn_hash.hpp.
+    PawnHashTable pawnHash;
     GameState gameState;
     MoveHistory history;
     MoveOrderingHeuristic moveOrdering;
@@ -142,7 +145,7 @@ struct ThreadSearchContext {
     i16 evaluate() {
         ++evalCount;
         constexpr i16 perspective = (us == Set::WHITE) ? 1 : -1;
-        Evaluator evaluator(position.read(), accumulator);
+        Evaluator evaluator(position.read(), accumulator, &pawnHash);
         return evaluator.Evaluate() * perspective;
     }
 
