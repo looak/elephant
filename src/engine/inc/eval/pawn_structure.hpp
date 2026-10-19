@@ -53,26 +53,6 @@ struct NoPawnTrace {
 
 namespace pawn_internals {
 
-constexpr u64 fileMask(u32 file) { return board_constants::fileaMask << file; }
-constexpr u64 rankMask(u32 rank) { return board_constants::rank0Mask << (8 * rank); }
-
-constexpr u64 adjacentFiles(u32 file) {
-    const u64 mask = fileMask(file);
-    return ((mask & ~board_constants::fileaMask) >> 1) | ((mask & ~board_constants::filehMask) << 1);
-}
-
-// a & h share a value, b & g, c & f, d & e.
-constexpr u32 foldedFile(u32 file) { return file < 4 ? file : 7 - file; }
-
-// the ranks in front of rank, seen from us.
-template<Set us>
-constexpr u64 ranksAhead(u32 rank) {
-    if constexpr (us == Set::WHITE)
-        return rank >= 7 ? 0 : ~UINT64_C(0) << (8 * (rank + 1));
-    else
-        return rank == 0 ? 0 : ~UINT64_C(0) >> (8 * (8 - rank));
-}
-
 // one side's pawns, scored from its point of view. Its passed pawns are left in passed.
 template<Set us, typename Material, typename Trace>
 TaperedScore sideScore(const Material& material, u64& passed, Trace& trace) {
@@ -93,29 +73,29 @@ TaperedScore sideScore(const Material& material, u64& passed, Trace& trace) {
         const u32 relRank = us == Set::WHITE ? rank : 7 - rank;
         const u64 square = UINT64_C(1) << sqr;
         const u64 stop = us == Set::WHITE ? square << 8 : square >> 8;
-        const u64 ahead = ranksAhead<us>(rank);
-        const u64 beside = adjacentFiles(file);
+        const u64 ahead = board_constants::ranksAhead<us>(rank);
+        const u64 beside = board_constants::adjacentFiles(file);
 
-        if ((ours & fileMask(file) & ahead) != 0) {
-            score += evaluator_data::doubledPawn[foldedFile(file)];
+        if ((ours & board_constants::fileMasks[file] & ahead) != 0) {
+            score += evaluator_data::doubledPawn[board_constants::foldedFile(file)];
             trace.doubled(file, sign);
         }
-        else if ((theirs & (fileMask(file) | beside) & ahead) == 0) {
+        else if ((theirs & (board_constants::fileMasks[file] | beside) & ahead) == 0) {
             score += evaluator_data::passedPawn[relRank - 1];
             trace.passed(relRank, sign);
             passed |= square;
         }
 
         if ((ours & beside) == 0) {
-            score += evaluator_data::isolatedPawn[foldedFile(file)];
+            score += evaluator_data::isolatedPawn[board_constants::foldedFile(file)];
             trace.isolated(file, sign);
         }
         else if ((ours & beside & ~ahead) == 0 && (theirAttacks & stop) != 0) {
-            score += evaluator_data::backwardPawn[foldedFile(file)];
+            score += evaluator_data::backwardPawn[board_constants::foldedFile(file)];
             trace.backward(file, sign);
         }
 
-        if ((ours & beside & rankMask(rank)) != 0 || (ourAttacks & square) != 0) {
+        if ((ours & beside & board_constants::rankMasks[rank]) != 0 || (ourAttacks & square) != 0) {
             score += evaluator_data::connectedPawn[relRank - 1];
             trace.connected(relRank, sign);
         }
