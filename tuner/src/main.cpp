@@ -10,10 +10,10 @@
 //   --epochs         passes of the fit, 1000 by default; 0 only checks the writer
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
 //   --tune           the groups of values the fit moves, comma separated names from params::groupInfos (material,
-//                    psqt_pawn to psqt_king, mobility, pawns_passed, pawns_structure, pawns_passed_extras; psqt names
-//                    all six piece square tables), psqt,mobility by default;
+//                    psqt_pawn to psqt_king, mobility, pawns_passed, pawns_structure, pawns_passed_extras,
+//                    king_shelter; psqt names all six piece square tables), psqt,mobility by default;
 //                    the others stay as they are (see fit.hpp)
-//   --out            the folder the tuned pesto_tables.hpp & mobility_tables.hpp are written to, as
+//   --out            the folder the tuned *_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
 //   --held-back      every Nth position is kept out of the fit to check it with, 20 by default, 0 for none
 //   --free-mobility  don't keep mobility's tables centred, they then shift piece values (see fit.hpp)
@@ -84,7 +84,7 @@ int usage() {
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
                  "  --tune:          groups the fit moves, comma separated: material, psqt (all six tables) or\n"
                  "                   psqt_pawn ... psqt_king, mobility, pawns_passed, pawns_structure,\n"
-                 "                   pawns_passed_extras; psqt,mobility by default\n"
+                 "                   pawns_passed_extras, king_shelter; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
                  "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
@@ -389,9 +389,10 @@ bool writeTables(const std::string& outDir, const std::vector<TaperedScore>& aft
         const char* file;
         std::string (*rewrite)(const std::string&, const std::vector<TaperedScore>&);
     };
-    const Written files[3] = { { "pesto_tables", tuner::rewritePestoTables },
+    const Written files[4] = { { "pesto_tables", tuner::rewritePestoTables },
                                { "mobility_tables", tuner::rewriteMobilityTables },
-                               { "pawn_tables", tuner::rewritePawnTables } };
+                               { "pawn_tables", tuner::rewritePawnTables },
+                               { "king_tables", tuner::rewriteKingTables } };
     bool unchanged = true;
     for (const Written& file : files) {
         const std::string from = std::format("{}/src/engine/inc/eval/{}.hpp", ROOT_PATH, file.file);

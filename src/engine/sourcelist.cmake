@@ -42,6 +42,8 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /eval/...
     ${ENGINE_INC_DIR}/eval/evaluator.hpp
     ${ENGINE_INC_DIR}/eval/evaluator_data.hpp
+    ${ENGINE_INC_DIR}/eval/king_safety.hpp
+    ${ENGINE_INC_DIR}/eval/king_tables.hpp
     ${ENGINE_INC_DIR}/eval/mobility.hpp
     ${ENGINE_INC_DIR}/eval/mobility_tables.hpp
     ${ENGINE_INC_DIR}/eval/passed_pawns.hpp
