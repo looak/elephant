@@ -32,6 +32,7 @@
 #include <eval/mobility_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <material/material_mask.hpp>
 
 // What mobilityScore reports to a trace for every knight, bishop, rook & queen: its piece index (knight 1 to queen 4),
 // its safe squares, and its sign, +1 white & -1 black. The score is the sum of sign * mobilityTables[pieceId][count].
@@ -42,14 +43,14 @@ struct NoMobilityTrace {
 namespace mobility_internals {
 
 // one side's pieces, scored from its point of view.
-template<Set us, typename Material, typename Trace>
-TaperedScore sideScore(const Material& material, Trace& trace) {
+template<Set us, typename Trace>
+TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
     const u64 occupied = material.combine().read();
-    const u64 enemyPawnAttacks = attacks::pawnAttacks<them>(material.template pawns<them>().read());
-    const u64 safe = ~material.template combine<us>().read() & ~enemyPawnAttacks;
+    const u64 enemyPawnAttacks = attacks::pawnAttacks<them>(material.pawns<them>().read());
+    const u64 safe = ~material.combine<us>().read() & ~enemyPawnAttacks;
 
     TaperedScore score = S(0, 0);
     auto add = [&](u32 pieceId, u64 reach) {
@@ -58,13 +59,13 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
         trace.mobility(pieceId, count, sign);
     };
 
-    for (auto pieces = material.template knights<us>(); !pieces.empty();)
+    for (auto pieces = material.knights<us>(); !pieces.empty();)
         add(knightId, attacks::getKnightAttacks(pieces.popLsb()));
-    for (auto pieces = material.template bishops<us>(); !pieces.empty();)
+    for (auto pieces = material.bishops<us>(); !pieces.empty();)
         add(bishopId, attacks::getBishopAttacks(pieces.popLsb(), occupied));
-    for (auto pieces = material.template rooks<us>(); !pieces.empty();)
+    for (auto pieces = material.rooks<us>(); !pieces.empty();)
         add(rookId, attacks::getRookAttacks(pieces.popLsb(), occupied));
-    for (auto pieces = material.template queens<us>(); !pieces.empty();) {
+    for (auto pieces = material.queens<us>(); !pieces.empty();) {
         const u32 sqr = pieces.popLsb();
         add(queenId, attacks::getRookAttacks(sqr, occupied) | attacks::getBishopAttacks(sqr, occupied));
     }
@@ -74,16 +75,14 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
 } // namespace mobility_internals
 
 /**
- * Mobility of both sides, white's minus black's, midgame & endgame packed. Material is a MaterialPositionMask,
- * templated so this header doesn't need it.    */
-template<typename Material, typename Trace>
-[[nodiscard]] TaperedScore mobilityScore(const Material& material, Trace& trace) {
+ * Mobility of both sides, white's minus black's, midgame & endgame packed.    */
+template<typename Trace>
+[[nodiscard]] TaperedScore mobilityScore(const MaterialPositionMask& material, Trace& trace) {
     return mobility_internals::sideScore<Set::WHITE>(material, trace)
          - mobility_internals::sideScore<Set::BLACK>(material, trace);
 }
 
-template<typename Material>
-[[nodiscard]] TaperedScore mobilityScore(const Material& material) {
+[[nodiscard]] inline TaperedScore mobilityScore(const MaterialPositionMask& material) {
     NoMobilityTrace none;
     return mobilityScore(material, none);
 }

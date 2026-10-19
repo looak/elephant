@@ -40,6 +40,7 @@
 #include <eval/pawn_structure.hpp>
 #include <eval/tapered_score.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <material/material_mask.hpp>
 
 // What kingSafetyScore reports to a trace for every file: the folded file (0 to 3) and the relative rank index (0 no
 // pawn, 1 to 6 for rank 2 to 7) of shelter and storm, or the rank alone for a blocked storm, and its sign, +1 white &
@@ -62,20 +63,20 @@ constexpr u32 nearestRelRank(u64 pawns) {
 }
 
 // one side's king, scored from its point of view.
-template<Set us, typename Material, typename Trace>
-TaperedScore sideScore(const Material& material, Trace& trace) {
+template<Set us, typename Trace>
+TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
-    const u64 king = material.template king<us>().read();
+    const u64 king = material.king<us>().read();
     if (king == 0)
         return S(0, 0);
     const u32 kingSqr = intrinsics::lsbIndex(king);
     const u32 kingRank = kingSqr >> 3;
     // the king's rank and every rank in front of it.
     const u64 front = pawn_internals::ranksAhead<us>(kingRank) | pawn_internals::rankMask(kingRank);
-    const u64 ours = material.template pawns<us>().read() & front;
-    const u64 theirs = material.template pawns<them>().read() & front;
+    const u64 ours = material.pawns<us>().read() & front;
+    const u64 theirs = material.pawns<them>().read() & front;
 
     TaperedScore score = S(0, 0);
     const u32 centre = std::clamp<u32>(kingSqr & 7, 1, 6);
@@ -103,16 +104,14 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
 } // namespace king_internals
 
 /**
- * King shelter & pawn storm of both sides, white's minus black's, midgame & endgame packed. Material is a
- * MaterialPositionMask, templated so this header doesn't need it.    */
-template<typename Material, typename Trace>
-[[nodiscard]] TaperedScore kingSafetyScore(const Material& material, Trace& trace) {
+ * King shelter & pawn storm of both sides, white's minus black's, midgame & endgame packed.    */
+template<typename Trace>
+[[nodiscard]] TaperedScore kingSafetyScore(const MaterialPositionMask& material, Trace& trace) {
     return king_internals::sideScore<Set::WHITE>(material, trace)
          - king_internals::sideScore<Set::BLACK>(material, trace);
 }
 
-template<typename Material>
-[[nodiscard]] TaperedScore kingSafetyScore(const Material& material) {
+[[nodiscard]] inline TaperedScore kingSafetyScore(const MaterialPositionMask& material) {
     NoKingTrace none;
     return kingSafetyScore(material, none);
 }
