@@ -28,6 +28,7 @@
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/evaluator_data.hpp>
 #include <eval/pawn_hash.hpp>
 #include <eval/pesto_accumulator.hpp>
 #include <move/move_executor.hpp>
@@ -140,13 +141,13 @@ struct ThreadSearchContext {
         return stopped;
     }
 
-    // Static eval from the side-to-move's perspective.
+    // Static eval from the side-to-move's perspective, with its tempo bonus.
     template<Set us>
     i16 evaluate() {
         ++evalCount;
         constexpr i16 perspective = (us == Set::WHITE) ? 1 : -1;
         Evaluator evaluator(position.read(), accumulator, &pawnHash);
-        return evaluator.Evaluate() * perspective;
+        return static_cast<i16>(evaluator.Evaluate() * perspective + evaluator_data::tempoBonus);
     }
 
     // Makes & unmakes moves on position, keeping the accumulator in step.
