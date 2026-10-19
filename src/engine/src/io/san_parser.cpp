@@ -136,6 +136,7 @@ namespace san_parser {
         if (cleanSan.ends_with('+') || cleanSan.ends_with('#')) {
             cleanSan.pop_back();
         }
+        THROW_EXPR(!cleanSan.empty(), ephant::io_error, std::format("san_parser :: Empty SAN: '{}'", san));
 
         // handle castling
         if (cleanSan == "O-O") {
