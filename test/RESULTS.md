@@ -67,8 +67,7 @@ for runs that belong to a commit.
 - `committed`: a commit was made whose tree is exactly the run's tree, so the run is that commit's record. Changing
   anything before committing, or committing only some of the files, leaves the run wip: it no longer describes what
   was committed. The commit may still exist only locally, an amend or rebase can orphan it.
-- `published`: the commit is on a remote branch. Only published runs are history for good. CI runs are published from
-  the start.
+- `published`: the commit is on a remote branch. Only published runs are history for good.
 
 `sync` moves runs along and uploads them, `test/smoke.sh` and the `post-commit` hook run it. Install the hook once per
 clone: `cp hooks/post-commit .git/hooks/ && chmod +x .git/hooks/post-commit`.
@@ -81,7 +80,7 @@ branch, the way to see what the last edit changed.
 **nyayo.** `git config nyayo.url http://<host>:8001` and `git config nyayo.token <token>` (or `NYAYO_URL` &
 `NYAYO_TOKEN`). `sync` uploads every run nyayo doesn't have in its current form, `PUT /api/runs/{id}` with the whole
 run, gzipped: a state change is the same call again. Unreachable is fine, sync retries next time. Without a url runs
-stay local. CI runs aren't uploaded, nyayo pulls them from the workflow's `results-<os>` artifacts.
+stay local. CI records no runs, it only runs the unit tests & perft.
 
 ## Comparable runs
 

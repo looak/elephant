@@ -16,8 +16,7 @@
 <div align="center">
 
 # 
-[![Build][build-badge]][build-link]
-[![Test][test-badge]][test-link] </br>
+[![CI][ci-badge]][ci-link] </br>
 [![latest][release-badge]][release-link]
 [![commits][commits-badge]][commits-link] 
 ![commit-activity-badge]</br>
@@ -218,8 +217,7 @@ For the versions available, see the [tags on this repository](https://github.com
 
 * **Alexander Loodin Ek** - *Initial work* - [looak](https://github.com/looak)
 
-[build-link]:           https://github.com/looak/elephant/actions/workflows/build.yml
-[test-link]:            https://github.com/looak/elephant/actions/workflows/test.yml
+[ci-link]:              https://github.com/looak/elephant/actions/workflows/ci.yml
 [license-link]:         https://github.com/looak/elephant/blob/main/LICENSE
 [release-link]:         https://github.com/looak/elephant/releases/latest
 [commits-link]:         https://github.com/looak/elephant/commits/main
@@ -239,8 +237,7 @@ For the versions available, see the [tags on this repository](https://github.com
 [v0.1.0-alpha.1-link]:  https://github.com/looak/elephant/releases/tag/0.1.0-alpha.1
 
 
-[build-badge]:          https://img.shields.io/github/actions/workflow/status/looak/elephant/build.yml?logo=github&style=for-the-badge
-[test-badge]:           https://img.shields.io/github/actions/workflow/status/looak/elephant/test.yml?label=test&logo=github&style=for-the-badge
+[ci-badge]:             https://img.shields.io/github/actions/workflow/status/looak/elephant/ci.yml?label=ci&logo=github&style=for-the-badge
 [license-badge]:        https://img.shields.io/github/license/looak/elephant?style=flat-square
 [release-badge]:        https://img.shields.io/github/v/release/looak/elephant?style=flat-square
 [commits-badge]:        https://img.shields.io/github/commits-since/looak/elephant/latest?style=flat-square

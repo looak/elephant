@@ -30,16 +30,43 @@
 #include <vector>
 
 #include <eval/mobility_tables.hpp>
+#include <eval/pawn_tables.hpp>
 #include <eval/pesto_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <system/platform.hpp>
 
 namespace tuner {
-
 namespace params {
 
-// the groups of values, in the order they're laid out.
-enum class Group { Material, Psqt, Mobility };
+// the groups of values, in the order they're laid out. The piece square tables are a group per piece, so a table can
+// be tuned with the terms that overlap it; "psqt" names all six (see psqtGroups).
+enum class Group : u8 {
+    Material,
+    Psqt_Pawn, Psqt_Knight, Psqt_Bishop, Psqt_Rook, Psqt_Queen, Psqt_King,
+    Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras,
+    Count
+};
+struct GroupInfo { Group group; std::string_view name; };
+inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupInfos = {{
+    { Group::Material, "material" },
+    { Group::Psqt_Pawn, "psqt_pawn" },
+    { Group::Psqt_Knight, "psqt_knight" },
+    { Group::Psqt_Bishop, "psqt_bishop" },
+    { Group::Psqt_Rook, "psqt_rook" },
+    { Group::Psqt_Queen, "psqt_queen" },
+    { Group::Psqt_King, "psqt_king" },
+    { Group::Mobility, "mobility" },
+    { Group::Pawns_Passed, "pawns_passed" },
+    { Group::Pawns_Structure, "pawns_structure" },
+    { Group::Pawns_PassedExtras, "pawns_passed_extras" }
+}};
+
+constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
+static_assert(static_cast<u32>(Group::Count) <= 32, "FitSettings::tuned is a u32");
+
+// the six piece square table groups, what "psqt" names.
+constexpr u32 psqtGroups = bit(Group::Psqt_Pawn) | bit(Group::Psqt_Knight) | bit(Group::Psqt_Bishop)
+                         | bit(Group::Psqt_Rook) | bit(Group::Psqt_Queen) | bit(Group::Psqt_King);
 
 constexpr u32 materialOffset = 0;  // 6, by piece index pawn to king
 constexpr u32 psqtOffset = 6;      // 6 * 64, by piece index then table square (A8 = 0, see pesto_tables.hpp)
@@ -48,15 +75,64 @@ constexpr u32 mobilityOffset = psqtOffset + 6 * 64;  // knight 0-8, bishop 0-13,
 // how many counts each piece's mobility table has, by piece index, and where each starts within mobility's values.
 constexpr u32 mobilityCounts[6] = { 0, 9, 14, 15, 28, 0 };
 constexpr u32 mobilityStarts[6] = { 0, 0, 9, 23, 38, 66 };
-constexpr u32 count = mobilityOffset + 66;
+
+// passed pawns, by relative rank 2-7. Structure: isolated, doubled and backward by file mirrored a-d, then
+// connected by relative rank 2-7.
+constexpr u32 pawnsPassedOffset = mobilityOffset + mobilityStarts[5];
+constexpr u32 pawnsStructureOffset = pawnsPassedOffset + 6;
+constexpr u32 isolatedOffset = pawnsStructureOffset;
+constexpr u32 doubledOffset = isolatedOffset + 4;
+constexpr u32 backwardOffset = doubledOffset + 4;
+constexpr u32 connectedOffset = backwardOffset + 4;
+
+// passed pawn extras: own & enemy king distance 0-7, blocked & free path by relative rank 2-7, rook behind own & enemy.
+constexpr u32 pawnsPassedExtrasOffset = connectedOffset + 6;
+constexpr u32 passedOwnKingOffset = pawnsPassedExtrasOffset;
+constexpr u32 passedEnemyKingOffset = passedOwnKingOffset + 8;
+constexpr u32 passedBlockedOffset = passedEnemyKingOffset + 8;
+constexpr u32 passedFreePathOffset = passedBlockedOffset + 6;
+constexpr u32 passedRookBehindOffset = passedFreePathOffset + 6;
+constexpr u32 count = passedRookBehindOffset + 2;
+
+// where each group's values start, in Group order, and count where the last one ends.
+constexpr u32 groupCount = static_cast<u32>(Group::Count);
+constexpr std::array<u32, groupCount + 1> groupStarts = {
+    materialOffset,
+    psqtOffset, psqtOffset + 64, psqtOffset + 2 * 64, psqtOffset + 3 * 64, psqtOffset + 4 * 64, psqtOffset + 5 * 64,
+    mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, count
+};
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
 constexpr u32 psqt(u32 pieceId, u32 tableSqr) { return psqtOffset + pieceId * 64 + tableSqr; }
 constexpr u32 mobility(u32 pieceId, u32 safeSquares) { return mobilityOffset + mobilityStarts[pieceId] + safeSquares; }
 
+// relRank 0-7 from the pawn's own side (rank 2 = 1), file 0-7 (a = 0), folded so a and h share a value.
+constexpr u32 mirroredFile(u32 file) { return file < 4 ? file : 7 - file; }
+constexpr u32 passed(u32 relRank) { return pawnsPassedOffset + relRank - 1; }
+constexpr u32 isolated(u32 file) { return isolatedOffset + mirroredFile(file); }
+constexpr u32 doubled(u32 file) { return doubledOffset + mirroredFile(file); }
+constexpr u32 backward(u32 file) { return backwardOffset + mirroredFile(file); }
+constexpr u32 connected(u32 relRank) { return connectedOffset + relRank - 1; }
+constexpr u32 passedOwnKing(u32 distance) { return passedOwnKingOffset + distance; }
+constexpr u32 passedEnemyKing(u32 distance) { return passedEnemyKingOffset + distance; }
+constexpr u32 passedBlocked(u32 relRank) { return passedBlockedOffset + relRank - 1; }
+constexpr u32 passedFreePath(u32 relRank) { return passedFreePathOffset + relRank - 1; }
+constexpr u32 passedRookBehind(u32 whose) { return passedRookBehindOffset + whose; }
+
 constexpr Group groupOf(u32 index) {
-    return index < psqtOffset ? Group::Material : index < mobilityOffset ? Group::Psqt : Group::Mobility;
+    u32 group = 0;
+    while (group + 1 < groupCount && index >= groupStarts[group + 1])
+        ++group;
+    return static_cast<Group>(group);
 }
+
+static_assert(groupOf(psqtOffset - 1) == Group::Material && groupOf(psqt(0, 0)) == Group::Psqt_Pawn);
+static_assert(groupOf(psqt(0, 63)) == Group::Psqt_Pawn && groupOf(psqt(1, 0)) == Group::Psqt_Knight);
+static_assert(groupOf(psqt(5, 0)) == Group::Psqt_King && groupOf(psqt(5, 63)) == Group::Psqt_King);
+static_assert(groupOf(mobilityOffset) == Group::Mobility && groupOf(pawnsPassedOffset - 1) == Group::Mobility);
+static_assert(groupOf(passed(6)) == Group::Pawns_Passed && groupOf(isolated(0)) == Group::Pawns_Structure);
+static_assert(groupOf(connected(6)) == Group::Pawns_Structure && groupOf(passedOwnKing(0)) == Group::Pawns_PassedExtras);
+static_assert(groupOf(count - 1) == Group::Pawns_PassedExtras && passedRookBehind(1) == count - 1);
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {
@@ -68,6 +144,25 @@ inline std::vector<TaperedScore> current() {
         for (u32 safe = 0; safe < mobilityCounts[pieceId]; ++safe)
             values[mobility(pieceId, safe)] = evaluator_data::mobilityTables[pieceId][safe];
     }
+    for (u32 relRank = 1; relRank <= 6; ++relRank) {
+        values[passed(relRank)] = evaluator_data::passedPawn[relRank - 1];
+        values[connected(relRank)] = evaluator_data::connectedPawn[relRank - 1];
+    }
+    for (u32 file = 0; file < 4; ++file) {
+        values[isolated(file)] = evaluator_data::isolatedPawn[file];
+        values[doubled(file)] = evaluator_data::doubledPawn[file];
+        values[backward(file)] = evaluator_data::backwardPawn[file];
+    }
+    for (u32 distance = 0; distance < 8; ++distance) {
+        values[passedOwnKing(distance)] = evaluator_data::passedOwnKing[distance];
+        values[passedEnemyKing(distance)] = evaluator_data::passedEnemyKing[distance];
+    }
+    for (u32 relRank = 1; relRank <= 6; ++relRank) {
+        values[passedBlocked(relRank)] = evaluator_data::passedBlocked[relRank - 1];
+        values[passedFreePath(relRank)] = evaluator_data::passedFreePath[relRank - 1];
+    }
+    for (u32 whose = 0; whose < 2; ++whose)
+        values[passedRookBehind(whose)] = evaluator_data::passedRookBehind[whose];
     return values;
 }
 
@@ -98,8 +193,8 @@ private:
 };
 
 /**
- * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch and to
- * mobilityScore. clear() before each position, coefficients() after.    */
+ * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch, mobilityScore,
+ * pawnInfo and passerScore. clear() before each position, coefficients() after.    */
 class EvalTrace {
 public:
     // see NoPestoTrace in pesto_accumulator.hpp.
@@ -112,6 +207,20 @@ public:
     void mobility(u32 pieceId, u32 safeSquares, i32 sign) {
         add(params::mobility(pieceId, safeSquares), sign);
     }
+
+    // see NoPawnTrace in pawn_structure.hpp.
+    void passed(u32 relRank, i32 sign) { add(params::passed(relRank), sign); }
+    void isolated(u32 file, i32 sign) { add(params::isolated(file), sign); }
+    void doubled(u32 file, i32 sign) { add(params::doubled(file), sign); }
+    void backward(u32 file, i32 sign) { add(params::backward(file), sign); }
+    void connected(u32 relRank, i32 sign) { add(params::connected(relRank), sign); }
+
+    // see NoPasserTrace in passed_pawns.hpp.
+    void passedOwnKing(u32 distance, i32 sign) { add(params::passedOwnKing(distance), sign); }
+    void passedEnemyKing(u32 distance, i32 sign) { add(params::passedEnemyKing(distance), sign); }
+    void passedBlocked(u32 relRank, i32 sign) { add(params::passedBlocked(relRank), sign); }
+    void passedFreePath(u32 relRank, i32 sign) { add(params::passedFreePath(relRank), sign); }
+    void passedRookBehind(u32 whose, i32 sign) { add(params::passedRookBehind(whose), sign); }
 
     void clear() {
         for (u32 index : m_touched) {

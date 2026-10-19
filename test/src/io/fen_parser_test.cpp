@@ -173,6 +173,19 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
     EXPECT_TRUE(result);
 }
 
+TEST_F(FenParserFixture, MoveCountPast255_IsClamped)
+{
+    // a long endgame from a tuning dataset, its fullmove number doesn't fit the byte it's kept in.
+    Chessboard testingBoard;
+    EXPECT_TRUE(io::fen_parser::deserialize("5k2/5P2/4B3/pK6/P7/2b5/8/8 b - - 32 261", testingBoard));
+    EXPECT_EQ(32, testingBoard.readPlyCount());
+    EXPECT_EQ(255, testingBoard.readMoveCount());
+
+    const std::string fen("5k2/5P2/4B3/pK6/P7/2b5/8/8 b - - 32 261");
+    EXPECT_TRUE(io::fen_parser::deserialize(fen, testingBoard));
+    EXPECT_EQ(255, testingBoard.readMoveCount());
+}
+
 ////////////////////////////////////////////////////////////////
 
 }  // namespace ElephantTest

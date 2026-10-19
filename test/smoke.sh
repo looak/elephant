@@ -1,6 +1,6 @@
 #!/bin/sh
-# The local sanity check before a merge, in order: unit tests, perft, bench, the EPD smoke tier. Prints a summary and
-# exits non-zero when a step fails. CI runs the extended EPD tier instead, see .github/workflows/suite.yml.
+# The local sanity check before a merge, in order: unit tests, bench, ElephantSuite, the EPD smoke tier. Prints a summary and
+# exits non-zero when a step fails. CI runs the unit tests & perft only, see .github/workflows/ci.yml.
 #
 #   test/smoke.sh [build dir]     default: build, the CMake build with ElephantTest, ElephantSuite & ElephantGambit
 #
@@ -77,16 +77,16 @@ else
     add_summary PASS bench "$bench_line"
 fi
 
-# --- 3. perft ---
-echo "== perft: $suite"
+# --- 3. ElephantSuite: deep perft & deep searches ---
+echo "== suite: $suite"
 start=$(date +%s)
 suite_log="$log_dir/smoke_suite_$stamp.log"
-if (cd "$root" && "$suite" --gtest_filter='PerftFixture.*:EpdParser.*') > "$suite_log" 2>&1 \
+if (cd "$root" && "$suite") > "$suite_log" 2>&1 \
         && grep -aq "^\[  PASSED  \]" "$suite_log"; then
-    add_summary PASS perft "$(( $(date +%s) - start )) s"
+    add_summary PASS suite "$(( $(date +%s) - start )) s"
 else
     failed=1
-    add_summary FAIL perft "see $suite_log"
+    add_summary FAIL suite "see $suite_log"
     grep -a "FAILED" "$suite_log" | head -n 20
 fi
 

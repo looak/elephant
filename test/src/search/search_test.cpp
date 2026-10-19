@@ -193,11 +193,8 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 
         Search searcher(context);
 
-        // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
-        // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
-        // (64 MB hash). 0.15.1's IIR, applied at every node without a TT or PV move now that PVs are cleared, finds it
-        // at 19, 20 leaves a ply of margin. Raise this when new pruning pushes it out of reach.
-        testingParams.SearchDepth = 20;
+        // e1f1 is found at depth 9 & g5h6 at 8, the fixture's 12 leaves a margin. The deep d4e3 line is in
+        // ElephantSuite, search_depth_test.cpp.
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);

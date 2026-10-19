@@ -53,9 +53,11 @@ TEST(TaperedScore, Taper_MidgameAtFullPhase_EndgameAtZero_LinearBetween) {
 }
 
 TEST(TaperedScore, PestoTables_AsPublished) {
-    // spot checks against chessprogramming.org's PeSTO tables, A8 at index 0.
+    // spot checks against chessprogramming.org's PeSTO tables, A8 at index 0. The pawn table is retuned (see
+    // pesto_tables.hpp), only its empty 8th rank is PeSTO's still.
     static_assert(evaluator_data::pestoMaterial[4] == S(1025, 936));
-    static_assert(evaluator_data::pestoPawn[8] == S(98, 178));          // a7
+    static_assert(evaluator_data::pestoPawn[0] == S(0, 0));             // a8
+    static_assert(evaluator_data::pestoBishop[2] == S(-82, -11));       // c8
     static_assert(evaluator_data::pestoKnight[0] == S(-167, -58));      // a8
     static_assert(evaluator_data::pestoKing[63] == S(14, -43));         // h1
     static_assert(evaluator_data::pestoTables[3] == evaluator_data::pestoRook);

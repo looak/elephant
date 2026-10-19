@@ -14,8 +14,8 @@ committed, and once the commit is on a remote branch it's published, only publis
 run by test/smoke.sh and the post-commit hook, moves runs along and uploads them. Runs are compared along the commit
 graph, a branch with the commit it descends from, so branches waiting on SPRT don't mix.
 
-nyayo: git config nyayo.url & nyayo.token, or NYAYO_URL & NYAYO_TOKEN. Without them runs stay local. CI runs aren't
-uploaded, nyayo pulls them from the workflow's artifacts.
+nyayo: git config nyayo.url & nyayo.token, or NYAYO_URL & NYAYO_TOKEN. Without them runs stay local. CI records no
+runs.
 
 Standard library only, the store is logs/results/ (per machine, ignored by git) unless --store says otherwise.
 """

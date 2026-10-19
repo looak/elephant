@@ -2,6 +2,7 @@
 #include <core/game_context.hpp>
 #include <eval/evaluator.hpp>
 #include <eval/mobility.hpp>
+#include <eval/passed_pawns.hpp>
 #include <io/fen_parser.hpp>
 
 struct EvaluationTestCase {
@@ -29,6 +30,15 @@ i32 evaluate(const std::string& fen) {
     Position position;
     io::fen_parser::deserialize(fen.c_str(), position.edit());
     return Evaluator(position.read()).Evaluate();
+}
+
+// the pawn terms' endgame part of a position, white's side: structure and passed pawn extras.
+i32 pawnsEndgame(const std::string& fen) {
+    Position position;
+    io::fen_parser::deserialize(fen.c_str(), position.edit());
+    const auto& material = position.read().material();
+    const PawnInfo pawns = pawnInfo(material);
+    return eg_score(pawns.score + passerScore(material, pawns));
 }
 
 // mobility's midgame part of a position, white's side, see mobility.hpp.
@@ -75,15 +85,20 @@ TEST(EvaluationSymmetry, AsymmetricMiddlegameAndEndgame)
 // Catches the tables being read upside down, the eval would still be symmetric but reward pawns for staying home.
 TEST(EvaluationPesto, PawnAdvancementIsRewarded)
 {
-    // only kings & pawns, phase 0 so the endgame table alone counts: a7 is 178, a2 is 13.
-    const i32 whitePawnA7 = evaluate("4k3/P7/8/8/8/8/8/4K3 w - - 0 1");
-    const i32 whitePawnA2 = evaluate("4k3/8/8/8/8/8/P7/4K3 w - - 0 1");
-    EXPECT_EQ(whitePawnA7 - whitePawnA2, 178 - 13);
+    // only kings & pawns, phase 0 so the endgame tables alone count: the pawn table's a7 (index 8, A8 first) against
+    // its a2 (index 48), more for the advanced pawn. The pawn's own terms, passed by rank, the kings' distances to it
+    // and its free path, are added on.
+    const i32 a7 = eg_score(evaluator_data::pestoPawn[8]);
+    const i32 a2 = eg_score(evaluator_data::pestoPawn[48]);
+    ASSERT_GT(a7, a2);
+    const std::string whiteA7 = "4k3/P7/8/8/8/8/8/4K3 w - - 0 1";
+    const std::string whiteA2 = "4k3/8/8/8/8/8/P7/4K3 w - - 0 1";
+    EXPECT_EQ(evaluate(whiteA7) - evaluate(whiteA2), a7 - a2 + pawnsEndgame(whiteA7) - pawnsEndgame(whiteA2));
 
     // the same pawns for black, a2 is black's 7th rank.
-    const i32 blackPawnA2 = evaluate("4k3/8/8/8/8/8/p7/4K3 w - - 0 1");
-    const i32 blackPawnA7 = evaluate("4k3/p7/8/8/8/8/8/4K3 w - - 0 1");
-    EXPECT_EQ(blackPawnA2 - blackPawnA7, -(178 - 13));
+    const std::string blackA2 = "4k3/8/8/8/8/8/p7/4K3 w - - 0 1";
+    const std::string blackA7 = "4k3/p7/8/8/8/8/8/4K3 w - - 0 1";
+    EXPECT_EQ(evaluate(blackA2) - evaluate(blackA7), -(a7 - a2) + pawnsEndgame(blackA2) - pawnsEndgame(blackA7));
 }
 
 // At full phase only the midgame tables count, knight g1 is -19 and f3 is 17. The move also changes the knight's
