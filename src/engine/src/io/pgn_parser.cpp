@@ -1,100 +1,223 @@
 #include <io/pgn_parser.hpp>
 #include <io/san_parser.hpp>
-#include <system/platform.hpp>
 #include <core/game_context.hpp>
-#include <move/move_executor.hpp>
+#include <diagnostics/exceptions.hpp>
+
+#include <algorithm>
+#include <format>
 
 namespace io {
 namespace pgn_parser {
+namespace {
+    bool isSpace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f'; }
+    bool isDigit(char c) { return c >= '0' && c <= '9'; }
 
-    std::string removeComments(std::string_view san) {
-        std::string cleaned_annotations;        
-        cleaned_annotations.reserve(san.size());
+    // a word of movetext ends at whitespace or at anything that starts another token.
+    bool endsWord(char c)
+    {
+        return isSpace(c) || c == '{' || c == '}' || c == '(' || c == ')' || c == ';' || c == '[' || c == '$';
+    }
 
-        // remove comments by rebuilding the string from the string_view
-        size_t last_pos = 0;
-        size_t openBracket = san.find('{');
-        while (openBracket != std::string_view::npos) {
-            // Append the part before the comment
-            cleaned_annotations.append(san.substr(last_pos, openBracket - last_pos));
+    bool isResult(std::string_view word) { return word == "1-0" || word == "0-1" || word == "1/2-1/2" || word == "*"; }
 
-            size_t closeBracket = san.find('}', openBracket);
-            if (closeBracket == std::string_view::npos) {
-                // Malformed PGN with an unclosed comment, stop processing here.
+    // the end of the line, or of the text.
+    size_t endOfLine(std::string_view text, size_t from)
+    {
+        const size_t eol = text.find('\n', from);
+        return eol == std::string_view::npos ? text.size() : eol;
+    }
+} // namespace
+
+    std::optional<Token> MovetextTokenizer::next() {
+        while (!m_done) {
+            while (m_pos < m_text.size() && isSpace(m_text[m_pos]))
+                ++m_pos;
+            if (m_pos >= m_text.size())
                 break;
+
+            const char c = m_text[m_pos];
+            if (c == '{') {
+                size_t close = m_text.find('}', m_pos + 1);
+                if (close == std::string_view::npos)
+                    close = m_text.size();  // an unclosed comment runs to the end
+                Token comment{ Token::Kind::Comment, m_text.substr(m_pos + 1, close - m_pos - 1) };
+                m_pos = std::min(close + 1, m_text.size());
+                return comment;
             }
-            // Move the cursor past the comment to the character after '}'
-            last_pos = closeBracket + 1;
-            openBracket = san.find('{', last_pos);
+            if (c == ';') {
+                const size_t eol = endOfLine(m_text, m_pos);
+                Token comment{ Token::Kind::Comment, m_text.substr(m_pos + 1, eol - m_pos - 1) };
+                m_pos = eol;
+                return comment;
+            }
+            if (c == '%' && (m_pos == 0 || m_text[m_pos - 1] == '\n')) {
+                m_pos = endOfLine(m_text, m_pos);  // an escape line isn't the game's
+                continue;
+            }
+            if (c == '(') {
+                skipVariation();
+                continue;
+            }
+            if (c == ')' || c == '}') {
+                ++m_pos;
+                continue;
+            }
+            if (c == '$') {
+                ++m_pos;
+                while (m_pos < m_text.size() && isDigit(m_text[m_pos]))
+                    ++m_pos;
+                continue;
+            }
+            if (c == '[')
+                break;  // the next game's tags
+
+            const size_t start = m_pos;
+            while (m_pos < m_text.size() && !endsWord(m_text[m_pos]))
+                ++m_pos;
+            std::string_view word = m_text.substr(start, m_pos - start);
+
+            if (isResult(word)) {
+                m_done = true;
+                return Token{ Token::Kind::Result, word };
+            }
+            // a move number, 12. or 12..., possibly with its move right behind it; 0-0 is castling, not a number.
+            if (isDigit(word.front()) && !word.starts_with("0-0")) {
+                size_t i = 0;
+                while (i < word.size() && isDigit(word[i]))
+                    ++i;
+                word.remove_prefix(i);
+            }
+            while (!word.empty() && word.front() == '.')
+                word.remove_prefix(1);
+            while (!word.empty() && (word.back() == '!' || word.back() == '?'))
+                word.remove_suffix(1);
+            if (!word.empty())
+                return Token{ Token::Kind::Move, word };
         }
-        // Append the rest of the string after the last comment
-        cleaned_annotations.append(san.substr(last_pos));
-        return cleaned_annotations;
+        m_done = true;
+        return std::nullopt;
     }
 
-    void parseMovePair(GameContext& game, const std::array<std::string, 2>& move_pair) {
-        // Parse the individual moves from the move pair
-        std::string whiteMove = move_pair[0];
-        std::string blackMove = move_pair[1];
-        
-        bool blackToMove = false;
+    // past the variation's closing parenthesis, the variations nested in it and their comments included.
+    void MovetextTokenizer::skipVariation() {
+        u32 depth = 0;
+        while (m_pos < m_text.size()) {
+            const char c = m_text[m_pos];
+            if (c == '{') {
+                const size_t close = m_text.find('}', m_pos + 1);
+                m_pos = close == std::string_view::npos ? m_text.size() : close + 1;
+                continue;
+            }
+            if (c == ';') {
+                m_pos = endOfLine(m_text, m_pos);
+                continue;
+            }
+            ++m_pos;
+            if (c == '(')
+                ++depth;
+            else if (c == ')' && --depth == 0)
+                return;
+        }
+    }
 
-        do {            
-            PackedMove move = san_parser::deserialize(game.readChessboard().readPosition(), !blackToMove, move_pair[(u8)blackToMove]);
-            blackToMove = !blackToMove;
+    const std::string* Game::tag(std::string_view name) const {
+        for (const Tag& tag : tags) {
+            if (tag.name == name)
+                return &tag.value;
+        }
+        return nullptr;
+    }
+
+    void GameReader::skipWhitespace() {
+        while (m_pos < m_stream.size()) {
+            const char c = m_stream[m_pos];
+            if (isSpace(c))
+                ++m_pos;
+            else if (c == '%' && (m_pos == 0 || m_stream[m_pos - 1] == '\n'))
+                m_pos = endOfLine(m_stream, m_pos);
+            else if (m_stream.substr(m_pos).starts_with("\xEF\xBB\xBF"))
+                m_pos += 3;  // a UTF-8 byte order mark
+            else
+                return;
+        }
+    }
+
+    // [Name "value"], with \" and \\ escaped in the value. A tag that doesn't read is skipped to the end of its line.
+    bool GameReader::readTag(Game& game) {
+        const size_t start = m_pos;
+        size_t i = m_pos + 1;
+        auto skipSpaces = [&] {
+            while (i < m_stream.size() && (m_stream[i] == ' ' || m_stream[i] == '\t'))
+                ++i;
+        };
+
+        skipSpaces();
+        const size_t nameStart = i;
+        while (i < m_stream.size() && !isSpace(m_stream[i]) && m_stream[i] != '"' && m_stream[i] != ']')
+            ++i;
+        Tag tag{ std::string(m_stream.substr(nameStart, i - nameStart)), {} };
+        skipSpaces();
+
+        bool read = !tag.name.empty() && i < m_stream.size() && m_stream[i] == '"';
+        if (read) {
+            ++i;
+            while (i < m_stream.size() && m_stream[i] != '"' && m_stream[i] != '\n') {
+                if (m_stream[i] == '\\' && i + 1 < m_stream.size())
+                    ++i;
+                tag.value.push_back(m_stream[i++]);
+            }
+            read = i < m_stream.size() && m_stream[i] == '"';
+            ++i;
+            skipSpaces();
+            read = read && i < m_stream.size() && m_stream[i] == ']';
+        }
+
+        if (!read) {
+            if (game.error.empty())
+                game.error = std::format("the tag at byte {} doesn't read", start);
+            m_pos = endOfLine(m_stream, start);
+            return false;
+        }
+        game.tags.push_back(std::move(tag));
+        m_pos = i + 1;
+        return true;
+    }
+
+    std::optional<Game> GameReader::next() {
+        skipWhitespace();
+        if (m_pos >= m_stream.size())
+            return std::nullopt;
+
+        Game game;
+        game.offset = m_pos;
+        while (m_pos < m_stream.size() && m_stream[m_pos] == '[') {
+            readTag(game);
+            skipWhitespace();
+        }
+
+        MovetextTokenizer tokenizer(m_stream.substr(m_pos));
+        while (tokenizer.next()) {}
+        game.movetext = m_stream.substr(m_pos, tokenizer.position());
+        m_pos += tokenizer.position();
+        game.length = m_pos - game.offset;
+        return game;
+    }
+
+    void deserialize(GameContext& game, std::string_view pgn) {
+        GameReader reader(pgn);
+        std::optional<Game> parsed = reader.next();
+        if (!parsed)
+            return;
+        THROW_EXPR(parsed->error.empty(), ephant::io_error, std::format("pgn_parser :: {}", parsed->error));
+
+        MovetextTokenizer tokenizer(parsed->movetext);
+        while (std::optional<Token> token = tokenizer.next()) {
+            if (token->kind != Token::Kind::Move)
+                continue;
+            const bool whiteToMove = game.readToPlay() == Set::WHITE;
+            PackedMove move = san_parser::deserialize(game.readChessPosition(), whiteToMove, token->text);
             game.MakeMove<true>(move);
-        } while(blackToMove);
-
-    }
-
-    void deserialize(GameContext& game, std::string_view san_view) {
-        // identify the beginning of the move annotations by finding the last ']'.
-        size_t lastBracket = san_view.find_last_of(']');
-        if (lastBracket != std::string_view::npos) {
-            // Extract the move annotations
-            san_view = san_view.substr(lastBracket + 1);
         }
-
-        std::string annotations = removeComments(san_view);
-
-        u32 expectedMoveNumber = 1;
-
-        // Process the annotations
-        for (size_t i = 0; i < annotations.size();) {
-            char c = annotations[i];
-            if (c == ' ') continue; // move past whitespaces
-            if (std::isdigit(c)) {
-                // we're expecting a move number like 22. or 22...
-                u32 moveNumber = static_cast<u32>(c - '0');
-                // Check for the full move number (could be more than one digit)
-                while (std::isdigit(annotations[++i])) {
-                    moveNumber = moveNumber * 10 + static_cast<u32>(annotations[i] - '0');
-                }
-                // Now we have the full move number
-                if (moveNumber == expectedMoveNumber) {
-                    // This is the expected move
-                    expectedMoveNumber++;
-                }
-                i++; // move past the period behind move numbers.
-            }
-
-            u8 pairIndex = 0;
-            std::array<std::string, 2> move_pair;
-            while (pairIndex < 2) {
-                // identify the move pair by looking for white spaces.
-                size_t nextSpace = annotations.find(' ', i);
-                // if no space assume eol.
-                if (nextSpace == std::string_view::npos) 
-                    nextSpace = annotations.size();
-
-                move_pair[pairIndex++] = annotations.substr(i, nextSpace - i);
-                i = nextSpace + 1; // move past the space
-            }
-
-            parseMovePair(game, move_pair);
-
-        }
-
     }
 
 } // namespace pgn_parser

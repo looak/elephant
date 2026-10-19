@@ -39,16 +39,79 @@
  * 
  * @author Alexander Loodin Ek  */
 #pragma once
+#include <optional>
+#include <string>
 #include <string_view>
+#include <vector>
+
+#include <system/platform.hpp>
 
 class GameContext;
 
 namespace io {
 namespace pgn_parser {
-    // Parses a move in standard algebraic notation and returns the internal move representation.
-    void deserialize(GameContext& game, std::string_view san);
+    // A token of movetext: a move in SAN, a comment's text, or the game's result. Views into the text it came from.
+    struct Token {
+        enum class Kind : u8 { Move, Comment, Result };
+        Kind kind;
+        std::string_view text;
+    };
 
-    
+    // Reads movetext a token at a time. Move numbers (12. 12...), NAGs ($1), move suffixes (!?), variations and
+    // escape lines (%) are skipped; {} and ; comments are tokens. It ends after the result, or before a '[', which
+    // starts the next game's tags.
+    class MovetextTokenizer {
+    public:
+        explicit MovetextTokenizer(std::string_view text) : m_text(text) {}
+
+        std::optional<Token> next();
+        // how far into the text it has read.
+        size_t position() const { return m_pos; }
+
+    private:
+        void skipVariation();
+
+        std::string_view m_text;
+        size_t m_pos = 0;
+        bool m_done = false;
+    };
+
+    struct Tag {
+        std::string name;
+        std::string value;
+    };
+
+    // A game as it stands in a PGN stream: its tags and its movetext, not yet played.
+    struct Game {
+        size_t offset = 0;              // where the game starts in the stream, in bytes
+        size_t length = 0;              // its length in bytes, through its movetext
+        std::vector<Tag> tags;
+        std::string_view movetext;      // a view into the stream
+        std::string error;              // a tag that doesn't read, empty when they all do
+
+        // the tag's value, or nullptr.
+        const std::string* tag(std::string_view name) const;
+    };
+
+    // Splits a PGN stream into games, one at a time. The stream has to outlive the games read from it.
+    class GameReader {
+    public:
+        explicit GameReader(std::string_view stream) : m_stream(stream) {}
+
+        std::optional<Game> next();
+
+    private:
+        bool readTag(Game& game);
+        void skipWhitespace();
+
+        std::string_view m_stream;
+        size_t m_pos = 0;
+    };
+
+    // Plays a game's moves on the game's current position: a whole game with its tags, or movetext alone. The tags
+    // are skipped, a FEN tag included: set the position up first. Throws io_error on a move that doesn't read or
+    // isn't legal.
+    void deserialize(GameContext& game, std::string_view pgn);
 
 } // namespace pgn_parser
 } // namespace io

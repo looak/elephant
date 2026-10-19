@@ -4,8 +4,11 @@
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
 #include <io/pgn_parser.hpp>
+#include <diagnostics/exceptions.hpp>
 
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
@@ -200,6 +203,117 @@ TEST_F(PgnParserFixture, FastchessGame)
 
     EXPECT_EQ(9u, plies());
     EXPECT_EQ("rnbq1rk1/ppp2ppp/3bpn2/3p4/3P4/2NBPN2/PPP2PPP/R1BQ1RK1 b - - 6", fen());
+}
+
+// the parser looped forever on a space where it expected a move.
+TEST_F(PgnParserFixture, LeadingAndRepeatedSpaces)
+{
+    m_game.NewGame();
+
+    io::pgn_parser::deserialize(m_game, "   1.e4   e5    2.Nf3\t\tNc6   ");
+
+    EXPECT_EQ(4u, plies());
+    EXPECT_EQ(c_kingsKnight, fen());
+}
+
+TEST_F(PgnParserFixture, IllegalMove_ShouldThrow)
+{
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
+    m_game.NewGame();
+
+    EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "1.e4 e5 2.Ke3 Nc6"); }, ephant::io_error);
+#endif
+}
+
+////////////////////////////////////////////////////////////////
+// the tokenizer & the game reader
+
+TEST(PgnTokenizer, MovesCommentsAndResult)
+{
+    io::pgn_parser::MovetextTokenizer tokenizer("1. e4 {best by test} 1... e5!? (1... c5 {sharp}) 2.Nf3 $1 ; line\n1-0 Nc6");
+    using enum io::pgn_parser::Token::Kind;
+
+    std::vector<std::pair<io::pgn_parser::Token::Kind, std::string>> tokens;
+    while (auto token = tokenizer.next())
+        tokens.emplace_back(token->kind, std::string(token->text));
+
+    const std::vector<std::pair<io::pgn_parser::Token::Kind, std::string>> expected = {
+        { Move, "e4" }, { Comment, "best by test" }, { Move, "e5" }, { Move, "Nf3" }, { Comment, " line" },
+        { Result, "1-0" } };
+    EXPECT_EQ(expected, tokens);
+}
+
+TEST(PgnTokenizer, CastlingWithZerosIsNotAMoveNumber)
+{
+    io::pgn_parser::MovetextTokenizer tokenizer("5.0-0 0-0-0 *");
+
+    EXPECT_EQ("0-0", tokenizer.next()->text);
+    EXPECT_EQ("0-0-0", tokenizer.next()->text);
+    EXPECT_EQ("*", tokenizer.next()->text);
+    EXPECT_FALSE(tokenizer.next());
+}
+
+TEST(PgnGameReader, SplitsAStreamIntoGames)
+{
+    const std::string stream =
+        "\xEF\xBB\xBF[Event \"one\"]\n"
+        "[White \"Elephant \\\"herd\\\" 1.0\"]\n"
+        "\n"
+        "1. e4 e5 1-0\n"
+        "\n"
+        "[Event \"two\"]\n"
+        "[FEN \"8/8/8/8/8/8/8/K6k w - - 0 1\"]\n"
+        "\n"
+        "{no moves} 1/2-1/2\n"
+        "\n"
+        "[Event \"three\"]\n"
+        "\n"
+        "1. d4 {a comment with a [bracket]} d5 *\n";
+    io::pgn_parser::GameReader reader(stream);
+
+    auto one = reader.next();
+    ASSERT_TRUE(one);
+    EXPECT_EQ(3u, one->offset);
+    EXPECT_TRUE(one->error.empty());
+    ASSERT_EQ(2u, one->tags.size());
+    EXPECT_EQ("one", *one->tag("Event"));
+    EXPECT_EQ("Elephant \"herd\" 1.0", *one->tag("White"));
+    EXPECT_EQ(nullptr, one->tag("Black"));
+    EXPECT_EQ("1. e4 e5 1-0", one->movetext);
+    EXPECT_EQ(stream.substr(3, one->length), stream.substr(one->offset, one->length));
+
+    auto two = reader.next();
+    ASSERT_TRUE(two);
+    EXPECT_EQ(stream.find("[Event \"two\"]"), two->offset);
+    EXPECT_EQ("8/8/8/8/8/8/8/K6k w - - 0 1", *two->tag("FEN"));
+    EXPECT_EQ("{no moves} 1/2-1/2", two->movetext);
+
+    auto three = reader.next();
+    ASSERT_TRUE(three);
+    EXPECT_EQ("1. d4 {a comment with a [bracket]} d5 *", three->movetext);
+
+    EXPECT_FALSE(reader.next());
+}
+
+TEST(PgnGameReader, TagThatDoesntRead_IsAnErrorOfThatGameOnly)
+{
+    const std::string stream =
+        "[Event \"one\"]\n[White unquoted]\n\n1. e4 *\n\n"
+        "[Event \"two\"]\n\n1. d4 *\n";
+    io::pgn_parser::GameReader reader(stream);
+
+    auto one = reader.next();
+    ASSERT_TRUE(one);
+    EXPECT_FALSE(one->error.empty());
+    EXPECT_EQ("one", *one->tag("Event"));
+    EXPECT_EQ("1. e4 *", one->movetext);
+
+    auto two = reader.next();
+    ASSERT_TRUE(two);
+    EXPECT_TRUE(two->error.empty());
+    EXPECT_EQ("1. d4 *", two->movetext);
 }
 
 } // namespace ElephantTest
