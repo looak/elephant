@@ -39,27 +39,7 @@ namespace evaluator_data
  * quiet position fit doesn't see it.  */
 constexpr i16 tempoBonus = 15;
 
-/**
- * Idea here is that doubling pawns early or midgame will hurt your structure,
- * later in the game it's not as important where there are less pawns on the board.  */
-constexpr TaperedScore doubledPawnScore = S(-50, -25);
-
-/**
- * Idea here is that isolated pawns are bad but will be worse in the endgame.  */
-constexpr TaperedScore isolatedPawnScore = S(-25, -50);
-
-/**
- * Passed pawns are a strong factor in the endgame and something to strive for. */
-constexpr TaperedScore passedPawnScore = S(25, 100);
-
-/*
-* if the passed pawn is guarded, its pawn protection score is multiplied by this. */
-constexpr i16 guardedPassedPawnBonus = 2;
-
-/*
-* Idea here is that pawns that ar guarded by other pawns are stronger and more valuable.*/
-constexpr i16 guardedPawnScore = 8;
-
+// mop-up's centre bonus by square, 2 on the edge to 16 in the middle, see Evaluator::MopUpValue.
 constexpr i32 center_bias[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,
       2,   4,   4,   4,   4,   4,   4,  2,
