@@ -28,13 +28,21 @@
  *    scored from its own table, by rank alone.
  * Shelter & storm are by file folded onto a to d, an edge file matters differently from a centre one.
  *
- * Counted every evaluation, the king moves more often than the pawns: a few bit scans per file. The trace sees every
- * file's terms, the tuner fits the tables on them, the evaluation passes NoKingTrace.    */
+ * King attack: how hard the enemy's pieces bear on the king zone, the king's square and the squares around it and
+ * those once more a rank further towards the enemy (3 files by up to 4 ranks). Every enemy knight, bishop, rook &
+ * queen reaching the zone adds its attack units for each zone square it reaches; when the enemy has a rook or queen,
+ * every open file of the king's three adds more, and every file without the king's pawns a little less. The units
+ * count only once two pieces attack, one alone is no attack. The danger is kingDanger at the units, the table is fitted,
+ * the units are hand-set, which keeps the term linear for the tuner.
+ *
+ * Counted every evaluation, the king moves more often than the pawns: a few bit scans per file, the enemy pieces'
+ * attacks once more. The trace sees every term, the tuner fits the tables on them, the evaluation passes NoKingTrace.  */
 
 #pragma once
 
 #include <algorithm>
 
+#include <bitboard/attacks/attacks.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <eval/king_tables.hpp>
 #include <eval/pawn_structure.hpp>
@@ -44,11 +52,13 @@
 
 // What kingSafetyScore reports to a trace for every file: the folded file (0 to 3) and the relative rank index (0 no
 // pawn, 1 to 6 for rank 2 to 7) of shelter and storm, or the rank alone for a blocked storm, and its sign, +1 white &
-// -1 black. The score is the sum of sign * the term's table at that index.
+// -1 black. The score is the sum of sign * the term's table at that index. kingAttackScore reports each king's attack
+// units, 1 to 63, when they're not 0.
 struct NoKingTrace {
     constexpr void kingShelter(u32, u32, i32) {}
     constexpr void kingStorm(u32, u32, i32) {}
     constexpr void kingStormBlocked(u32, i32) {}
+    constexpr void kingDanger(u32, i32) {}
 };
 
 namespace king_internals {
@@ -101,6 +111,73 @@ TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace) {
     return score;
 }
 
+// the king zone of a king on kingSqr: its square & the squares around it, and those a rank further towards the enemy.
+template<Set us>
+constexpr u64 kingZone(u32 kingSqr) {
+    const u64 around = attacks::getKingAttacks(kingSqr) | (UINT64_C(1) << kingSqr);
+    return around | (us == Set::WHITE ? around << 8 : around >> 8);
+}
+
+// the enemy's attack units against our king, 0 to 63, see the top of this file.
+template<Set us>
+u32 attackUnits(const MaterialPositionMask& material, u32 kingSqr) {
+    constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
+
+    const u64 zone = kingZone<us>(kingSqr);
+    const u64 occupied = material.combine().read();
+    u32 attackers = 0;
+    u32 units = 0;
+    auto add = [&](u32 pieceId, u64 reach) {
+        const u64 hits = reach & zone;
+        if (hits == 0)
+            return;
+        ++attackers;
+        units += evaluator_data::kingAttackUnits[pieceId] * static_cast<u32>(intrinsics::popcnt(hits));
+    };
+
+    for (auto pieces = material.knights<them>(); !pieces.empty();)
+        add(knightId, attacks::getKnightAttacks(pieces.popLsb()));
+    for (auto pieces = material.bishops<them>(); !pieces.empty();)
+        add(bishopId, attacks::getBishopAttacks(pieces.popLsb(), occupied));
+    for (auto pieces = material.rooks<them>(); !pieces.empty();)
+        add(rookId, attacks::getRookAttacks(pieces.popLsb(), occupied));
+    for (auto pieces = material.queens<them>(); !pieces.empty();) {
+        const u32 sqr = pieces.popLsb();
+        add(queenId, attacks::getRookAttacks(sqr, occupied) | attacks::getBishopAttacks(sqr, occupied));
+    }
+    if (attackers < 2)
+        return 0;
+
+    // the king's three files, open to the enemy's rooks & queens.
+    if ((material.rooks<them>().read() | material.queens<them>().read()) != 0) {
+        const u64 ours = material.pawns<us>().read();
+        const u64 theirs = material.pawns<them>().read();
+        const u32 centre = std::clamp<u32>(kingSqr & 7, 1, 6);
+        for (u32 file = centre - 1; file <= centre + 1; ++file) {
+            const u64 mask = pawn_internals::fileMask(file);
+            if ((ours & mask) != 0)
+                continue;
+            units += (theirs & mask) == 0 ? evaluator_data::kingOpenFileUnits : evaluator_data::kingHalfOpenFileUnits;
+        }
+    }
+    return std::min<u32>(units, 63);
+}
+
+// one side's king attacked, scored from its point of view.
+template<Set us, typename Trace>
+TaperedScore attackScore(const MaterialPositionMask& material, Trace& trace) {
+    constexpr i32 sign = us == Set::WHITE ? 1 : -1;
+
+    const u64 king = material.king<us>().read();
+    if (king == 0)
+        return S(0, 0);
+    const u32 units = attackUnits<us>(material, intrinsics::lsbIndex(king));
+    if (units == 0)
+        return S(0, 0);
+    trace.kingDanger(units, sign);
+    return evaluator_data::kingDanger[units];
+}
+
 } // namespace king_internals
 
 /**
@@ -114,4 +191,17 @@ template<typename Trace>
 [[nodiscard]] inline TaperedScore kingSafetyScore(const MaterialPositionMask& material) {
     NoKingTrace none;
     return kingSafetyScore(material, none);
+}
+
+/**
+ * King attack of both sides, white's minus black's, midgame & endgame packed.    */
+template<typename Trace>
+[[nodiscard]] TaperedScore kingAttackScore(const MaterialPositionMask& material, Trace& trace) {
+    return king_internals::attackScore<Set::WHITE>(material, trace)
+         - king_internals::attackScore<Set::BLACK>(material, trace);
+}
+
+[[nodiscard]] inline TaperedScore kingAttackScore(const MaterialPositionMask& material) {
+    NoKingTrace none;
+    return kingAttackScore(material, none);
 }

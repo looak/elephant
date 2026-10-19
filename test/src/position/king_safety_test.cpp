@@ -10,7 +10,7 @@ namespace ElephantTest {
 
 namespace {
 
-enum class Term { Shelter, Storm, StormBlocked };
+enum class Term { Shelter, Storm, StormBlocked, Danger };
 
 // records what kingSafetyScore reports for every file, see NoKingTrace.
 struct RecordingTrace {
@@ -25,6 +25,7 @@ struct RecordingTrace {
     void kingShelter(u32 folded, u32 rank, i32 sign) { entries.push_back({ Term::Shelter, folded, rank, sign }); }
     void kingStorm(u32 folded, u32 rank, i32 sign) { entries.push_back({ Term::Storm, folded, rank, sign }); }
     void kingStormBlocked(u32 rank, i32 sign) { entries.push_back({ Term::StormBlocked, 0, rank, sign }); }
+    void kingDanger(u32 units, i32 sign) { entries.push_back({ Term::Danger, 0, units, sign }); }
 
     [[nodiscard]] std::size_t count(Term term, u32 folded, u32 rank, i32 sign) const {
         std::size_t n = 0;
@@ -46,6 +47,14 @@ RecordingTrace traceOf(const char* fen) {
     io::fen_parser::deserialize(fen, context.editChessboard());
     RecordingTrace trace;
     (void)kingSafetyScore(context.readChessPosition().material(), trace);
+    return trace;
+}
+
+RecordingTrace attackTraceOf(const char* fen) {
+    GameContext context;
+    io::fen_parser::deserialize(fen, context.editChessboard());
+    RecordingTrace trace;
+    (void)kingAttackScore(context.readChessPosition().material(), trace);
     return trace;
 }
 
@@ -117,6 +126,39 @@ TEST(KingSafety, PawnsBehindTheKingDontCount) {
     EXPECT_EQ(1u, beside.count(Term::Shelter, 2, 2, 1));
     EXPECT_EQ(1u, beside.count(Term::Shelter, 1, 0, 1));
     EXPECT_EQ(1u, beside.count(Term::Shelter, 0, 2, 1));
+}
+
+TEST(KingAttack, NoAttack) {
+    const RecordingTrace trace = attackTraceOf("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    EXPECT_TRUE(trace.entries.empty());
+}
+
+TEST(KingAttack, OneAttackerIsNoAttack) {
+    // black's queen on h4 reaches h3, h2, g3 & f2 of white's king zone, alone.
+    const RecordingTrace trace = attackTraceOf("k7/8/8/8/7q/8/5PPP/6K1 w - - 0 1");
+    EXPECT_TRUE(trace.entries.empty());
+}
+
+TEST(KingAttack, TwoAttackers_UnitsPerSquare) {
+    // the queen's 4 squares at 5 and the f4 knight's g2 & h3 at 2: 24 units. White's pawns close every file.
+    const RecordingTrace trace = attackTraceOf("k7/8/8/8/5n1q/8/5PPP/6K1 w - - 0 1");
+    ASSERT_EQ(1u, trace.entries.size());
+    EXPECT_EQ(1u, trace.count(Term::Danger, 0, 24, 1));
+
+    // mirrored, black's king attacked.
+    const RecordingTrace mirrored = attackTraceOf("6k1/5ppp/8/5N1Q/8/8/8/K7 w - - 0 1");
+    ASSERT_EQ(1u, mirrored.entries.size());
+    EXPECT_EQ(1u, mirrored.count(Term::Danger, 0, 24, -1));
+}
+
+TEST(KingAttack, OpenAndHalfOpenFiles) {
+    // without white's g pawn the g file is open to black's queen: 3 units more.
+    const RecordingTrace open = attackTraceOf("k7/8/8/8/5n1q/8/5P1P/6K1 w - - 0 1");
+    EXPECT_EQ(1u, open.count(Term::Danger, 0, 27, 1));
+
+    // with black's g7 it's only without white's pawns: 2 units more.
+    const RecordingTrace halfOpen = attackTraceOf("k7/6p1/8/8/5n1q/8/5P1P/6K1 w - - 0 1");
+    EXPECT_EQ(1u, halfOpen.count(Term::Danger, 0, 26, 1));
 }
 
 } // namespace ElephantTest

@@ -112,12 +112,13 @@ std::string rewriteKingTables(const std::string& header, const std::vector<Taper
         u32 offset;
         u32 size;
     };
-    const Table tables[3] = { { "kingShelter", params::kingShelterOffset, 32 },
+    const Table tables[4] = { { "kingShelter", params::kingShelterOffset, 32 },
                               { "kingStorm", params::kingStormOffset, 32 },
-                              { "kingStormBlocked", params::kingStormBlockedOffset, 8 } };
+                              { "kingStormBlocked", params::kingStormBlockedOffset, 8 },
+                              { "kingDanger", params::kingDangerOffset, 64 } };
     std::string result = header;
     for (const Table& table : tables) {
-        // eight values to a line, a folded file each for shelter & storm: "    S(   0,   0), S(  12,  -3), ...,".
+        // eight values to a line, a folded file each for shelter & storm, eight units each for danger: "    S(   0,   0), S(  12,  -3), ...,".
         std::string body;
         for (u32 i = 0; i < table.size; ++i) {
             const TaperedScore score = values[table.offset + i];
