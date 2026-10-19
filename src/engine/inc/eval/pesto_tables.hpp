@@ -19,7 +19,13 @@
  * @brief PeSTO's material values, piece square tables & game phase weights, split out of evaluator_data.hpp so the
  * position's PestoAccumulator can use them. All constexpr, safe to include anywhere.
  *
- * The values are packed midgame & endgame Scores, S(mg, eg), the form a tuner writes them back in.    */
+ * The values are packed midgame & endgame Scores, S(mg, eg), the form a tuner writes them back in.
+ *
+ * PeSTO's published values, except pestoPawn: retuned with the pawn terms in pawn_tables.hpp, the rest kept
+ * (--tune psqt_pawn,pawns_passed,pawns_structure,pawns_passed_extras on E12.52-1M-D12-Resolved, K 1.1324, 1000 passes
+ * at rate 1, error 0.086746 -> 0.086180, held back positions 0.65% lower). The pawn terms now pay for passed and
+ * connected pawns, the table no longer does: its 6th rank endgame values dropped, its central midgame ones too. The
+ * king table was tried as well and left out, it learned to march the king up the board.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -50,12 +56,12 @@ constexpr i32 gamePhaseIncrement[6] = { 0, 1, 1, 2, 4, 0 };
 constexpr TaperedScore pestoPawn[64] = {
     //   A             B             C             D             E             F             G             H
     S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), // 8
-    S(  98, 178), S( 134, 173), S(  61, 158), S(  95, 134), S(  68, 147), S( 126, 132), S(  34, 165), S( -11, 187), // 7
-    S(  -6,  94), S(   7, 100), S(  26,  85), S(  31,  67), S(  65,  56), S(  56,  53), S(  25,  82), S( -20,  84), // 6
-    S( -14,  32), S(  13,  24), S(   6,  13), S(  21,   5), S(  23,  -2), S(  12,   4), S(  17,  17), S( -23,  17), // 5
-    S( -27,  13), S(  -2,   9), S(  -5,  -3), S(  12,  -7), S(  17,  -7), S(   6,  -8), S(  10,   3), S( -25,  -1), // 4
-    S( -26,   4), S(  -4,   7), S(  -4,  -6), S( -10,   1), S(   3,   0), S(   3,  -5), S(  33,  -1), S( -12,  -8), // 3
-    S( -35,  13), S(  -1,   8), S( -20,   8), S( -23,  10), S( -15,  13), S(  24,   0), S(  38,   2), S( -22,  -7), // 2
+    S(  96, 164), S(  95, 175), S(  67, 174), S(  82, 158), S( 103, 148), S( 114, 139), S(  10, 178), S(  38, 153), // 7
+    S( -31,  49), S(  -6,  49), S(  -3,  32), S(  -8,  18), S(  11,  11), S(  64,  15), S(  46,  25), S(  -1,  26), // 6
+    S( -28,  25), S( -12,  23), S( -24,  12), S( -13,  -8), S(   4,  -6), S(   9,  -5), S(  11,   9), S( -10,   2), // 5
+    S( -34,  17), S( -19,  22), S( -26,   3), S( -23,   1), S( -13,   0), S( -15,   1), S(   4,   5), S( -17,  -2), // 4
+    S( -42,  14), S( -34,  19), S( -34,   8), S( -32,   8), S( -23,  11), S( -17,   7), S(  -4,   6), S( -17,  -8), // 3
+    S( -35,  19), S( -20,  22), S( -32,  20), S( -28,  19), S( -28,  26), S(   4,  19), S(  27,  10), S(  -9, -12), // 2
     S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), // 1
 };
 

@@ -38,12 +38,23 @@
 namespace tuner {
 namespace params {
 
-// the groups of values, in the order they're laid out.
-enum class Group : u8 { Material, Psqt, Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras, Count };
+// the groups of values, in the order they're laid out. The piece square tables are a group per piece, so a table can
+// be tuned with the terms that overlap it; "psqt" names all six (see psqtGroups).
+enum class Group : u8 {
+    Material,
+    Psqt_Pawn, Psqt_Knight, Psqt_Bishop, Psqt_Rook, Psqt_Queen, Psqt_King,
+    Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras,
+    Count
+};
 struct GroupInfo { Group group; std::string_view name; };
 inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupInfos = {{
     { Group::Material, "material" },
-    { Group::Psqt, "psqt" },
+    { Group::Psqt_Pawn, "psqt_pawn" },
+    { Group::Psqt_Knight, "psqt_knight" },
+    { Group::Psqt_Bishop, "psqt_bishop" },
+    { Group::Psqt_Rook, "psqt_rook" },
+    { Group::Psqt_Queen, "psqt_queen" },
+    { Group::Psqt_King, "psqt_king" },
     { Group::Mobility, "mobility" },
     { Group::Pawns_Passed, "pawns_passed" },
     { Group::Pawns_Structure, "pawns_structure" },
@@ -52,6 +63,10 @@ inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupI
 
 constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
 static_assert(static_cast<u32>(Group::Count) <= 32, "FitSettings::tuned is a u32");
+
+// the six piece square table groups, what "psqt" names.
+constexpr u32 psqtGroups = bit(Group::Psqt_Pawn) | bit(Group::Psqt_Knight) | bit(Group::Psqt_Bishop)
+                         | bit(Group::Psqt_Rook) | bit(Group::Psqt_Queen) | bit(Group::Psqt_King);
 
 constexpr u32 materialOffset = 0;  // 6, by piece index pawn to king
 constexpr u32 psqtOffset = 6;      // 6 * 64, by piece index then table square (A8 = 0, see pesto_tables.hpp)
@@ -82,7 +97,9 @@ constexpr u32 count = passedRookBehindOffset + 2;
 // where each group's values start, in Group order, and count where the last one ends.
 constexpr u32 groupCount = static_cast<u32>(Group::Count);
 constexpr std::array<u32, groupCount + 1> groupStarts = {
-    materialOffset, psqtOffset, mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, count
+    materialOffset,
+    psqtOffset, psqtOffset + 64, psqtOffset + 2 * 64, psqtOffset + 3 * 64, psqtOffset + 4 * 64, psqtOffset + 5 * 64,
+    mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, count
 };
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
@@ -109,7 +126,9 @@ constexpr Group groupOf(u32 index) {
     return static_cast<Group>(group);
 }
 
-static_assert(groupOf(psqtOffset - 1) == Group::Material && groupOf(psqtOffset) == Group::Psqt);
+static_assert(groupOf(psqtOffset - 1) == Group::Material && groupOf(psqt(0, 0)) == Group::Psqt_Pawn);
+static_assert(groupOf(psqt(0, 63)) == Group::Psqt_Pawn && groupOf(psqt(1, 0)) == Group::Psqt_Knight);
+static_assert(groupOf(psqt(5, 0)) == Group::Psqt_King && groupOf(psqt(5, 63)) == Group::Psqt_King);
 static_assert(groupOf(mobilityOffset) == Group::Mobility && groupOf(pawnsPassedOffset - 1) == Group::Mobility);
 static_assert(groupOf(passed(6)) == Group::Pawns_Passed && groupOf(isolated(0)) == Group::Pawns_Structure);
 static_assert(groupOf(connected(6)) == Group::Pawns_Structure && groupOf(passedOwnKing(0)) == Group::Pawns_PassedExtras);

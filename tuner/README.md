@@ -145,7 +145,7 @@ midgame and an endgame number:
 | Group                 | Indexes   | What                                                                       |
 |-----------------------|-----------|----------------------------------------------------------------------------|
 | `material`            | 0–5       | piece values, pawn to king                                                 |
-| `psqt`                | 6–389     | 6 piece-square tables × 64 squares                                         |
+| `psqt_pawn` … `psqt_king` | 6–389 | 6 piece-square tables × 64 squares, a group per piece, 64 each; `psqt` names all six |
 | `mobility`            | 390–455   | knight 0–8, bishop 0–13, rook 0–14, queen 0–27 safe squares                |
 | `pawns_passed`        | 456–461   | passed pawns by relative rank 2–7                                          |
 | `pawns_structure`     | 462–479   | isolated, doubled & backward by file folded onto a–d, connected by rank 2–7 |
@@ -249,7 +249,7 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 | `--leave`         | 0               | cores to keep free, taken off `--threads`                    |
 | `--epochs`        | 1000            | passes of the fit; 0 only checks the writer                  |
 | `--rate`          | 1.0             | Adam's step, roughly centipawns moved per pass               |
-| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt`, `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras` |
+| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt` (or `psqt_pawn` … `psqt_king`), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras` |
 | `--out`           | `.`             | folder for the `*.tuned.hpp` files                           |
 | `--held-back`     | 20              | every Nth position is kept out of the fit, 0 for none        |
 | `--free-mobility` | off             | don't keep mobility's tables centred                         |
