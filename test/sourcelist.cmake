@@ -31,6 +31,7 @@ set(TEST_SOURCE_INCLUDE ${TEST_SOURCE_INCLUDE}
     ${TEST_INC_DIR}/bitboard_test_helpers.hpp
     ${TEST_INC_DIR}/chess_positions.hpp
     ${TEST_INC_DIR}/move_gen_ab.hpp
+    ${TEST_INC_DIR}/perft_cases.hpp
     ${TEST_INC_DIR}/search_cases.hpp
 )
 
@@ -53,6 +54,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/move/move_executor_test.cpp
     ${TEST_SRC_DIR}/move/move_generator_test.cpp
     ${TEST_SRC_DIR}/move/packed_move_test.cpp
+    ${TEST_SRC_DIR}/move/perft_shallow_test.cpp
     ${TEST_SRC_DIR}/move/tusk_move_generator_test.cpp
     ${TEST_SRC_DIR}/move/unmake_test.cpp
 
@@ -81,11 +83,11 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/system/time_manager_test.cpp
 )
 
-# Long running correctness suites (perft, EPD), built into their own executable.
+# Long running correctness tests (deep perft, deep searches), built into their own executable.
 set(TEST_SUITE_SOURCE ${TEST_SUITE_SOURCE}
     ${TEST_SRC_DIR}/elephant_test.cpp
-    ${TEST_SUITE_DIR}/epd_suite_test.cpp
     ${TEST_SUITE_DIR}/perft_test.cpp
+    ${TEST_SUITE_DIR}/search_depth_test.cpp
 )
 
 set(TEST_SOURCE_ALL ${TEST_SOURCE} ${TEST_SOURCE_INCLUDE})

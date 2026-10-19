@@ -36,7 +36,7 @@ endforeach()
 
 include(sourcelist.cmake)
 
-option(ELEPHANT_BUILD_TEST_SUITE "Build ElephantSuite, the long running perft & EPD correctness tests" ON)
+option(ELEPHANT_BUILD_TEST_SUITE "Build ElephantSuite, the long running perft & search depth tests" ON)
 
 include(GoogleTest)
 
@@ -69,10 +69,10 @@ function(elephant_add_test_executable target)
     gtest_discover_tests(${target} PROPERTIES LABELS ${ARG_LABEL} TIMEOUT ${ARG_TIMEOUT})
 endfunction()
 
-# Fast unit tests, run on every push.
+# Fast unit tests, seconds, run on every push.
 elephant_add_test_executable(${PROJECT_NAME} LABEL unit SOURCES ${TEST_SOURCE_ALL})
 
-# Perft & EPD suites, each test can take minutes.
+# Deep perft on every core & deep searches, a minute or two.
 if(ELEPHANT_BUILD_TEST_SUITE)
     elephant_add_test_executable(ElephantSuite LABEL suite TIMEOUT 3600 SOURCES ${TEST_SUITE_SOURCE_ALL})
 endif()

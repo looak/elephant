@@ -29,6 +29,10 @@ const std::vector<SearchCase> s_mateInEight = {
 
 const std::vector<SearchCase> s_nullMovePruning = {
     { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1"},
-    { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6"},
+    { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6"}
+};
+
+// a null move pruning line found only at depth 22, seconds of search, ElephantSuite runs it.
+const std::vector<SearchCase> s_nullMovePruningDeep = {
     { "8/6r1/p7/1p6/3kBn1P/P2p1P2/1P6/3R1K2 b - - 0 1", "d4e3"}
 };
