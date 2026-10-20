@@ -20,7 +20,6 @@
 #include <type_traits>
 
 #include <system/platform.hpp>
-#include <diagnostics/exceptions.hpp>
 #include <core/square_notation.hpp>
 #include <material/chess_piece.hpp>
 #include <math/cast.hpp>
@@ -211,7 +210,7 @@ public:
 
     [[nodiscard]] std::string toString() const
     {
-        THROW_EXPR(!isNull(), ephant::io_error, "Cannot convert NullMove to string.");
+        ASSERT_MSG(!isNull(), "A null move has no notation, UCI's 0000 is written by the caller.");
         std::string ret;
         ret += SquareNotation(sourceSqr()).toString();
         ret += SquareNotation(targetSqr()).toString();
