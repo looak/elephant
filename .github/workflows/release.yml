@@ -1,8 +1,9 @@
 name: Release
 
-# Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels and attaches them
-# to a GitHub release when one is published. By hand it builds any branch or tag into workflow artifacts, and attaches
-# them to the release of that tag when asked.
+# Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels, and phant-indexer
+# (nyayo's game reader, CMake's PhantIndexer) for both at x86-64, and attaches them to a GitHub release when one is
+# published. By hand it builds any branch or tag into workflow artifacts, and attaches them to the release of that tag
+# when asked.
 on:
   release:
     types: [published]
@@ -85,6 +86,67 @@ jobs:
     - name: Attach to release
       if: env.ATTACH == 'true'
       working-directory: ob_build
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: gh release upload "$REF" "$BINARY" --clobber
+
+  # phant-indexer reads PGN, it doesn't search, so one x86-64 build an OS. CMake, since it needs exceptions on (the
+  # parsers report an illegal move by throwing) and fetches zlib & bzip2; linked static, the C runtime too.
+  indexer:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      REF: ${{ github.event.release.tag_name || inputs.ref }}
+      ATTACH: ${{ github.event_name == 'release' || inputs.attach }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ env.REF }}
+
+    - name: Name the binary
+      shell: bash
+      run: |
+        version="$(head -n 1 version.txt | tr -d '\r[:space:]')"
+        os="$([ "$RUNNER_OS" = Windows ] && echo windows || echo linux)"
+        ext="$([ "$RUNNER_OS" = Windows ] && echo .exe || echo)"
+        echo "BINARY=phant-indexer-$version-$os-x86-64$ext" >> "$GITHUB_ENV"
+        echo "BUILT=build/Release/bin/phant-indexer$ext" >> "$GITHUB_ENV"
+
+    - name: Configure
+      shell: bash
+      run: |
+        static="$([ "$RUNNER_OS" = Windows ] && echo -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded || echo -DCMAKE_EXE_LINKER_FLAGS=-static)"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DELEPHANT_NATIVE_ARCH=OFF -DASSERTIONS_ENABLED=OFF \
+          -DEXCEPTIONS_ENABLED=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_TUNER=OFF "$static"
+
+    - name: Build
+      run: cmake --build build --config Release --parallel --target PhantIndexer
+
+    # every binary has to read OpenBench's workload, bz2 as a worker uploads it, before it's attached.
+    - name: Smoke test
+      shell: bash
+      run: |
+        mv "$BUILT" "$BINARY"
+        ./"$BINARY" --version
+        python="$([ "$RUNNER_OS" = Windows ] && echo python || echo python3)"
+        "$python" -c "import bz2, sys; sys.stdout.buffer.write(bz2.compress(open('test/pgn/openbench_workload.pgn', 'rb').read()))" > workload.pgn.bz2
+        read="$(./"$BINARY" < workload.pgn.bz2 | grep -c '"ok":true')"
+        echo "$read of 34 games read"
+        [ "$read" = 34 ]
+
+    - name: Keep as workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BINARY }}
+        path: ${{ env.BINARY }}
+
+    - name: Attach to release
+      if: env.ATTACH == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
