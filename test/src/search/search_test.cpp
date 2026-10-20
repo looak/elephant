@@ -284,11 +284,13 @@ TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult threadedResult = threadedSearch.go<Set::WHITE>(testingParams, timeManager);
 
-    // verify, the main thread's move is played and the count holds the helpers' nodes too.
+    // verify, the main thread's move is played and the count holds the helpers' nodes too. Four threads can finish
+    // the depth in fewer nodes than one, sharing the table, so the count is compared with the main thread's own.
     EXPECT_EQ(Square::G3, threadedResult.move().sourceSqr());
     EXPECT_EQ(Square::G6, threadedResult.move().targetSqr());
     EXPECT_EQ(singleResult.score, threadedResult.score);
-    EXPECT_GT(threadedResult.count, singleResult.count);
+    EXPECT_EQ(singleResult.count, singleResult.mainThreadCount);
+    EXPECT_GT(threadedResult.count, threadedResult.mainThreadCount);
 }
 
 TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)

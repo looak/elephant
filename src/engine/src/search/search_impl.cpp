@@ -63,6 +63,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             searchContext.halfmoveClock[1] = m_gameContext.readPly();
             auto result = iterativeDeepening<us>(searchContext, params);
             searchContext.publishNodes();
+            result.mainThreadCount = searchContext.nodeCount + searchContext.qNodeCount;
             // the main thread is done, the helpers' work is only useful to it.
             if (searchContext.isMainThread())
                 m_shared.stop.store(true, std::memory_order_relaxed);

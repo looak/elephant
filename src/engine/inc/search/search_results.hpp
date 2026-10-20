@@ -48,6 +48,7 @@ struct SearchResult {
     i32 score;
     PackedMove move() { return pvLine.moves[0]; };
     bool ForcedMate = false;
-    u64 count = 0;
-    PVLine pvLine;    
+    u64 count = 0;            // every thread's nodes
+    u64 mainThreadCount = 0;  // the main thread's own, count holds the helpers' on top
+    PVLine pvLine;
 };
