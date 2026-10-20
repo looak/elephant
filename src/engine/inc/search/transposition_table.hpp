@@ -121,10 +121,6 @@ struct TTStats<true> {
     void record_store() { stores.fetch_add(1, std::memory_order_relaxed); }
     void record_overwrite() { overwrites.fetch_add(1, std::memory_order_relaxed); }
 
-    constexpr double calculate_rate(u64 numerator, u64 denominator) const {
-        return denominator > 0 ? static_cast<double>(numerator) / static_cast<double>(denominator) : 0.0;
-    }
-    
     void print_stats() const {
         u64 p = probes.load();
         u64 h = hits.load();
@@ -228,13 +224,6 @@ public:
     template<bool D = Debug>
     std::enable_if_t<D, u64> get_hits() const {
         return m_stats.hits.load();
-    }
-    
-    template<bool D = Debug>
-    std::enable_if_t<D, double> get_hit_rate() const {
-        u64 p = m_stats.probes.load();
-        u64 h = m_stats.hits.load();
-        return calculate_rate<D>(h, p);
     }
 };
 
