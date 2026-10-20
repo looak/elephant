@@ -39,16 +39,88 @@
  * 
  * @author Alexander Loodin Ek  */
 #pragma once
+#include <optional>
+#include <string>
 #include <string_view>
+#include <vector>
+
+#include <system/platform.hpp>
 
 class GameContext;
 
 namespace io {
 namespace pgn_parser {
-    // Parses a move in standard algebraic notation and returns the internal move representation.
-    void deserialize(GameContext& game, std::string_view san);
+    // A token of movetext: a move in SAN, a null move (-- Z0 0000 @@@@), a comment's text, or a result. Views into the
+    // text it came from.
+    struct Token {
+        enum class Kind : u8 { Move, NullMove, Comment, Result };
+        Kind kind;
+        std::string_view text;
+    };
 
-    
+    // Reads movetext a token at a time, as python-chess does. Move numbers (12. 12...), NAGs ($1), move suffixes (!?),
+    // variations and escape lines (%) are skipped; {} and ; comments are tokens. A result doesn't end it, the moves
+    // after one are read too; it ends at a blank line outside a comment, a variation's included, or before a '[',
+    // which starts the next game's tags.
+    class MovetextTokenizer {
+    public:
+        explicit MovetextTokenizer(std::string_view text) : m_text(text) {}
+
+        std::optional<Token> next();
+        // how far into the text it has read.
+        size_t position() const { return m_pos; }
+
+    private:
+        void skipVariation();
+
+        std::string_view m_text;
+        size_t m_pos = 0;
+        bool m_done = false;
+    };
+
+    struct Tag {
+        std::string name;
+        std::string value;
+    };
+
+    // A game as it stands in a PGN stream: its tags and its movetext, not yet played.
+    struct Game {
+        size_t offset = 0;              // where the game starts in the stream, in bytes
+        size_t length = 0;              // its length in bytes, through its movetext
+        std::vector<Tag> tags;
+        std::string_view movetext;      // a view into the stream
+
+        // the tag's value, or nullptr.
+        const std::string* tag(std::string_view name) const;
+    };
+
+    // Splits a PGN stream into games, one at a time, where python-chess (chess.pgn.read_game) splits it. The stream has
+    // to outlive the games read from it. Tags are read as python-chess reads them: values as written, \" not
+    // unescaped, a line that isn't a tag skipped, % and ; lines skipped, one blank line allowed among the tags and
+    // before the movetext; a second one ends the game there, without moves.
+    class GameReader {
+    public:
+        explicit GameReader(std::string_view stream) : m_stream(stream) {}
+
+        std::optional<Game> next();
+
+    private:
+        bool readTag(Game& game);
+        void skipWhitespace();
+
+        std::string_view m_stream;
+        size_t m_pos = 0;
+    };
+
+    // Whether a Variant tag's value is the rules the engine plays, standard chess: python-chess's names for it, in
+    // any case. Chess960 and the rest aren't.
+    bool standardVariant(std::string_view variant);
+
+    // Plays a game: a whole game with its tags, or movetext alone. A FEN tag sets the start position, with or without
+    // SetUp; without one the moves are played on the game's current position. Throws io_error on a Variant that isn't
+    // standard chess, a FEN that doesn't read, a null move (a GameContext can't take one back), and a move that
+    // doesn't read or isn't legal.
+    void deserialize(GameContext& game, std::string_view pgn);
 
 } // namespace pgn_parser
 } // namespace io

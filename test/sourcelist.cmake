@@ -45,6 +45,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
 
 ## /io/...
     ${TEST_SRC_DIR}/io/fen_parser_test.cpp
+    ${TEST_SRC_DIR}/io/pgn_parser_test.cpp
     ${TEST_SRC_DIR}/io/san_parser_test.cpp
     ${TEST_SRC_DIR}/io/uci_test.cpp
     ${TEST_SRC_DIR}/io/zorbist_hashing_test.cpp
