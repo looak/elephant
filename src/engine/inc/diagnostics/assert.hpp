@@ -45,6 +45,8 @@ public:
 
 #define __FILENAME__ (ephant::file_name(__FILE__))
 
+// Asserts are for engine invariants and engine failures, bad input (FEN, SAN/PGN, UCI, CLI) throws, see exceptions.hpp.
+
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
 // number if it fails.
 #if defined(ASSERTIONS_ENABLED)

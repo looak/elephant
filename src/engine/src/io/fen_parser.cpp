@@ -148,6 +148,8 @@ bool
 deserializeEnPassant(std::string_view enPassantStr, PositionEditor position, Set toPlay) {
     position.enPassant().clear();
     if (enPassantStr.size() > 1) {
+        THROW_EXPR(enPassantStr.size() == 2 && enPassantStr[0] >= 'a' && enPassantStr[0] <= 'h' && enPassantStr[1] >= '1'
+            && enPassantStr[1] <= '8', ephant::io_error, "fen_parser :: Invalid en passant square.");
         byte file = checked_cast<byte>(enPassantStr[0] - 'a');
         byte rank = checked_cast<byte>(std::atoi(&enPassantStr[1]) - 1);
         const Square epSqr = to_square(file, rank);
