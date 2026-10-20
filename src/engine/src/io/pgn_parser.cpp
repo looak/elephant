@@ -3,7 +3,11 @@
 #include <core/game_context.hpp>
 #include <diagnostics/exceptions.hpp>
 
+#include <io/fen_parser.hpp>
+
 #include <algorithm>
+#include <array>
+#include <cctype>
 #include <format>
 
 namespace io {
@@ -20,18 +24,43 @@ namespace {
 
     bool isResult(std::string_view word) { return word == "1-0" || word == "0-1" || word == "1/2-1/2" || word == "*"; }
 
+    // python-chess's null moves, a side passing.
+    bool isNullMove(std::string_view word) { return word == "--" || word == "Z0" || word == "0000" || word == "@@@@"; }
+
     // the end of the line, or of the text.
     size_t endOfLine(std::string_view text, size_t from)
     {
         const size_t eol = text.find('\n', from);
         return eol == std::string_view::npos ? text.size() : eol;
     }
+
+    // the start of the next line, or the end of the text.
+    size_t nextLine(std::string_view text, size_t from) { return std::min(endOfLine(text, from) + 1, text.size()); }
+
+    // whether the line from here holds nothing but whitespace; the end of the text is a blank line too.
+    bool blankLine(std::string_view text, size_t from)
+    {
+        for (size_t i = from; i < text.size() && text[i] != '\n'; ++i) {
+            if (!isSpace(text[i]))
+                return false;
+        }
+        return true;
+    }
+
+    bool lineStart(std::string_view text, size_t pos) { return pos == 0 || text[pos - 1] == '\n'; }
 } // namespace
 
     std::optional<Token> MovetextTokenizer::next() {
+        if (m_pos == 0 && blankLine(m_text, 0))
+            m_done = true;  // the game has no movetext
         while (!m_done) {
-            while (m_pos < m_text.size() && isSpace(m_text[m_pos]))
+            while (m_pos < m_text.size() && isSpace(m_text[m_pos])) {
+                if (m_text[m_pos] == '\n' && blankLine(m_text, m_pos + 1)) {
+                    m_done = true;  // a blank line ends the game
+                    return std::nullopt;
+                }
                 ++m_pos;
+            }
             if (m_pos >= m_text.size())
                 break;
 
@@ -76,10 +105,10 @@ namespace {
                 ++m_pos;
             std::string_view word = m_text.substr(start, m_pos - start);
 
-            if (isResult(word)) {
-                m_done = true;
+            if (isResult(word))
                 return Token{ Token::Kind::Result, word };
-            }
+            if (isNullMove(word))
+                return Token{ Token::Kind::NullMove, word };
             // a move number, 12. or 12..., possibly with its move right behind it; 0-0 is castling, not a number.
             if (isDigit(word.front()) && !word.starts_with("0-0")) {
                 size_t i = 0;
@@ -91,6 +120,8 @@ namespace {
                 word.remove_prefix(1);
             while (!word.empty() && (word.back() == '!' || word.back() == '?'))
                 word.remove_suffix(1);
+            if (isNullMove(word))
+                return Token{ Token::Kind::NullMove, word };
             if (!word.empty())
                 return Token{ Token::Kind::Move, word };
         }
@@ -98,11 +129,14 @@ namespace {
         return std::nullopt;
     }
 
-    // past the variation's closing parenthesis, the variations nested in it and their comments included.
+    // past the variation's closing parenthesis, the variations nested in it and their comments included, or up to a
+    // blank line, which ends the game in a variation too.
     void MovetextTokenizer::skipVariation() {
         u32 depth = 0;
         while (m_pos < m_text.size()) {
             const char c = m_text[m_pos];
+            if (c == '\n' && blankLine(m_text, m_pos + 1))
+                return;
             if (c == '{') {
                 const size_t close = m_text.find('}', m_pos + 1);
                 m_pos = close == std::string_view::npos ? m_text.size() : close + 1;
@@ -128,12 +162,13 @@ namespace {
         return nullptr;
     }
 
+    // the blank lines, escape lines (%) and comment lines (;) before a game.
     void GameReader::skipWhitespace() {
         while (m_pos < m_stream.size()) {
             const char c = m_stream[m_pos];
             if (isSpace(c))
                 ++m_pos;
-            else if (c == '%' && (m_pos == 0 || m_stream[m_pos - 1] == '\n'))
+            else if ((c == '%' || c == ';') && lineStart(m_stream, m_pos))
                 m_pos = endOfLine(m_stream, m_pos);
             else if (m_stream.substr(m_pos).starts_with("\xEF\xBB\xBF"))
                 m_pos += 3;  // a UTF-8 byte order mark
@@ -178,9 +213,26 @@ namespace {
 
         Game game;
         game.offset = m_pos;
-        while (m_pos < m_stream.size() && m_stream[m_pos] == '[') {
+        // the tags, a line at a time: one blank line between them is skipped, a second ends the game without moves.
+        bool blank = false;
+        while (m_pos < m_stream.size()) {
+            const char c = m_stream[m_pos];
+            if ((c == '%' || c == ';') && lineStart(m_stream, m_pos)) {
+                m_pos = nextLine(m_stream, m_pos);
+                continue;
+            }
+            if (blankLine(m_stream, m_pos)) {
+                if (blank)
+                    break;
+                blank = true;
+                m_pos = nextLine(m_stream, m_pos);
+                continue;
+            }
+            if (c != '[')
+                break;
+            blank = false;
             readTag(game);
-            skipWhitespace();
+            m_pos = nextLine(m_stream, m_pos);
         }
 
         MovetextTokenizer tokenizer(m_stream.substr(m_pos));
@@ -191,14 +243,38 @@ namespace {
         return game;
     }
 
+    bool standardVariant(std::string_view variant) {
+        static constexpr std::array<std::string_view, 6> c_names = { "standard", "chess", "classical", "normal",
+            "illegal", "from position" };
+        return std::any_of(c_names.begin(), c_names.end(), [variant](std::string_view name) {
+            return std::equal(name.begin(), name.end(), variant.begin(), variant.end(), [](char a, char b) {
+                return a == static_cast<char>(std::tolower(static_cast<unsigned char>(b)));
+            });
+        });
+    }
+
     void deserialize(GameContext& game, std::string_view pgn) {
         GameReader reader(pgn);
         std::optional<Game> parsed = reader.next();
         if (!parsed)
             return;
 
+        [[maybe_unused]] const std::string* variant = parsed->tag("Variant");
+        THROW_EXPR(!variant || standardVariant(*variant), ephant::io_error,
+            std::format("pgn_parser :: Not standard chess, Variant \"{}\"", *variant));
+        if (const std::string* fen = parsed->tag("FEN")) {
+            game.Reset();
+            [[maybe_unused]] const bool read = io::fen_parser::deserialize(*fen, game.editChessboard());
+            THROW_EXPR(read, ephant::io_error, std::format("pgn_parser :: The FEN tag doesn't read: {}", *fen));
+        }
+
         MovetextTokenizer tokenizer(parsed->movetext);
         while (std::optional<Token> token = tokenizer.next()) {
+            if (token->kind == Token::Kind::NullMove) {
+                THROW_EXPR(false, ephant::io_error,
+                    std::format("pgn_parser :: A null move ({}) can't be played on a GameContext", token->text));
+                continue;
+            }
             if (token->kind != Token::Kind::Move)
                 continue;
             const bool whiteToMove = game.readToPlay() == Set::WHITE;

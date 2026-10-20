@@ -6,6 +6,9 @@
 #include <io/pgn_parser.hpp>
 #include <diagnostics/exceptions.hpp>
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -216,6 +219,58 @@ TEST_F(PgnParserFixture, LeadingAndRepeatedSpaces)
     EXPECT_EQ(c_kingsKnight, fen());
 }
 
+// python-chess plays the moves after a result too.
+TEST_F(PgnParserFixture, MovesAfterTheResult_ArePlayed)
+{
+    m_game.NewGame();
+
+    io::pgn_parser::deserialize(m_game, "1.e4 e5 1-0 2.Nf3 Nc6");
+
+    EXPECT_EQ(4u, plies());
+    EXPECT_EQ(c_kingsKnight, fen());
+}
+
+// a FEN tag sets the start position, with SetUp or without.
+TEST_F(PgnParserFixture, FenTag_SetsTheStartPosition)
+{
+    for (const char* setUp : { "[SetUp \"1\"]\n", "" }) {
+        m_game.NewGame();
+
+        io::pgn_parser::deserialize(m_game, std::string(setUp)
+            + "[FEN \"r3kbnr/ppqb2pp/2n1pp2/3pP3/3p4/2P2N2/PP2BPPP/RNBQR1K1 w kq - 0 1\"]\n\n"
+              "cxd4 fxe5 dxe5 Bc5 1-0");
+
+        EXPECT_EQ(4u, plies()) << setUp;
+        EXPECT_EQ("r3k1nr/ppqb2pp/2n1p3/2bpP3/8/5N2/PP2BPPP/RNBQR1K1 w kq - 3", fen()) << setUp;
+    }
+}
+
+TEST_F(PgnParserFixture, StandardVariant_IsPlayed)
+{
+    m_game.NewGame();
+
+    io::pgn_parser::deserialize(m_game, "[Variant \"Standard\"]\n\n1.e4 e5 2.Nf3 Nc6 *");
+
+    EXPECT_EQ(c_kingsKnight, fen());
+    EXPECT_TRUE(io::pgn_parser::standardVariant("from position"));
+    EXPECT_FALSE(io::pgn_parser::standardVariant("Chess960"));
+    EXPECT_FALSE(io::pgn_parser::standardVariant(""));
+}
+
+TEST_F(PgnParserFixture, OtherVariantsAndNullMoves_ShouldThrow)
+{
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
+    m_game.NewGame();
+    EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "[Variant \"Chess960\"]\n\n1.e4 *"); }, ephant::io_error);
+    m_game.NewGame();
+    EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "1.e4 -- 2.d4 *"); }, ephant::io_error);
+    m_game.NewGame();
+    EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "[FEN \"not a fen\"]\n\n1.e4 *"); }, ephant::io_error);
+#endif
+}
+
 TEST_F(PgnParserFixture, IllegalMove_ShouldThrow)
 {
 #ifndef EXCEPTIONS_ENABLED
@@ -241,8 +296,42 @@ TEST(PgnTokenizer, MovesCommentsAndResult)
 
     const std::vector<std::pair<io::pgn_parser::Token::Kind, std::string>> expected = {
         { Move, "e4" }, { Comment, "best by test" }, { Move, "e5" }, { Move, "Nf3" }, { Comment, " line" },
-        { Result, "1-0" } };
+        { Result, "1-0" }, { Move, "Nc6" } };
     EXPECT_EQ(expected, tokens);
+}
+
+// python-chess's four ways to write a side passing, with and without a move number.
+TEST(PgnTokenizer, NullMoves)
+{
+    io::pgn_parser::MovetextTokenizer tokenizer("1. e4 -- 2.-- Z0 3. 0000 @@@@ *");
+    using enum io::pgn_parser::Token::Kind;
+
+    std::vector<std::pair<io::pgn_parser::Token::Kind, std::string>> tokens;
+    while (auto token = tokenizer.next())
+        tokens.emplace_back(token->kind, std::string(token->text));
+
+    const std::vector<std::pair<io::pgn_parser::Token::Kind, std::string>> expected = { { Move, "e4" },
+        { NullMove, "--" }, { NullMove, "--" }, { NullMove, "Z0" }, { NullMove, "0000" }, { NullMove, "@@@@" },
+        { Result, "*" } };
+    EXPECT_EQ(expected, tokens);
+}
+
+// a blank line ends the movetext, in a variation too, but not in a comment.
+TEST(PgnTokenizer, BlankLine_EndsTheMovetext)
+{
+    for (const char* movetext : { "1. e4 e5\n\n2. Nf3 *", "1. e4 e5\r\n  \r\n2. Nf3 *", "1. e4 e5 (1... c5\n\n2. Nf3) *" }) {
+        io::pgn_parser::MovetextTokenizer tokenizer(movetext);
+        EXPECT_EQ("e4", tokenizer.next()->text) << movetext;
+        EXPECT_EQ("e5", tokenizer.next()->text) << movetext;
+        EXPECT_FALSE(tokenizer.next()) << movetext;
+    }
+
+    io::pgn_parser::MovetextTokenizer tokenizer("1. e4 {a comment\n\nover a blank line} e5 *");
+    EXPECT_EQ("e4", tokenizer.next()->text);
+    EXPECT_EQ("a comment\n\nover a blank line", tokenizer.next()->text);
+    EXPECT_EQ("e5", tokenizer.next()->text);
+    EXPECT_EQ("*", tokenizer.next()->text);
+    EXPECT_FALSE(tokenizer.next());
 }
 
 TEST(PgnTokenizer, CastlingWithZerosIsNotAMoveNumber)
@@ -317,6 +406,85 @@ TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
     auto two = reader.next();
     ASSERT_TRUE(two);
     EXPECT_EQ("1. d4 *", two->movetext);
+}
+
+// where python-chess splits games: ; and % lines skipped among the tags, one blank line skipped, a second one ends the
+// game without moves, and a blank line in the movetext ends the game there, what follows is the next one.
+TEST(PgnGameReader, SplitsWherePythonChessDoes)
+{
+    const std::string stream =
+        "; a comment line\n[Event \"one\"]\n% an escape line\n\n[Site \"x\"]\n\n1. e4 *\n\n"
+        "[Event \"two\"]\n\n\n1. d4 d5\n\n2. c4 *\n";
+    io::pgn_parser::GameReader reader(stream);
+
+    auto one = reader.next();
+    ASSERT_TRUE(one);
+    ASSERT_EQ(2u, one->tags.size());
+    EXPECT_EQ("x", *one->tag("Site"));
+    EXPECT_EQ("1. e4 *", one->movetext);
+
+    auto two = reader.next();
+    ASSERT_TRUE(two);
+    EXPECT_EQ("two", *two->tag("Event"));
+    EXPECT_EQ("", two->movetext);
+
+    auto three = reader.next();
+    ASSERT_TRUE(three);
+    EXPECT_TRUE(three->tags.empty());
+    EXPECT_EQ("1. d4 d5", three->movetext);
+
+    auto four = reader.next();
+    ASSERT_TRUE(four);
+    EXPECT_EQ("2. c4 *", four->movetext);
+
+    EXPECT_FALSE(reader.next());
+}
+
+////////////////////////////////////////////////////////////////
+// the fixtures in test/pgn: OpenBench's workload as uploaded (UnitTests/example3.pgn in openbench_eg), cutechess-ob's
+// games before OpenBench strips them (example1.pgn, example2.pgn), a fastchess gauntlet as uwanja plays it, and edge
+// cases. Every game is played to its end, to its PlyCount where it has one.
+
+TEST(PgnFixtures, EveryGameIsPlayed)
+{
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
+    struct Fixture {
+        const char* file;
+        size_t games;
+    };
+    const std::vector<Fixture> fixtures = { { "openbench_workload.pgn", 34 }, { "openbench_unstripped_1.pgn", 1 },
+        { "openbench_unstripped_2.pgn", 1 }, { "fastchess_gauntlet.pgn", 8 }, { "edge_cases.pgn", 11 } };
+
+    GameContext game;
+    for (const Fixture& fixture : fixtures) {
+        std::ifstream file(std::filesystem::path(ELEPHANT_TEST_PGN_DIR) / fixture.file, std::ios::binary);
+        ASSERT_TRUE(file) << fixture.file;
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        const std::string stream = buffer.str();
+
+        io::pgn_parser::GameReader reader(stream);
+        size_t games = 0;
+        while (std::optional<io::pgn_parser::Game> parsed = reader.next()) {
+            ++games;
+            const std::string_view text = std::string_view(stream).substr(parsed->offset, parsed->length);
+            const std::string* event = parsed->tag("Event");
+            game.NewGame();
+            if (event && event->starts_with("an illegal move")) {
+                EXPECT_THROW({ io::pgn_parser::deserialize(game, text); }, ephant::io_error) << fixture.file;
+                continue;
+            }
+            EXPECT_NO_THROW({ io::pgn_parser::deserialize(game, text); }) << fixture.file << " game " << games;
+            if (const std::string* plyCount = parsed->tag("PlyCount")) {
+                EXPECT_EQ(*plyCount, std::to_string(game.readGameHistory().moveUndoUnits.size()))
+                    << fixture.file << " game " << games;
+            }
+        }
+        EXPECT_EQ(fixture.games, games) << fixture.file;
+    }
+#endif
 }
 
 } // namespace ElephantTest
