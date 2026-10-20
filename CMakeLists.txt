@@ -27,9 +27,9 @@ include(GNUInstallDirs)
 include(cmake/options.cmake)
 
 foreach(option IN LISTS PRECOMPILE_OPTIONS)
-    if(${${option}})
+    if(${option})
         message(STATUS "## Precompile option: ${option} ON")
-        add_definitions(-D${option})
+        add_compile_definitions(${option})
     else()
         message(STATUS "## Precompile option: ${option} OFF")
     endif()
@@ -39,7 +39,10 @@ endforeach()
 add_compile_definitions($<$<CONFIG:Debug>:ASSERTIONS_ENABLED> $<$<CONFIG:Debug>:EXCEPTIONS_ENABLED>)
 message(STATUS "## Precompile option: ASSERTIONS_ENABLED & EXCEPTIONS_ENABLED always ON in Debug")
 
+add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_ACTIVE_LEVEL})
 message(STATUS "## Precompile log level: ${LOG_LEVEL}")
+
+include(cmake/warnings.cmake)
 
 # Link time optimization for optimized builds. Attack table & ray lookups live in .cpp files and are only inlined
 # across translation units with LTO, without it every slider lookup is a function call.
@@ -55,9 +58,7 @@ endif()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-# Target the build machine's instruction set (popcnt, tzcnt, lzcnt...). Turn off for portable binaries, the release
-# binaries are built by ob_build/makefile with an explicit ARCH.
-option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
+# ELEPHANT_NATIVE_ARCH, see cmake/options.cmake.
 if(ELEPHANT_NATIVE_ARCH)
     if(MSVC)
         add_compile_options(/arch:AVX2)

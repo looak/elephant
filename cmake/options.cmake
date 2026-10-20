@@ -1,35 +1,36 @@
-set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
-set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
+# Build options. A build directory keeps what its cache says: -D<OPTION>=<value> and reconfigure to change one. Applied
+# in the top-level CMakeLists.txt, ob_build/makefile defines none of them.
 
 # Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, on by default:
 # a development build catches what the tests and the tuner run into. Turn both off to run (and profile) Release like
-# the OpenBench build, ob_build/makefile defines neither. A build directory keeps what its cache says.
-set(ASSERTIONS_ENABLED ON CACHE BOOL "Enable assertions in optimized builds, always on in Debug")
-set(EXCEPTIONS_ENABLED ON CACHE BOOL "Enable exceptions in optimized builds, always on in Debug")
+# the OpenBench build.
+option(ASSERTIONS_ENABLED "Enable assertions in optimized builds, always on in Debug" ON)
+option(EXCEPTIONS_ENABLED "Enable exceptions in optimized builds, always on in Debug" ON)
 
-set(OUTPUT_LOG_TO_FILE OFF CACHE BOOL "Output log to file" FORCE)
-set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Enable debug output for transition table" FORCE)
-set(DEBUG_SEARCH_TREE OFF CACHE BOOL "Enable debug file output for search tree" FORCE)
+# The log always goes to the console, this also writes it and a copy of std::cout to logs/.
+option(OUTPUT_LOG_TO_FILE "Also write the log and std::cout to files in logs/" OFF)
 
-# Map to spdlog's compile-time level
-if(${LOG_LEVEL} STREQUAL "trace")
-    set(SPDLOG_ACTIVE_LEVEL 0)
-elseif(${LOG_LEVEL} STREQUAL "debug")
-    set(SPDLOG_ACTIVE_LEVEL 1)
-elseif(${LOG_LEVEL} STREQUAL "info")
-    set(SPDLOG_ACTIVE_LEVEL 2)
-elseif(${LOG_LEVEL} STREQUAL "warn")
-    set(SPDLOG_ACTIVE_LEVEL 3)
-elseif(${LOG_LEVEL} STREQUAL "error")
-    set(SPDLOG_ACTIVE_LEVEL 4)
-elseif(${LOG_LEVEL} STREQUAL "critical")
-    set(SPDLOG_ACTIVE_LEVEL 5)
-elseif(${LOG_LEVEL} STREQUAL "off")
-    set(SPDLOG_ACTIVE_LEVEL 6)
-else()
-    message(FATAL_ERROR "Invalid LOG_LEVEL: ${LOG_LEVEL}")
+# Target the build machine's instruction set (popcnt, tzcnt, lzcnt...). Turn off for portable binaries, the release
+# binaries are built by ob_build/makefile with an explicit ARCH.
+option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
+
+# The log's level, spdlog compiles out everything below it. A level's position in the list is spdlog's
+# SPDLOG_LEVEL_* value.
+set(LOG_LEVELS trace debug info warn error critical off)
+set(LOG_LEVEL "info" CACHE STRING "Log level: trace, debug, info, warn, error, critical or off")
+set_property(CACHE LOG_LEVEL PROPERTY STRINGS ${LOG_LEVELS})
+list(FIND LOG_LEVELS "${LOG_LEVEL}" SPDLOG_ACTIVE_LEVEL)
+if(SPDLOG_ACTIVE_LEVEL EQUAL -1)
+    message(FATAL_ERROR "Invalid LOG_LEVEL '${LOG_LEVEL}', one of: ${LOG_LEVELS}")
 endif()
 
+# Debugging switches, forced off: a build that needs one turns it on here (or in a CMake file of its own), they can't be
+# set from the command line.
+set(DEVELOPMENT_BUILD OFF CACHE BOOL "CLI banner with the version & build details" FORCE)
+set(DEBUG_TRANSITION_TABLE OFF CACHE BOOL "Transposition table statistics & suspicious score checks" FORCE)
+set(DEBUG_SEARCH_TREE OFF CACHE BOOL "Write the search tree to logs/trace/search.log" FORCE)
+
+# Each one that is ON becomes a compile definition of the same name.
 set(PRECOMPILE_OPTIONS
     ASSERTIONS_ENABLED
     DEBUG_TRANSITION_TABLE
@@ -38,43 +39,3 @@ set(PRECOMPILE_OPTIONS
     OUTPUT_LOG_TO_FILE
     DEBUG_SEARCH_TREE
 )
-
-# Library to hold our shared compiler warning flags
-add_library(common_warnings INTERFACE)
-
-if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    # cl.exe and clang-cl: MSVC-style driver. Check this first, clang-cl reports COMPILER_ID "Clang".
-    set(PROJECT_WARNING_FLAGS
-        "/W4"                  # High warning level, similar to -Wall/-Wextra
-        "/permissive-"         # Strict conformance, similar to -pedantic
-    )
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        # clang-cl passes -W flags through to clang, so the extras still apply.
-        list(APPEND PROJECT_WARNING_FLAGS
-            "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
-            "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
-            "-Wshadow"          # Warn on variable shadowing
-            "-Wconversion"      # Warn on type conversions that may alter a value
-            "-Wsign-conversion" # Warn on sign conversions
-        )
-    endif()
-    message(STATUS "## Applying MSVC-style warning flags.")
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # gcc, clang, clang++: GNU-style driver.
-    set(PROJECT_WARNING_FLAGS
-        "-Wall"                # Enable all core warnings (includes unused variable/parameter)
-        "-Wextra"              # Enable extra warnings
-        "-pedantic"            # Enforce strict standard conformance
-        "-Wno-c++98-compat"          # Silence irrelevant C++98 compatibility warnings
-        "-Wno-c++98-compat-pedantic" # Silence more C++98 noise, often from macros
-        "-Wshadow"          # Warn on variable shadowing
-        "-Wconversion"      # Warn on type conversions that may alter a value
-        "-Wsign-conversion" # Warn on sign conversions
-    )
-    message(STATUS "## Applying GCC/Clang warning flags.")
-endif()
-
-
-message(STATUS "## Warning Level: ${PROJECT_WARNING_FLAGS}")
-target_compile_options(common_warnings INTERFACE ${PROJECT_WARNING_FLAGS})
-add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_ACTIVE_LEVEL})
