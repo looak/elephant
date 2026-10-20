@@ -10,6 +10,7 @@
 
 #include <core/chessboard.hpp>
 #include <eval/evaluator.hpp>
+#include <eval/king_safety.hpp>
 #include <eval/mobility.hpp>
 #include <eval/passed_pawns.hpp>
 #include <eval/pawn_structure.hpp>
@@ -158,7 +159,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         }
 
         // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
-        // left behind, mobility's, pawn structure's and the passed pawn extras.
+        // left behind, mobility's, pawn structure's, the passed pawn extras and king shelter & storm.
         trace.clear();
         const PestoAccumulator traced = PestoAccumulator::computeFromScratch(context.position.read().material(), trace);
         if (!(traced == context.accumulator))
@@ -166,6 +167,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         (void)mobilityScore(context.position.read().material(), trace);
         const PawnInfo pawns = pawnInfo(context.position.read().material(), trace);
         (void)passerScore(context.position.read().material(), pawns, trace);
+        (void)kingSafetyScore(context.position.read().material(), trace);
 
         // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
         Evaluator evaluator(context.position.read(), traced);
