@@ -36,8 +36,7 @@ INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CXX := g++
 ARCH ?= native
 LDFLAGS ?=
-# Logging off (spdlog's SPDLOG_LEVEL_OFF), as the CMake build's default LOG_LEVEL.
-CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -DSPDLOG_ACTIVE_LEVEL=6 -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
