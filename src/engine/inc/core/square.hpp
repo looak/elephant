@@ -1,9 +1,7 @@
 #pragma once
-#include <core/square.hpp>
 #include <diagnostics/assert.hpp>
 #include <system/platform.hpp>
 #include <math/math.hpp>
-#include <format>
 
 enum class Square : uint8_t {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -34,7 +32,7 @@ constexpr bool operator<(Square lhs, Square rhs) {
 }
 
 constexpr Square to_square(byte file, byte rank)  {
-    ASSERT_MSG(file <= 7 && rank <= 7, std::format("toSquare :: Invalid file or rank for square conversion. (file: {}, rank: {})", file, rank));
+    ASSERT_MSG(file <= 7 && rank <= 7, "to_square needs a file & rank from 0 to 7.");
     return static_cast<Square>((rank * 8) + file);
 }
 
