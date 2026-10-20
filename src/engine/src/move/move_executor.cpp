@@ -3,6 +3,7 @@
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
 #include <core/square_notation.hpp>
+#include <diagnostics/logger.hpp>
 #include <math/cast.hpp>
 #include <position/hash_zobrist.hpp>
 

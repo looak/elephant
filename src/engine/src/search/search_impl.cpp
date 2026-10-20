@@ -2,6 +2,8 @@
 
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
+#include <diagnostics/logger.hpp>
+#include <io/printer.hpp>
 
 #include <search/search_move_source.hpp>
 #include <search/search_threadcontext.hpp>

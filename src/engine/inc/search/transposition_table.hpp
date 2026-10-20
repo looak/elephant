@@ -28,7 +28,6 @@
 #include <intrin.h>
 #endif
 #include <system/platform.hpp>
-#include <diagnostics/logger.hpp>
 #include <move/move.hpp>
 #include <search/search_constants.hpp>
 #include "transposition_table_fwd.hpp"
@@ -48,6 +47,10 @@ struct PackedMove;
 using Score = i16;
 
 namespace transposition_table {
+
+// the debug table's logging, in transposition_table.cpp: the header doesn't pull in the logger.
+void logStats(u64 probes, u64 hits, u64 misses, u64 collisions, u64 stores, u64 overwrites);
+void logSuspiciousScore(const char* where, u64 hash, i16 score, u8 depth);
 
     namespace constants {
     // absolute maximum size of the transposition table
@@ -130,18 +133,7 @@ struct TTStats<true> {
         u64 s = stores.load();
         u64 o = overwrites.load();
 
-        double missRate = calculate_rate(100 * m, p);
-        double hitRate = calculate_rate(100 * h, p);
-        double overwriteRate = calculate_rate(100 * o, s);
-        
-        spdlog::debug("=== Transposition Table Statistics ===");
-        spdlog::debug("Probes:      {}", p);
-        spdlog::debug("Hits:        {} ({:.2f}%)", h, hitRate);
-        spdlog::debug("Misses:      {} ({:.2f}%)", m, missRate);
-        spdlog::debug("Collisions:  {}", c);
-        spdlog::debug("Stores:      {}", s);
-        spdlog::debug("Overwrites:  {} ({:.2f}%)", o, overwriteRate);
-        spdlog::debug("=====================================");
+        transposition_table::logStats(p, h, m, c, s, o);
     }
     
     void reset() {
@@ -310,11 +302,9 @@ bool TranspositionTableImpl<Debug>::probe(u64 hash, PackedMove& move, Score& sco
 
         if constexpr (Debug) {
             m_stats.record_hit();
-        }
-
-        // TRAP: Did we retrieve a mangled score?
-        if (score > 16000 && score < 23000) {
-             spdlog::warn("TT TRAP PROBE: Suspicious Score Retrieved! Hash:{:X} Score:{} (0x{:X})", hash, score, score);
+            // a score between the evaluation's & the mate scores was mangled on the way in or out.
+            if (score > 16000 && score < 23000)
+                transposition_table::logSuspiciousScore("probe", hash, score, depth);
         }
         return true;
     }
@@ -329,9 +319,8 @@ template<bool Debug>
 void TranspositionTableImpl<Debug>::store(u64 hash, PackedMove move, Score score, u8 depth, TranspositionFlag bound) {
     if constexpr (Debug) {
         m_stats.record_store();
-    }
-    if (score > 16000 && score < 23000) {
-        spdlog::warn("TT TRAP STORE: Suspicious Score! Hash:{:X} Score:{} (0x{:X}) Depth:{}", hash, score, score, depth);
+        if (score > 16000 && score < 23000)
+            transposition_table::logSuspiciousScore("store", hash, score, depth);
     }
 
     transposition_table::bucket& bucket = bucket_for(hash);

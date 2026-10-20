@@ -2,6 +2,7 @@
 #include "commands/logic/command_processor.hpp"
 #include "commands/logic/command_registry.hpp"
 #include "elephant_cli.hpp"
+#include <diagnostics/logger.hpp>
 #include "printer/printer.hpp"
 
 #include "commands/uci_commands.hpp"

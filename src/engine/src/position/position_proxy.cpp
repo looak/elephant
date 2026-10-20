@@ -2,6 +2,7 @@
 #include <position/position.hpp>
 
 #include <position/hash_zobrist.hpp>
+#include <diagnostics/logger.hpp>
 
 template<typename AccessType>
 template<bool validation>

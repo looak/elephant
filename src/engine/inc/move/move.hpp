@@ -20,6 +20,7 @@
 #include <type_traits>
 
 #include <system/platform.hpp>
+#include <diagnostics/exceptions.hpp>
 #include <core/square_notation.hpp>
 #include <material/chess_piece.hpp>
 #include <math/cast.hpp>

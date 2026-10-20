@@ -10,6 +10,7 @@
 #include <elephant_gambit.hpp>
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
+#include <diagnostics/exceptions.hpp>
 #include <math/cast.hpp>
 #include <position/castling_state_info.hpp>
 #include <position/hash_zobrist.hpp>

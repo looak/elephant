@@ -5,13 +5,11 @@
 #include "elephant_gambit_config.h"
 #include <core/build_info.hpp>
 #include <core/game_context.hpp>
-#include <diagnostics/logger.hpp>
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 #include "printer/printer.hpp"
 
-#include <spdlog/spdlog.h>
 #include <iostream>
 #include <list>
 #include <sstream>

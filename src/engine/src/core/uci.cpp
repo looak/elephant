@@ -2,6 +2,8 @@
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>
+#include <diagnostics/exceptions.hpp>
+#include <diagnostics/logger.hpp>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>

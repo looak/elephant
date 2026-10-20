@@ -17,15 +17,17 @@
  *****************************************************************************/
 
 #pragma once
-#include <spdlog/spdlog.h>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 namespace ephant {
 class ephsert final {
 public:
-    ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "")
-    {
-        spdlog::critical("{}{}:{} Assertion failed: {} > {}", prefix, file, line, expression, message);
-    }
+    // logs the failure as critical, see assert.cpp: the log is in logger.cpp, not in every file that asserts.
+    ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "");
 
     ~ephsert() {
         abort();

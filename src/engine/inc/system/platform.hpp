@@ -16,8 +16,7 @@
 
 #pragma once
 #include <cstdint>
-#include <diagnostics/logger.hpp>
-#include <diagnostics/exceptions.hpp>
+#include <string>
 
 // TODO: cleanup this file, some things aren't used anymore others don't belong in this file.
 

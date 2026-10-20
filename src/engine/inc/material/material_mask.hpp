@@ -28,6 +28,7 @@
 #include <material/material_topology.hpp>
 #include <position/hash_zobrist.hpp>
 #include <format>
+#include <optional>
 
 struct MutableMaterialProxySquare {
 public:

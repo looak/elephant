@@ -21,10 +21,9 @@
 #include <algorithm>
 #include <optional>
 #include <span>
-#include <stack>
 
-#include <io/printer.hpp>
 #include <search/transposition_table_fwd.hpp>
+#include <material/chess_piece_defines.hpp>
 #include <search/search_constants.hpp>
 #include <system/clock.hpp>
 
@@ -163,41 +162,5 @@ public:
     // Move: this capture (or promotion) alone isn't enough, skip it.
     static bool deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha);
 };
-
-// --- Debug Policies ---
-#if defined(DEVELOPMENT_BUILD)
-class DebugEnabled {
-public:
-    static const Clock& pushClock() {
-        Clock clock;
-        clock.Start();
-        m_searchClocks.push(clock);
-        return m_searchClocks.top();
-    }
-
-    static void popClock() {
-        if (!m_searchClocks.empty()) {
-            Clock& clock = m_searchClocks.top();
-            clock.Stop();            
-            m_searchClocks.pop();
-        }
-    }
-
-    static void reportNps(u64 nodes, u64 qnodes) {
-        const Clock& clock = m_searchClocks.top();
-
-        std::cout << " ------------------------------ \n";
-        std::cout << " Nodes: " << io::printer::formatReadableNumber(nodes)
-                  << " QNodes: " << io::printer::formatReadableNumber(qnodes)
-                  << " Total: " << io::printer::formatReadableNumber(nodes + qnodes) << "\n";
-        std::cout << " NPS:   " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes))
-                  << " QNPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(qnodes)) << "\n";
-        std::cout << " Total NPS: " << io::printer::formatReadableNumber(clock.calcNodesPerSecond(nodes + qnodes)) << "\n";
-    }
-
-private:
-    static inline std::stack<Clock> m_searchClocks;
-};
-#endif
 
 } // namespace search_policies

@@ -16,6 +16,7 @@
 
 #pragma once
 #include <string>
+#include <ostream>
 
 #include <core/square.hpp>
 #include <diagnostics/assert.hpp>

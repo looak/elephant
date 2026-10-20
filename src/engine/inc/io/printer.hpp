@@ -28,6 +28,8 @@
 #include <iomanip>
 #include <cmath>
 #include <cstdint>
+#include <sstream>
+#include <spdlog/spdlog.h>
 
 class Chessboard;
 

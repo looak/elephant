@@ -3,11 +3,13 @@
 #include "commands/logic/command_registry.hpp"
 
 #include <core/game_context.hpp>
+#include <diagnostics/logger.hpp>
 #include <io/fen_parser.hpp>
 #include <search/search.hpp>
 #include <math/bench_positions.hpp>
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
+#include <fstream>
 
 struct EpdTestCase {
     std::string id;

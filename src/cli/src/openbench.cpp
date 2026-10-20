@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <system/clock.hpp>
+#include <diagnostics/logger.hpp>
 #include <system/static_initializer.hpp>
 #include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
