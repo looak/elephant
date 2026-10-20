@@ -29,6 +29,7 @@
 #include <system/platform.hpp>
 #include <math/math.hpp>
 #include <math/cast.hpp>
+#include <material/chess_piece_defines.hpp>
 
 namespace coordinates {
 inline constexpr u8 rank_1 = 0;
@@ -120,6 +121,24 @@ inline constexpr u64 lightSquares = UINT64_C(0x55AA55AA55AA55AA);
 static constexpr u64 rankMasks[8] = {rank0Mask, rank1Mask, rank2Mask, rank3Mask, rank4Mask, rank5Mask, rank6Mask, rank7Mask};
 
 static constexpr u64 fileMasks[8] = {fileaMask, filebMask, filecMask, filedMask, fileeMask, filefMask, filegMask, filehMask};
+
+// the files beside file (a = 0), one for the a & h files.
+constexpr u64 adjacentFiles(u32 file) {
+    const u64 mask = fileMasks[file];
+    return ((mask & ~fileaMask) >> 1) | ((mask & ~filehMask) << 1);
+}
+
+// file (a = 0) folded onto a to d: a & h are 0, b & g 1, c & f 2, d & e 3. Evaluation tables mirrored left to right.
+constexpr u32 foldedFile(u32 file) { return file < 4 ? file : 7 - file; }
+
+// every rank in front of rank (0 = rank 1), seen from us: towards rank 8 for white, rank 1 for black.
+template<Set us>
+constexpr u64 ranksAhead(u32 rank) {
+    if constexpr (us == Set::WHITE)
+        return rank >= 7 ? 0 : ~UINT64_C(0) << (8 * (rank + 1));
+    else
+        return rank == 0 ? 0 : ~UINT64_C(0) >> (8 * (8 - rank));
+}
 
 static constexpr u64 boundsRelativeMasks[2][4] = {{rank7Mask, filehMask, rank0Mask, fileaMask},
                                                   {rank0Mask, fileaMask, rank7Mask, filehMask}};

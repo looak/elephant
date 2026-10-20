@@ -35,6 +35,7 @@
 
 #include <algorithm>
 
+#include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <eval/king_tables.hpp>
 #include <eval/pawn_structure.hpp>
@@ -73,15 +74,15 @@ TaperedScore sideScore(const Material& material, Trace& trace) {
     const u32 kingSqr = intrinsics::lsbIndex(king);
     const u32 kingRank = kingSqr >> 3;
     // the king's rank and every rank in front of it.
-    const u64 front = pawn_internals::ranksAhead<us>(kingRank) | pawn_internals::rankMask(kingRank);
+    const u64 front = board_constants::ranksAhead<us>(kingRank) | board_constants::rankMasks[kingRank];
     const u64 ours = material.template pawns<us>().read() & front;
     const u64 theirs = material.template pawns<them>().read() & front;
 
     TaperedScore score = S(0, 0);
     const u32 centre = std::clamp<u32>(kingSqr & 7, 1, 6);
     for (u32 file = centre - 1; file <= centre + 1; ++file) {
-        const u64 mask = pawn_internals::fileMask(file);
-        const u32 folded = pawn_internals::foldedFile(file);
+        const u64 mask = board_constants::fileMasks[file];
+        const u32 folded = board_constants::foldedFile(file);
         const u32 ourRank = nearestRelRank<us>(ours & mask);
         const u32 theirRank = nearestRelRank<us>(theirs & mask);
 

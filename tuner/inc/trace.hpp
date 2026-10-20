@@ -29,6 +29,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include <bitboard/bitboard_constants.hpp>
 #include <eval/king_tables.hpp>
 #include <eval/mobility_tables.hpp>
 #include <eval/pawn_tables.hpp>
@@ -115,11 +116,10 @@ constexpr u32 psqt(u32 pieceId, u32 tableSqr) { return psqtOffset + pieceId * 64
 constexpr u32 mobility(u32 pieceId, u32 safeSquares) { return mobilityOffset + mobilityStarts[pieceId] + safeSquares; }
 
 // relRank 0-7 from the pawn's own side (rank 2 = 1), file 0-7 (a = 0), folded so a and h share a value.
-constexpr u32 mirroredFile(u32 file) { return file < 4 ? file : 7 - file; }
 constexpr u32 passed(u32 relRank) { return pawnsPassedOffset + relRank - 1; }
-constexpr u32 isolated(u32 file) { return isolatedOffset + mirroredFile(file); }
-constexpr u32 doubled(u32 file) { return doubledOffset + mirroredFile(file); }
-constexpr u32 backward(u32 file) { return backwardOffset + mirroredFile(file); }
+constexpr u32 isolated(u32 file) { return isolatedOffset + board_constants::foldedFile(file); }
+constexpr u32 doubled(u32 file) { return doubledOffset + board_constants::foldedFile(file); }
+constexpr u32 backward(u32 file) { return backwardOffset + board_constants::foldedFile(file); }
 constexpr u32 connected(u32 relRank) { return connectedOffset + relRank - 1; }
 constexpr u32 passedOwnKing(u32 distance) { return passedOwnKingOffset + distance; }
 constexpr u32 passedEnemyKing(u32 distance) { return passedEnemyKingOffset + distance; }

@@ -34,6 +34,7 @@
 #include <algorithm>
 
 #include <bitboard/attacks/attacks.hpp>
+#include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <eval/pawn_structure.hpp>
 #include <eval/pawn_tables.hpp>
@@ -80,8 +81,8 @@ TaperedScore sideScore(const Material& material, u64 passed, Trace& trace) {
         const u32 relRank = us == Set::WHITE ? rank : 7 - rank;
         const u64 square = UINT64_C(1) << sqr;
         const u64 stop = us == Set::WHITE ? square << 8 : square >> 8;
-        const u64 path = pawn_internals::fileMask(file) & pawn_internals::ranksAhead<us>(rank);
-        const u64 behind = pawn_internals::fileMask(file) & ~path & ~square;
+        const u64 path = board_constants::fileMasks[file] & board_constants::ranksAhead<us>(rank);
+        const u64 behind = board_constants::fileMasks[file] & ~path & ~square;
 
         if (ownKing != 0) {
             const u32 d = distance(sqr, intrinsics::lsbIndex(ownKing));
