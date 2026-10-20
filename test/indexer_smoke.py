@@ -5,19 +5,28 @@ every game's entry has to agree with what python-chess reads from the same PGN.
     python test/indexer_smoke.py --indexer build/Release/bin/phant-indexer
     python test/indexer_smoke.py --indexer ... --random 5000 --seed 7 test/pgn/*.pgn
     python test/indexer_smoke.py --indexer ... --keep logs/indexer_random.pgn     keep the generated games
+    python test/indexer_smoke.py --indexer ... --random 0 --games ../uwanja/runs --limit 5000   real games, sampled
 
-The games are the PGN files given, test/pgn/*.pgn when none are, and --random games played by python-chess at random
-from the start or from a random position (a FEN tag), with comments, NAGs and variations sprinkled in, so the
+The games are the PGN files given, test/pgn/*.pgn when none are, the *.pgn files under each --games directory (up
+to --limit files, picked at random by the seed), and --random games played by python-chess at
+random from the start or from a random position (a FEN tag), with comments, NAGs and variations sprinkled in, so the
 tokenizer sees all of PGN and the SAN parser every kind of move: random play promotes, underpromotes, castles and
 captures en passant far more often than engines do. Each game is compared on: whether it read and where it stopped,
 the moves in UCI notation, the final position, and every fact of the entry (result, plies, how it ended, promotions,
-castling, captures, material). Prints both readers' speed. Exits 1 on a disagreement, 2 when it couldn't run.
+castling, captures, en passant captures, checks, the fewest pieces, material). Each file is read compressed too, bz2
+and gzip on standard input, and has to give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
+2 when it couldn't run.
+
+Deliberately not python-chess's: a Variant other than standard chess (Chess960 included) is an error before the moves,
+since Elephant doesn't play it.
 
 Needs python-chess (pip install chess), which is what nyayo reads games with today.
 """
 from __future__ import annotations
 
 import argparse
+import bz2
+import gzip
 import io
 import json
 import logging
@@ -37,7 +46,8 @@ except ImportError:
 logging.getLogger("chess.pgn").setLevel(logging.CRITICAL)  # an illegal move is a fact here, not an error
 
 ROOT = Path(__file__).resolve().parent
-FORMAT = "1"
+FORMAT = 1
+STANDARD = {"", "standard", "chess", "classical", "normal", "illegal", "from position"}  # python-chess's chess.Board
 MATERIAL_PLIES = (20, 40)
 VALUES = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
 PROMOTIONS = {chess.QUEEN: "q", chess.ROOK: "r", chess.BISHOP: "b", chess.KNIGHT: "n"}
@@ -60,7 +70,7 @@ def ending(board: chess.Board) -> str:
         return "fifty_moves"
     if board.is_repetition(3):
         return "repetition"
-    return "none"
+    return None
 
 
 def fen(board: chess.Board) -> str:
@@ -70,30 +80,41 @@ def fen(board: chess.Board) -> str:
 
 def expected(game: chess.pgn.Game) -> dict:
     """The entry python-chess reads from a game, the fields phant-indexer's verbose entry has."""
-    board = game.board()
     entry = {"ok": not game.errors, "tags": dict(game.headers), "result": game.headers.get("Result", "*"), "moves": []}
+    if game.headers.get("Variant", "").lower() not in STANDARD:
+        entry.update(ok=False, plies=0, error_ply=0)  # phant-indexer plays standard chess only
+        del entry["moves"]
+        return entry
+    board = game.board()
     promotions = dict.fromkeys("qrbn", 0)
     castled = {"white": None, "black": None}
-    captures = 0
-    plies = 0
+    captures = ep_captures = checks = plies = 0
+    min_pieces = len(board.piece_map())
     mat = {}
     for move in game.mainline_moves():
         plies += 1
-        if board.is_capture(move):
-            captures += 1
-        if move.promotion:
-            promotions[PROMOTIONS[move.promotion]] += 1
-        if board.is_castling(move):
-            castled["white" if board.turn == chess.WHITE else "black"] = plies
+        if move:  # a null move is falsy, and python-chess calls one taking on a1 a capture
+            if board.is_capture(move):
+                captures += 1
+            if board.is_en_passant(move):
+                ep_captures += 1
+            if move.promotion:
+                promotions[PROMOTIONS[move.promotion]] += 1
+            if board.is_castling(move):
+                castled["white" if board.turn == chess.WHITE else "black"] = plies
         entry["moves"].append(move.uci())
         board.push(move)
+        if move and board.is_check():
+            checks += 1
+        min_pieces = min(min_pieces, len(board.piece_map()))
         if plies in MATERIAL_PLIES:
             mat[str(plies)] = material(board)
     entry["plies"] = plies
     entry["fen"] = fen(board)
     if entry["ok"]:
         mat["end"] = material(board)
-        entry.update(ended=ending(board), promotions=promotions, castled=castled, captures=captures, material=mat)
+        entry.update(ended=ending(board), promotions=promotions, castled=castled, captures=captures,
+                     ep_captures=ep_captures, checks=checks, min_pieces=min_pieces, material=mat)
     else:
         entry["error_ply"] = plies + 1
     return entry
@@ -103,9 +124,15 @@ def compare(want: dict, got: dict) -> list[str]:
     diffs = []
     # python-chess fills in the seven tag roster, phant-indexer reports the tags written.
     got = {**got, "tags": {**ROSTER, **got.get("tags", {})}}
-    if got.get("indexer") != FORMAT:
-        diffs.append(f"format {got.get('indexer')!r}, expected {FORMAT!r}")
-    for key in ("ok", "tags", "result", "plies", "moves", "fen", "ended", "promotions", "castled", "captures", "material"):
+    # and writes the movetext's result into a Result tag of *, phant-indexer reports the tag as written.
+    if got["tags"]["Result"] == "*" and want["tags"].get("Result") == want["result"]:
+        got["tags"]["Result"] = want["result"]
+    if got.get("format") != FORMAT:
+        diffs.append(f"format {got.get('format')!r}, expected {FORMAT!r}")
+    if not got.get("reader"):
+        diffs.append("no reader version")
+    for key in ("ok", "tags", "result", "plies", "moves", "fen", "ended", "promotions", "castled", "captures",
+                "ep_captures", "checks", "min_pieces", "material"):
         if key in want and want[key] != got.get(key):
             if key == "moves":
                 at = next((i for i, (a, b) in enumerate(zip(want[key], got.get(key) or [])) if a != b), None)
@@ -156,15 +183,30 @@ def random_game(rng: random.Random) -> chess.pgn.Game:
     return game
 
 
-def run_indexer(indexer: str, path: Path) -> tuple[list[dict], float]:
+def run_indexer(indexer: str, path: Path, stdin: bytes | None = None) -> tuple[list[dict], float]:
+    """phant-indexer's entries for a file, or for bytes on standard input."""
     start = time.perf_counter()
-    done = subprocess.run([indexer, "--verbose", str(path)], capture_output=True, check=False)
+    args = [indexer, "--verbose"] if stdin is not None else [indexer, "--verbose", str(path)]
+    done = subprocess.run(args, input=stdin, capture_output=True, check=False)
     elapsed = time.perf_counter() - start
     if done.returncode != 0:
         print(f"indexer_smoke: phant-indexer exited {done.returncode} on {path}: {done.stderr.decode(errors='replace')}",
               file=sys.stderr)
         sys.exit(2)
     return [json.loads(line) for line in done.stdout.decode("utf-8").splitlines()], elapsed
+
+
+def compressed_agree(indexer: str, path: Path, entries: list[dict]) -> list[str]:
+    """The same entries from the file bz2'd and gzipped on standard input, but for the source."""
+    plain = [{k: v for k, v in entry.items() if k != "source"} for entry in entries]
+    data = path.read_bytes()
+    diffs = []
+    for name, packed in (("bz2", bz2.compress(data)), ("gzip", gzip.compress(data))):
+        got, _ = run_indexer(indexer, path, stdin=packed)
+        if got != plain:
+            diffs.append(f"{name} on standard input: {len(got)} entries, not the plain file's {len(plain)}"
+                         if len(got) != len(plain) else f"{name} on standard input: entries differ")
+    return diffs
 
 
 def read_games(path: Path) -> tuple[list[chess.pgn.Game], float]:
@@ -181,6 +223,9 @@ def check_file(indexer: str, path: Path, label: str) -> tuple[int, int, float, f
     entries, indexer_time = run_indexer(indexer, path)
     games, python_time = read_games(path)
     bad = 0
+    for diff in compressed_agree(indexer, path, entries):
+        print(f"FAIL {label}: {diff}")
+        bad += 1
     if len(entries) != len(games):
         print(f"FAIL {label}: phant-indexer read {len(entries)} games, python-chess {len(games)}")
         return len(games), max(1, abs(len(entries) - len(games))), indexer_time, python_time
@@ -201,6 +246,9 @@ def main() -> int:
     parser.add_argument("--random", type=int, default=2000, help="random games to play, default 2000")
     parser.add_argument("--seed", type=int, default=None, help="for the random games, default a new one each run")
     parser.add_argument("--keep", type=Path, help="write the random games here, to rerun a failure")
+    parser.add_argument("--games", type=Path, action="append", default=[],
+                        help="a directory of real games, *.pgn under it; can be given more than once")
+    parser.add_argument("--limit", type=int, default=5000, help="at most this many files from --games, default 5000")
     parser.add_argument("pgn", nargs="*", type=Path, help="PGN files, default test/pgn/*.pgn")
     args = parser.parse_args()
 
@@ -208,12 +256,21 @@ def main() -> int:
     if not indexer.is_file():
         print(f"indexer_smoke: no phant-indexer at {args.indexer}", file=sys.stderr)
         return 2
-    files = args.pgn or sorted((ROOT / "pgn").glob("*.pgn"))
+    files = args.pgn or ([] if args.games else sorted((ROOT / "pgn").glob("*.pgn")))
     seed = args.seed if args.seed is not None else random.randrange(1 << 30)
     total_games = total_bad = 0
     indexer_time = python_time = 0.0
 
     with tempfile.TemporaryDirectory() as scratch:
+        if args.games:
+            # real games, the files picked at random by the seed and written as one.
+            texts = []
+            for path in sorted(p for directory in args.games for p in directory.rglob("*.pgn")):
+                texts.append(path.read_text(encoding="utf-8-sig", errors="replace").strip() + "\n\n")
+            random.Random(seed).shuffle(texts)
+            sample = Path(scratch) / "games.pgn"
+            sample.write_text("".join(texts[:args.limit]), encoding="utf-8", newline="\n")
+            files = [*files, sample]
         if args.random:
             rng = random.Random(seed)
             generated = args.keep or Path(scratch) / "random.pgn"
@@ -223,7 +280,8 @@ def main() -> int:
             files = [*files, generated]
 
         for path in files:
-            label = f"random (seed {seed})" if args.random and path == files[-1] else path.name
+            label = (f"random (seed {seed})" if args.random and path == files[-1]
+                     else f"real games (seed {seed})" if args.games and path.name == "games.pgn" else path.name)
             games, bad, it, pt = check_file(str(indexer), path, label)
             total_games, total_bad = total_games + games, total_bad + bad
             indexer_time, python_time = indexer_time + it, python_time + pt
