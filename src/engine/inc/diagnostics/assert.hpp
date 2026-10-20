@@ -17,14 +17,19 @@
  *****************************************************************************/
 
 #pragma once
-#include <spdlog/spdlog.h>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
 
 namespace ephant {
 class ephsert final {
 public:
+    // straight to stderr, not through the logger: logging is off by default and a failed assert must still say why.
     ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "")
     {
-        spdlog::critical("{}{}:{} Assertion failed: {} > {}", prefix, file, line, expression, message);
+        std::fprintf(stderr, "%s%s:%d Assertion failed: %s > %s\n", prefix.c_str(), file.c_str(), line, expression,
+                     message.c_str());
+        std::fflush(stderr);
     }
 
     ~ephsert() {

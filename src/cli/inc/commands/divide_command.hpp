@@ -22,14 +22,14 @@ public:
         DivideCommandArgs parsedArgs{};
 
         if (args.size() != 1) {
-            spdlog::error("'divide' command requires a depth argument.");
+            prnt::out << " 'divide' needs a depth argument." << std::endl;
             return std::nullopt;
         }
         try {
             parsedArgs.depth = std::stoi(args[0]);
         }
         catch (const std::exception&) {
-            spdlog::error("Invalid depth argument '{}'. Must be an integer.", args[0]);
+            prnt::out << " Invalid depth '" << args[0] << "', it must be an integer." << std::endl;
             return std::nullopt;
         }
         return parsedArgs;

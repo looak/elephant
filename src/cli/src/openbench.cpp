@@ -127,8 +127,8 @@ int main(int argc, char* argv[]) {
         }
     }    
 
-    spdlog::info("Starting independent UCI mode...");
-    spdlog::set_level(spdlog::level::err);
+    // the makefile's SPDLOG_ACTIVE_LEVEL, off. Set before the UCI logger is created, which keeps its own level.
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(SPDLOG_ACTIVE_LEVEL));
 
     UciModeProcessor processor;
     processor.processInput(nullptr, "");

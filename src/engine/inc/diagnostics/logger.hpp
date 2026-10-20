@@ -109,9 +109,11 @@ inline void init() {
     mtLogger->sinks().push_back(file_sink);
     #endif
     
+    // the level & pattern go on this logger only, spdlog::set_level/set_pattern would change every registered logger,
+    // the "uci" one included.
+    mtLogger->set_level(log_level);
+    mtLogger->set_pattern("[%H:%M:%S] [%^%l%$] %v");
     spdlog::set_default_logger(mtLogger);
-    spdlog::set_level(log_level);
-    spdlog::set_pattern("[%H:%M:%S] [%^%l%$] %v");
 
     spdlog::trace("Initialized with log level: {}\n",
             spdlog::level::to_string_view(log_level));

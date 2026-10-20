@@ -1,5 +1,7 @@
 set(DEVELOPMENT_BUILD OFF CACHE BOOL "Enable development build settings" FORCE)
-set(LOG_LEVEL "info" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
+# Off by default, logging goes to stdout and a UCI GUI reads stdout. UCI output has its own logger and isn't affected,
+# failed asserts print to stderr. A build directory keeps what its cache says, -DLOG_LEVEL=info to turn it back on.
+set(LOG_LEVEL "off" CACHE STRING "Set the logging level (trace, debug, info, warn, error, critical, off)")
 
 # Assertions & exceptions are always on in Debug builds. These add them to the optimized builds as well, on by default:
 # a development build catches what the tests and the tuner run into. Turn both off to run (and profile) Release like
