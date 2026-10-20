@@ -46,7 +46,6 @@ public:
         m_position(position), m_accumulator(PestoAccumulator::computeFromScratch(position.material())) {}
 
     i16 Evaluate();
-    i16 EvaluatePlus(PackedMove move);
 
     /**
      * @brief The tapered terms of the evaluation, white's side: PeSTO's material & piece square tables and mobility,
@@ -63,24 +62,14 @@ public:
     /**
      * @brief PeSTO game phase, knights & bishops add 1, rooks 2 and queens 4.
      * @return 24 with all pieces on the board (capped there after promotions) down to 0 with only kings & pawns. */
-    i32 gamePhase() const;
+    i32 gamePhase() const {return std::min(m_accumulator.phase, evaluator_data::maxGamePhase);}
 
-private:
-    i16 EvaluateMaterial() const;
-    i16 EvaluatePawnStructure() const;
-    i16 EvaluatePawnManhattanDistance() const;
-    i16 EvaluateKingSafety() const;
+private:    
 
-    i16 MopUpValue(i16 materialScore) const;
-
-    template<Set us>
-    i16 EvaluatePassedPawn() const;
-    template<Set us>
-    i16 EvaluatePawnProtection( Bitboard pawns) const;
+    i16 MopUpValue(i16 materialScore) const;    
 
     template<Set us>
     i16 MopUpValue(i16 materialScore) const;
-
 
     PositionProxy<PositionReadOnlyPolicy> m_position;
     PestoAccumulator m_accumulator;
