@@ -227,35 +227,4 @@ private:
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 static_assert(std::is_trivial_v<PackedMove>, "PackedMove is not trivial");
 
-// TODO: this should just be an implementation detail for move generator and should not 
-// be returned outside of that context.
-struct PrioritizedMove {
-    PrioritizedMove() :
-        move(0),
-        priority(0),
-        check(0) {};
-
-    PrioritizedMove(PackedMove _move, u16 _priority) :
-        move(_move),
-        priority(_priority),
-        check(0) {};
-
-    void setCheck(bool value) { check = value ? 1 : 0; }
-    bool isCheck() const { return check == 1; }
-
-    constexpr operator bool() const { return move.isNull() != true; }
-
-    PackedMove move;
-    u16 priority : 15;
-    u16 check : 1;  // u16 like priority, MSVC won't pack bitfields of different types into one unit
-};
-static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
-
-struct PrioritizedMoveComparator {
-    constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
-    {
-        return lhs.priority > rhs.priority;
-    }
-};
-
 #endif  // MOVE_HEADER
