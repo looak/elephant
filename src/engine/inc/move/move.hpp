@@ -212,8 +212,8 @@ public:
     {
         ASSERT_MSG(!isNull(), "A null move has no notation, UCI's 0000 is written by the caller.");
         std::string ret;
-        ret += SquareNotation(sourceSqr()).toString();
-        ret += SquareNotation(targetSqr()).toString();
+        ret += to_string(sourceSqr());
+        ret += to_string(targetSqr());
         if (isPromotion())
             ret += ChessPiece(Set::BLACK, static_cast<PieceType>(readPromoteToPieceType())).toString();
         return ret;
