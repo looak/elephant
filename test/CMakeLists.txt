@@ -74,6 +74,12 @@ elephant_add_test_executable(${PROJECT_NAME} LABEL unit SOURCES ${TEST_SOURCE_AL
 # the PGN fixtures, OpenBench's & fastchess's games.
 target_compile_definitions(${PROJECT_NAME} PRIVATE ELEPHANT_TEST_PGN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/pgn")
 
+# phant-indexer's entries, when it's built (it needs EXCEPTIONS_ENABLED).
+if(TARGET PhantIndexerLib)
+    target_sources(${PROJECT_NAME} PRIVATE ${TEST_SRC_DIR}/indexer/game_index_test.cpp)
+    target_link_libraries(${PROJECT_NAME} PhantIndexerLib)
+endif()
+
 # Deep perft on every core & deep searches, a minute or two.
 if(ELEPHANT_BUILD_TEST_SUITE)
     elephant_add_test_executable(ElephantSuite LABEL suite TIMEOUT 3600 SOURCES ${TEST_SUITE_SOURCE_ALL})

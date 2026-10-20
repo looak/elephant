@@ -1,11 +1,15 @@
 #!/bin/sh
-# The local sanity check before a merge, in order: unit tests, bench, ElephantSuite, the EPD smoke tier. Prints a summary and
-# exits non-zero when a step fails. CI runs the unit tests & perft only, see .github/workflows/ci.yml.
+# The local sanity check before a merge, in order: unit tests, bench, ElephantSuite, phant-indexer, the EPD smoke
+# tier. Prints a summary and exits non-zero when a step fails. CI runs the unit tests & perft only, see
+# .github/workflows/ci.yml.
 #
 #   test/smoke.sh [build dir]     default: build, the CMake build with ElephantTest, ElephantSuite & ElephantGambit
 #
 # Bench is built with ob_build/makefile and g++ like the commit hook and OpenBench do, through WSL on Windows. It only
 # warns when it differs from the last commit's bench line, a search change is supposed to change it.
+#
+# phant-indexer is checked against python-chess by test/indexer_smoke.py: the PGN files in test/pgn and 2000 random
+# games, every game's moves, final position and entry. Without phant-indexer or python-chess it warns.
 #
 # The EPD smoke tier is test/epd_runner.py playing the positions with ElephantGambit over UCI, one engine per core
 # (test/epd_tiers.json). A suite below its baseline warns, below its minimum it fails. Every position is recorded with
@@ -88,6 +92,24 @@ else
     failed=1
     add_summary FAIL suite "see $suite_log"
     grep -a "FAILED" "$suite_log" | head -n 20
+fi
+
+# --- 3b. phant-indexer against python-chess, a full circle over test/pgn & random games ---
+indexer="$(find_binary phant-indexer)"
+if [ -z "$indexer" ]; then
+    add_summary WARN indexer "phant-indexer not found under $build, not checked"
+elif [ -z "$python" ] || ! "$python" -c "import chess" 2>/dev/null; then
+    add_summary WARN indexer "no python-chess (pip install chess), phant-indexer not checked"
+else
+    echo "== indexer: $indexer"
+    indexer_log="$log_dir/smoke_indexer_$stamp.log"
+    if "$python" "$root/test/indexer_smoke.py" --indexer "$indexer" --random 2000 > "$indexer_log" 2>&1; then
+        add_summary PASS indexer "$(grep -a "^indexer_smoke:" "$indexer_log" | sed 's/^indexer_smoke: //'), $(grep -a "^phant-indexer " "$indexer_log" | cut -d' ' -f2-3)"
+    else
+        failed=1
+        add_summary FAIL indexer "$(grep -a "^indexer_smoke:" "$indexer_log" | sed 's/^indexer_smoke: //'), see $indexer_log"
+        grep -a "^FAIL" "$indexer_log" | head -n 10
+    fi
 fi
 
 # --- 4. the EPD smoke tier ---

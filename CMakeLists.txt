@@ -89,6 +89,9 @@ if(ELEPHANT_BUILD_TUNER)
     add_subdirectory(tuner)
 endif()
 
+# phant-indexer, the game reader for nyayo's catalogue
+add_subdirectory(indexer)
+
 # enable testing and define tests
 enable_testing()
 add_subdirectory(test)
