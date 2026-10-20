@@ -21,9 +21,10 @@
  * relative rank alone. Written by ElephantTuner, laid out the way it writes them. All constexpr, safe to include
  * anywhere.
  *
- * Tuned by ElephantTuner, these tables alone with every other value kept (--tune king_shelter on
- * E12.52-1M-D12-Resolved, 9.5M positions, K 1.1798, 1000 passes at rate 1, converged by 100, error 0.086174 ->
- * 0.085840, held back positions 0.38% lower).    */
+ * Tuned by ElephantTuner, every other value kept, on E12.52-1M-D12-Resolved (9.5M positions, 1000 passes at rate 1).
+ * Shelter & storm: --tune king_shelter, K 1.1798, error 0.086174 -> 0.085840, held back 0.38% lower. kingDanger: then
+ * --tune king_attack, K 1.1959, error 0.085820 -> 0.085285, held back 0.61% lower; made monotonic afterwards, each value
+ * at most the one before it, the fit's tail from 48 units rose back towards 0 where few positions are.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -53,6 +54,25 @@ constexpr TaperedScore kingStorm[32] = {
 // rank from the king's side, 0 & 1 can't happen.
 constexpr TaperedScore kingStormBlocked[8] = {
     S(   0,   0), S(   0,   0), S(  -4, -32), S(  10, -19), S(   8, -22), S(   6, -28), S(   8, -36), S(   0,   0),
+};
+
+// king attack, see king_safety.hpp: what each enemy piece adds to the attack units per square of the king zone it
+// reaches, by piece index (pawn & king add none), and what a file beside the king adds when the enemy has a rook or
+// queen: open, or with none of the king's pawns. Hand-set, the fit tunes kingDanger on them.
+constexpr u32 kingAttackUnits[6] = { 0, 2, 2, 3, 5, 0 };
+constexpr u32 kingOpenFileUnits = 3;
+constexpr u32 kingHalfOpenFileUnits = 2;
+
+// the king's danger by its attack units, 0 to 63 (more count as 63), 0 when fewer than two pieces attack.
+constexpr TaperedScore kingDanger[64] = {
+    S(   0,   0), S(   0,   0), S(   0,   0), S(   0,   0), S(   0,  -9), S( -14,  -9), S( -14,  -9), S( -14,  -9),
+    S( -14,  -9), S( -14, -13), S( -18, -13), S( -18, -13), S( -18, -14), S( -27, -14), S( -27, -14), S( -33, -14),
+    S( -33, -14), S( -33, -14), S( -49, -14), S( -49, -14), S( -65, -14), S( -65, -14), S( -65, -14), S( -78, -14),
+    S( -78, -24), S( -96, -24), S( -96, -33), S( -96, -33), S(-111, -33), S(-111, -48), S(-119, -48), S(-119, -70),
+    S(-120, -70), S(-144, -70), S(-161, -70), S(-174, -70), S(-174, -70), S(-179, -70), S(-193, -70), S(-194, -70),
+    S(-213, -70), S(-213, -70), S(-221, -70), S(-240, -70), S(-240,-121), S(-240,-121), S(-264,-135), S(-264,-160),
+    S(-264,-160), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173),
+    S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173), S(-264,-173),
 };
 
 } // namespace evaluator_data

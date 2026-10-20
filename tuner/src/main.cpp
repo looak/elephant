@@ -11,7 +11,7 @@
 //   --rate           Adam's step, about the centipawns a number moves per pass, 1.0 by default
 //   --tune           the groups of values the fit moves, comma separated names from params::groupInfos (material,
 //                    psqt_pawn to psqt_king, mobility, pawns_passed, pawns_structure, pawns_passed_extras,
-//                    king_shelter; psqt names all six piece square tables), psqt,mobility by default;
+//                    king_shelter, king_attack; psqt names all six piece square tables), psqt,mobility by default;
 //                    the others stay as they are (see fit.hpp)
 //   --out            the folder the tuned *_tables.hpp are written to, as
 //                    *.tuned.hpp, the current folder by default
@@ -84,7 +84,7 @@ int usage() {
                  "  --rate:          Adam's step, about the centipawns a number moves per pass, 1.0 by default\n"
                  "  --tune:          groups the fit moves, comma separated: material, psqt (all six tables) or\n"
                  "                   psqt_pawn ... psqt_king, mobility, pawns_passed, pawns_structure,\n"
-                 "                   pawns_passed_extras, king_shelter; psqt,mobility by default\n"
+                 "                   pawns_passed_extras, king_shelter, king_attack; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
                  "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";

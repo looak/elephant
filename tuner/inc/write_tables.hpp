@@ -45,8 +45,8 @@ std::string rewriteMobilityTables(const std::string& header, const std::vector<T
 std::string rewritePawnTables(const std::string& header, const std::vector<TaperedScore>& values);
 
 /**
- * header is the text of king_tables.hpp. Returns it with the bodies of kingShelter, kingStorm and kingStormBlocked
- * replaced by values (params:: layout), eight to a line as the file has them. Throws when a table isn't found.    */
+ * header is the text of king_tables.hpp. Returns it with the bodies of kingShelter, kingStorm, kingStormBlocked and
+ * kingDanger replaced by values (params:: layout), eight to a line as the file has them. Throws when a table isn't found.    */
 std::string rewriteKingTables(const std::string& header, const std::vector<TaperedScore>& values);
 
 } // namespace tuner
