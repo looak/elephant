@@ -23,12 +23,16 @@
  * Safe squares only: a square the piece attacks that holds none of its own pieces and isn't attacked by an enemy pawn,
  * a pawn would chase it off or win it there. Sliders see through nothing, the board's pieces block them.
  *
+ * The same pass counts what the pieces do to the enemy king zone for king attack (king_safety.hpp), so each piece's
+ * attacks are looked up once: KingZoneAttacks, the pieces reaching the zone and their attack units.
+ *
  * The trace sees every piece's count, the tuner fits the tables on them, the evaluation passes NoMobilityTrace.    */
 
 #pragma once
 
 #include <bitboard/attacks/attacks.hpp>
 #include <bitboard/intrinsics.hpp>
+#include <eval/king_tables.hpp>
 #include <eval/mobility_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <material/chess_piece_defines.hpp>
@@ -40,23 +44,46 @@ struct NoMobilityTrace {
     constexpr void mobility(u32, u32, i32) {}
 };
 
+// What one side's knights, bishops, rooks & queens do to the other side's king zone: how many of them reach it and
+// their attack units, evaluator_data::kingAttackUnits per zone square reached. King attack scores them.
+struct KingZoneAttacks {
+    u32 attackers = 0;
+    u32 units = 0;
+};
+
+// the king zone of a king on kingSqr: its square & the squares around it, and those a rank further towards the enemy.
+template<Set us>
+constexpr u64 kingZone(u32 kingSqr) {
+    const u64 around = attacks::getKingAttacks(kingSqr) | (UINT64_C(1) << kingSqr);
+    return around | (us == Set::WHITE ? around << 8 : around >> 8);
+}
+
 namespace mobility_internals {
 
-// one side's pieces, scored from its point of view.
+// one side's pieces, scored from its point of view, and what they do to the enemy king zone left in onEnemyKing.
 template<Set us, typename Trace>
-TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace) {
+TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace, KingZoneAttacks& onEnemyKing) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
     const u64 occupied = material.combine().read();
     const u64 enemyPawnAttacks = attacks::pawnAttacks<them>(material.pawns<them>().read());
     const u64 safe = ~material.combine<us>().read() & ~enemyPawnAttacks;
+    const u64 enemyKing = material.king<them>().read();
+    const u64 zone = enemyKing != 0 ? kingZone<them>(intrinsics::lsbIndex(enemyKing)) : 0;
 
     TaperedScore score = S(0, 0);
+    onEnemyKing = {};
     auto add = [&](u32 pieceId, u64 reach) {
         const u32 count = static_cast<u32>(intrinsics::popcnt(reach & safe));
         score += evaluator_data::mobilityTables[pieceId][count];
         trace.mobility(pieceId, count, sign);
+
+        const u64 hits = reach & zone;
+        if (hits != 0) {
+            ++onEnemyKing.attackers;
+            onEnemyKing.units += evaluator_data::kingAttackUnits[pieceId] * static_cast<u32>(intrinsics::popcnt(hits));
+        }
     };
 
     for (auto pieces = material.knights<us>(); !pieces.empty();)
@@ -75,11 +102,24 @@ TaperedScore sideScore(const MaterialPositionMask& material, Trace& trace) {
 } // namespace mobility_internals
 
 /**
- * Mobility of both sides, white's minus black's, midgame & endgame packed.    */
+ * Mobility of both sides, white's minus black's, midgame & endgame packed. onKing gets what each side's king zone
+ * takes, by Set: onKing[0] white's king attacked by black's pieces, onKing[1] black's.    */
+template<typename Trace>
+[[nodiscard]] TaperedScore mobilityScore(const MaterialPositionMask& material, Trace& trace,
+                                         KingZoneAttacks (&onKing)[2]) {
+    return mobility_internals::sideScore<Set::WHITE>(material, trace, onKing[1])
+         - mobility_internals::sideScore<Set::BLACK>(material, trace, onKing[0]);
+}
+
 template<typename Trace>
 [[nodiscard]] TaperedScore mobilityScore(const MaterialPositionMask& material, Trace& trace) {
-    return mobility_internals::sideScore<Set::WHITE>(material, trace)
-         - mobility_internals::sideScore<Set::BLACK>(material, trace);
+    KingZoneAttacks onKing[2];
+    return mobilityScore(material, trace, onKing);
+}
+
+[[nodiscard]] inline TaperedScore mobilityScore(const MaterialPositionMask& material, KingZoneAttacks (&onKing)[2]) {
+    NoMobilityTrace none;
+    return mobilityScore(material, none, onKing);
 }
 
 [[nodiscard]] inline TaperedScore mobilityScore(const MaterialPositionMask& material) {

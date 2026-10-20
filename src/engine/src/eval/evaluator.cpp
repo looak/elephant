@@ -72,8 +72,11 @@ Evaluator::EvaluateTapered() const
     // king attack are counted here, added to them packed and tapered once with them.
     const auto& material = m_position.material();
     const PawnInfo pawns = m_pawnHash != nullptr ? m_pawnHash->probe(material) : pawnInfo(material);
-    const TaperedScore score = m_accumulator.psqt + mobilityScore(material) + pawns.score + passerScore(material, pawns)
-                             + kingSafetyScore(material) + kingAttackScore(material);
+    // mobility's pass also counts each king zone's attackers, king attack scores them.
+    KingZoneAttacks onKing[2];
+    const TaperedScore mobility = mobilityScore(material, onKing);
+    const TaperedScore score = m_accumulator.psqt + mobility + pawns.score + passerScore(material, pawns)
+                             + kingSafetyScore(material) + kingAttackScore(material, onKing);
     return evaluator_data::taper(score, m_accumulator.phase);
 }
 
