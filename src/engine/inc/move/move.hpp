@@ -20,11 +20,8 @@
 
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
-#include <eval/pesto_accumulator.hpp>
 #include <material/chess_piece.hpp>
 #include <math/cast.hpp>
-#include <position/en_passant_state_info.hpp>
-#include <position/castling_state_info.hpp>
 
 enum class MoveTypes {
     ALL,
@@ -364,26 +361,5 @@ operator==(const Move& lhs, const Move& rhs)
     return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
         lhs.PromoteToPiece == rhs.PromoteToPiece;
 }
-
-struct MoveUndoUnit {
-    MoveUndoUnit() :
-        move(),
-        movedPiece(),
-        capturedPiece(),
-        castlingState(),
-        enPassantState(),
-        hash(0),
-        plyCount(0)
-    {
-    }
-    PackedMove move;
-    ChessPiece movedPiece;
-    ChessPiece capturedPiece;
-    CastlingStateInfo castlingState;
-    EnPassantStateInfo enPassantState;
-    u64 hash;
-    PestoAccumulator pesto;  // search's accumulator before the move, restored on unmake like the hash
-    u16 plyCount;
-};
 
 #endif  // MOVE_HEADER

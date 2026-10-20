@@ -73,6 +73,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 
 ## /move/...
     ${ENGINE_INC_DIR}/move/move.hpp
+    ${ENGINE_INC_DIR}/move/move_undo.hpp
     ${ENGINE_INC_DIR}/move/move_executor.hpp
 
 ## /move/generation/...

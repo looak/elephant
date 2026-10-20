@@ -16,6 +16,7 @@
 #pragma once
 #include <vector>
 #include <core/chessboard.hpp>
+#include <move/move_undo.hpp>
 #include <search/transposition_table.hpp>
 
 struct SearchResult;

@@ -31,6 +31,7 @@
 #include <core/square.hpp>
 #include <eval/pesto_tables.hpp>
 #include <material/chess_piece.hpp>
+#include <material/material_mask.hpp>
 
 // What computeFromScratch reports to a trace for every piece: its piece index (pawn 0 to king 5), the square it reads
 // the tables at (A8 = 0, see pesto_tables.hpp) and its sign, +1 white & -1 black. The PeSTO score is the sum of
@@ -52,16 +53,14 @@ struct PestoAccumulator {
     // tapered PeSTO score from white's perspective.
     [[nodiscard]] i32 taperedScore() const { return evaluator_data::taper(psqt, phase); }
 
-    // Material is a MaterialPositionMask, templated so this header doesn't need it.
-    template<typename Material>
-    [[nodiscard]] static PestoAccumulator computeFromScratch(const Material& material) {
+    [[nodiscard]] static PestoAccumulator computeFromScratch(const MaterialPositionMask& material) {
         NoPestoTrace none;
         return computeFromScratch(material, none);
     }
 
     // The same, telling trace every piece's terms, see NoPestoTrace. The tuner's trace records them.
-    template<typename Material, typename Trace>
-    [[nodiscard]] static PestoAccumulator computeFromScratch(const Material& material, Trace& trace) {
+    template<typename Trace>
+    [[nodiscard]] static PestoAccumulator computeFromScratch(const MaterialPositionMask& material, Trace& trace) {
         PestoAccumulator result;
         for (u8 set = 0; set < 2; ++set) {
             for (u8 pieceId = 0; pieceId < 6; ++pieceId) {
