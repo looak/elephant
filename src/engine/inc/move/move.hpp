@@ -16,7 +16,8 @@
 #ifndef MOVE_HEADER
 #define MOVE_HEADER
 
-#include <vector>
+#include <string>
+#include <type_traits>
 
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
@@ -27,51 +28,6 @@ enum class MoveTypes {
     ALL,
     CAPTURES_ONLY
 };
-
-enum MoveFlag : byte {
-    Zero = 0,
-    Capture = 1,
-    Promotion = 2,
-    Castle = 4,
-    Check = 8,
-    EnPassant = 16,
-    Checkmate = 32,
-    Ambiguous = 64,  // Used for disambiguation of moves
-    Invalid = 128
-};
-
-inline MoveFlag
-operator|(MoveFlag a, MoveFlag b)
-{
-    return static_cast<MoveFlag>(static_cast<byte>(a) | static_cast<byte>(b));
-}
-
-inline MoveFlag
-operator&(MoveFlag a, MoveFlag b)
-{
-    return static_cast<MoveFlag>(static_cast<byte>(a) & static_cast<byte>(b));
-}
-
-inline MoveFlag&
-operator|=(MoveFlag& a, MoveFlag b)
-{
-    a = a | b;
-    return a;
-}
-
-inline MoveFlag&
-operator&=(MoveFlag& a, MoveFlag b)
-{
-    a = a & b;
-    return a;
-}
-
-inline MoveFlag&
-operator^=(MoveFlag& a, MoveFlag b)
-{
-    a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
-    return a;
-}
 
 /**
  * Packed move
@@ -300,66 +256,5 @@ struct PrioritizedMoveComparator {
         return lhs.priority > rhs.priority;
     }
 };
-
-struct Move {
-public:
-    Move();
-    Move(Square source, Square target);
-    Move(const Move& other);
-    Move(Move&& other);
-
-    bool isCapture() const { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
-    bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
-    bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
-    bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
-    bool isCheckmate() const { return MoveFlag::Checkmate == (Flags & MoveFlag::Checkmate); }
-    bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
-    bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
-    bool isInvalid() const { return MoveFlag::Invalid == (Flags & MoveFlag::Invalid); }
-    i16 calcCaptureValue() const;
-
-    void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
-    void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
-    void setEnPassant(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::EnPassant : Flags & ~MoveFlag::EnPassant); }
-    void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
-    void setCastling(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Castle : Flags & ~MoveFlag::Castle); }
-    void setInvalid(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Invalid : Flags & ~MoveFlag::Invalid); }
-
-    PackedMove readPackedMove() const;
-
-    Move& operator=(const Move& other);
-    std::string toString() const;
-
-    static std::vector<std::string> ParsePGN(std::string pgn, std::vector<Move>& ret);
-    static Move fromPGN(std::string pgn, bool isWhiteMove);
-    static Move fromString(std::string moveNotation);
-
-    static Move Invalid() { return Move(); }
-
-    Square TargetSquare;
-    Square SourceSquare;
-
-    Square EnPassantTargetSquare;
-    byte PrevCastlingState;
-
-    ChessPiece Piece;
-    ChessPiece PromoteToPiece;
-    ChessPiece CapturedPiece;
-
-    MoveFlag Flags;
-
-    i32 Score;
-
-    Move* PrevMove;
-    unsigned short NextMoveCount;
-    Move* NextMove;
-};
-
-inline bool
-operator==(const Move& lhs, const Move& rhs)
-{
-    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
-        lhs.PromoteToPiece == rhs.PromoteToPiece;
-}
 
 #endif  // MOVE_HEADER
