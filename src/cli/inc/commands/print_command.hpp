@@ -53,9 +53,11 @@ public:
         std::stringstream hashStream;
         hashStream << "0x" << std::hex << std::setfill('0') << std::setw(16) << position.hash();
 
-        Evaluator evaluator(position);
-        const i16 whitePerspective = evaluator.Evaluate();
-        const i16 sideToMovePerspective = context.readToPlay() == Set::WHITE ? whitePerspective : -whitePerspective;
+        // the evaluation needs both kings, a board set up without one is printed without it.
+        const auto& material = position.material();
+        const bool kings = material.whiteKing().count() == 1 && material.blackKing().count() == 1;
+        const i16 whitePerspective = kings ? Evaluator(position).Evaluate() : 0;
+        const i16 sideToMovePerspective = context.readToPlay() == Set::WHITE ? whitePerspective : static_cast<i16>(-whitePerspective);
 
         auto formatEval = [](i16 centipawnScore) {
             std::stringstream stream;
@@ -88,8 +90,8 @@ public:
         statsPanel.push_back(" castling: " + position.castling().toString());
         statsPanel.push_back(" en passant: " + position.enPassant().toString());
         statsPanel.push_back(" hash: " + hashStream.str());
-        statsPanel.push_back(" eval (white): " + formatEval(whitePerspective));
-        statsPanel.push_back(" eval (to move): " + formatEval(sideToMovePerspective));
+        statsPanel.push_back(" eval (white): " + (kings ? formatEval(whitePerspective) : std::string("n/a, a king is missing")));
+        statsPanel.push_back(" eval (to move): " + (kings ? formatEval(sideToMovePerspective) : std::string("n/a")));
 
         auto panelWidth = [](const std::vector<std::string>& lines) -> size_t {
             size_t width = 0;

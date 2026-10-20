@@ -27,6 +27,7 @@
 #include <eval/pesto_accumulator.hpp>
 #include <position/position_accessors.hpp>
 #include <move/move.hpp>
+#include <move/move_undo.hpp>
 
 class GameContext;
 struct GameHistory;

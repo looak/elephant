@@ -21,7 +21,7 @@
  * coefficient * value over its coefficients, tapered on its phase.
  *
  * Fitted: PeSTO's material and piece square tables, as the engine's PestoAccumulator adds them up, and mobility, as
- * mobilityScore counts it. Each is a group the fit can tune or leave as it is.    */
+ * mobilityScore counts it, the pawn terms, king shelter & storm and king attack. Each is a group the fit can tune or leave as it is.    */
 
 #pragma once
 
@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <bitboard/bitboard_constants.hpp>
+#include <eval/king_tables.hpp>
 #include <eval/mobility_tables.hpp>
 #include <eval/pawn_tables.hpp>
 #include <eval/pesto_tables.hpp>
@@ -44,7 +45,7 @@ namespace params {
 enum class Group : u8 {
     Material,
     Psqt_Pawn, Psqt_Knight, Psqt_Bishop, Psqt_Rook, Psqt_Queen, Psqt_King,
-    Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras,
+    Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras, King_Shelter, King_Attack,
     Count
 };
 struct GroupInfo { Group group; std::string_view name; };
@@ -59,7 +60,9 @@ inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupI
     { Group::Mobility, "mobility" },
     { Group::Pawns_Passed, "pawns_passed" },
     { Group::Pawns_Structure, "pawns_structure" },
-    { Group::Pawns_PassedExtras, "pawns_passed_extras" }
+    { Group::Pawns_PassedExtras, "pawns_passed_extras" },
+    { Group::King_Shelter, "king_shelter" },
+    { Group::King_Attack, "king_attack" }
 }};
 
 constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
@@ -93,14 +96,24 @@ constexpr u32 passedEnemyKingOffset = passedOwnKingOffset + 8;
 constexpr u32 passedBlockedOffset = passedEnemyKingOffset + 8;
 constexpr u32 passedFreePathOffset = passedBlockedOffset + 6;
 constexpr u32 passedRookBehindOffset = passedFreePathOffset + 6;
-constexpr u32 count = passedRookBehindOffset + 2;
+
+// king shelter & storm: shelter and storm by file mirrored a-d, then no pawn & relative rank 2-7 (8 each, rank 8
+// unused); blocked storm by relative rank, 8.
+constexpr u32 kingShelterOffset = passedRookBehindOffset + 2;
+constexpr u32 kingStormOffset = kingShelterOffset + 32;
+constexpr u32 kingStormBlockedOffset = kingStormOffset + 32;
+
+// king attack: the danger by attack units 0-63.
+constexpr u32 kingDangerOffset = kingStormBlockedOffset + 8;
+constexpr u32 count = kingDangerOffset + 64;
 
 // where each group's values start, in Group order, and count where the last one ends.
 constexpr u32 groupCount = static_cast<u32>(Group::Count);
 constexpr std::array<u32, groupCount + 1> groupStarts = {
     materialOffset,
     psqtOffset, psqtOffset + 64, psqtOffset + 2 * 64, psqtOffset + 3 * 64, psqtOffset + 4 * 64, psqtOffset + 5 * 64,
-    mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, count
+    mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, kingShelterOffset, kingDangerOffset,
+    count
 };
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
@@ -118,6 +131,11 @@ constexpr u32 passedEnemyKing(u32 distance) { return passedEnemyKingOffset + dis
 constexpr u32 passedBlocked(u32 relRank) { return passedBlockedOffset + relRank - 1; }
 constexpr u32 passedFreePath(u32 relRank) { return passedFreePathOffset + relRank - 1; }
 constexpr u32 passedRookBehind(u32 whose) { return passedRookBehindOffset + whose; }
+// folded file 0-3, rank index 0 (no pawn) to 7.
+constexpr u32 kingShelter(u32 folded, u32 rank) { return kingShelterOffset + folded * 8 + rank; }
+constexpr u32 kingStorm(u32 folded, u32 rank) { return kingStormOffset + folded * 8 + rank; }
+constexpr u32 kingStormBlocked(u32 rank) { return kingStormBlockedOffset + rank; }
+constexpr u32 kingDanger(u32 units) { return kingDangerOffset + units; }
 
 constexpr Group groupOf(u32 index) {
     u32 group = 0;
@@ -132,7 +150,9 @@ static_assert(groupOf(psqt(5, 0)) == Group::Psqt_King && groupOf(psqt(5, 63)) ==
 static_assert(groupOf(mobilityOffset) == Group::Mobility && groupOf(pawnsPassedOffset - 1) == Group::Mobility);
 static_assert(groupOf(passed(6)) == Group::Pawns_Passed && groupOf(isolated(0)) == Group::Pawns_Structure);
 static_assert(groupOf(connected(6)) == Group::Pawns_Structure && groupOf(passedOwnKing(0)) == Group::Pawns_PassedExtras);
-static_assert(groupOf(count - 1) == Group::Pawns_PassedExtras && passedRookBehind(1) == count - 1);
+static_assert(groupOf(passedRookBehind(1)) == Group::Pawns_PassedExtras && groupOf(kingShelter(0, 0)) == Group::King_Shelter);
+static_assert(groupOf(kingStormBlocked(7)) == Group::King_Shelter && groupOf(kingDanger(0)) == Group::King_Attack);
+static_assert(groupOf(count - 1) == Group::King_Attack && kingDanger(63) == count - 1);
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {
@@ -163,6 +183,14 @@ inline std::vector<TaperedScore> current() {
     }
     for (u32 whose = 0; whose < 2; ++whose)
         values[passedRookBehind(whose)] = evaluator_data::passedRookBehind[whose];
+    for (u32 i = 0; i < 32; ++i) {
+        values[kingShelterOffset + i] = evaluator_data::kingShelter[i];
+        values[kingStormOffset + i] = evaluator_data::kingStorm[i];
+    }
+    for (u32 rank = 0; rank < 8; ++rank)
+        values[kingStormBlocked(rank)] = evaluator_data::kingStormBlocked[rank];
+    for (u32 units = 0; units < 64; ++units)
+        values[kingDanger(units)] = evaluator_data::kingDanger[units];
     return values;
 }
 
@@ -194,7 +222,7 @@ private:
 
 /**
  * Records one position's coefficients, handed as the trace to PestoAccumulator::computeFromScratch, mobilityScore,
- * pawnInfo and passerScore. clear() before each position, coefficients() after.    */
+ * pawnInfo, passerScore, kingSafetyScore and kingAttackScore. clear() before each position, coefficients() after.    */
 class EvalTrace {
 public:
     // see NoPestoTrace in pesto_accumulator.hpp.
@@ -221,6 +249,12 @@ public:
     void passedBlocked(u32 relRank, i32 sign) { add(params::passedBlocked(relRank), sign); }
     void passedFreePath(u32 relRank, i32 sign) { add(params::passedFreePath(relRank), sign); }
     void passedRookBehind(u32 whose, i32 sign) { add(params::passedRookBehind(whose), sign); }
+
+    // see NoKingTrace in king_safety.hpp.
+    void kingShelter(u32 folded, u32 rank, i32 sign) { add(params::kingShelter(folded, rank), sign); }
+    void kingStorm(u32 folded, u32 rank, i32 sign) { add(params::kingStorm(folded, rank), sign); }
+    void kingStormBlocked(u32 rank, i32 sign) { add(params::kingStormBlocked(rank), sign); }
+    void kingDanger(u32 units, i32 sign) { add(params::kingDanger(units), sign); }
 
     void clear() {
         for (u32 index : m_touched) {

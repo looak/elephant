@@ -1,5 +1,7 @@
 #include <move/move.hpp>
 
+#include <bitboard/bitboard_constants.hpp>
+
 #include <list>
 #include <sstream>
 

@@ -39,6 +39,7 @@
 #include <eval/pawn_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <material/material_mask.hpp>
 
 // What pawnScore reports to a trace for every pawn term: the relative rank (rank 2 = 1) for passed & connected, the
 // file (a = 0, not folded) for isolated, doubled & backward, and its sign, +1 white & -1 black. The score is the sum of
@@ -54,13 +55,13 @@ struct NoPawnTrace {
 namespace pawn_internals {
 
 // one side's pawns, scored from its point of view. Its passed pawns are left in passed.
-template<Set us, typename Material, typename Trace>
-TaperedScore sideScore(const Material& material, u64& passed, Trace& trace) {
+template<Set us, typename Trace>
+TaperedScore sideScore(const MaterialPositionMask& material, u64& passed, Trace& trace) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
-    const u64 ours = material.template pawns<us>().read();
-    const u64 theirs = material.template pawns<them>().read();
+    const u64 ours = material.pawns<us>().read();
+    const u64 theirs = material.pawns<them>().read();
     const u64 ourAttacks = attacks::pawnAttacks<us>(ours);
     const u64 theirAttacks = attacks::pawnAttacks<them>(theirs);
 
@@ -115,29 +116,26 @@ struct PawnInfo {
 };
 
 /**
- * Pawn structure of both sides, white's minus black's, midgame & endgame packed, and the passed pawns. Material is a
- * MaterialPositionMask, templated so this header doesn't need it.    */
-template<typename Material, typename Trace>
-[[nodiscard]] PawnInfo pawnInfo(const Material& material, Trace& trace) {
+ * Pawn structure of both sides, white's minus black's, midgame & endgame packed, and the passed pawns.    */
+template<typename Trace>
+[[nodiscard]] PawnInfo pawnInfo(const MaterialPositionMask& material, Trace& trace) {
     PawnInfo info;
     info.score = pawn_internals::sideScore<Set::WHITE>(material, info.passed[0], trace)
                - pawn_internals::sideScore<Set::BLACK>(material, info.passed[1], trace);
     return info;
 }
 
-template<typename Material>
-[[nodiscard]] PawnInfo pawnInfo(const Material& material) {
+[[nodiscard]] inline PawnInfo pawnInfo(const MaterialPositionMask& material) {
     NoPawnTrace none;
     return pawnInfo(material, none);
 }
 
 // pawnInfo's score alone.
-template<typename Material, typename Trace>
-[[nodiscard]] TaperedScore pawnScore(const Material& material, Trace& trace) {
+template<typename Trace>
+[[nodiscard]] TaperedScore pawnScore(const MaterialPositionMask& material, Trace& trace) {
     return pawnInfo(material, trace).score;
 }
 
-template<typename Material>
-[[nodiscard]] TaperedScore pawnScore(const Material& material) {
+[[nodiscard]] inline TaperedScore pawnScore(const MaterialPositionMask& material) {
     return pawnInfo(material).score;
 }
