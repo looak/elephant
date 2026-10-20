@@ -12,12 +12,12 @@ bool PositionProxy<AccessType>::placePiece(Piece piece, Square square) {
             if (pieceAt(square).isValid()) {
                 LOG_WARN("Trying to place piece {} at square {} but it's already occupied by {}", 
                             piece.toString(), 
-                            SquareNotation(square).toString(),
+                            to_string(square),
                             pieceAt(square).toString());
                 return false;
             }
             if (!piece.isValid()) {
-                LOG_WARN("Trying to place an invalid piece at square {}", SquareNotation(square).toString());
+                LOG_WARN("Trying to place an invalid piece at square {}", to_string(square));
                 return false;
             }
         }
@@ -48,11 +48,11 @@ bool PositionProxy<AccessType>::clearPiece(Square square) {
         auto targetPiece = pieceAt(square);
         if constexpr (validation) {
             if (!targetPiece.isValid()) {
-                LOG_WARN("Trying to clear piece at square {} but it's already empty.", SquareNotation(square).toString());
+                LOG_WARN("Trying to clear piece at square {} but it's already empty.", to_string(square));
                 return false;
             }
             if (targetPiece.isValid() && targetPiece.isKing()) {
-                LOG_WARN("Trying to clear king piece at square {}, this is not allowed.", SquareNotation(square).toString());
+                LOG_WARN("Trying to clear king piece at square {}, this is not allowed.", to_string(square));
                 return false;
             }
         }

@@ -29,7 +29,7 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     
     if constexpr (validation) {
         if (!movingPiece.isValid()) {
-            LOG_ERROR("Trying to make a move with an invalid piece at square {}", SquareNotation(move.sourceSqr()).toString());            
+            LOG_ERROR("Trying to make a move with an invalid piece at square {}", to_string(move.sourceSqr()));            
             return;  // early exit if the piece is invalid
         }
     }
@@ -145,19 +145,19 @@ bool MoveExecutor::internalHandleKingMove(const PackedMove move, Set set, Square
     bool castling = false;
     byte casltingMask = checked_cast<byte>(3 << (2 * setIndx));
     byte castlingState = m_position.castling().read();
-    SquareNotation targetSquare(move.targetSqr());
+    const u8 targetFile = to_file(move.targetSqr());
     if (castlingState & casltingMask) {
         byte targetRank = 7 * setIndx;
-        if (targetSquare.file() == 2)  // we are in c file.
+        if (targetFile == 2)  // we are in c file.
         {
-            targetRook = SquareNotation(0, targetRank).toSquare();
-            rookMove = SquareNotation(3, targetRank).toSquare();
+            targetRook = to_square(0, targetRank);
+            rookMove = to_square(3, targetRank);
             castling = true;
         }
-        else if (targetSquare.file() == 6)  // we are in g file.
+        else if (targetFile == 6)  // we are in g file.
         {
-            targetRook = SquareNotation(7, targetRank).toSquare();
-            rookMove = SquareNotation(5, targetRank).toSquare();
+            targetRook = to_square(7, targetRank);
+            rookMove = to_square(5, targetRank);
             castling = true;
         }
     }
@@ -306,22 +306,13 @@ bool MoveExecutor::unmakeMove(const MoveUndoUnit& undoState)
         // we're unmaking a castling move, we need to move the rook back to it's original position.
         // simply done by moving the rook with internal move from notations generated with the king move.
         // king would have been moved back by regular undo move code.
-        SquareNotation rookSource;
-        SquareNotation rookTarget;
-        SquareNotation target(trgSqr);
-        if (target.file() == coordinates::file_c)  // queen side
-        {
-            rookSource = SquareNotation(coordinates::file_a, target.rank());
-            rookTarget = SquareNotation(coordinates::file_d, target.rank());
-        }
-        else  // king side
-        {
-            rookSource = SquareNotation(coordinates::file_h, target.rank());
-            rookTarget = SquareNotation(coordinates::file_f, target.rank());
-        }
+        const u8 rank = to_rank(trgSqr);
+        const bool queenSide = to_file(trgSqr) == coordinates::file_c;
+        const Square rookSource = to_square(queenSide ? coordinates::file_a : coordinates::file_h, rank);
+        const Square rookTarget = to_square(queenSide ? coordinates::file_d : coordinates::file_f, rank);
         auto rookEditor = m_position.materialEditor(movedPiece.getSet(), PieceType::ROOK);
-        rookEditor[rookTarget.toSquare()] = false;
-        rookEditor[rookSource.toSquare()] = true;
+        rookEditor[rookTarget] = false;
+        rookEditor[rookSource] = true;
     }
 
     // restore en passant, castling & the hash, nothing above rehashed.

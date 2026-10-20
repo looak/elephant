@@ -213,8 +213,8 @@ public:
     {
         THROW_EXPR(!isNull(), ephant::io_error, "Cannot convert NullMove to string.");
         std::string ret;
-        ret += SquareNotation(sourceSqr()).toString();
-        ret += SquareNotation(targetSqr()).toString();
+        ret += to_string(sourceSqr());
+        ret += to_string(targetSqr());
         if (isPromotion())
             ret += ChessPiece(Set::BLACK, static_cast<PieceType>(readPromoteToPieceType())).toString();
         return ret;

@@ -87,7 +87,7 @@ public:
     std::string toString() const
     {
         if (*this == true) {
-            return SquareNotation(readSquare()).toString();
+            return to_string(readSquare());
         }
         return "-";
     }
