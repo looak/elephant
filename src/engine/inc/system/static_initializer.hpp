@@ -27,6 +27,7 @@
 #include <bitboard/attacks/attacks.hpp>
 #include <bitboard/rays/rays.hpp>
 #include <position/hash_zobrist.hpp>
+#include <cassert>
 
 namespace static_initializer {
 bool initialize() {

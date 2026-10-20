@@ -34,9 +34,10 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/core/square_notation.hpp
     ${ENGINE_INC_DIR}/core/uci.hpp
 
-## /debug/...
+## /diagnostics/...
     ${ENGINE_INC_DIR}/diagnostics/assert.hpp
     ${ENGINE_INC_DIR}/diagnostics/exceptions.hpp
+    ${ENGINE_INC_DIR}/diagnostics/log_redirect.hpp
     ${ENGINE_INC_DIR}/diagnostics/logger.hpp
 
 ## /eval/...
@@ -129,6 +130,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/core/uci.cpp
 
 ## /diagnostics/...
+    ${ENGINE_SRC_DIR}/diagnostics/assert.cpp
     ${ENGINE_SRC_DIR}/diagnostics/logger.cpp
 
 ## /eval/...
@@ -146,7 +148,6 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/material/material_topology.cpp
 
 ## /move/...
-    ${ENGINE_SRC_DIR}/move/move.cpp
     ${ENGINE_SRC_DIR}/move/move_executor.cpp
 
 ## /move/generation/tusk/...   new move gen
@@ -166,6 +167,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
     ${ENGINE_SRC_DIR}/search/search_policies.cpp
     ${ENGINE_SRC_DIR}/search/static_exchange.cpp
+    ${ENGINE_SRC_DIR}/search/transposition_table.cpp
 
 ## /system/...
     ${ENGINE_SRC_DIR}/system/clock.cpp

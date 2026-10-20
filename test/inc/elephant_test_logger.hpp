@@ -1,6 +1,5 @@
 #pragma once
 #include <iostream>
-#include <diagnostics/logger.hpp>
 
 namespace elephant_test {
 namespace logging_internals {

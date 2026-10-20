@@ -1,6 +1,5 @@
 #pragma once
 
-#include <diagnostics/logger.hpp>
 #include <iostream>
 #include <ostream>
 #include <sstream>

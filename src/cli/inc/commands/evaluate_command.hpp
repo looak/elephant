@@ -21,7 +21,7 @@ public:
 
         Evaluator evaluator(m_context->readChessPosition());
         const i16 whitePerspective = evaluator.Evaluate();
-        const i16 sideToMovePerspective = m_context->readToPlay() == Set::WHITE ? whitePerspective : -whitePerspective;
+        const i16 sideToMovePerspective = m_context->readToPlay() == Set::WHITE ? whitePerspective : static_cast<i16>(-whitePerspective);
 
         prnt::out << " Evaluation (White perspective): " << whitePerspective << " cp" << std::endl;
         prnt::out << " Evaluation (Side-to-move perspective): " << sideToMovePerspective << " cp" << std::endl;

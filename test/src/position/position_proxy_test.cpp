@@ -58,8 +58,7 @@ TEST_F(PositionProxyFixture, PositionIterator_FromA1toH8)
     for (u8 r = 0; r < 8; r++) {
         EXPECT_EQ(r, otherItr.rank());
         for (u8 f = 0; f < 8; f++) {
-            auto notation = SquareNotation(f, r);
-            Square expectedSqr = notation.toSquare();
+            Square expectedSqr = to_square(f, r);
             EXPECT_EQ(expectedSqr, otherItr.square());
             EXPECT_EQ(f, otherItr.file());
             EXPECT_EQ(r, otherItr.rank());

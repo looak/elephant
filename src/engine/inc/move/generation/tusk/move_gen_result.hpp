@@ -36,6 +36,29 @@
 #include <move/move.hpp>
 #include <move/generation/tusk/move_gen_params.hpp>
 
+// A generated move with its ordering priority & whether it gives check, what MoveGenResult::next() hands out.
+struct PrioritizedMove {
+    PrioritizedMove() :
+        move(0),
+        priority(0),
+        check(0) {};
+
+    PrioritizedMove(PackedMove _move, u16 _priority) :
+        move(_move),
+        priority(_priority),
+        check(0) {};
+
+    void setCheck(bool value) { check = value ? 1 : 0; }
+    bool isCheck() const { return check == 1; }
+
+    constexpr operator bool() const { return move.isNull() != true; }
+
+    PackedMove move;
+    u16 priority : 15;
+    u16 check : 1;  // u16 like priority, MSVC won't pack bitfields of different types into one unit
+};
+static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
+
 namespace tusk {
 
 // Move & ordering score as stored in a MoveGenResult. Kept trivial so the 256 entry buffer is left uninitialized,

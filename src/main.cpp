@@ -4,6 +4,10 @@
 #include "system/static_initializer.hpp"
 #include "cli/inc/static_initializer.hpp"
 #include "elephant_gambit_config.h"
+#include <diagnostics/logger.hpp>
+#ifdef OUTPUT_LOG_TO_FILE
+#include <diagnostics/log_redirect.hpp>
+#endif
 
 #include <spdlog/spdlog.h>
 

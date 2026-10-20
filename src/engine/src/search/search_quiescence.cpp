@@ -99,7 +99,8 @@ i16 Search::quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 be
         u16 fiftyMoveCounter = ply;
         executor.makeMove(move, undoState, fiftyMoveCounter);
         
-        i16 qEval = -quiescence<opposing_set<us>()>(context, childDepth, -beta, -alpha, ply + 1, childLine);
+        i16 qEval = static_cast<i16>(-quiescence<opposing_set<us>()>(context, childDepth, static_cast<i16>(-beta),
+            static_cast<i16>(-alpha), ply + 1, childLine));
         context.qNodeCount++;
 
         executor.unmakeMove(undoState);

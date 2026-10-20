@@ -16,7 +16,8 @@
 #ifndef MOVE_HEADER
 #define MOVE_HEADER
 
-#include <vector>
+#include <string>
+#include <type_traits>
 
 #include <system/platform.hpp>
 #include <core/square_notation.hpp>
@@ -27,51 +28,6 @@ enum class MoveTypes {
     ALL,
     CAPTURES_ONLY
 };
-
-enum MoveFlag : byte {
-    Zero = 0,
-    Capture = 1,
-    Promotion = 2,
-    Castle = 4,
-    Check = 8,
-    EnPassant = 16,
-    Checkmate = 32,
-    Ambiguous = 64,  // Used for disambiguation of moves
-    Invalid = 128
-};
-
-inline MoveFlag
-operator|(MoveFlag a, MoveFlag b)
-{
-    return static_cast<MoveFlag>(static_cast<byte>(a) | static_cast<byte>(b));
-}
-
-inline MoveFlag
-operator&(MoveFlag a, MoveFlag b)
-{
-    return static_cast<MoveFlag>(static_cast<byte>(a) & static_cast<byte>(b));
-}
-
-inline MoveFlag&
-operator|=(MoveFlag& a, MoveFlag b)
-{
-    a = a | b;
-    return a;
-}
-
-inline MoveFlag&
-operator&=(MoveFlag& a, MoveFlag b)
-{
-    a = a & b;
-    return a;
-}
-
-inline MoveFlag&
-operator^=(MoveFlag& a, MoveFlag b)
-{
-    a = static_cast<MoveFlag>(static_cast<byte>(a) ^ static_cast<byte>(b));
-    return a;
-}
 
 /**
  * Packed move
@@ -254,10 +210,10 @@ public:
 
     [[nodiscard]] std::string toString() const
     {
-        THROW_EXPR(!isNull(), ephant::io_error, "Cannot convert NullMove to string.");
+        ASSERT_MSG(!isNull(), "A null move has no notation, UCI's 0000 is written by the caller.");
         std::string ret;
-        ret += SquareNotation(sourceSqr()).toString();
-        ret += SquareNotation(targetSqr()).toString();
+        ret += to_string(sourceSqr());
+        ret += to_string(targetSqr());
         if (isPromotion())
             ret += ChessPiece(Set::BLACK, static_cast<PieceType>(readPromoteToPieceType())).toString();
         return ret;
@@ -269,97 +225,5 @@ private:
 
 static_assert(sizeof(PackedMove) == 2, "PackedMove is not 2 bytes");
 static_assert(std::is_trivial_v<PackedMove>, "PackedMove is not trivial");
-
-// TODO: this should just be an implementation detail for move generator and should not 
-// be returned outside of that context.
-struct PrioritizedMove {
-    PrioritizedMove() :
-        move(0),
-        priority(0),
-        check(0) {};
-
-    PrioritizedMove(PackedMove _move, u16 _priority) :
-        move(_move),
-        priority(_priority),
-        check(0) {};
-
-    void setCheck(bool value) { check = value ? 1 : 0; }
-    bool isCheck() const { return check == 1; }
-
-    constexpr operator bool() const { return move.isNull() != true; }
-
-    PackedMove move;
-    u16 priority : 15;
-    u16 check : 1;  // u16 like priority, MSVC won't pack bitfields of different types into one unit
-};
-static_assert(sizeof(PrioritizedMove) == 4, "PrioritizedMove is not 4 bytes");
-
-struct PrioritizedMoveComparator {
-    constexpr bool operator()(const PrioritizedMove& lhs, const PrioritizedMove& rhs) const
-    {
-        return lhs.priority > rhs.priority;
-    }
-};
-
-struct Move {
-public:
-    Move();
-    Move(Square source, Square target);
-    Move(const Move& other);
-    Move(Move&& other);
-
-    bool isCapture() const { return MoveFlag::Capture == (Flags & MoveFlag::Capture); }
-    bool isCastling() const { return MoveFlag::Castle == (Flags & MoveFlag::Castle); }
-    bool isPromotion() const { return MoveFlag::Promotion == (Flags & MoveFlag::Promotion); }
-    bool isCheck() const { return MoveFlag::Check == (Flags & MoveFlag::Check); }
-    bool isCheckmate() const { return MoveFlag::Checkmate == (Flags & MoveFlag::Checkmate); }
-    bool isEnPassant() const { return MoveFlag::EnPassant == (Flags & MoveFlag::EnPassant); }
-    bool isAmbiguous() const { return MoveFlag::Ambiguous == (Flags & MoveFlag::Ambiguous); }
-    bool isInvalid() const { return MoveFlag::Invalid == (Flags & MoveFlag::Invalid); }
-    i16 calcCaptureValue() const;
-
-    void setPromotion(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Promotion : Flags & ~MoveFlag::Promotion); }
-    void setCapture(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Capture : Flags & ~MoveFlag::Capture); }
-    void setEnPassant(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::EnPassant : Flags & ~MoveFlag::EnPassant); }
-    void setAmbiguous(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Ambiguous : Flags & ~MoveFlag::Ambiguous); }
-    void setCastling(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Castle : Flags & ~MoveFlag::Castle); }
-    void setInvalid(bool value) { Flags = (MoveFlag)(value ? Flags | MoveFlag::Invalid : Flags & ~MoveFlag::Invalid); }
-
-    PackedMove readPackedMove() const;
-
-    Move& operator=(const Move& other);
-    std::string toString() const;
-
-    static std::vector<std::string> ParsePGN(std::string pgn, std::vector<Move>& ret);
-    static Move fromPGN(std::string pgn, bool isWhiteMove);
-    static Move fromString(std::string moveNotation);
-
-    static Move Invalid() { return Move(); }
-
-    Square TargetSquare;
-    Square SourceSquare;
-
-    Square EnPassantTargetSquare;
-    byte PrevCastlingState;
-
-    ChessPiece Piece;
-    ChessPiece PromoteToPiece;
-    ChessPiece CapturedPiece;
-
-    MoveFlag Flags;
-
-    i32 Score;
-
-    Move* PrevMove;
-    unsigned short NextMoveCount;
-    Move* NextMove;
-};
-
-inline bool
-operator==(const Move& lhs, const Move& rhs)
-{
-    return lhs.SourceSquare == rhs.SourceSquare && lhs.TargetSquare == rhs.TargetSquare &&
-        lhs.PromoteToPiece == rhs.PromoteToPiece;
-}
 
 #endif  // MOVE_HEADER

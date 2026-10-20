@@ -17,15 +17,24 @@
  *****************************************************************************/
 
 #pragma once
-#include <spdlog/spdlog.h>
+#include <cstdlib>
+#include <cstring>
+#include <string>
 
 namespace ephant {
+// file name without its directories, cut at the last '/' or '\'.
+constexpr const char* file_name(const char* path) {
+    const char* name = path;
+    for (const char* c = path; *c != '\0'; ++c)
+        if (*c == '/' || *c == '\\')
+            name = c + 1;
+    return name;
+}
+
 class ephsert final {
 public:
-    ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "")
-    {
-        spdlog::critical("{}{}:{} Assertion failed: {} > {}", prefix, file, line, expression, message);
-    }
+    // logs the failure as critical, see assert.cpp: the log is in logger.cpp, not in every file that asserts.
+    ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "");
 
     ~ephsert() {
         abort();
@@ -34,6 +43,9 @@ public:
 
 }  // namespace ephant
 
+#define __FILENAME__ (ephant::file_name(__FILE__))
+
+// Asserts are for engine invariants and engine failures, bad input (FEN, SAN/PGN, UCI, CLI) throws, see exceptions.hpp.
 
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
 // number if it fails.

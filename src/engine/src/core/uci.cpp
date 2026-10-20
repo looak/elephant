@@ -2,6 +2,8 @@
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>
+#include <diagnostics/exceptions.hpp>
+#include <diagnostics/logger.hpp>
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>
@@ -439,7 +441,8 @@ UCI::Go(std::list<std::string> args)
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
-    io::printer::uci("bestmove {}", result.move().toString());
+    // no legal move at the root (mate or stalemate) is a null move, UCI writes that as 0000.
+    io::printer::uci("bestmove {}", result.move().isNull() ? std::string("0000") : result.move().toString());
     io::printer::uci_flush();
 
     m_isSearching.store(false); // mark search as completed

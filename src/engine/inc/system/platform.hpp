@@ -16,26 +16,7 @@
 
 #pragma once
 #include <cstdint>
-#include <diagnostics/logger.hpp>
-#include <diagnostics/exceptions.hpp>
-
-// TODO: cleanup this file, some things aren't used anymore others don't belong in this file.
-
-namespace platform {
-constexpr bool is_win64 =
-#ifdef _WIN64
-true;
-#else
-false;
-#endif
-
-constexpr bool is_amd64_x86 =
-#ifdef __x86_64__
-true;
-#else
-false;
-#endif
-}  // namespace platform
+#include <string_view>
 
 using byte = std::uint8_t;
 using u8 = std::uint8_t;
@@ -48,46 +29,4 @@ using i16 = std::int16_t;
 using i64 = std::int64_t;
 using i32 = std::int32_t;
 
-const u64 universe = 0xffffffffffffffffULL;
-
-constexpr u8 to0x88(u8 sqr) { return sqr + (sqr & ~7); }
-constexpr u8 fr0x88(u8 sq0x88) { return (sq0x88 + (sq0x88 & 7)) >> 1; }
-
-// #define file_a 0
-// #define file_b 1
-// #define file_c 2
-// #define file_d 3
-// #define file_e 4
-// #define file_f 5
-// #define file_g 6
-// #define file_h 7
-
-// #define rank_1 0
-// #define rank_2 1
-// #define rank_3 2
-// #define rank_4 3
-// #define rank_5 4
-// #define rank_6 5
-// #define rank_7 6
-// #define rank_8 7
-
-// #define north 0
-// #define east 1
-// #define south 2
-// #define west 3
-
-// #define northeast 4
-// #define southeast 5
-// #define southwest 6
-// #define northwest 7
-
-// faster mod by eight
-// only works on positive integers
-// acording to own tests ~3x faster than regular mod by eight.
-
-
-static const std::string c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-
-#define EG_TESTING
-// #define EG_DEBUGGING
+inline constexpr std::string_view c_startPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

@@ -256,7 +256,8 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         if (index == 0 && depth > 0) {
             // --- PV Search (First Move) ---
             // Full window, full trust.
-            eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);            
+            eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, adjustedDepth, static_cast<i16>(-beta),
+                static_cast<i16>(-alpha), ply + 1, &childPv));
         } 
         else {
             // --- Scout Search (Subsequent Moves) ---
@@ -272,11 +273,13 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
                     moves.isChecked(), ordered.isCheck());
             }
 
-            eval = -alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction), -alpha - 1, -alpha, ply + 1, &childPv);
+            eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction),
+                static_cast<i16>(-alpha - 1), static_cast<i16>(-alpha), ply + 1, &childPv));
 
             // the reduced search beat alpha, check it at full depth before trusting it.
             if (reduction > 0 && eval > alpha && !context.stopped)
-                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -alpha - 1, -alpha, ply + 1, &childPv);
+                eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, adjustedDepth, static_cast<i16>(-alpha - 1),
+                    static_cast<i16>(-alpha), ply + 1, &childPv));
             
             // --- The Re-Search Trigger ---
             // If eval > alpha, the move is better than we thought. 
@@ -285,7 +288,8 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             if (eval > alpha && eval < beta) {
                 context.scout_re_search();
                 this->scout_re_search_count++;
-                eval = -alphaBeta<opposing_set<us>()>(context, adjustedDepth, -beta, -alpha, ply + 1, &childPv);
+                eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, adjustedDepth, static_cast<i16>(-beta),
+                    static_cast<i16>(-alpha), ply + 1, &childPv));
                 
             }
         }

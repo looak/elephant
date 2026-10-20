@@ -48,7 +48,8 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     const u8 R = search_policies::NMP::getReduction(depth, staticEval, beta);
     const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;
     PVLine nullPv;
-    i16 nullScore = -alphaBeta<opposing_set<us>()>(ctx, nullDepth, -beta, -beta + 1, ply + 1, &nullPv);
+    i16 nullScore = static_cast<i16>(-alphaBeta<opposing_set<us>()>(ctx, nullDepth, static_cast<i16>(-beta),
+        static_cast<i16>(-beta + 1), ply + 1, &nullPv));
 
     // --- unmake null move ---
     ctx.nullMoveAt[ply] = false;

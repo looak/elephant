@@ -27,7 +27,7 @@
 #include <material/chess_piece.hpp>
 #include <material/material_topology.hpp>
 #include <position/hash_zobrist.hpp>
-#include <format>
+#include <optional>
 
 struct MutableMaterialProxySquare {
 public:
@@ -134,7 +134,7 @@ public:
     [[nodiscard]] constexpr Bitboard blackPawns() const { return pawns<Set::BLACK>(); }
 
     [[nodiscard]] constexpr Bitboard set(byte set) const {
-        ASSERT_MSG(set < 2, std::format("Invalid set index: {}", (int)set));
+        ASSERT_MSG(set < 2, "Invalid set index, white is 0 & black 1.");
         return m_set[set];
     }
     [[nodiscard]] constexpr Bitboard white() const { return m_set[0]; }

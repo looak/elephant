@@ -4,6 +4,7 @@
 #include <position/position.hpp>
 #include <variant>
 #include <format>
+#include <optional>
 
 namespace io {
 namespace san_parser {

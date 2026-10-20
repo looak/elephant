@@ -2,11 +2,11 @@
 #include <bitboard/bitboard_constants.hpp>
 #include <bitboard/intrinsics.hpp>
 #include <system/platform.hpp>
-#include <diagnostics/logger.hpp>
 #include <move/move.hpp>
 #include <position/hash_zobrist.hpp>
 
 #include <future>
+#include <sstream>
 #include <thread>
 #include <vector>
 
