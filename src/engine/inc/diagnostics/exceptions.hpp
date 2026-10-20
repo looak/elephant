@@ -42,7 +42,8 @@ public:
 } // namespace ephant
 
 #if defined(EXCEPTIONS_ENABLED)
-// TODO: Fatal Asserts vs Exceptions, should I combine them?
+// Exceptions are for bad input: FEN, SAN/PGN, UCI commands, CLI arguments. Engine invariants and engine failures use
+// ASSERT / ASSERT_MSG, see assert.hpp.
 #define THROW_EXPR(expr, exceptionType, message) \
     if (!(expr)) {                   \
         throw exceptionType(message); \

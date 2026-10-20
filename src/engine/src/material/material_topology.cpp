@@ -171,7 +171,7 @@ template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedOrthogonals() c
 template<Set us>
 template<bool includeMaterial, bool pierceKing>
 Bitboard MaterialTopology<us>::computeThreatenedSquares() const {
-    Bitboard result = ~universe;
+    Bitboard result = 0;
     [[maybe_unused]] constexpr Set op = opposing_set<us>();
     [[maybe_unused]] Bitboard kingMask = 0;
 

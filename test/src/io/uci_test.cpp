@@ -155,7 +155,7 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
 
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
-    EXPECT_STREQ(c_startPositionFen.c_str(), outputFen.c_str());
+    EXPECT_EQ(c_startPositionFen, outputFen);
 }
 
 TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
@@ -417,6 +417,33 @@ u64 finalReportedNodes(const std::string& output)
     return pos == std::string::npos ? 0 : std::stoull(output.substr(pos + 11));
 }
 }  // namespace
+
+TEST_F(UciFixture, go_NoLegalMove_BestmoveIsNullMove)
+{
+    // setup, white is mated (fool's mate) and black is stalemated: there's no move to play, UCI writes bestmove 0000.
+    m_uci.Enable();
+    const std::list<std::string> positions[] = {
+        { "fen", "rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR", "w", "KQkq", "-", "1", "3" },
+        { "fen", "7k/5Q2/6K1/8/8/8/8/8", "b", "-", "-", "0", "1" } };
+
+    for (const auto& position : positions) {
+        m_uci.NewGame();
+        ASSERT_TRUE(m_uci.Position(position));
+
+        std::stringstream testOutput;
+        bool result = false;
+        {
+            ScopedRedirect coutRedirect(std::cout, testOutput);
+
+            // do
+            result = m_uci.Go({ "depth", "3" });
+        }
+
+        // verify
+        EXPECT_TRUE(result);
+        EXPECT_NE(std::string::npos, testOutput.str().find("bestmove 0000"));
+    }
+}
 
 TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
 {
