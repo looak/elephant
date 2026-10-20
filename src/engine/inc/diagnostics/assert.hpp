@@ -21,9 +21,16 @@
 #include <cstring>
 #include <string>
 
-#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
-
 namespace ephant {
+// file name without its directories, cut at the last '/' or '\'.
+constexpr const char* file_name(const char* path) {
+    const char* name = path;
+    for (const char* c = path; *c != '\0'; ++c)
+        if (*c == '/' || *c == '\\')
+            name = c + 1;
+    return name;
+}
+
 class ephsert final {
 public:
     // logs the failure as critical, see assert.cpp: the log is in logger.cpp, not in every file that asserts.
@@ -36,6 +43,7 @@ public:
 
 }  // namespace ephant
 
+#define __FILENAME__ (ephant::file_name(__FILE__))
 
 // @brief Asserts that the expression evaluates to true and logs a fatal assert message with the expression, file name and line
 // number if it fails.
