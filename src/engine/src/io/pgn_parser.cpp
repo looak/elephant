@@ -142,44 +142,32 @@ namespace {
         }
     }
 
-    // [Name "value"], with \" and \\ escaped in the value. A tag that doesn't read is skipped to the end of its line.
+    // A tag is a line, [Name "value"], read as python-chess reads it: the value runs from the first quote to the last
+    // "] on the line and is kept as written, a \" in it stays a \". A line that isn't a tag is skipped.
     bool GameReader::readTag(Game& game) {
-        const size_t start = m_pos;
-        size_t i = m_pos + 1;
-        auto skipSpaces = [&] {
-            while (i < m_stream.size() && (m_stream[i] == ' ' || m_stream[i] == '\t'))
-                ++i;
+        const size_t eol = endOfLine(m_stream, m_pos);
+        std::string_view line = m_stream.substr(m_pos, eol - m_pos);
+        m_pos = eol;
+        while (!line.empty() && isSpace(line.back()))
+            line.remove_suffix(1);
+
+        auto isNameChar = [](char c) {
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || isDigit(c) || c == '_' || c == '+' || c == '#'
+                || c == '=' || c == ':' || c == '-';
         };
-
-        skipSpaces();
-        const size_t nameStart = i;
-        while (i < m_stream.size() && !isSpace(m_stream[i]) && m_stream[i] != '"' && m_stream[i] != ']')
+        size_t i = 1;
+        while (i < line.size() && isNameChar(line[i]))
             ++i;
-        Tag tag{ std::string(m_stream.substr(nameStart, i - nameStart)), {} };
-        skipSpaces();
-
-        bool read = !tag.name.empty() && i < m_stream.size() && m_stream[i] == '"';
-        if (read) {
+        const std::string_view name = line.substr(1, i - 1);
+        const size_t quote = i;
+        while (i < line.size() && isSpace(line[i]))
             ++i;
-            while (i < m_stream.size() && m_stream[i] != '"' && m_stream[i] != '\n') {
-                if (m_stream[i] == '\\' && i + 1 < m_stream.size())
-                    ++i;
-                tag.value.push_back(m_stream[i++]);
-            }
-            read = i < m_stream.size() && m_stream[i] == '"';
-            ++i;
-            skipSpaces();
-            read = read && i < m_stream.size() && m_stream[i] == ']';
-        }
 
-        if (!read) {
-            if (game.error.empty())
-                game.error = std::format("the tag at byte {} doesn't read", start);
-            m_pos = endOfLine(m_stream, start);
+        const bool read = !name.empty() && std::string_view("_+#=:-").find(name.front()) == std::string_view::npos && i > quote && i < line.size() && line[i] == '"'
+            && line.size() >= i + 3 && line.ends_with("\"]");
+        if (!read)
             return false;
-        }
-        game.tags.push_back(std::move(tag));
-        m_pos = i + 1;
+        game.tags.push_back(Tag{ std::string(name), std::string(line.substr(i + 1, line.size() - 2 - (i + 1))) });
         return true;
     }
 
@@ -208,7 +196,6 @@ namespace {
         std::optional<Game> parsed = reader.next();
         if (!parsed)
             return;
-        THROW_EXPR(parsed->error.empty(), ephant::io_error, std::format("pgn_parser :: {}", parsed->error));
 
         MovetextTokenizer tokenizer(parsed->movetext);
         while (std::optional<Token> token = tokenizer.next()) {

@@ -87,13 +87,14 @@ namespace pgn_parser {
         size_t length = 0;              // its length in bytes, through its movetext
         std::vector<Tag> tags;
         std::string_view movetext;      // a view into the stream
-        std::string error;              // a tag that doesn't read, empty when they all do
 
         // the tag's value, or nullptr.
         const std::string* tag(std::string_view name) const;
     };
 
-    // Splits a PGN stream into games, one at a time. The stream has to outlive the games read from it.
+    // Splits a PGN stream into games, one at a time. The stream has to outlive the games read from it. Tags are read as
+    // python-chess reads them, which nyayo did before phant-indexer: values as written, \" not unescaped, and a line
+    // that isn't a tag skipped.
     class GameReader {
     public:
         explicit GameReader(std::string_view stream) : m_stream(stream) {}

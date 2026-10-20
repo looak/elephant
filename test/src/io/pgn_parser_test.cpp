@@ -276,10 +276,9 @@ TEST(PgnGameReader, SplitsAStreamIntoGames)
     auto one = reader.next();
     ASSERT_TRUE(one);
     EXPECT_EQ(3u, one->offset);
-    EXPECT_TRUE(one->error.empty());
     ASSERT_EQ(2u, one->tags.size());
     EXPECT_EQ("one", *one->tag("Event"));
-    EXPECT_EQ("Elephant \"herd\" 1.0", *one->tag("White"));
+    EXPECT_EQ("Elephant \\\"herd\\\" 1.0", *one->tag("White"));  // as written, as python-chess reads it
     EXPECT_EQ(nullptr, one->tag("Black"));
     EXPECT_EQ("1. e4 e5 1-0", one->movetext);
     EXPECT_EQ(stream.substr(3, one->length), stream.substr(one->offset, one->length));
@@ -297,22 +296,26 @@ TEST(PgnGameReader, SplitsAStreamIntoGames)
     EXPECT_FALSE(reader.next());
 }
 
-TEST(PgnGameReader, TagThatDoesntRead_IsAnErrorOfThatGameOnly)
+// python-chess's reading: a value runs to the last "] of its line, quotes in it unescaped or not, and a line that
+// isn't a tag is skipped.
+TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
 {
     const std::string stream =
-        "[Event \"one\"]\n[White unquoted]\n\n1. e4 *\n\n"
+        "[Event \"one\"]\n[White unquoted]\n[Black \"Elephant \"herd\" dev\"]\n[_Bad \"x\"]\n[Site\"x\"]\n"
+        "[Round \"1\"]   \n\n1. e4 *\n\n"
         "[Event \"two\"]\n\n1. d4 *\n";
     io::pgn_parser::GameReader reader(stream);
 
     auto one = reader.next();
     ASSERT_TRUE(one);
-    EXPECT_FALSE(one->error.empty());
+    ASSERT_EQ(3u, one->tags.size());
     EXPECT_EQ("one", *one->tag("Event"));
+    EXPECT_EQ("Elephant \"herd\" dev", *one->tag("Black"));
+    EXPECT_EQ("1", *one->tag("Round"));
     EXPECT_EQ("1. e4 *", one->movetext);
 
     auto two = reader.next();
     ASSERT_TRUE(two);
-    EXPECT_TRUE(two->error.empty());
     EXPECT_EQ("1. d4 *", two->movetext);
 }
 
