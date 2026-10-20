@@ -40,6 +40,7 @@
 #include <eval/pawn_tables.hpp>
 #include <eval/tapered_score.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <material/material_mask.hpp>
 
 // What passerScore reports to a trace for every passed pawn: the kings' distances to it (0 to 7), its relative rank
 // (rank 2 = 1) when blocked or with a free path, which rook is behind it (0 its own, 1 the enemy's), and its sign, +1
@@ -62,16 +63,16 @@ constexpr u32 distance(u32 a, u32 b) {
 }
 
 // one side's passed pawns, scored from its point of view.
-template<Set us, typename Material, typename Trace>
-TaperedScore sideScore(const Material& material, u64 passed, Trace& trace) {
+template<Set us, typename Trace>
+TaperedScore sideScore(const MaterialPositionMask& material, u64 passed, Trace& trace) {
     constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
     constexpr i32 sign = us == Set::WHITE ? 1 : -1;
 
     const u64 occupied = material.combine().read();
-    const u64 ownKing = material.template king<us>().read();
-    const u64 enemyKing = material.template king<them>().read();
-    const u64 ownRooks = material.template rooks<us>().read();
-    const u64 enemyRooks = material.template rooks<them>().read();
+    const u64 ownKing = material.king<us>().read();
+    const u64 enemyKing = material.king<them>().read();
+    const u64 ownRooks = material.rooks<us>().read();
+    const u64 enemyRooks = material.rooks<them>().read();
 
     TaperedScore score = S(0, 0);
     for (; passed != 0; passed &= passed - 1) {
@@ -123,14 +124,13 @@ TaperedScore sideScore(const Material& material, u64 passed, Trace& trace) {
 /**
  * Passed pawn extras of both sides, white's minus black's, midgame & endgame packed. pawns is the position's
  * pawnInfo, for its passed pawns.    */
-template<typename Material, typename Trace>
-[[nodiscard]] TaperedScore passerScore(const Material& material, const PawnInfo& pawns, Trace& trace) {
+template<typename Trace>
+[[nodiscard]] TaperedScore passerScore(const MaterialPositionMask& material, const PawnInfo& pawns, Trace& trace) {
     return passer_internals::sideScore<Set::WHITE>(material, pawns.passedOf(Set::WHITE), trace)
          - passer_internals::sideScore<Set::BLACK>(material, pawns.passedOf(Set::BLACK), trace);
 }
 
-template<typename Material>
-[[nodiscard]] TaperedScore passerScore(const Material& material, const PawnInfo& pawns) {
+[[nodiscard]] inline TaperedScore passerScore(const MaterialPositionMask& material, const PawnInfo& pawns) {
     NoPasserTrace none;
     return passerScore(material, pawns, none);
 }

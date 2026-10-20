@@ -31,6 +31,7 @@
 
 #include <eval/pawn_structure.hpp>
 #include <eval/tapered_score.hpp>
+#include <material/material_mask.hpp>
 #include <system/platform.hpp>
 
 class PawnHashTable {
@@ -41,10 +42,9 @@ public:
     PawnHashTable() : m_entries(std::size_t{ 1 } << c_indexBits) {}
 
     // pawnInfo of material, from the table when its pawns are there, counted and stored when not.
-    template<typename Material>
-    [[nodiscard]] const PawnInfo& probe(const Material& material) {
-        const u64 white = material.template pawns<Set::WHITE>().read();
-        const u64 black = material.template pawns<Set::BLACK>().read();
+    [[nodiscard]] const PawnInfo& probe(const MaterialPositionMask& material) {
+        const u64 white = material.pawns<Set::WHITE>().read();
+        const u64 black = material.pawns<Set::BLACK>().read();
         Entry& entry = m_entries[index(white, black)];
         if (entry.white == white && entry.black == black) {
             ++m_hits;
