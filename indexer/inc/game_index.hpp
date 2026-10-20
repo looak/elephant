@@ -34,7 +34,7 @@
 namespace indexer {
 
 // the version of the entry's fields and their JSON.
-inline constexpr std::string_view c_formatVersion = "1";
+inline constexpr u32 c_formatVersion = 1;
 
 // the plies after which the material balance is taken, besides at the end.
 inline constexpr std::array<u32, 2> c_materialPlies = { 20, 40 };
@@ -45,23 +45,27 @@ enum class Ending : u8 { None, Checkmate, Stalemate, InsufficientMaterial, Fifty
 std::string_view toString(Ending ending);
 
 struct GameIndex {
+    std::string reader;             // the version of Elephant phant-indexer was built from
     std::string source;             // the file the game came from, empty for standard input
     u32 number = 0;                 // the game's place in its input, from 1
     size_t offset = 0;              // where it starts in its input, in bytes
     size_t length = 0;              // its length in bytes
-    std::vector<io::pgn_parser::Tag> tags;
+    std::vector<io::pgn_parser::Tag> tags;  // as python-chess keeps them: a name once, at its first place, its last value
 
     bool ok = true;                 // every move read and was legal
     std::string error;              // why not, when not ok
     u32 errorPly = 0;               // the ply that didn't read, from 1; 0 for an error before the moves
 
-    std::string result;             // the Result tag, else the movetext's result, else "*"
-    u32 plies = 0;                  // moves played, up to an error
+    std::string result;             // the Result tag, else the movetext's first result, else "*"
+    u32 plies = 0;                  // moves played, null moves included, up to an error
     Ending ending = Ending::None;
     std::array<u32, 4> promotions = {};         // to queen, rook, bishop, knight
     std::optional<u32> castledWhite;            // the ply of the castling move
     std::optional<u32> castledBlack;
-    u32 captures = 0;
+    u32 captures = 0;               // en passant captures included
+    u32 epCaptures = 0;
+    u32 checks = 0;                 // moves that give check
+    u32 minPieces = 0;              // the fewest pieces on the board, kings included, the start position's counted
     // white's material less black's, pawn 1, knight & bishop 3, rook 5, queen 9; after the plies in c_materialPlies
     // the game reached, and at the end. The key is the ply, or "end".
     std::vector<std::pair<std::string, i32>> material;
@@ -71,7 +75,8 @@ struct GameIndex {
     std::string fen;
 };
 
-// Replays a game, from its FEN tag when it has one, and reports what it finds.
+// Replays a game, from its FEN tag when it has one, and reports what it finds. A Variant tag that isn't standard
+// chess is an error before the moves.
 GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false);
 
 // The entry as one line of JSON, without its newline. The moves and the FEN are written when verbose.

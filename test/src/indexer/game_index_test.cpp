@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <game_index.hpp>
+#include <core/build_info.hpp>
 #include <io/pgn_parser.hpp>
 
 #include <format>
@@ -32,6 +33,16 @@ public:
 
 static const std::string c_foolsMate = "[Event \"t\"]\n[Result \"0-1\"]\n\n1. f3 e5 2. g4 Qh4# 0-1\n";
 
+// the version every entry carries, the engine's.
+static std::string version()
+{
+    for (const auto& [key, value] : build_info::entries()) {
+        if (key == "version")
+            return value;
+    }
+    return "";
+}
+
 ////////////////////////////////////////////////////////////////
 
 TEST_F(GameIndexFixture, FoolsMate_JsonLine)
@@ -40,11 +51,11 @@ TEST_F(GameIndexFixture, FoolsMate_JsonLine)
 
     // the game's length runs through its result, not the newline after it.
     const std::string expected = std::format(
-        "{{\"indexer\":\"1\",\"game\":1,\"offset\":0,\"length\":{},\"ok\":true,"
+        "{{\"format\":1,\"reader\":\"{}\",\"game\":1,\"offset\":0,\"length\":{},\"ok\":true,"
         "\"tags\":{{\"Event\":\"t\",\"Result\":\"0-1\"}},\"result\":\"0-1\",\"plies\":4,\"ended\":\"checkmate\","
         "\"promotions\":{{\"q\":0,\"r\":0,\"b\":0,\"n\":0}},\"castled\":{{\"white\":null,\"black\":null}},"
-        "\"captures\":0,\"material\":{{\"end\":0}}}}",
-        c_foolsMate.size() - 1);
+        "\"captures\":0,\"ep_captures\":0,\"checks\":1,\"min_pieces\":32,\"material\":{{\"end\":0}}}}",
+        version(), c_foolsMate.size() - 1);
     EXPECT_EQ(expected, indexer::toJson(entry));
 }
 
@@ -65,7 +76,61 @@ TEST_F(GameIndexFixture, Source_WrittenWhenSet)
     indexer::GameIndex entry = index(c_foolsMate);
     entry.source = "batches/7.pgn";
 
-    EXPECT_TRUE(indexer::toJson(entry).starts_with("{\"indexer\":\"1\",\"source\":\"batches/7.pgn\",\"game\":1,"));
+    EXPECT_TRUE(indexer::toJson(entry).starts_with(
+        std::format("{{\"format\":1,\"reader\":\"{}\",\"source\":\"batches/7.pgn\",\"game\":1,", version())));
+}
+
+// a final position that ends nothing by the rules is null.
+TEST_F(GameIndexFixture, NotEndedByTheRules_IsNull)
+{
+    const std::string json = indexer::toJson(index("1. e4 e5 1-0"));
+
+    EXPECT_NE(std::string::npos, json.find("\"ended\":null,")) << json;
+}
+
+// d4 takes c3 en passant, Qxd8+ is the check, Kxd8 leaves four pieces.
+TEST_F(GameIndexFixture, EnPassantChecksAndFewestPieces)
+{
+    indexer::GameIndex entry = index("[FEN \"3qk3/8/8/8/2Pp4/8/8/3QK1B1 b - c3 0 1\"]\n\n1... dxc3 2. Qxd8+ Kxd8 3. Bh2 c2 *");
+
+    EXPECT_TRUE(entry.ok);
+    EXPECT_EQ(5u, entry.plies);
+    EXPECT_EQ(3u, entry.captures);
+    EXPECT_EQ(1u, entry.epCaptures);
+    EXPECT_EQ(1u, entry.checks);
+    EXPECT_EQ(4u, entry.minPieces);
+}
+
+// python-chess's null moves pass: the side to move changes, no en passant for the other side, the plies count them.
+TEST_F(GameIndexFixture, NullMoves_PassTheMove)
+{
+    indexer::GameIndex entry = index("1. e4 -- 2. d4 Z0 3. Nf3 *", true);
+
+    EXPECT_TRUE(entry.ok);
+    EXPECT_EQ(5u, entry.plies);
+    EXPECT_EQ((std::vector<std::string>{ "e2e4", "0000", "d2d4", "0000", "g1f3" }), entry.moves);
+    EXPECT_EQ("rnbqkbnr/pppppppp/8/8/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 2 3", entry.fen);
+}
+
+TEST_F(GameIndexFixture, Variant_OnlyStandardChess)
+{
+    EXPECT_TRUE(index("[Variant \"Standard\"]\n\n1. e4 *").ok);
+
+    indexer::GameIndex entry = index("[Variant \"Chess960\"]\n\n1. e4 *");
+    EXPECT_FALSE(entry.ok);
+    EXPECT_EQ(0u, entry.errorPly);
+    EXPECT_EQ(0u, entry.plies);
+}
+
+// as python-chess keeps them: once, where the name first was, with its last value.
+TEST_F(GameIndexFixture, RepeatedTag_KeptOnceWithItsLastValue)
+{
+    indexer::GameIndex entry = index("[Event \"a\"]\n[Site \"s\"]\n[Event \"b\"]\n\n1. e4 *");
+
+    ASSERT_EQ(2u, entry.tags.size());
+    EXPECT_EQ("Event", entry.tags[0].name);
+    EXPECT_EQ("b", entry.tags[0].value);
+    EXPECT_EQ("Site", entry.tags[1].name);
 }
 
 // two pawns could take on d8, the e-pawn does and becomes a knight, the c-pawn queens.
@@ -181,6 +246,10 @@ TEST_F(GameIndexFixture, Result_TagFirstThenMovetextThenUnknown)
     EXPECT_EQ("0-1", index("[Result \"0-1\"]\n\n1. e4 1-0").result);
     EXPECT_EQ("1/2-1/2", index("1. e4 1/2-1/2").result);
     EXPECT_EQ("*", index("1. e4").result);
+    // a Result tag of * is python-chess's unknown too, the movetext's first result fills it.
+    EXPECT_EQ("1-0", index("[Result \"*\"]\n\n1. e4 1-0 e5 0-1").result);
+    // nothing after an illegal move is read.
+    EXPECT_EQ("*", index("1. e4 Ke2 1-0").result);
 }
 
 } // namespace ElephantTest

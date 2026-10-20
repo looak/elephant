@@ -5,6 +5,7 @@
 #include <format>
 
 #include <bitboard/intrinsics.hpp>
+#include <core/build_info.hpp>
 #include <core/chessboard.hpp>
 #include <elephant_gambit.hpp>
 #include <io/fen_parser.hpp>
@@ -12,6 +13,7 @@
 #include <move/generation/tusk/move_generator.hpp>
 #include <move/move.hpp>
 #include <move/move_executor.hpp>
+#include <position/hash_zobrist.hpp>
 
 // a move that doesn't read is only told apart from one that does by the parsers' exceptions.
 #ifndef EXCEPTIONS_ENABLED
@@ -26,6 +28,42 @@ namespace {
     u64 pieces(PositionReader position, Set set, u8 pieceId) { return position.material().read(set, pieceId).read(); }
 
     i32 count(PositionReader position, Set set, u8 pieceId) { return intrinsics::popcnt(pieces(position, set, pieceId)); }
+
+    u32 pieceCount(PositionReader position)
+    {
+        return static_cast<u32>(intrinsics::popcnt(position.material().combine().read()));
+    }
+
+    template<Set us>
+    bool checked(PositionReader position) { return tusk::CheckInfo<us>(position).isChecked(); }
+
+    bool inCheck(const Chessboard& board)
+    {
+        return board.readToPlay() == Set::WHITE ? checked<Set::WHITE>(board.readPosition())
+                                                : checked<Set::BLACK>(board.readPosition());
+    }
+
+    // a side passing, as python-chess plays a null move: no en passant capture for the other side, the fifty move
+    // count goes on.
+    void makeNullMove(Chessboard& board)
+    {
+        PositionEditor position = board.editPosition();
+        position.enPassant().clear();
+        position.hash() = zobrist::updateBlackToMoveHash(position.hash());
+        GameState& state = board.editState();
+        ++state.plyCount;
+        state.whiteToMove = !state.whiteToMove;
+        state.moveCount += static_cast<u16>(state.whiteToMove);
+    }
+
+    std::string readerVersion()
+    {
+        for (const auto& [key, value] : build_info::entries()) {
+            if (key == "version")
+                return value;
+        }
+        return "unknown";
+    }
 
     i32 material(PositionReader position)
     {
@@ -80,6 +118,8 @@ namespace {
 
     std::string uci(PackedMove move)
     {
+        if (move == PackedMove::NullMove())
+            return "0000";
         auto square = [](Square sqr) {
             const i32 index = static_cast<i32>(sqr);
             return std::string{ static_cast<char>('a' + index % 8), static_cast<char>('1' + index / 8) };
@@ -121,18 +161,32 @@ std::string_view toString(Ending ending)
     case Ending::Repetition: return "repetition";
     case Ending::None: break;
     }
-    return "none";
+    return "null";
 }
 
 GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
 {
+    static const std::string c_reader = readerVersion();
     GameIndex entry;
+    entry.reader = c_reader;
     entry.number = number;
     entry.offset = game.offset;
     entry.length = game.length;
-    entry.tags = game.tags;
+    for (const io::pgn_parser::Tag& tag : game.tags) {
+        auto same = std::find_if(entry.tags.begin(), entry.tags.end(), [&](const auto& kept) { return kept.name == tag.name; });
+        if (same == entry.tags.end())
+            entry.tags.push_back(tag);
+        else
+            same->value = tag.value;
+    }
+    auto tag = [&](std::string_view name) -> const std::string* {
+        auto found = std::find_if(entry.tags.begin(), entry.tags.end(), [&](const auto& kept) { return kept.name == name; });
+        return found == entry.tags.end() ? nullptr : &found->value;
+    };
 
-    std::string_view resultToken;
+    // python-chess's: the Result tag, unless it's * or missing, then the first result in the movetext, while it reads.
+    const std::string* resultTag = tag("Result");
+    entry.result = resultTag ? *resultTag : "*";
     auto fail = [&](std::string reason) {
         entry.ok = false;
         entry.error = std::move(reason);
@@ -141,7 +195,10 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
     Chessboard board;
     std::vector<u64> hashes;
     try {
-        if (const std::string* fen = game.tag("FEN")) {
+        const std::string* variant = tag("Variant");
+        if (variant && !io::pgn_parser::standardVariant(*variant))
+            fail(std::format("not standard chess: Variant {}", *variant));
+        else if (const std::string* fen = tag("FEN")) {
             if (!io::fen_parser::deserialize(*fen, board))
                 fail(std::format("the FEN tag doesn't read: {}", *fen));
         }
@@ -155,36 +212,52 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
 
     MoveUndoUnit undo;
     hashes.push_back(board.readPosition().hash());
+    entry.minPieces = pieceCount(board.readPosition());
     io::pgn_parser::MovetextTokenizer tokenizer(game.movetext);
     while (std::optional<io::pgn_parser::Token> token = tokenizer.next()) {
-        if (token->kind == io::pgn_parser::Token::Kind::Result) {
-            resultToken = token->text;
+        using Kind = io::pgn_parser::Token::Kind;
+        if (!entry.ok)
+            break;  // python-chess reads nothing of the game after an error
+        if (token->kind == Kind::Result) {
+            if (entry.result == "*")
+                entry.result = token->text;
             continue;
         }
-        if (token->kind != io::pgn_parser::Token::Kind::Move || !entry.ok)
+        if (token->kind != Kind::Move && token->kind != Kind::NullMove)
             continue;
 
         const Set us = board.readToPlay();
-        PackedMove move;
-        try {
-            move = io::san_parser::deserialize(board.readPosition(), us == Set::WHITE, token->text);
+        PackedMove move = PackedMove::NullMove();
+        if (token->kind == Kind::NullMove) {
+            makeNullMove(board);
         }
-        catch (const std::exception& e) {
-            entry.errorPly = entry.plies + 1;
-            fail(std::format("{}: {}", token->text, e.what()));
-            continue;
-        }
+        else {
+            try {
+                move = io::san_parser::deserialize(board.readPosition(), us == Set::WHITE, token->text);
+            }
+            catch (const std::exception& e) {
+                entry.errorPly = entry.plies + 1;
+                fail(std::format("{}: {}", token->text, e.what()));
+                continue;
+            }
 
-        MoveExecutor executor(board.editPosition());
-        GameState& state = board.editState();
-        executor.makeMove<true>(move, undo, state.plyCount);
-        state.whiteToMove = !state.whiteToMove;
-        state.moveCount += static_cast<u16>(state.whiteToMove);
+            MoveExecutor executor(board.editPosition());
+            GameState& state = board.editState();
+            executor.makeMove<true>(move, undo, state.plyCount);
+            state.whiteToMove = !state.whiteToMove;
+            state.moveCount += static_cast<u16>(state.whiteToMove);
+        }
         hashes.push_back(board.readPosition().hash());
 
         ++entry.plies;
-        if (move.isCapture())
+        if (move.isCapture()) {
             ++entry.captures;
+            entry.minPieces = std::min(entry.minPieces, pieceCount(board.readPosition()));
+        }
+        if (move.isEnPassant())
+            ++entry.epCaptures;
+        if (token->kind == Kind::Move && inCheck(board))
+            ++entry.checks;
         if (move.isPromotion())
             ++entry.promotions[static_cast<size_t>(static_cast<i32>(PieceType::QUEEN) - move.readPromoteToPieceType())];
         if (move.isCastling())
@@ -195,8 +268,6 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
             entry.moves.push_back(uci(move));
     }
 
-    const std::string* resultTag = game.tag("Result");
-    entry.result = resultTag ? *resultTag : resultToken.empty() ? "*" : std::string(resultToken);
 
     if (entry.ok) {
         entry.material.emplace_back("end", material(board.readPosition()));
@@ -211,8 +282,8 @@ std::string toJson(const GameIndex& entry, bool verbose)
 {
     std::string out;
     out.reserve(512);
-    out += "{\"indexer\":";
-    appendEscaped(out, c_formatVersion);
+    out += std::format("{{\"format\":{},\"reader\":", c_formatVersion);
+    appendEscaped(out, entry.reader);
     if (!entry.source.empty()) {
         out += ",\"source\":";
         appendEscaped(out, entry.source);
@@ -240,11 +311,15 @@ std::string toJson(const GameIndex& entry, bool verbose)
     else {
         auto ply = [](const std::optional<u32>& value) { return value ? std::to_string(*value) : std::string("null"); };
         out += ",\"ended\":";
-        appendEscaped(out, toString(entry.ending));
+        if (entry.ending == Ending::None)
+            out += "null";
+        else
+            appendEscaped(out, toString(entry.ending));
         out += std::format(",\"promotions\":{{\"q\":{},\"r\":{},\"b\":{},\"n\":{}}}", entry.promotions[0],
             entry.promotions[1], entry.promotions[2], entry.promotions[3]);
         out += std::format(",\"castled\":{{\"white\":{},\"black\":{}}}", ply(entry.castledWhite), ply(entry.castledBlack));
-        out += std::format(",\"captures\":{},\"material\":{{", entry.captures);
+        out += std::format(",\"captures\":{},\"ep_captures\":{},\"checks\":{},\"min_pieces\":{},\"material\":{{",
+            entry.captures, entry.epCaptures, entry.checks, entry.minPieces);
         for (size_t i = 0; i < entry.material.size(); ++i)
             out += std::format("{}\"{}\":{}", i ? "," : "", entry.material[i].first, entry.material[i].second);
         out += '}';
