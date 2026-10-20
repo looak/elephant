@@ -33,6 +33,15 @@ TEST_F(FenParserFixture, Initialize)
     EXPECT_FALSE(result);
 }
 
+TEST_F(FenParserFixture, MissingOrExtraKing_Rejected)
+{
+    Chessboard board;
+    EXPECT_FALSE(io::fen_parser::deserialize("8/8/8/8/8/8/8/4K3 w - - 0 1", board));        // no black king
+    EXPECT_FALSE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/8 b - - 0 1", board));        // no white king
+    EXPECT_FALSE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/3KK3 w - - 0 1", board));     // two white kings
+    EXPECT_TRUE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/4K3 w - - 0 1", board));
+}
+
 TEST_F(FenParserFixture, StartingPosition)
 {
     std::string startingPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

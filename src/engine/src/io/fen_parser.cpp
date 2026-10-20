@@ -110,6 +110,11 @@ bool deserializeBoard(std::string_view fen, PositionEditor position)
         ranks.pop_back();
     }
 
+    // search & evaluation take both kings as given, a board without exactly one king a side isn't a position.
+    const auto& material = position.material();
+    if (material.whiteKing().count() != 1 || material.blackKing().count() != 1)
+        return false;
+
     return true;
 }
 
