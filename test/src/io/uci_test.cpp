@@ -155,7 +155,7 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
 
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
-    EXPECT_STREQ(c_startPositionFen.c_str(), outputFen.c_str());
+    EXPECT_EQ(c_startPositionFen, outputFen);
 }
 
 TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)

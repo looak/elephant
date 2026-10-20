@@ -72,6 +72,10 @@ namespace internals {
             return result & ~bounds;
     }
 
+    // 0x88 square index and back, the knight mask uses it to spot moves off the board.
+    constexpr u8 to0x88(u8 sqr) { return sqr + (sqr & ~7); }
+    constexpr u8 fr0x88(u8 sq0x88) { return (sq0x88 + (sq0x88 & 7)) >> 1; }
+
     constexpr u64 generateKnightAttackMask(u8 sqr) {
         u64 attkMask = 0;
         u8 moveCount = piece_constants::move_count[knightId];
