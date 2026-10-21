@@ -89,8 +89,12 @@ if(ELEPHANT_BUILD_TUNER)
     add_subdirectory(tuner)
 endif()
 
-# phant-indexer, the game reader for nyayo's catalogue
-add_subdirectory(indexer)
+# phant-indexer, the game reader for nyayo's catalogue. Off by default: it fetches zlib, bzip2 & zstd at configure
+# time, which an engine build has no use for.
+option(ELEPHANT_BUILD_INDEXER "Build phant-indexer, the game reader for nyayo's catalogue" OFF)
+if(ELEPHANT_BUILD_INDEXER)
+    add_subdirectory(indexer)
+endif()
 
 # enable testing and define tests
 enable_testing()

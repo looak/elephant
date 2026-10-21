@@ -9,7 +9,8 @@
 # warns when it differs from the last commit's bench line, a search change is supposed to change it.
 #
 # phant-indexer is checked against python-chess by test/indexer_smoke.py: the PGN files in test/pgn and 2000 random
-# games, every game's moves, final position and entry. Without phant-indexer or python-chess it warns.
+# games, every game's moves, final position and entry, read plain, bz2, gzip & zstd. Without phant-indexer (built with
+# ELEPHANT_BUILD_INDEXER), python-chess or zstd for python it warns.
 #
 # The EPD smoke tier is test/epd_runner.py playing the positions with ElephantGambit over UCI, one engine per core
 # (test/epd_tiers.json). A suite below its baseline warns, below its minimum it fails. Every position is recorded with
@@ -97,9 +98,11 @@ fi
 # --- 3b. phant-indexer against python-chess, a full circle over test/pgn & random games ---
 indexer="$(find_binary phant-indexer)"
 if [ -z "$indexer" ]; then
-    add_summary WARN indexer "phant-indexer not found under $build, not checked"
+    add_summary WARN indexer "phant-indexer not found under $build (configure with -DELEPHANT_BUILD_INDEXER=ON), not checked"
 elif [ -z "$python" ] || ! "$python" -c "import chess" 2>/dev/null; then
     add_summary WARN indexer "no python-chess (pip install chess), phant-indexer not checked"
+elif ! "$python" -c "from compression import zstd" 2>/dev/null && ! "$python" -c "import zstandard" 2>/dev/null; then
+    add_summary WARN indexer "no zstd for python (pip install zstandard), phant-indexer not checked"
 else
     echo "== indexer: $indexer"
     indexer_log="$log_dir/smoke_indexer_$stamp.log"

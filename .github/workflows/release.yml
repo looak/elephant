@@ -92,7 +92,8 @@ jobs:
       run: gh release upload "$REF" "$BINARY" --clobber
 
   # phant-indexer reads PGN, it doesn't search, so one x86-64 build an OS. CMake, since it needs exceptions on (the
-  # parsers report an illegal move by throwing) and fetches zlib & bzip2; linked static, the C runtime too.
+  # parsers report an illegal move by throwing) and ELEPHANT_BUILD_INDEXER, which fetches zlib, bzip2 & zstd; linked
+  # static, the C runtime too.
   indexer:
     strategy:
       fail-fast: false
@@ -122,7 +123,8 @@ jobs:
       run: |
         static="$([ "$RUNNER_OS" = Windows ] && echo -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded || echo -DCMAKE_EXE_LINKER_FLAGS=-static)"
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DELEPHANT_NATIVE_ARCH=OFF -DASSERTIONS_ENABLED=OFF \
-          -DEXCEPTIONS_ENABLED=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_TUNER=OFF "$static"
+          -DEXCEPTIONS_ENABLED=ON -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_TUNER=OFF \
+          "$static"
 
     - name: Build
       run: cmake --build build --config Release --parallel --target PhantIndexer
