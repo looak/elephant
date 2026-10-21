@@ -13,7 +13,9 @@ random from the start or from a random position (a FEN tag), with comments, NAGs
 tokenizer sees all of PGN and the SAN parser every kind of move: random play promotes, underpromotes, castles and
 captures en passant far more often than engines do. Each game is compared on: whether it read and where it stopped,
 the moves in UCI notation, the final position, and every fact of the entry (result, plies, how it ended, promotions,
-castling, captures, en passant captures, checks, the fewest pieces, material). Each file is read compressed too, bz2,
+castling, captures, en passant captures, checks, the fewest pieces, material, the start & opening hashes), and every
+position's Polyglot hash that --positions writes is python-chess's chess.polyglot.zobrist_hash. --position scans for
+a sample of each file's positions have to find the games & plies python-chess finds. Each file is read compressed too, bz2,
 gzip, zstd in one frame and zstd a frame every 64 games (as a batch may be written), on standard input, and has to
 give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
 2 when it couldn't run.
@@ -33,6 +35,7 @@ import io
 import json
 import logging
 import random
+import struct
 import subprocess
 import sys
 import tempfile
@@ -42,6 +45,7 @@ from pathlib import Path
 try:
     import chess
     import chess.pgn
+    import chess.polyglot
 except ImportError:
     print("indexer_smoke: needs python-chess, pip install chess", file=sys.stderr)
     sys.exit(2)
@@ -62,7 +66,10 @@ except ImportError:
 logging.getLogger("chess.pgn").setLevel(logging.CRITICAL)  # an illegal move is a fact here, not an error
 
 ROOT = Path(__file__).resolve().parent
-FORMAT = 1
+FORMAT = 2
+OPENING_PLY = 16
+SCANS = 6  # --position scans a file, besides its first game's start position
+CHECKED = {"positions": 0, "scans": 0}  # what the summary counts
 STANDARD = {"", "standard", "chess", "classical", "normal", "illegal", "from position"}  # python-chess's chess.Board
 MATERIAL_PLIES = (20, 40)
 VALUES = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
@@ -102,6 +109,7 @@ def expected(game: chess.pgn.Game) -> dict:
         del entry["moves"]
         return entry
     board = game.board()
+    positions = [chess.polyglot.zobrist_hash(board)]
     promotions = dict.fromkeys("qrbn", 0)
     castled = {"white": None, "black": None}
     captures = ep_captures = checks = plies = 0
@@ -120,6 +128,7 @@ def expected(game: chess.pgn.Game) -> dict:
                 castled["white" if board.turn == chess.WHITE else "black"] = plies
         entry["moves"].append(move.uci())
         board.push(move)
+        positions.append(chess.polyglot.zobrist_hash(board))
         if move and board.is_check():
             checks += 1
         min_pieces = min(min_pieces, len(board.piece_map()))
@@ -127,10 +136,13 @@ def expected(game: chess.pgn.Game) -> dict:
             mat[str(plies)] = material(board)
     entry["plies"] = plies
     entry["fen"] = fen(board)
+    entry["positions"] = positions
     if entry["ok"]:
         mat["end"] = material(board)
         entry.update(ended=ending(board), promotions=promotions, castled=castled, captures=captures,
-                     ep_captures=ep_captures, checks=checks, min_pieces=min_pieces, material=mat)
+                     ep_captures=ep_captures, checks=checks, min_pieces=min_pieces, material=mat,
+                     start=f"{positions[0]:016x}",
+                     opening=f"{positions[OPENING_PLY]:016x}" if plies >= OPENING_PLY else None)
     else:
         entry["error_ply"] = plies + 1
     return entry
@@ -147,8 +159,8 @@ def compare(want: dict, got: dict) -> list[str]:
         diffs.append(f"format {got.get('format')!r}, expected {FORMAT!r}")
     if not got.get("reader"):
         diffs.append("no reader version")
-    for key in ("ok", "tags", "result", "plies", "moves", "fen", "ended", "promotions", "castled", "captures",
-                "ep_captures", "checks", "min_pieces", "material"):
+    for key in ("ok", "tags", "result", "plies", "moves", "fen", "ended", "start", "opening", "promotions", "castled",
+                "captures", "ep_captures", "checks", "min_pieces", "material"):
         if key in want and want[key] != got.get(key):
             if key == "moves":
                 at = next((i for i, (a, b) in enumerate(zip(want[key], got.get(key) or [])) if a != b), None)
@@ -199,10 +211,11 @@ def random_game(rng: random.Random) -> chess.pgn.Game:
     return game
 
 
-def run_indexer(indexer: str, path: Path, stdin: bytes | None = None) -> tuple[list[dict], float]:
-    """phant-indexer's entries for a file, or for bytes on standard input."""
+def run_indexer(indexer: str, path: Path, stdin: bytes | None = None, options: tuple[str, ...] = ("--verbose",)
+                ) -> tuple[list[dict], float]:
+    """phant-indexer's lines for a file, or for bytes on standard input."""
     start = time.perf_counter()
-    args = [indexer, "--verbose"] if stdin is not None else [indexer, "--verbose", str(path)]
+    args = [indexer, *options] if stdin is not None else [indexer, *options, str(path)]
     done = subprocess.run(args, input=stdin, capture_output=True, check=False)
     elapsed = time.perf_counter() - start
     if done.returncode != 0:
@@ -239,9 +252,56 @@ def read_games(path: Path) -> tuple[list[chess.pgn.Game], float]:
     return games, time.perf_counter() - start
 
 
+def positions_agree(records: bytes, wants: list[dict]) -> list[str]:
+    """--positions' records: each game that read, every position in order, python-chess's hash; nothing for the rest."""
+    if len(records) % 12:
+        return [f"--positions wrote {len(records)} bytes, not 12-byte records"]
+    CHECKED["positions"] += len(records) // 12
+    got: dict[int, list[tuple[int, int]]] = {}
+    for hash_, game, ply in struct.iter_unpack("<QHH", records):
+        got.setdefault(game, []).append((ply, hash_))
+    diffs = []
+    for number, want in enumerate(wants, start=1):
+        expect = list(enumerate(want["positions"])) if want["ok"] else []
+        have = got.pop(number, [])
+        if have != expect:
+            at = next((i for i, (a, b) in enumerate(zip(expect, have)) if a != b), min(len(expect), len(have)))
+            diffs.append(f"--positions game {number}: {len(have)} records, python-chess {len(expect)}, first difference "
+                         f"at record {at}: {have[at:at + 1]} vs {[(p, h) for p, h in expect[at:at + 1]]}")
+    if got:
+        diffs.append(f"--positions wrote records for games {sorted(got)[:5]}..., which python-chess doesn't have")
+    return diffs
+
+
+def scans_agree(indexer: str, path: Path, games: list[chess.pgn.Game], wants: list[dict]) -> list[str]:
+    """--position for the first game's start position and a sample of others, against python-chess's hashes."""
+    read = [number for number, want in enumerate(wants, start=1) if want["ok"]]
+    if not read:
+        return []
+    rng = random.Random(len(games))
+    picks = [(read[0], 0)] + [(n, rng.randrange(len(wants[n - 1]["positions"]))) for n in rng.choices(read, k=SCANS)]
+    diffs = []
+    for number, ply in picks:
+        board = games[number - 1].board()
+        for move in list(games[number - 1].mainline_moves())[:ply]:
+            board.push(move)
+        target = chess.polyglot.zobrist_hash(chess.Board(board.fen()))
+        expect = sorted((n, p) for n, want in enumerate(wants, start=1) if want["ok"]
+                        for p, h in enumerate(want["positions"]) if h == target)
+        lines, _ = run_indexer(indexer, path, options=("--position", board.fen()))
+        CHECKED["scans"] += 1
+        have = sorted((line["game"], line["ply"]) for line in lines)
+        if have != expect:
+            diffs.append(f"--position {board.fen()}: {len(have)} found, python-chess {len(expect)}")
+    return diffs
+
+
 def check_file(indexer: str, path: Path, label: str) -> tuple[int, int, float, float]:
     """Compares one PGN file, returns (games, disagreements, phant-indexer seconds, python-chess seconds)."""
-    entries, indexer_time = run_indexer(indexer, path)
+    with tempfile.TemporaryDirectory() as scratch:
+        records_path = Path(scratch) / "positions.bin"
+        entries, indexer_time = run_indexer(indexer, path, options=("--verbose", "--positions", str(records_path)))
+        records = records_path.read_bytes()
     games, python_time = read_games(path)
     bad = 0
     for diff in compressed_agree(indexer, path, entries):
@@ -250,14 +310,19 @@ def check_file(indexer: str, path: Path, label: str) -> tuple[int, int, float, f
     if len(entries) != len(games):
         print(f"FAIL {label}: phant-indexer read {len(entries)} games, python-chess {len(games)}")
         return len(games), max(1, abs(len(entries) - len(games))), indexer_time, python_time
-    for number, (game, entry) in enumerate(zip(games, entries), start=1):
-        diffs = compare(expected(game), entry)
+    wants = [expected(game) for game in games]
+    for number, (want, entry) in enumerate(zip(wants, entries), start=1):
+        diffs = compare(want, entry)
         if diffs:
             bad += 1
             if bad <= 10:
                 print(f"FAIL {label} game {number} (byte {entry.get('offset')}):")
                 for diff in diffs:
                     print(f"       {diff}")
+    for diff in positions_agree(records, wants) + scans_agree(indexer, path, games, wants):
+        bad += 1
+        if bad <= 20:
+            print(f"FAIL {label}: {diff}")
     return len(games), bad, indexer_time, python_time
 
 
@@ -313,7 +378,8 @@ def main() -> int:
     if total_bad:
         print(f"indexer_smoke: {total_bad} of {total_games} games disagree, seed {seed}")
         return 1
-    print(f"indexer_smoke: all {total_games} games agree, seed {seed}")
+    print(f"indexer_smoke: all {total_games} games agree, {CHECKED['positions']:,} position hashes & "
+          f"{CHECKED['scans']} --position scans too, seed {seed}")
     return 0
 
 

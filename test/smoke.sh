@@ -9,7 +9,8 @@
 # warns when it differs from the last commit's bench line, a search change is supposed to change it.
 #
 # phant-indexer is checked against python-chess by test/indexer_smoke.py: the PGN files in test/pgn and 2000 random
-# games, every game's moves, final position and entry, read plain, bz2, gzip & zstd. Without phant-indexer (built with
+# games, every game's moves, final position and entry, read plain, bz2, gzip & zstd, and every position's Polyglot
+# hash & a sample of --position scans. Without phant-indexer (built with
 # ELEPHANT_BUILD_INDEXER), python-chess or zstd for python it warns.
 #
 # The EPD smoke tier is test/epd_runner.py playing the positions with ElephantGambit over UCI, one engine per core

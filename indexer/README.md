@@ -1,21 +1,24 @@
 # phant-indexer
 
 Reads PGN and writes one JSON line per game: whether every move read and was legal, and facts about the game that
-need it replayed. It's the game reader of nyayo's game catalogue (ramani, `plans/game-database.md`), replacing
+need it replayed; with `--positions`, every position's hash too, which is how nyayo finds games by position. It's the game reader of nyayo's game catalogue (ramani, `plans/game-database.md`), replacing
 python-chess there, built on Elephant's PGN and SAN parsing and its move generation. It only reads: the players and
 the `Subject` and `Opponent` tags are written by whoever plays the games (OpenBench's worker writes them before it
 uploads), nothing is mapped here.
 
 ```
-phant-indexer [--verbose] [FILE...]       the games of each FILE, or of standard input when there's none or FILE is -
-phant-indexer --version                   phant-indexer <elephant version> format <format version>
+phant-indexer [--verbose] [FILE...]                 the games of each FILE, or of standard input when there's none or FILE is -
+phant-indexer --positions OUT [--verbose] [FILE]    the entries, and every position's record to OUT; one input
+phant-indexer --position FEN [FILE...]              the games & plies that reach FEN's position, instead of the entries
+phant-indexer --version                             phant-indexer <elephant version> format <format version>
 ```
 
 An input is plain PGN, bz2 (as an OpenBench worker uploads a workload), zstd (as nyayo stores its batches) or gzip,
 told by its first bytes, and may be several compressed streams one after the other: zstd frames, skippable frames
 among them, bz2 or gzip streams. Offsets and lengths are into the decompressed PGN. Exits 0 when every
 input could be read, a game that doesn't read is an entry, not an error; 1 when an input can't be read or
-decompressed (nothing of that input is written); 2 on a bad option. It keeps no state between runs.
+decompressed (nothing of that input is written) or `--positions` meets more than it can number (below); 2 on a bad
+option or a FEN that doesn't read. It keeps no state between runs.
 
 Built by CMake as the `PhantIndexer` target (`build/Release/bin/phant-indexer`) only with `ELEPHANT_BUILD_INDEXER`
 on (off by default) and `EXCEPTIONS_ENABLED` on, the parsers report an illegal move by throwing:
@@ -30,14 +33,14 @@ configure time and linked into phant-indexer alone; an engine build, the default
 `phant-indexer-<version>-<linux|windows>-x86-64`, linked static, by `release.yml`, which turns the option on, as CI's
 `unit` job does.
 
-## An entry, format 1
+## An entry, format 2
 
-The format is a contract with nyayo, proposed and not agreed yet (ramani, `plans/game-database.md`, open decision 9).
-A field added or changed means a new format version.
+The entries and the positions output (below) are the reader's contract with nyayo, proposed and not agreed yet
+(ramani, `plans/game-database.md`, open decisions 9 and 15). A field added or changed means a new format version.
 
 ```jsonc
 {
-  "format": 1,                    // the version of these fields
+  "format": 2,                    // the version of these fields
   "reader": "1.3.1",              // the Elephant version phant-indexer was built from
   "source": "batches/7.pgn",      // the file, only when files were given
   "game": 17,                     // the game's place in its input, from 1
@@ -50,6 +53,8 @@ A field added or changed means a new format version.
 
   // when ok:
   "ended": "checkmate",           // checkmate, stalemate, insufficient_material, fifty_moves, repetition, or null
+  "start": "463b96181691fc9c",    // the start position's Polyglot hash, 16 lowercase hex digits
+  "opening": "a93e4c07d1b2f685",  // the position's after 16 plies, or null in a shorter game
   "promotions": { "q": 1, "r": 0, "b": 0, "n": 1 },
   "castled": { "white": 9, "black": null },     // the ply of the castling move, counted in this game
   "captures": 27,                 // en passant captures included
@@ -72,6 +77,44 @@ A field added or changed means a new format version.
 - `error.ply` is the ply that didn't read, from 1, or 0 for an error before the moves: a `FEN` tag that doesn't read,
   or a `Variant` that isn't standard chess.
 - The plies are counted in the game, from its `FEN` tag when it has one, not by the FEN's move number.
+
+**Format 1** (elephant#28) is format 2 without `start` and `opening`, the version a reader of either has to tell
+apart by `format`; nothing else differs.
+
+## Positions
+
+A position is its **Polyglot hash**, the standard one (the 781 random numbers of Polyglot's book format, in
+`src/polyglot_keys.hpp`, not the engine's own Zobrist keys), which python-chess computes as
+`chess.polyglot.zobrist_hash`: the pieces, the side to move, a castling right only while the king and that rook are
+on their squares, and the en passant file only when a pawn of the side to move stands next to the pawn that double
+pushed, legal capture or not. Not the move counters, so a position reached by different moves at different points of
+a game is the same position. The card's `start` and `opening` are this hash.
+
+**`--positions OUT`** writes, in the pass that writes the entries, a record for each position of each game that
+read: the start position (ply 0), then the position after each move, null moves included, in game order. A game that
+didn't read writes none. A record is 12 bytes, little-endian, one after the other with nothing else in the file:
+
+| Bytes | Field |
+|:--|:--|
+| 0–7 | the Polyglot hash, u64 |
+| 8–9 | the game's place in its input, from 1, as the entry's `game`, u16 |
+| 10–11 | the ply, 0 for the start position, u16 |
+
+The records name a game by its place in its input only, so `--positions` takes one input (a file or standard input).
+Two bytes number 65 535 games an input and 65 535 plies a game: a nyayo batch is 64 games, an OpenBench workload a
+few hundred, but a larger input (an upload of many workloads, a backfill) can pass it. Then phant-indexer writes the
+entries and records of the first 65 535 games, stops at the next game that read, says so on standard error and
+exits 1, and the caller splits the input. No game reaches 65 535 plies but by thousands of null moves.
+
+**`--position FEN`** reads the input like the entries do and writes, instead of them, one JSON line for each game and
+ply whose position has FEN's hash, in game order, `source` included when files were given:
+
+```jsonc
+{"game": 7, "ply": 4}
+```
+
+It is the oracle a filter built from the records is checked against: the same games, the same plies. FEN's move
+counters are ignored, as the hash ignores them. Only games that read are searched.
 
 ## Read as python-chess reads it
 
@@ -99,17 +142,26 @@ position and entry. Its games are `test/pgn/*.pgn` (OpenBench's workload as uplo
 OpenBench strips them, a fastchess gauntlet, edge cases, python-chess's quirks), random games played by python-chess,
 which promote, castle and capture en passant far more often than engines do, and with `--games DIR` real games. Each
 file is read bz2'd, gzipped and zstd'd on standard input too, zstd in one frame and in a frame every 64 games, and has
-to give the same entries. It needs python-chess and zstd for Python (3.14's `compression.zstd`, or `zstandard`). `test/smoke.sh` runs it with
-2000 random games. The entries' format is pinned by `test/src/indexer/game_index_test.cpp`.
+to give the same entries. Every record `--positions` writes has to be python-chess's `zobrist_hash` of that position,
+for exactly the games that read, and `--position` for the first game's start position and six positions picked from
+each file has to find exactly the games and plies python-chess finds. It needs python-chess and zstd for Python
+(3.14's `compression.zstd`, or `zstandard`). `test/smoke.sh` runs it with 2000 random games. The entries' format is
+pinned by `test/src/indexer/game_index_test.cpp`, the hash by Polyglot's own test vectors in `polyglot_test.cpp`.
 
-On 2026-10-20: 20 068 random and fixture games agree, and 4 253 real ones (uwanja's CCRL blitz gauntlet and nyayo's
-live games, fastchess's output with PVs in the comments). On OpenBench's workload repeated, one thread of a Ryzen 9
-9900X, the Linux release build reads 27 800 games a second plain, 26 300 from zstd and 13 100 from bz2;
+On 2026-10-21: 20 068 random and fixture games agree, 3 617 137 position hashes and 49 scans with them, and 4 253
+real ones (uwanja's CCRL blitz gauntlet and nyayo's live games, fastchess's output with PVs in the comments), 584 555
+position hashes and 7 scans. On OpenBench's workload repeated (10 200 games), one thread of a Ryzen 9 9900X, the
+Linux release build, best of three:
+
+| Input | `--positions` off | on |
+|:--|--:|--:|
+| plain on standard input | 27 950 games/s | 24 000 games/s |
+| zstd on standard input | 32 400 games/s | 27 400 games/s |
+
+zstd is faster than plain here because a tenth of the bytes cross the pipe. bz2 reads 13 100 games a second;
 python-chess's `read_game` reads 700.
 
 ## Not built yet
 
-- The other facts of the index card: the start position and the position after 16 plies as hashes, and the eval at
-  fixed plies & its largest swing from the comments. The hashes are best a standard one (Polyglot's), which nyayo can
-  compute in Python too, not the engine's own Zobrist keys.
+- The eval at fixed plies and its largest swing, from the comments.
 - Several files at once on several threads (`--jobs`).
