@@ -1,5 +1,5 @@
-// phant-indexer: reads PGN, from files or standard input, plain, bz2 or gzip, and writes one JSON line per game to
-// standard output, see game_index.hpp for what a line holds.
+// phant-indexer: reads PGN, from files or standard input, plain, bz2, gzip or zstd, and writes one JSON line per game
+// to standard output, see game_index.hpp for what a line holds.
 
 #include "game_index.hpp"
 #include "input.hpp"
@@ -26,8 +26,8 @@ namespace {
         "       phant-indexer --version\n"
         "\n"
         "Reads the games of each PGN FILE, or of standard input when there's none or FILE is -, and writes one JSON\n"
-        "line per game to standard output. An input may be bz2 or gzip, told by its first bytes. --verbose adds each\n"
-        "game's moves in UCI notation and its final position.\n";
+        "line per game to standard output. An input may be bz2, gzip or zstd, told by its first bytes. --verbose\n"
+        "adds each game's moves in UCI notation and its final position.\n";
 
     std::string version()
     {

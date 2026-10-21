@@ -16,8 +16,8 @@
 
 /**
  * @file input.hpp
- * @brief phant-indexer's input, PGN as it is or compressed: bz2 as OpenBench uploads a workload, gzip. Told apart by
- * the bytes they start with, so standard input needs no option.
+ * @brief phant-indexer's input, PGN as it is or compressed: bz2 as OpenBench uploads a workload, zstd as nyayo stores
+ * its batches, gzip. Told apart by the bytes they start with, so standard input needs no option.
  * @author Alexander Loodin Ek  */
 #pragma once
 #include <string>
@@ -27,13 +27,14 @@
 
 namespace indexer {
 
-enum class Compression : u8 { None, Bzip2, Gzip };
+enum class Compression : u8 { None, Bzip2, Gzip, Zstd };
 
-// bz2's "BZh" and a block size, gzip's 1f 8b, anything else is taken as plain PGN.
+// bz2's "BZh" and a block size, gzip's 1f 8b, zstd's frame (28 b5 2f fd) or skippable frame (5? 2a 4d 18), anything
+// else is taken as plain PGN.
 Compression detect(std::string_view bytes);
 
-// Decompresses all of the input, every stream of it when streams are concatenated, into out. False with the reason
-// in error when it doesn't decompress or ends early.
+// Decompresses all of the input, every stream (zstd: every frame) of it when they are concatenated, into out. False
+// with the reason in error when it doesn't decompress or ends early.
 bool decompress(std::string_view bytes, Compression compression, std::string& out, std::string& error);
 
 } // namespace indexer

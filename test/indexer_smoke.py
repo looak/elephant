@@ -13,14 +13,16 @@ random from the start or from a random position (a FEN tag), with comments, NAGs
 tokenizer sees all of PGN and the SAN parser every kind of move: random play promotes, underpromotes, castles and
 captures en passant far more often than engines do. Each game is compared on: whether it read and where it stopped,
 the moves in UCI notation, the final position, and every fact of the entry (result, plies, how it ended, promotions,
-castling, captures, en passant captures, checks, the fewest pieces, material). Each file is read compressed too, bz2
-and gzip on standard input, and has to give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
+castling, captures, en passant captures, checks, the fewest pieces, material). Each file is read compressed too, bz2,
+gzip, zstd in one frame and zstd a frame every 64 games (as a batch may be written), on standard input, and has to
+give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
 2 when it couldn't run.
 
 Deliberately not python-chess's: a Variant other than standard chess (Chess960 included) is an error before the moves,
 since Elephant doesn't play it.
 
-Needs python-chess (pip install chess), which is what nyayo reads games with today.
+Needs python-chess (pip install chess), which is what nyayo reads games with today, and zstd: Python 3.14's
+compression.zstd or the zstandard package (pip install zstandard), which nyayo writes its batches with.
 """
 from __future__ import annotations
 
@@ -43,6 +45,20 @@ try:
 except ImportError:
     print("indexer_smoke: needs python-chess, pip install chess", file=sys.stderr)
     sys.exit(2)
+try:
+    from compression import zstd  # Python 3.14
+
+    def zstd_compress(data: bytes) -> bytes:
+        return zstd.compress(data)
+except ImportError:
+    try:
+        import zstandard
+
+        def zstd_compress(data: bytes) -> bytes:
+            return zstandard.ZstdCompressor().compress(data)
+    except ImportError:
+        print("indexer_smoke: needs zstd, Python 3.14 or pip install zstandard", file=sys.stderr)
+        sys.exit(2)
 logging.getLogger("chess.pgn").setLevel(logging.CRITICAL)  # an illegal move is a fact here, not an error
 
 ROOT = Path(__file__).resolve().parent
@@ -197,11 +213,16 @@ def run_indexer(indexer: str, path: Path, stdin: bytes | None = None) -> tuple[l
 
 
 def compressed_agree(indexer: str, path: Path, entries: list[dict]) -> list[str]:
-    """The same entries from the file bz2'd and gzipped on standard input, but for the source."""
+    """The same entries from the file bz2'd, gzipped and zstd'd on standard input, but for the source."""
     plain = [{k: v for k, v in entry.items() if k != "source"} for entry in entries]
     data = path.read_bytes()
     diffs = []
-    for name, packed in (("bz2", bz2.compress(data)), ("gzip", gzip.compress(data))):
+    # zstd frames of 64 games each, split where the games start.
+    starts = [entry["offset"] for entry in entries[::64]][1:]
+    pieces = [data[a:b] for a, b in zip([0, *starts], [*starts, len(data)])]
+    framed = b"".join(zstd_compress(piece) for piece in pieces)
+    for name, packed in (("bz2", bz2.compress(data)), ("gzip", gzip.compress(data)), ("zstd", zstd_compress(data)),
+                         (f"zstd in {len(pieces)} frames", framed)):
         got, _ = run_indexer(indexer, path, stdin=packed)
         if got != plain:
             diffs.append(f"{name} on standard input: {len(got)} entries, not the plain file's {len(plain)}"

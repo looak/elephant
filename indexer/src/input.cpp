@@ -5,6 +5,7 @@
 
 #include <bzlib.h>
 #include <zlib.h>
+#include <zstd.h>
 
 namespace indexer {
 namespace {
@@ -131,6 +132,39 @@ namespace {
                 inflateEnd(&s);
         }
     };
+
+    // a frame after a frame is read by the same stream, so restart() has nothing to do.
+    struct Zstd {
+        ZSTD_DStream* s = nullptr;
+
+        bool start(std::string& error)
+        {
+            s = ZSTD_createDStream();
+            if (!s)
+                error = "zstd didn't start";
+            return s != nullptr;
+        }
+        bool restart(std::string&) { return true; }
+        int step(const char* in, size_t inSize, char* outBuffer, size_t outSize, size_t& consumed, size_t& produced,
+            std::string& error)
+        {
+            ZSTD_inBuffer input{ in, inSize, 0 };
+            ZSTD_outBuffer output{ outBuffer, outSize, 0 };
+            const size_t rc = ZSTD_decompressStream(s, &output, &input);
+            consumed = input.pos;
+            produced = output.pos;
+            if (ZSTD_isError(rc)) {
+                error = std::format("zstd doesn't decompress: {}", ZSTD_getErrorName(rc));
+                return -1;
+            }
+            return rc == 0 ? 1 : 0;  // 0: a frame read & flushed
+        }
+        ~Zstd()
+        {
+            if (s)
+                ZSTD_freeDStream(s);
+        }
+    };
 } // namespace
 
 Compression detect(std::string_view bytes)
@@ -139,6 +173,13 @@ Compression detect(std::string_view bytes)
         return Compression::Bzip2;
     if (bytes.size() >= 2 && static_cast<unsigned char>(bytes[0]) == 0x1f && static_cast<unsigned char>(bytes[1]) == 0x8b)
         return Compression::Gzip;
+    if (bytes.size() >= 4) {
+        const auto byte = [&](size_t i) { return static_cast<unsigned char>(bytes[i]); };
+        if (byte(0) == 0x28 && byte(1) == 0xb5 && byte(2) == 0x2f && byte(3) == 0xfd)
+            return Compression::Zstd;
+        if ((byte(0) & 0xf0) == 0x50 && byte(1) == 0x2a && byte(2) == 0x4d && byte(3) == 0x18)
+            return Compression::Zstd;
+    }
     return Compression::None;
 }
 
@@ -151,6 +192,10 @@ bool decompress(std::string_view bytes, Compression compression, std::string& ou
     }
     case Compression::Gzip: {
         Gzip stream;
+        return stream.start(error) && run(bytes, out, error, stream);
+    }
+    case Compression::Zstd: {
+        Zstd stream;
         return stream.start(error) && run(bytes, out, error, stream);
     }
     case Compression::None: break;
