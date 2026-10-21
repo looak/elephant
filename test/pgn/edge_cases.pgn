@@ -1,0 +1,60 @@
+% an escape line, not a game's
+[Event "fool's mate, a space after every move number"]
+[Result "0-1"]
+
+1. f3 e5 2. g4 Qh4# 0-1
+
+[Event "no space after the move numbers, comments, NAGs, nested variations, a rest of line comment"]
+[Result "*"]
+
+1.e4 {best by test} e5 2.Nf3 $1 (2.f4 exf4 (2...d5) 3.Nf3) 2...Nc6 3.Bb5!? a6 ; the Morphy defence
+4.Ba4 Nf6 5.O-O Be7 *
+
+[Event "from a FEN with black to move, castling with zeros"]
+[SetUp "1"]
+[FEN "r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NPBN2/PPPQ1PPP/R3K2R b KQkq - 4 8"]
+[Result "1/2-1/2"]
+
+8... 0-0-0 9. 0-0 h6 1/2-1/2
+
+[Event "an underpromotion with a capture, two pawns could take"]
+[FEN "3r3k/2P1P3/8/8/8/8/8/K7 w - - 0 1"]
+[Result "1-0"]
+
+1. exd8=N Kg7 2. c8=Q 1-0
+
+[Event "en passant"]
+[FEN "4k3/8/8/8/3p4/8/4P3/4K3 w - - 0 1"]
+[Result "*"]
+
+1. e4 dxe3 2. Kd1 *
+
+[Event "stalemate"]
+[FEN "k7/8/8/1Q6/8/8/8/7K w - - 0 1"]
+[Result "1/2-1/2"]
+
+1. Qb6 1/2-1/2
+
+[Event "threefold repetition"]
+[Result "1/2-1/2"]
+
+1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 1/2-1/2
+
+[Event "the fifty move rule"]
+[FEN "8/8/8/4k3/8/8/8/R3K3 w - - 99 80"]
+[Result "1/2-1/2"]
+
+80. Ra2 1/2-1/2
+
+[Event "an illegal move, the king walks into check"]
+[Result "*"]
+
+1. e4 e5 2. Ke2 Qh4 3. Kf3 Qf4 4. Ke3 *
+
+[Event "an escaped tag value"]
+[White "Elephant \"herd\" \\ dev"]
+[Result "1-0"]
+
+1. e4 1-0
+
+1. d4 d5 *

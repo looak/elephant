@@ -1,0 +1,61 @@
+; a comment line before a game's tags, skipped
+[Event "null moves, each way python-chess writes one"]
+[Result "*"]
+
+1. e4 -- 2. d4 Z0 3. Nf3 0000 4. c4 @@@@ *
+
+[Event "the moves after a result are played"]
+[Result "*"]
+
+1. e4 e5 1-0 2. Nf3 Nc6 *
+
+[Event "a Result tag of *, the movetext's first result"]
+[Result "*"]
+
+1. e4 e5 0-1 2. Nf3 1-0
+
+[Event "a blank line ends the game, what follows is the next one"]
+[Result "*"]
+
+1. e4 e5
+
+2. Nf3 Nc6 *
+
+[Event "a blank line in a comment doesn't"]
+[Result "*"]
+
+1. e4 {a comment
+
+over a blank line} e5 *
+
+[Event "a blank line in a variation does"]
+[Result "*"]
+
+1. e4 (1. d4
+
+d5) e5 *
+
+[Event "two blank lines after the tags, a game without moves"]
+[Result "*"]
+
+
+1. d4 d5 *
+
+[Event "a repeated tag"]
+[Site "first"]
+[Event "a repeated tag, its last value at its first place"]
+[Result "1-0"]
+
+1. e4 1-0
+
+[Event "Chess960, which Elephant doesn't play"]
+[Variant "Chess960"]
+[Result "*"]
+
+1. e4 *
+
+[Event "standard chess named"]
+[Variant "Standard"]
+[Result "*"]
+
+1. e4 *
