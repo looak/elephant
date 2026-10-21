@@ -77,7 +77,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE ELEPHANT_TEST_PGN_DIR="${CMAK
 # phant-indexer's entries & input, when it's built: ELEPHANT_BUILD_INDEXER on, and EXCEPTIONS_ENABLED, which it needs.
 if(ELEPHANT_BUILD_INDEXER AND TARGET PhantIndexerLib)
     target_sources(${PROJECT_NAME} PRIVATE ${TEST_SRC_DIR}/indexer/game_index_test.cpp
-        ${TEST_SRC_DIR}/indexer/input_test.cpp)
+        ${TEST_SRC_DIR}/indexer/input_test.cpp ${TEST_SRC_DIR}/indexer/polyglot_test.cpp)
     target_link_libraries(${PROJECT_NAME} PhantIndexerLib)
 endif()
 

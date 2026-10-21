@@ -74,8 +74,11 @@ endforeach()
 add_library(${INDEXER_LIB} STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/game_index.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/input.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/polyglot.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game_index.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/input.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/input.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/polyglot.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/polyglot_keys.hpp)
 target_compile_features(${INDEXER_LIB} PUBLIC cxx_std_20)
 set_target_properties(${INDEXER_LIB} PROPERTIES
     CXX_STANDARD_REQUIRED ON
