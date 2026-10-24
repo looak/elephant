@@ -34,7 +34,10 @@
 namespace indexer {
 
 // the version of the entry's fields and their JSON.
-inline constexpr u32 c_formatVersion = 1;
+inline constexpr u32 c_formatVersion = 2;
+
+// the ply after which the opening's position is hashed.
+inline constexpr u32 c_openingPly = 16;
 
 // the plies after which the material balance is taken, besides at the end.
 inline constexpr std::array<u32, 2> c_materialPlies = { 20, 40 };
@@ -66,6 +69,8 @@ struct GameIndex {
     u32 epCaptures = 0;
     u32 checks = 0;                 // moves that give check
     u32 minPieces = 0;              // the fewest pieces on the board, kings included, the start position's counted
+    u64 start = 0;                  // the start position's Polyglot hash, see polyglot.hpp
+    std::optional<u64> opening;     // the position's after c_openingPly plies, when the game is that long
     // white's material less black's, pawn 1, knight & bishop 3, rook 5, queen 9; after the plies in c_materialPlies
     // the game reached, and at the end. The key is the ply, or "end".
     std::vector<std::pair<std::string, i32>> material;
@@ -73,13 +78,22 @@ struct GameIndex {
     // with verbose on: the moves in UCI notation and the final position as FEN, what the smoke test compares.
     std::vector<std::string> moves;
     std::string fen;
+
+    // with positions on: every position's Polyglot hash, the start position's first, then the one after each move, up
+    // to an error.
+    std::vector<u64> positions;
 };
 
 // Replays a game, from its FEN tag when it has one, and reports what it finds. A Variant tag that isn't standard
 // chess is an error before the moves.
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false);
+// With positions on, every position's Polyglot hash is kept too, the start position's first, then the one after each
+// move: what --positions writes and --position scans.
+GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false);
 
 // The entry as one line of JSON, without its newline. The moves and the FEN are written when verbose.
 std::string toJson(const GameIndex& entry, bool verbose = false);
+
+// A JSON string, quotes and escapes, as the entries write their text.
+std::string toJsonString(std::string_view text);
 
 } // namespace indexer

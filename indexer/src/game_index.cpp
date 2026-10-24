@@ -1,4 +1,5 @@
 #include "game_index.hpp"
+#include "polyglot.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -164,7 +165,7 @@ std::string_view toString(Ending ending)
     return "null";
 }
 
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
+GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool positions)
 {
     static const std::string c_reader = readerVersion();
     GameIndex entry;
@@ -213,6 +214,9 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
     MoveUndoUnit undo;
     hashes.push_back(board.readPosition().hash());
     entry.minPieces = pieceCount(board.readPosition());
+    entry.start = polyglotHash(board);
+    if (positions)
+        entry.positions.push_back(entry.start);
     io::pgn_parser::MovetextTokenizer tokenizer(game.movetext);
     while (std::optional<io::pgn_parser::Token> token = tokenizer.next()) {
         using Kind = io::pgn_parser::Token::Kind;
@@ -250,6 +254,13 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
         hashes.push_back(board.readPosition().hash());
 
         ++entry.plies;
+        if (positions || entry.plies == c_openingPly) {
+            const u64 position = polyglotHash(board);
+            if (positions)
+                entry.positions.push_back(position);
+            if (entry.plies == c_openingPly)
+                entry.opening = position;
+        }
         if (move.isCapture()) {
             ++entry.captures;
             entry.minPieces = std::min(entry.minPieces, pieceCount(board.readPosition()));
@@ -276,6 +287,13 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose)
     if (verbose)
         io::fen_parser::serialize(board, entry.fen);
     return entry;
+}
+
+std::string toJsonString(std::string_view text)
+{
+    std::string out;
+    appendEscaped(out, text);
+    return out;
 }
 
 std::string toJson(const GameIndex& entry, bool verbose)
@@ -315,6 +333,8 @@ std::string toJson(const GameIndex& entry, bool verbose)
             out += "null";
         else
             appendEscaped(out, toString(entry.ending));
+        out += std::format(",\"start\":\"{}\",\"opening\":", toHex(entry.start));
+        out += entry.opening ? std::format("\"{}\"", toHex(*entry.opening)) : std::string("null");
         out += std::format(",\"promotions\":{{\"q\":{},\"r\":{},\"b\":{},\"n\":{}}}", entry.promotions[0],
             entry.promotions[1], entry.promotions[2], entry.promotions[3]);
         out += std::format(",\"castled\":{{\"white\":{},\"black\":{}}}", ply(entry.castledWhite), ply(entry.castledBlack));

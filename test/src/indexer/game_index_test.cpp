@@ -19,13 +19,13 @@ namespace ElephantTest {
 class GameIndexFixture : public ::testing::Test {
 public:
     // the stream's first game, indexed.
-    indexer::GameIndex index(const std::string& pgn, bool verbose = false)
+    indexer::GameIndex index(const std::string& pgn, bool verbose = false, bool positions = false)
     {
         m_stream = pgn;
         io::pgn_parser::GameReader reader(m_stream);
         std::optional<io::pgn_parser::Game> game = reader.next();
         EXPECT_TRUE(game);
-        return game ? indexer::index(*game, 1, verbose) : indexer::GameIndex{};
+        return game ? indexer::index(*game, 1, verbose, positions) : indexer::GameIndex{};
     }
 
     std::string m_stream;
@@ -51,8 +51,9 @@ TEST_F(GameIndexFixture, FoolsMate_JsonLine)
 
     // the game's length runs through its result, not the newline after it.
     const std::string expected = std::format(
-        "{{\"format\":1,\"reader\":\"{}\",\"game\":1,\"offset\":0,\"length\":{},\"ok\":true,"
+        "{{\"format\":2,\"reader\":\"{}\",\"game\":1,\"offset\":0,\"length\":{},\"ok\":true,"
         "\"tags\":{{\"Event\":\"t\",\"Result\":\"0-1\"}},\"result\":\"0-1\",\"plies\":4,\"ended\":\"checkmate\","
+        "\"start\":\"463b96181691fc9c\",\"opening\":null,"
         "\"promotions\":{{\"q\":0,\"r\":0,\"b\":0,\"n\":0}},\"castled\":{{\"white\":null,\"black\":null}},"
         "\"captures\":0,\"ep_captures\":0,\"checks\":1,\"min_pieces\":32,\"material\":{{\"end\":0}}}}",
         version(), c_foolsMate.size() - 1);
@@ -77,7 +78,30 @@ TEST_F(GameIndexFixture, Source_WrittenWhenSet)
     entry.source = "batches/7.pgn";
 
     EXPECT_TRUE(indexer::toJson(entry).starts_with(
-        std::format("{{\"format\":1,\"reader\":\"{}\",\"source\":\"batches/7.pgn\",\"game\":1,", version())));
+        std::format("{{\"format\":2,\"reader\":\"{}\",\"source\":\"batches/7.pgn\",\"game\":1,", version())));
+}
+
+// the start position's hash and the one after 16 plies, Polyglot's; the opening is null in a shorter game.
+TEST_F(GameIndexFixture, StartAndOpeningHashes)
+{
+    std::string sixteen;
+    for (int move = 1; move <= 4; ++move)
+        sixteen += std::format("{}. Nf3 Nf6 {}. Ng1 Ng8 ", 2 * move - 1, 2 * move);
+
+    indexer::GameIndex entry = index(sixteen + "*", false, true);
+    ASSERT_TRUE(entry.ok);
+    EXPECT_EQ(16u, entry.plies);
+    EXPECT_EQ(0x463b96181691fc9cull, entry.start);
+    EXPECT_EQ(0x463b96181691fc9cull, entry.opening);  // back where it started
+    ASSERT_EQ(17u, entry.positions.size());
+    EXPECT_EQ(entry.start, entry.positions.front());
+    EXPECT_EQ(entry.positions[4], entry.positions[8]);
+    EXPECT_NE(std::string::npos, indexer::toJson(entry).find("\"start\":\"463b96181691fc9c\",\"opening\":\"463b96181691fc9c\""));
+
+    entry = index("1. e4 *");
+    EXPECT_EQ(0x463b96181691fc9cull, entry.start);
+    EXPECT_FALSE(entry.opening);
+    EXPECT_TRUE(entry.positions.empty());  // only kept when asked for
 }
 
 // a final position that ends nothing by the rules is null.
