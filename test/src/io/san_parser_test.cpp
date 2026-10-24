@@ -6,6 +6,8 @@
 #include <io/san_parser.hpp>
 #include <diagnostics/exceptions.hpp>
 
+#include "chess_positions.hpp"
+
 
 
 namespace ElephantTest {
@@ -207,6 +209,165 @@ TEST_F(SanParserFixture, CheckingMoveParsing_ShouldIgnoreCheckIndicators) {
     EXPECT_FALSE(move.isNull());
     EXPECT_EQ(move.sourceSqr(), Square::F3);
     EXPECT_EQ(move.targetSqr(), Square::G5);
+}
+
+// 8 [   ][   ][   ][ r ][   ][   ][   ][ k ]
+// 7 [   ][   ][ P ][   ][ P ][   ][   ][   ]
+// 6 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 5 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 4 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 3 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 2 [   ][   ][   ][   ][   ][   ][   ][   ]
+// 1 [ K ][   ][   ][   ][   ][   ][   ][   ]
+//     A    B    C    D    E    F    G    H
+// both pawns capture on d8 and promote, the file tells them apart whatever they promote to.
+TEST_F(SanParserFixture, PawnPromotion_CaptureFromEitherFile_ShouldPickThePawnOnThatFile) {
+    // setup
+    io::fen_parser::deserialize("3r3k/2P1P3/8/8/8/8/8/K7 w - - 0 1", testingPosition.edit());
+    struct TestCase {
+        std::string san;
+        Square expectedSource;
+        PieceType expectedPromotion;
+    };
+
+    using enum Square;
+
+    std::vector<TestCase> testCases = {
+        { "exd8=Q", E7, PieceType::QUEEN },
+        { "cxd8=Q", C7, PieceType::QUEEN },
+        { "cxd8=N", C7, PieceType::KNIGHT },
+        { "exd8=R+", E7, PieceType::ROOK },
+    };
+
+    for (const auto& testCase : testCases) {
+        // do
+        PackedMove move = io::san_parser::deserialize(testingPosition, true, testCase.san);
+
+        // verify
+        EXPECT_TRUE(move.isPromotion()) << testCase.san;
+        EXPECT_TRUE(move.isCapture()) << testCase.san;
+        EXPECT_EQ(move.sourceSqr(), testCase.expectedSource) << testCase.san;
+        EXPECT_EQ(move.targetSqr(), D8) << testCase.san;
+        EXPECT_EQ(move.readPromoteToPieceType(), static_cast<u16>(testCase.expectedPromotion)) << testCase.san;
+    }
+}
+
+TEST_F(SanParserFixture, PawnPromotion_WithoutEqualsSign) {
+    // setup
+    io::fen_parser::deserialize("k7/4P3/8/8/8/8/8/4K3 w - - 0 1", testingPosition.edit());
+
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, true, "e8Q");
+
+    // verify
+    EXPECT_TRUE(move.isPromotion());
+    EXPECT_EQ(move.sourceSqr(), Square::E7);
+    EXPECT_EQ(move.targetSqr(), Square::E8);
+    EXPECT_EQ(move.readPromoteToPieceType(), static_cast<u16>(PieceType::QUEEN));
+}
+
+TEST_F(SanParserFixture, PawnPromotion_BlackUnderpromotesToKnight) {
+    // setup
+    io::fen_parser::deserialize("4k3/8/8/8/8/8/3p4/K7 b - - 0 1", testingPosition.edit());
+
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, false, "d1=N");
+
+    // verify
+    EXPECT_TRUE(move.isPromotion());
+    EXPECT_EQ(move.sourceSqr(), Square::D2);
+    EXPECT_EQ(move.targetSqr(), Square::D1);
+    EXPECT_EQ(move.readPromoteToPieceType(), static_cast<u16>(PieceType::KNIGHT));
+}
+
+TEST_F(SanParserFixture, EnPassantCapture) {
+    // setup
+    // into a Position the fen parser reads the board alone, the en passant square is set by hand.
+    io::fen_parser::deserialize("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", testingPosition.edit());
+    testingPosition.edit().enPassant().writeSquare(Square::D6);
+
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, true, "exd6");
+
+    // verify
+    EXPECT_TRUE(move.isEnPassant());
+    EXPECT_EQ(move.sourceSqr(), Square::E5);
+    EXPECT_EQ(move.targetSqr(), Square::D6);
+}
+
+// a lowercase b is the b-pawn, an uppercase B a bishop, both capture on c3.
+TEST_F(SanParserFixture, PawnOnTheBFileAndBishop_ShouldNotBeConfused) {
+    // setup
+    io::fen_parser::deserialize("4k3/8/8/8/8/2n5/1P1B4/4K3 w - - 0 1", testingPosition.edit());
+
+    // do
+    PackedMove pawnMove = io::san_parser::deserialize(testingPosition, true, "bxc3");
+    PackedMove bishopMove = io::san_parser::deserialize(testingPosition, true, "Bxc3");
+
+    // verify
+    EXPECT_EQ(pawnMove.sourceSqr(), Square::B2);
+    EXPECT_EQ(bishopMove.sourceSqr(), Square::D2);
+}
+
+// the c3 knight is pinned by the a5 bishop, so Ne4 needs no disambiguation, SAN only disambiguates between legal moves.
+TEST_F(SanParserFixture, AmbiguousMoveParsing_OtherPieceIsPinned_ShouldResolveWithoutDisambiguation) {
+    // setup
+    io::fen_parser::deserialize("4k3/8/8/b7/8/2N3N1/8/4K3 w - - 0 1", testingPosition.edit());
+
+    // do
+    PackedMove move = io::san_parser::deserialize(testingPosition, true, "Ne4");
+
+    // verify
+    EXPECT_EQ(move.sourceSqr(), Square::G3);
+    EXPECT_EQ(move.targetSqr(), Square::E4);
+}
+
+// some PGN writers castle with zeros, python-chess reads them.
+TEST_F(SanParserFixture, CastlingMoveParsing_WrittenWithZeros) {
+    // setup
+    io::fen_parser::deserialize("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", testingPosition.edit());
+    testingPosition.edit().castling().grantAll();
+
+    // do & verify
+    PackedMove move = io::san_parser::deserialize(testingPosition, true, "0-0");
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.targetSqr(), Square::G1);
+
+    move = io::san_parser::deserialize(testingPosition, true, "0-0-0");
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.targetSqr(), Square::C1);
+
+    move = io::san_parser::deserialize(testingPosition, false, "0-0");
+    EXPECT_TRUE(move.isCastling());
+    EXPECT_EQ(move.targetSqr(), Square::G8);
+}
+
+// the king on f1 can step to g1, but that's not castling.
+TEST_F(SanParserFixture, CastlingMoveParsing_KingAlreadyMoved_ShouldThrow) {
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
+    // setup
+    io::fen_parser::deserialize("4k3/8/8/8/8/8/8/5K1R w - - 0 1", testingPosition.edit());
+
+    // do & verify
+    EXPECT_THROW({
+        io::san_parser::deserialize(testingPosition, true, "O-O");
+    }, ephant::io_error);
+#endif
+}
+
+TEST_F(SanParserFixture, EmptySan_ShouldThrow) {
+#ifndef EXCEPTIONS_ENABLED
+    GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
+#else
+    // setup
+    chess_positions::defaultStartingPosition(testingPosition.edit());
+
+    // do & verify
+    EXPECT_THROW({ io::san_parser::deserialize(testingPosition, true, ""); }, ephant::io_error);
+    EXPECT_THROW({ io::san_parser::deserialize(testingPosition, true, "+"); }, ephant::io_error);
+#endif
 }
 
 } // namespace ElephantTest

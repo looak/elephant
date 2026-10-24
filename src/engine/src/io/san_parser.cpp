@@ -19,7 +19,10 @@ namespace san_parser {
     PieceType hasPromotion(std::string_view san) {
         if (std::isalpha(san.back())) {
             char promoteChar = san.back();
-            return piece_constants::notation::fromChar(promoteChar);
+            PieceType promoteTo = piece_constants::notation::fromChar(promoteChar);
+            THROW_EXPR(promoteTo != PieceType::NR_OF_PIECES && promoteTo != PieceType::KING, ephant::io_error,
+                std::format("san_parser :: Invalid promotion in SAN: {}", san));
+            return promoteTo;
         }
         return PieceType::NONE;
     }
@@ -34,10 +37,13 @@ namespace san_parser {
         return to_square(static_cast<byte>(file - 'a'), static_cast<byte>(rank - '1'));
     }
 
+    // SAN names a move by its piece, its target and as much of its source as tells it apart from the other legal
+    // moves, so it is read as a filter over the legal moves and has to match exactly one of them.
     template<Set us>
     PackedMove identify(PositionReader position, std::string_view san, PieceType promotion) {
-        auto cursor = san.begin();
-        PieceType piece = parsePieceType(*cursor);
+        THROW_EXPR(!san.empty(), ephant::io_error, std::format("san_parser :: Empty SAN after its suffixes: {}", san));
+        PieceType piece = parsePieceType(san.front());
+        THROW_EXPR(piece != PieceType::NR_OF_PIECES, ephant::io_error, std::format("san_parser :: Unknown piece in SAN: {}", san));
 
         if (piece != PieceType::PAWN) {
             san.remove_prefix(1);
@@ -66,61 +72,60 @@ namespace san_parser {
             }
             default:
                 THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Unsupported SAN notation length for identification: {}", san));
+                return PackedMove::NullMove();
         }
 
-        std::vector<PrioritizedMove> candidateMoves;
+        auto matches = [&](PackedMove move) {
+            if (move.targetSqr() != target || position.pieceAt(move.sourceSqr()).getType() != piece)
+                return false;
+            // a pawn reaching the last rank promotes, and SAN names to what.
+            if (move.isPromotion() != (promotion != PieceType::NONE))
+                return false;
+            if (move.isPromotion() && move.readPromoteToPieceType() != static_cast<i32>(promotion))
+                return false;
+            if (source != Square::NullSQ)
+                return move.sourceSqr() == source;
+            if (disambiguationChar.has_value()) {
+                char disambig = disambiguationChar.value();
+                if (disambig >= '1' && disambig <= '8')
+                    return (move.sourceSqr() / 8) == static_cast<byte>(disambig - '1');
+                if (disambig >= 'a' && disambig <= 'h')
+                    return (move.sourceSqr() % 8) == static_cast<byte>(disambig - 'a');
+                THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Invalid disambiguation in SAN: {}", san));
+                return false;
+            }
+            return true;
+        };
 
+        PackedMove found = PackedMove::NullMove();
+        [[maybe_unused]] u32 count = 0;
         tusk::CheckInfo<us> checkInfo(position);
         tusk::MoveGenerator<us> gen(position, checkInfo);
         tusk::MoveGenResult<us> moves = gen.generateAll();
         while (PrioritizedMove mv = moves.next()) {
-            auto pieceAtSource = position.pieceAt(mv.move.sourceSqr());
-            if (pieceAtSource.getType() != piece)
-                continue;
-                
-            if (mv.move.targetSqr() == target)
-                candidateMoves.push_back(mv);
-        }
-
-        THROW_EXPR(candidateMoves.size() > 0, ephant::io_error, std::format("san_parser :: No matching moves found for SAN: {}", san));
-
-        if (candidateMoves.size() == 1) {            
-            return candidateMoves[0].move;
-        }
-        else {
-            for(const auto& candMove : candidateMoves) {
-                if (promotion != PieceType::NONE) {
-                    if (candMove.move.isPromotion()) {
-                        if (candMove.move.readPromoteToPieceType() == static_cast<u16>(promotion)) {
-                            return candMove.move;
-                        }
-                    }                    
-                    else continue;
-                }
-                if (source != Square::NullSQ) {
-                    if (candMove.move.sourceSqr() == source) {
-                        return candMove.move;
-                    }
-                }
-                else if (disambiguationChar.has_value()) {
-                    char disambig = disambiguationChar.value();
-                    if (std::isdigit(disambig)) {
-                        byte rank = static_cast<byte>(disambig - '1');
-                        if ((candMove.move.sourceSqr() / 8) == rank) {
-                            return candMove.move;
-                        }
-                    }
-                    else if (std::isalpha(disambig)) {
-                        byte file = static_cast<byte>(disambig - 'a');
-                        if ((candMove.move.sourceSqr() % 8) == file) {
-                            return candMove.move;
-                        }
-                    }
-                }
+            if (matches(mv.move)) {
+                if (count++ == 0)
+                    found = mv.move;
             }
         }
 
-        THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Ambiguous SAN notation could not be resolved: {}", san));
+        THROW_EXPR(count > 0, ephant::io_error, std::format("san_parser :: No matching moves found for SAN: {}", san));
+        THROW_EXPR(count < 2, ephant::io_error, std::format("san_parser :: Ambiguous SAN notation could not be resolved: {}", san));
+        return found;
+    }
+
+    // castling is the legal castling move to that side, not any king move to its square.
+    template<Set us>
+    PackedMove castle(PositionReader position, bool kingSide) {
+        const byte file = kingSide ? 6 : 2;
+        tusk::CheckInfo<us> checkInfo(position);
+        tusk::MoveGenerator<us> gen(position, checkInfo);
+        tusk::MoveGenResult<us> moves = gen.generateAll();
+        while (PrioritizedMove mv = moves.next()) {
+            if (mv.move.isCastling() && (mv.move.targetSqr() % 8) == file)
+                return mv.move;
+        }
+        THROW_EXPR(false, ephant::io_error, std::format("san_parser :: Castling {} isn't legal", kingSide ? "O-O" : "O-O-O"));
         return PackedMove::NullMove();
     }
 
@@ -136,19 +141,12 @@ namespace san_parser {
         if (cleanSan.ends_with('+') || cleanSan.ends_with('#')) {
             cleanSan.pop_back();
         }
+        THROW_EXPR(!cleanSan.empty(), ephant::io_error, std::format("san_parser :: Empty SAN: '{}'", san));
 
-        // handle castling
-        if (cleanSan == "O-O") {
-            if (whiteToMove)
-                return identify<Set::WHITE>(context, "Kg1", PieceType::NONE);
-            else
-                return identify<Set::BLACK>(context, "Kg8", PieceType::NONE);
-        }
-        else if (cleanSan == "O-O-O") {
-            if (whiteToMove)
-                return identify<Set::WHITE>(context, "Kc1", PieceType::NONE);
-            else
-                return identify<Set::BLACK>(context, "Kc8", PieceType::NONE);
+        // handle castling, some writers castle with zeros
+        if (cleanSan == "O-O" || cleanSan == "0-0" || cleanSan == "O-O-O" || cleanSan == "0-0-0") {
+            const bool kingSide = cleanSan.size() == 3;
+            return whiteToMove ? castle<Set::WHITE>(context, kingSide) : castle<Set::BLACK>(context, kingSide);
         }
 
         // remove capture indication

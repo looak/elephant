@@ -71,6 +71,8 @@ endfunction()
 
 # Fast unit tests, seconds, run on every push.
 elephant_add_test_executable(${PROJECT_NAME} LABEL unit SOURCES ${TEST_SOURCE_ALL})
+# the PGN fixtures, OpenBench's & fastchess's games.
+target_compile_definitions(${PROJECT_NAME} PRIVATE ELEPHANT_TEST_PGN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/pgn")
 
 # Deep perft on every core & deep searches, a minute or two.
 if(ELEPHANT_BUILD_TEST_SUITE)
