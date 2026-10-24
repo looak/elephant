@@ -42,44 +42,13 @@ struct PackedMove;
 
 struct PerftResult {
     u64 Nodes = 0;
-    u64 AccNodes = 0;
-    u64 NPS = 0;
-    u64 Captures = 0;
-    u64 EnPassants = 0;
-    u64 Castles = 0;
-    u64 Promotions = 0;
-    u64 Checks = 0;
-    u64 Checkmates = 0;
-    u64 Depth = 0;
-    bool Passed = false;
 
-    void operator+=(const PerftResult& rhs)
-    {
-        this->Nodes += rhs.Nodes;
-        this->AccNodes += rhs.AccNodes;
-        this->Captures += rhs.Captures;
-        this->EnPassants += rhs.EnPassants;
-        this->Castles += rhs.Castles;
-        this->Promotions += rhs.Promotions;
-        this->Checks += rhs.Checks;
-        this->Checkmates += rhs.Checkmates;
-        this->Depth += rhs.Depth;
-    }
+    void operator+=(const PerftResult& rhs) { Nodes += rhs.Nodes; }
 };
+
 struct DivideResult {
-    struct inner{
-        u64 Nodes = 0;
-        u64 AccNodes = 0;
-
-        void operator+=(const inner& rhs)
-        {
-            this->Nodes += rhs.Nodes;
-            this->AccNodes += rhs.AccNodes;
-        }
-
-    };
     PackedMove Move;
-    inner Result;
+    u64 Nodes = 0;
 };
 
 /**
@@ -112,44 +81,40 @@ public:
     
 
 private:
-    template<Set us, typename TMoveGen, typename TResult, typename TAccumulator>
-    TResult internalRun(int depth, const TAccumulator& accumulator);
+    template<Set us, typename TMoveGen>
+    u64 internalRun(int depth);
 
-    template<typename TMoveGen, typename TResult, typename TAccumulator>
-    TResult internalRunEntryPoint(int depth, const TAccumulator& accumulator);
+    template<typename TMoveGen>
+    u64 internalRunEntryPoint(int depth);
 
     GameContext& m_context;
 };
 
-template<Set us, typename TMoveGen, typename TResult, typename TAccumulator>
-TResult PerftSearch::internalRun(int depth, const TAccumulator& accumulator)
+// counts in bulk at depth 1, the last ply's moves are counted by the generator and never made.
+template<Set us, typename TMoveGen>
+u64 PerftSearch::internalRun(int depth)
 {
     if (depth <= 0)
-        return {};
+        return 0;
 
-    TResult result = {};
+    const PositionReader position = m_context.readChessboard().readPosition();
+    if (depth == 1)
+        return TMoveGen::template countMoves<us>(position);
 
-    TMoveGen::template forEachMove<us>(m_context.readChessboard().readPosition(), [&](PackedMove move) {
-        if (depth == 1) {
-            accumulator(move, result, true);
-            return;
-        }
-
-        m_context.MakeMove<true>(move);
-        result += internalRun<opposing_set<us>(), TMoveGen, TResult, TAccumulator>(depth - 1, accumulator);
+    u64 nodes = 0;
+    TMoveGen::template forEachMove<us>(position, [&](PackedMove move) {
+        m_context.MakeMove(move);
+        nodes += internalRun<opposing_set<us>(), TMoveGen>(depth - 1);
         m_context.UnmakeMove();
     });
 
-    return result;
+    return nodes;
 }
 
-template<typename TMoveGen, typename TResult, typename TAccumulator>
-TResult PerftSearch::internalRunEntryPoint(int depth, const TAccumulator& accumulator)
+template<typename TMoveGen>
+u64 PerftSearch::internalRunEntryPoint(int depth)
 {
-    if (m_context.readToPlay() == Set::WHITE) {
-        return internalRun<Set::WHITE, TMoveGen, TResult>(depth, accumulator);
-    } else {
-        return internalRun<Set::BLACK, TMoveGen, TResult>(depth, accumulator);
-    }
+    if (m_context.readToPlay() == Set::WHITE)
+        return internalRun<Set::WHITE, TMoveGen>(depth);
+    return internalRun<Set::BLACK, TMoveGen>(depth);
 }
-

@@ -6,6 +6,7 @@
 #include <search/perft_search.hpp>
 #include <perft_cases.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <string>
 
@@ -28,6 +29,22 @@ TEST_P(PerftShallow, NodeCount)
 
     EXPECT_EQ(position.nodesAt(depth), perft.Run<move_gen_policy::Tusk>(depth).Nodes)
         << position.name << " at depth " << depth << "\n  " << position.fen;
+}
+
+// divide's per root move counts add up to the perft count, depth 1 included where each move is its own node.
+TEST_P(PerftShallow, DivideSumsToNodeCount)
+{
+    const PerftPosition& position = GetParam();
+    for (int depth = 1; depth <= std::min(position.deepestWithin(c_perftShallowBudget), 3); ++depth) {
+        GameContext context;
+        io::fen_parser::deserialize(position.fen.c_str(), context.editChessboard());
+        PerftSearch perft(context);
+
+        u64 total = 0;
+        for (const DivideResult& result : perft.Divide(depth))
+            total += result.Nodes;
+        EXPECT_EQ(position.nodesAt(depth), total) << position.name << " at depth " << depth << "\n  " << position.fen;
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(Positions, PerftShallow, ::testing::ValuesIn(perftPositions()),

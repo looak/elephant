@@ -41,8 +41,8 @@ inline PackedMove makeMove(u32 src, u32 dst, u16 flags) {
     return PackedMove(static_cast<u16>(src | (dst << 6) | (static_cast<u32>(flags) << 12)));
 }
 
-// true when sqr is attacked by the opponent of us. Pieces in removed are ignored as attackers, used for en passant
-// where the captured pawn disappears.
+// true when sqr is attacked by the opponent of us. Pieces in removed are ignored as attackers. For en passant, where
+// two pawns leave the rank at once; king moves & castling use CheckInfo's danger map.
 template<Set us>
 bool isAttacked(const MaterialPositionMask& material, u32 sqr, u64 occupancy, u64 removed = 0) {
     constexpr Set op = opposing_set<us>();
@@ -119,6 +119,13 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
 
     return ScoredMove::make(move, static_cast<u16>(std::max(score, 0)), check);
 }
+
+// counts instead of collecting, generateMoves adds a whole target bitboard by popcount when a sink has bulk.
+struct CountSink {
+    static constexpr bool bulk = true;
+    u32 count = 0;
+    void operator()(PackedMove, u8) { ++count; }
+};
 
 } // namespace
 
@@ -264,6 +271,19 @@ void MoveGenerator<us>::generateUnordered(MoveGenResult<us>& result) const {
 }
 
 template<Set us>
+void MoveGenerator<us>::forEachErased(void (*onMove)(void*, PackedMove), void* callback) const {
+    auto sink = [onMove, callback](PackedMove move, u8) { onMove(callback, move); };
+    generateMoves<GenType::ALL>(sink, ~0ull);
+}
+
+template<Set us>
+u32 MoveGenerator<us>::countAll() const {
+    CountSink sink;
+    generateMoves<GenType::ALL>(sink, ~0ull);
+    return sink.count;
+}
+
+template<Set us>
 template<GenType type>
 void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
     const MaterialPositionMask& material = m_position.material();
@@ -349,8 +369,12 @@ void MoveGenerator<us>::generateMoves(Sink& sink, u64 sources) const {
     if constexpr (captures) targets |= opMat;
     if constexpr (quiets) targets |= ~occupancy;
 
-    // emits a move for every square in movesbb, captures flagged.
+    // emits a move for every square in movesbb, captures flagged. A counting sink takes the popcount instead.
     auto emit = [&](u32 src, u64 movesbb, u8 pieceId) {
+        if constexpr (requires { Sink::bulk; }) {
+            sink.count += static_cast<u32>(intrinsics::popcnt(movesbb));
+            return;
+        }
         while (movesbb) {
             const u32 dst = intrinsics::lsbIndex(movesbb);
             movesbb = intrinsics::resetLsb(movesbb);
@@ -459,16 +483,7 @@ void MoveGenerator<us>::generateMoves(Sink& sink, u64 sources) const {
         return;
 
     {
-        // the king can't hide behind itself from a slider.
-        const u64 occNoKing = occupancy & ~kingMask;
-        u64 movesbb = kingAttacks[kingSqr] & targets;
-        u64 legal = 0;
-        while (movesbb) {
-            const u32 dst = intrinsics::lsbIndex(movesbb);
-            movesbb = intrinsics::resetLsb(movesbb);
-            if (!isAttacked<us>(material, dst, occNoKing))
-                legal |= 1ull << dst;
-        }
+        const u64 legal = kingAttacks[kingSqr] & targets & ~m_checkInfo.danger();
         emit(kingSqr, legal, kingId);
     }
 
@@ -486,17 +501,14 @@ void MoveGenerator<us>::generateMoves(Sink& sink, u64 sources) const {
         // king side, f & g empty and not attacked.
         if (castling & 1) {
             const u64 path = (1ull << (rank + 5)) | (1ull << (rank + 6));
-            if ((occupancy & path) == 0
-                && !isAttacked<us>(material, rank + 5, occupancy)
-                && !isAttacked<us>(material, rank + 6, occupancy))
+            if ((occupancy & path) == 0 && (m_checkInfo.danger() & path) == 0)
                 sink(makeMove(kingSqr, rank + 6, static_cast<u16>(KING_CASTLE)), kingId);
         }
         // queen side, b, c & d empty, c & d not attacked.
         if (castling & 2) {
             const u64 path = (1ull << (rank + 1)) | (1ull << (rank + 2)) | (1ull << (rank + 3));
-            if ((occupancy & path) == 0
-                && !isAttacked<us>(material, rank + 2, occupancy)
-                && !isAttacked<us>(material, rank + 3, occupancy))
+            const u64 kingPath = (1ull << (rank + 2)) | (1ull << (rank + 3));
+            if ((occupancy & path) == 0 && (m_checkInfo.danger() & kingPath) == 0)
                 sink(makeMove(kingSqr, rank + 2, static_cast<u16>(QUEEN_CASTLE)), kingId);
         }
     }
