@@ -5,12 +5,15 @@ viewer), `../ramani` (specs).
 
 ## Specs
 
-The specs for Elephant and the services around it live in ramani (github.com/looak/ramani, private, sibling checkout
-at `../ramani`, linked into this folder as `ramani/` on the owner's machine, not tracked). For this repo:
-`elephant-engine.md` (UCI, `bench`, `buildinfo`, builds & versioning), `elephant-tests.md` (`ElephantTest`,
-`ElephantSuite`) and `test-pipeline.md` (`smoke.sh`, `epd_runner.py`, `results.py`, hooks); `openbench.md` for the
-OpenBench side. The README there lists which repo owns which contract.
+What this repo does is specified here, in `docs/spec/engine.md`, `docs/spec/tests.md` and `docs/spec/test-pipeline.md`:
+Purpose, Scope, Current and Interfaces. **Keep it true in the same pull request as the code**: a change that alters a
+command, an endpoint, a schema, a file format or anything the spec describes updates the spec in that pull request.
+When the code and the spec disagree, the code wins and the spec is fixed.
 
-Each spec has a Current section (as built, the code wins when they disagree) and a Direction section (planned work,
-open decisions). When a change here alters a contract (a UCI command or option, the bench, `buildinfo` keys, EPD
-tiers, the results records) or settles an open decision, update the matching spec in ramani in the same piece of work.
+Where this repo is going lives in ramani (github.com/looak/ramani, private, sibling checkout at `../ramani`): the
+README for the system and the contracts table, `elephant-engine.md`, `elephant-tests.md` and `test-pipeline.md` for this
+repo's Direction (planned work, open decisions), and `plans/` for work spanning repos. **Read ramani, never edit it**,
+nor any other sibling checkout. A pull request that does a plan's step says `Closes looak/<repo>#<sub-issue>`. When it
+settles one of ramani's open decisions, say so in the final report. Contracts this repo owns (UCI with `bench` and
+`buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `indexer/README.md`) are
+changed only here, by agreement with the owner.
