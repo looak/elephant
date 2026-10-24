@@ -51,15 +51,14 @@ bool GameContext::UnmakeMove()
     MoveExecutor executor(m_board.editPosition());
     if (m_history.moveUndoUnits.empty()) return false;
 
-    MoveUndoUnit undoState = m_history.moveUndoUnits.back();
-    m_history.moveUndoUnits.pop_back();
-
+    const MoveUndoUnit& undoState = m_history.moveUndoUnits.back();
     bool result = executor.unmakeMove(undoState);
     
     auto& gameState = m_board.editState();
     gameState.moveCount -= (short)gameState.whiteToMove;
     gameState.whiteToMove = !gameState.whiteToMove;
     gameState.plyCount = undoState.plyCount;
+    m_history.moveUndoUnits.pop_back();
     m_history.age--;
 
     return result;

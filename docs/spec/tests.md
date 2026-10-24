@@ -12,8 +12,8 @@ reader, is tested here too, and checked against python-chess by a script in the 
 
 | Binary | ctest label | Holds | Takes | Runs in | Why there |
 |:--|:--|:--|:--|:--|:--|
-| `ElephantTest` | `unit` | ~390 unit tests (415 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
-| `ElephantSuite` | `suite` | `PerftFixture.ReferencePositions` (~0.8 billion nodes), `PerftFixture.DeepPositions` (~22 billion), `SearchDepthFixture.*` (moves found only deep in a search) | ~20 s on 24 threads, perft on every core | CI `perft` (perft only); smoke step 3 (all of it) | perft is the authority on move generation and deterministic, so CI gates on it; the deep searches move with the evaluation, so only smoke runs them |
+| `ElephantTest` | `unit` | ~410 unit tests (~435 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
+| `ElephantSuite` | `suite` | `PerftFixture.ReferencePositions` (~0.8 billion nodes), `PerftFixture.DeepPositions` (~22 billion), `SearchDepthFixture.*` (moves found only deep in a search) | ~15 s on 24 threads, perft on every core | CI `perft` (perft only); smoke step 3 (all of it) | perft is the authority on move generation and deterministic, so CI gates on it; the deep searches move with the evaluation, so only smoke runs them |
 
 Both come from `elephant_add_test_executable()` in `test/CMakeLists.txt`, which registers every test with ctest under
 its label (`ctest -L unit`). `ELEPHANT_BUILD_TEST_SUITE=OFF` leaves `ElephantSuite` out. `ElephantTest` includes
@@ -47,7 +47,8 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
 
 - **Move generation** is tested through `move_gen_ab.hpp`, a harness that can run the same tests over more than one
   generator. Only the staged "tusk" generator is left since the legacy one was removed in 1.0; the harness stays for
-  the next one. `PerftShallow` runs every perft position in milliseconds.
+  the next one. `PerftShallow` runs every perft position in milliseconds, and checks that `divide`'s per move counts
+  add up to the perft count.
 - **Evaluation symmetry**: `evaluation_test.cpp` flips each position (ranks mirrored, colours swapped) and expects the
   same score from the other side.
 - **Search expectations** (`search_test.cpp`) search to a fixed depth, 12 by default, and expect a move.
@@ -94,7 +95,8 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 - `perft_test.cpp`, `PerftFixture.ReferencePositions` & `PerftFixture.DeepPositions`: perft node counts with the
   tusk generator, the authority on move generation. Each position is split two plies deep and the subtrees are
   shared out between threads, a GameContext per thread; `EG_PERFT_THREADS=N` sets the thread count (default every
-  core). ~1.4 billion nodes per second on 24 threads.
+  core). The last ply is counted in bulk, the generator's popcount of each piece's legal targets, never made. ~5
+  billion nodes per second on 24 threads, ~530 million on one.
 - `search_depth_test.cpp`, `SearchDepthFixture.NullMovePruning_DeepLine`: d4e3, a null move pruning line found only at
   depth 22 (searched to 23, ~5 s); its comment records the depth history. Raise the depth when new pruning or
   evaluation pushes it out of reach.

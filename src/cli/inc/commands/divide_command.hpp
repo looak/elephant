@@ -47,18 +47,11 @@ public:
         });
 
         u64 totalNodes = 0;
-        u64 accumNodes = 0;
         for (const auto& result : results) {
-            u64 prettyCount = result.Result.Nodes;
-            if (result.Result.Nodes == 0)
-                prettyCount = 1;
-
-            prnt::out << " " << result.Move.toString() << ": " << prettyCount << std::endl;
-            totalNodes += prettyCount;
-            accumNodes += result.Result.AccNodes;
+            prnt::out << " " << result.Move.toString() << ": " << result.Nodes << std::endl;
+            totalNodes += result.Nodes;
         }
         prnt::out << " Nodes: " << totalNodes << std::endl;
-        prnt::out << " Total nodes: " << accumNodes << std::endl;
         return true;
     }
 

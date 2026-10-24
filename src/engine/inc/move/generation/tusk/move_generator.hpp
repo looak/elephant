@@ -36,6 +36,8 @@
 #include <move/generation/tusk/move_gen_result.hpp>
 #include <position/position_accessors.hpp>
 
+#include <type_traits>
+
 namespace tusk {
 
 template<Set us>
@@ -49,6 +51,17 @@ public:
     // Eager, every legal move in generation order and unscored. For perft and other callers that want all moves.
     [[nodiscard]] MoveGenResult<us> generateAll() const;
 
+    // Calls onMove(PackedMove) for every legal move as it's generated, unscored and nothing stored. For perft. onMove
+    // may make & unmake moves as long as the position is restored before it returns.
+    template<typename F>
+    void forEach(F&& onMove) const {
+        forEachErased([](void* callback, PackedMove move) { (*static_cast<std::remove_reference_t<F>*>(callback))(move); },
+                    &onMove);
+    }
+
+    // Number of legal moves, counted by popcount without producing them. Perft's bulk counting at depth 1.
+    [[nodiscard]] u32 countAll() const;
+
     [[nodiscard]] bool isChecked() const { return m_checkInfo.isChecked(); }
 
 private:
@@ -59,6 +72,9 @@ private:
 
     // Fills result with every legal move, unscored. Called by MoveGenResult when constructed in Stage::UNORDERED.
     void generateUnordered(MoveGenResult<us>& result) const;
+
+    // forEach's callback type erased, generateMoves is only instantiated in the .cpp.
+    void forEachErased(void (*onMove)(void*, PackedMove), void* callback) const;
 
     // Calls sink(PackedMove, u8 pieceId) for every legal move of the given type from the given source squares.
     template<GenType type, typename Sink>

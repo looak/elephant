@@ -62,10 +62,6 @@ public:
 
         prnt::out << " Perft depth " << args.depth << std::endl;
         prnt::out << " Nodes: " << result.Nodes << std::endl;
-        prnt::out << " Captures: " << result.Captures << std::endl;
-        prnt::out << " Castles: " << result.Castles << std::endl;
-        prnt::out << " En passant: " << result.EnPassants << std::endl;
-        prnt::out << " Promotions: " << result.Promotions << std::endl;
         prnt::out << " Time: " << elapsedMs << " ms" << std::endl;
         prnt::out << " NPS: " << nps << std::endl;
         return true;
@@ -75,7 +71,7 @@ public:
     {
         if (extended) {
             prnt::out << "\nUsage: " << PerftCommand::name() << " <depth>" << std::endl << std::endl;
-            prnt::out << "Run perft on the current position to the given depth and print aggregate counters." << std::endl;
+            prnt::out << "Run perft on the current position to the given depth and print the node count." << std::endl;
             prnt::out << "Inputs:" << std::endl;
             prnt::out << "  <depth>  Required. Positive integer search depth.";
             return;

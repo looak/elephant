@@ -22,7 +22,8 @@
  * A policy provides:
  *     static constexpr const char* name;
  *     template<Set us, typename F> static void forEachMove(PositionReader position, F&& onMove);
- * onMove(PackedMove) is called once per legal move. The generator stays alive for the duration of the loop, so onMove
+ *     template<Set us> static u32 countMoves(PositionReader position);
+ * onMove(PackedMove) is called once per legal move, countMoves is the number of legal moves (perft's bulk count). The generator stays alive for the duration of the loop, so onMove
  * may make/unmake moves as long as the position is restored before it returns.
  *
  * @author Alexander Loodin Ek    */
@@ -34,7 +35,7 @@
 
 namespace move_gen_policy {
 
-// tusk::MoveGenerator, unordered generateAll().
+// tusk::MoveGenerator, moves in generation order straight from forEach(), counts from countAll().
 struct Tusk {
     static constexpr const char* name = "tusk";
 
@@ -42,9 +43,14 @@ struct Tusk {
     static void forEachMove(PositionReader position, F&& onMove) {
         tusk::CheckInfo<us> checkInfo(position);
         tusk::MoveGenerator<us> generator(position, checkInfo);
-        tusk::MoveGenResult<us> moves = generator.generateAll();
-        while (PrioritizedMove move = moves.next())
-            onMove(move.move);
+        generator.forEach(onMove);
+    }
+
+    template<Set us>
+    static u32 countMoves(PositionReader position) {
+        tusk::CheckInfo<us> checkInfo(position);
+        tusk::MoveGenerator<us> generator(position, checkInfo);
+        return generator.countAll();
     }
 };
 

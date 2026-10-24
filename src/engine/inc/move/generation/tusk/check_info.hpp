@@ -16,11 +16,14 @@
 
 /**
  * @file check_info.hpp
- * @brief tusk::CheckInfo, what the side to move's king is facing: the pieces giving check & our pinned pieces.
+ * @brief tusk::CheckInfo, what the side to move's king is facing: the pieces giving check, our pinned pieces & the
+ * squares the opponent attacks.
  *
  * Built from lines rather than per direction state. Checkers are the attackers of the king square, pins come from
  * x-raying the king through our own pieces: an enemy slider with exactly one of our pieces between it and the king
- * pins that piece. A pinned piece may only move along the line through the king (ray::getLine).
+ * pins that piece. A pinned piece may only move along the line through the king (ray::getLine). The danger map is
+ * every square the opponent attacks with our king lifted off the board, the squares our king may not move or castle
+ * through.
  *
  *     tusk::CheckInfo<us> checkInfo(position);
  *     tusk::MoveGenerator<us> generator(position, checkInfo);
@@ -56,9 +59,24 @@ public:
         const u64 orthogonals = material.rooks<op>().read() | queens;
         const u64 diagonals = material.bishops<op>().read() | queens;
 
-        // an opponent pawn checks from the squares one of our pawns on the king square would attack.
-        m_checkers = pawnAttacks(king) & material.pawns<op>().read();
-        m_checkers |= attacks::getKnightAttacks(m_kingSqr) & material.knights<op>().read();
+        // every square the opponent attacks, seen through our king so it can't step back along a slider's line.
+        const u64 occNoKing = occupancy ^ king;
+        m_danger = attacks::pawnAttacks<op>(material.pawns<op>().read());
+        if (const u64 opKing = material.king<op>().read())
+            m_danger |= attacks::getKingAttacks(intrinsics::lsbIndex(opKing));
+        for (u64 knights = material.knights<op>().read(); knights; knights = intrinsics::resetLsb(knights))
+            m_danger |= attacks::getKnightAttacks(intrinsics::lsbIndex(knights));
+        for (u64 sliders = diagonals; sliders; sliders = intrinsics::resetLsb(sliders))
+            m_danger |= attacks::getBishopAttacks(intrinsics::lsbIndex(sliders), occNoKing);
+        for (u64 sliders = orthogonals; sliders; sliders = intrinsics::resetLsb(sliders))
+            m_danger |= attacks::getRookAttacks(intrinsics::lsbIndex(sliders), occNoKing);
+
+        // the danger map says whether we're in check, these lookups only say by which pawn or knight. An opponent
+        // pawn checks from the squares one of our pawns on the king square would attack.
+        if (king & m_danger) {
+            m_checkers = pawnAttacks(king) & material.pawns<op>().read();
+            m_checkers |= attacks::getKnightAttacks(m_kingSqr) & material.knights<op>().read();
+        }
 
         // sliders, seen from the king through our own pieces, only opponent pieces block.
         u64 snipers = (attacks::getRookAttacks(m_kingSqr, opMat) & orthogonals)
@@ -85,6 +103,8 @@ public:
     [[nodiscard]] u64 checkers() const { return m_checkers; }
     [[nodiscard]] u64 pinned() const { return m_pinned; }
     [[nodiscard]] u32 kingSquare() const { return m_kingSqr; }
+    // squares the opponent attacks with our king off the board, where our king may not go.
+    [[nodiscard]] u64 danger() const { return m_danger; }
 
     // squares a non king move must land on, the checker or between it & the king. Everything when not in check,
     // nothing in double check where only the king can move.
@@ -107,6 +127,7 @@ private:
 
     u64 m_checkers = 0;
     u64 m_pinned = 0;
+    u64 m_danger = 0;
     u32 m_kingSqr = 0;
 };
 

@@ -9,34 +9,7 @@ PerftSearch::PerftSearch(GameContext& context)
 template<typename TMoveGen>
 PerftResult PerftSearch::Run(int depth)
 {
-    if (depth <= 0) {
-        return PerftResult();
-    }
-
-    auto accumulator = [&](PackedMove move, PerftResult& result, bool leaf) {
-        result.Nodes += static_cast<u64>(leaf);
-        result.AccNodes++;
-
-        if (move.isCapture()) {
-            result.Captures++;
-        } else if (move.isEnPassant()) {
-            result.EnPassants++;
-        } else if (move.isCastling()) {
-            result.Castles++;
-        } else if (move.isPromotion()) {
-            result.Promotions++;
-        }
-        // else if (move.isCheck()) {
-        //     result.Checks++;
-        // } else if (move.isCheckmate()) {
-        //     result.Checkmates++;
-        // }
-
-        // Additional counting logic can be added here
-    };
-
-
-    return internalRunEntryPoint<TMoveGen, PerftResult>(depth, accumulator);
+    return { internalRunEntryPoint<TMoveGen>(depth) };
 }
 
 template PerftResult PerftSearch::Run<move_gen_policy::Tusk>(int);
@@ -56,20 +29,13 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
 
     std::vector<DivideResult> results;
 
-    typedef std::function<void(PackedMove, DivideResult::inner&, bool)> t_accFunction;
-
-    t_accFunction accumulator = [](PackedMove, DivideResult::inner& result, bool leaf) {
-        result.Nodes += (u64)leaf;
-        result.AccNodes++;
-    };
-
-    auto forEachMoveLambda = [&results, depth, &accumulator, this] (PackedMove move) {
-        m_context.MakeMove<true>(move);
-        auto inner = internalRunEntryPoint<TMoveGen, DivideResult::inner, t_accFunction>(depth - 1, accumulator);
-        inner.Nodes = inner.Nodes == 0 ? 1 : inner.Nodes;
+    auto forEachMoveLambda = [&results, depth, this] (PackedMove move) {
+        // at depth 1 the move itself is the one node. Deeper, a move into mate or stalemate has none.
+        m_context.MakeMove(move);
+        const u64 nodes = depth == 1 ? 1 : internalRunEntryPoint<TMoveGen>(depth - 1);
         m_context.UnmakeMove();
 
-        results.emplace_back(move, inner);
+        results.push_back({ move, nodes });
     };
 
     const PositionReader position = m_context.readChessboard().readPosition();
