@@ -16,15 +16,18 @@
 
 /**
  * @file mop_up.hpp
- * @brief Mop-up: in an endgame, the side more than two pawns ahead brings its king to the enemy's and drives the
- * enemy king to the edge, towards a mate search can't see yet.
+ * @brief Mop-up: in an endgame, the side more than two pawns ahead brings its king to the enemy's, to the centre while
+ * it has pawns to promote, and once it has none drives the enemy king to the edge, towards a mate search can't see
+ * yet.
  *
  * An endgame here is 12 pieces or fewer, kings included, or less than half of the starting material on the board,
  * the starting material counting six rooks instead of four to lean towards the endgame sooner. Material is
  * piece_constants::value, kept by the PestoAccumulator. Inside an endgame mop-up counts in full, outside it not at all.
  *
- * The winning side scores mopUpKingDistance for every square the kings are closer than 14 apart (Manhattan distance)
- * and mopUpLosingKing at the enemy king's square, from evaluator_data. Hand-set and not tapered: Evaluate adds it to the tapered
+ * The winning side scores mopUpKingDistance for every square the kings are closer than 14 apart (Manhattan distance),
+ * and with pawns mopUpCentre at its own king's square, without mopUpLosingKing at the enemy king's, from
+ * evaluator_data. Driving the king to the edge is how a mate is forced; with pawns on the board the plan is to promote
+ * one, and an active king helps that more than a chase. Hand-set and not tapered: Evaluate adds it to the tapered
  * terms, the tuner carries it as a fixed offset.    */
 
 #pragma once
@@ -54,8 +57,11 @@ i32 sideScore(const MaterialPositionMask& material, i32 lead) {
         return 0;
     const u32 usKingSqr = material.king<us>().lsbIndex();
     const u32 opKingSqr = material.king<opposing_set<us>()>().lsbIndex();
-    return (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * evaluator_data::mopUpKingDistance
-         + evaluator_data::mopUpLosingKing[opKingSqr];
+    const i32 closer =
+        (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * evaluator_data::mopUpKingDistance;
+    if (material.pawns<us>().empty())
+        return closer + evaluator_data::mopUpLosingKing[opKingSqr];
+    return closer + evaluator_data::mopUpCentre[usKingSqr];
 }
 
 } // namespace mop_up_internals

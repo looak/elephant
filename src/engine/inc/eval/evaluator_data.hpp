@@ -40,8 +40,19 @@ namespace evaluator_data
 constexpr i16 tempoBonus = 15;
 
 // mop-up, see mop_up.hpp, hand-set: per square the kings are closer than the farthest apart they can be (14, corner to
-// corner), and the losing king's square, 10 for every step it is from the four centre squares, 0 there to 60 in a corner.
+// corner); the winning king's square, 2 on the edge to 16 in the middle, while the winning side has pawns; the losing
+// king's square once it has none, 10 for every step it is from the four centre squares, 0 there to 60 in a corner.
 constexpr i32 mopUpKingDistance = 8;
+constexpr i32 mopUpCentre[64] = {
+      2,   2,   2,   2,   2,   2,   2,  2,
+      2,   4,   4,   4,   4,   4,   4,  2,
+      2,   4,   8,   8,   8,   8,   4,  2,
+      2,   4,   8,  16,  16,   8,   4,  2,
+      2,   4,   8,  16,  16,   8,   4,  2,
+      2,   4,   8,   8,   8,   8,   4,  2,
+      2,   4,   4,   4,   4,   4,   4,  2,
+      2,   2,   2,   2,   2,   2,   2,  2,
+};
 constexpr i32 mopUpLosingKing[64] = {
      60,  50,  40,  30,  30,  40,  50,  60,
      50,  40,  30,  20,  20,  30,  40,  50,

@@ -108,7 +108,7 @@ promotions.
 | king shelter & pawn storm: on the king's file and the two beside it, its own nearest pawn (shelter) and the enemy's (storm, blocked or not) | `eval/king_safety.hpp` | `eval/king_tables.hpp`, tuned | every evaluation |
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
 | piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
-| mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's, the enemy's is driven to the edge | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpLosingKing`, hand-set | every evaluation, outside the taper |
+| mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre, or, once the winning side has no pawns, drives the enemy's to the edge | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, `mopUpLosingKing`, hand-set | every evaluation, outside the taper |
 | tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
 `Evaluator::EvaluateTapered` is the tapered sum, the part the tuner fits; `Evaluate` adds mop-up and asserts both
