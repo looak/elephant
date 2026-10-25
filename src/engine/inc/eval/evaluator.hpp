@@ -54,23 +54,11 @@ public:
     i32 EvaluateTapered() const;
 
     /**
-     * @brief Calculates the end game coeficient.
-     * Used for tapered evaluation.
-     * @return a float between 0 and 1 where 1 is endgame and 0 is midgame.     */    
-    float calculateEndGameCoeficient() const;
-
-    /**
      * @brief PeSTO game phase, knights & bishops add 1, rooks 2 and queens 4.
      * @return 24 with all pieces on the board (capped there after promotions) down to 0 with only kings & pawns. */
     i32 gamePhase() const {return std::min(m_accumulator.phase, evaluator_data::maxGamePhase);}
 
-private:    
-
-    i16 MopUpValue(i16 materialScore) const;    
-
-    template<Set us>
-    i16 MopUpValue(i16 materialScore) const;
-
+private:
     PositionProxy<PositionReadOnlyPolicy> m_position;
     PestoAccumulator m_accumulator;
     PawnHashTable* m_pawnHash = nullptr;
