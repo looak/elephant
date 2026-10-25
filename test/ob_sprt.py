@@ -5,6 +5,8 @@
     python test/ob_sprt.py eval-pieces-mopup-edge eval-pieces --nonreg     STC, [-3, 1]
     python test/ob_sprt.py eval-pieces-pairs eval-pieces --ltc             LTC
     python test/ob_sprt.py dev base --tc 8+0.08 --bounds -1,4 --dry-run    the form only, nothing sent
+    python test/ob_sprt.py dev base --nonreg --book Endgames.epd --win-adj None
+                                            endgame starts, played out to mate or a draw
 
 dev and base are branches or commits, pushed to GitHub: OpenBench reads them from there, a local one it can't see.
 A branch is checked against its remote, and the bench each side's commit message carries is printed; OpenBench takes
@@ -120,6 +122,12 @@ def form(args: argparse.Namespace) -> dict[str, str]:
         "test_bounds": bounds,
         "action": "CREATE_TEST",
     })
+    if args.book:
+        data["book_name"] = args.book
+    if args.win_adj:
+        data["win_adj"] = args.win_adj
+    if args.draw_adj:
+        data["draw_adj"] = args.draw_adj
     return data
 
 
@@ -144,6 +152,9 @@ def main() -> int:
     parser.add_argument("--bounds", help="Elo bounds, e.g. -1,4; overrides --nonreg")
     parser.add_argument("--tc", help="time control, e.g. 8+0.08; overrides the preset's")
     parser.add_argument("--options", help="UCI options for both, e.g. 'Threads=1 Hash=16'; overrides the preset's")
+    parser.add_argument("--book", help="opening book as OpenBench names it, e.g. Endgames.epd; 8moves_v3.epd by default")
+    parser.add_argument("--win-adj", help="win adjudication, e.g. 'movecount=3 score=400', or None to play games out")
+    parser.add_argument("--draw-adj", help="draw adjudication, e.g. 'movenumber=40 movecount=8 score=10', or None")
     parser.add_argument("--dry-run", action="store_true", help="print the form, send nothing")
     args = parser.parse_args()
 
@@ -153,7 +164,8 @@ def main() -> int:
         print(f"  {side:4} {ref} = {sha[:7]}, bench {bench or 'MISSING from the message, OpenBench will refuse it'}")
 
     data = form(args)
-    print(f"  test {data['dev_time_control']} {data['dev_options']} {data['test_bounds']} {data['book_name']}")
+    print(f"  test {data['dev_time_control']} {data['dev_options']} {data['test_bounds']} {data['book_name']}, "
+          f"win adj {data['win_adj']}, draw adj {data['draw_adj']}")
     if args.dry_run:
         for key, value in data.items():
             print(f"    {key} = {value}")
