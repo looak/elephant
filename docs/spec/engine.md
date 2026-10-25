@@ -107,7 +107,8 @@ promotions.
 | passed pawn extras: own & enemy king distance, a piece on the stop square, a free path to promotion, a rook behind | `eval/passed_pawns.hpp` | `eval/pawn_tables.hpp`, tuned | every evaluation |
 | king shelter & pawn storm: on the king's file and the two beside it, its own nearest pawn (shelter) and the enemy's (storm, blocked or not) | `eval/king_safety.hpp` | `eval/king_tables.hpp`, tuned | every evaluation |
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
-| mop-up: more than two pawns ahead in an endgame (the old end game coefficient above 0.5), the winning king closes in on the enemy's and to the centre | `eval/evaluator.cpp` | in code | every evaluation, outside the taper |
+| piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
+| mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, hand-set | every evaluation, outside the taper |
 | tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
 `Evaluator::EvaluateTapered` is the tapered sum, the part the tuner fits; `Evaluate` adds mop-up and asserts both
@@ -141,6 +142,7 @@ reaches the engine as a changed header in a commit, which moves the bench.
 | `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | tuned with PeSTO kept, each table centred |
 | `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | tuned with `pestoPawn`, the rest kept |
 | `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm tuned with the rest kept, then the danger with them kept; the danger's sparse tail made monotonic |
+| `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | tuned with the rest kept (1.4 cycle) |
 
 **ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
@@ -152,7 +154,7 @@ numbers replaced, written as `*.tuned.hpp`; copying one over the original is the
 values back untouched and checks the files come out byte for byte the same.
 
 The values are tuned in groups, `--tune` naming the ones that move while the rest stay as they are: `material`,
-`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`.
+`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`.
 The practice so far is to tune only the new group with everything else kept, then SPRT it, and at the end of a cycle
 the piece square table the new terms overlap together with them. Tables that are rare in the data mislead: fitted with
 the pawn terms, the king table learned large midgame bonuses for an advanced king, a king that far up with the queens

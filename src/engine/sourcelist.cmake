@@ -47,6 +47,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/eval/king_tables.hpp
     ${ENGINE_INC_DIR}/eval/mobility.hpp
     ${ENGINE_INC_DIR}/eval/mobility_tables.hpp
+    ${ENGINE_INC_DIR}/eval/mop_up.hpp
     ${ENGINE_INC_DIR}/eval/passed_pawns.hpp
     ${ENGINE_INC_DIR}/eval/pawn_hash.hpp
     ${ENGINE_INC_DIR}/eval/pawn_structure.hpp
