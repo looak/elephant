@@ -16,15 +16,15 @@
 
 /**
  * @file mop_up.hpp
- * @brief Mop-up: in an endgame, the side more than two pawns ahead brings its king to the enemy's and to the centre,
- * to drive the enemy king towards a mate search can't see yet.
+ * @brief Mop-up: in an endgame, the side more than two pawns ahead brings its king to the enemy's and drives the
+ * enemy king to the edge, towards a mate search can't see yet.
  *
  * An endgame here is 12 pieces or fewer, kings included, or less than half of the starting material on the board,
  * the starting material counting six rooks instead of four to lean towards the endgame sooner. Material is
  * piece_constants::value, kept by the PestoAccumulator. Inside an endgame mop-up counts in full, outside it not at all.
  *
  * The winning side scores mopUpKingDistance for every square the kings are closer than 14 apart (Manhattan distance)
- * and mopUpCentre at its king's square, from evaluator_data. Hand-set and not tapered: Evaluate adds it to the tapered
+ * and mopUpLosingKing at the enemy king's square, from evaluator_data. Hand-set and not tapered: Evaluate adds it to the tapered
  * terms, the tuner carries it as a fixed offset.    */
 
 #pragma once
@@ -55,7 +55,7 @@ i32 sideScore(const MaterialPositionMask& material, i32 lead) {
     const u32 usKingSqr = material.king<us>().lsbIndex();
     const u32 opKingSqr = material.king<opposing_set<us>()>().lsbIndex();
     return (14 - board_constants::manhattanDistances[usKingSqr][opKingSqr]) * evaluator_data::mopUpKingDistance
-         + evaluator_data::mopUpCentre[usKingSqr];
+         + evaluator_data::mopUpLosingKing[opKingSqr];
 }
 
 } // namespace mop_up_internals
