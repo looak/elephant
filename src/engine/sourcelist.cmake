@@ -53,6 +53,8 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/eval/pawn_tables.hpp
     ${ENGINE_INC_DIR}/eval/pesto_accumulator.hpp
     ${ENGINE_INC_DIR}/eval/pesto_tables.hpp
+    ${ENGINE_INC_DIR}/eval/piece_tables.hpp
+    ${ENGINE_INC_DIR}/eval/pieces.hpp
     ${ENGINE_INC_DIR}/eval/tapered_score.hpp
 
 ## /io/...

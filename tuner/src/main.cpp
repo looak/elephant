@@ -381,6 +381,16 @@ void printPawns(const std::vector<TaperedScore>& after, const std::vector<std::s
     }
 }
 
+// the piece pairs as tuned, with how many positions use each.
+void printPieces(const std::vector<TaperedScore>& after, const std::vector<std::size_t>& used) {
+    std::cout << "  pairs        midgame / endgame centipawns (positions using it)\n";
+    for (u32 pieceId = 1; pieceId <= 3; ++pieceId) {
+        const u32 index = tuner::params::piecePair(pieceId);
+        std::cout << std::format("    {:7} {}/{} ({})\n", c_pieceNames[pieceId], mg_score(after[index]),
+                                 eg_score(after[index]), used[index]);
+    }
+}
+
 /**
  * Writes the values as new headers to outDir: the engine's own files with only the numbers in their tables replaced.
  * Returns whether every file came out the same as the engine's. Throws when a file can't be read or written.    */
@@ -389,10 +399,11 @@ bool writeTables(const std::string& outDir, const std::vector<TaperedScore>& aft
         const char* file;
         std::string (*rewrite)(const std::string&, const std::vector<TaperedScore>&);
     };
-    const Written files[4] = { { "pesto_tables", tuner::rewritePestoTables },
+    const Written files[5] = { { "pesto_tables", tuner::rewritePestoTables },
                                { "mobility_tables", tuner::rewriteMobilityTables },
                                { "pawn_tables", tuner::rewritePawnTables },
-                               { "king_tables", tuner::rewriteKingTables } };
+                               { "king_tables", tuner::rewriteKingTables },
+                               { "piece_tables", tuner::rewritePieceTables } };
     bool unchanged = true;
     for (const Written& file : files) {
         const std::string from = std::format("{}/src/engine/inc/eval/{}.hpp", ROOT_PATH, file.file);
@@ -433,6 +444,8 @@ int run(Options& options) {
     if (settings.tunes(tuner::params::Group::Pawns_Passed) || settings.tunes(tuner::params::Group::Pawns_Structure)
         || settings.tunes(tuner::params::Group::Pawns_PassedExtras))
         printPawns(after, used);
+    if (settings.tunes(tuner::params::Group::Pieces_Pairs))
+        printPieces(after, used);
     const bool unchanged = writeTables(options.outDir, after);
 
     // no passes means the values went out as they came in: the files have to be the engine's, byte for byte.
