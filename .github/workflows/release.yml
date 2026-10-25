@@ -1,9 +1,9 @@
 name: Release
 
-# Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels, and phant-indexer
-# (nyayo's game reader, CMake's PhantIndexer) for both at x86-64, and attaches them to a GitHub release when one is
-# published. By hand it builds any branch or tag into workflow artifacts, and attaches them to the release of that tag
-# when asked.
+# Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels and attaches it to
+# a GitHub release when one is published. By hand it builds any branch or tag into workflow artifacts, attaches them
+# to the release of that tag when asked, and builds phant-indexer (nyayo's game reader, CMake's PhantIndexer) too when
+# asked; a release doesn't carry it.
 on:
   release:
     types: [published]
@@ -17,6 +17,10 @@ on:
         description: Attach the binaries to the release of this tag
         type: boolean
         default: false
+      indexer:
+        description: Build phant-indexer too (attached with the engine when attach is on)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,8 +31,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-latest]
-        # x86-64 runs on any 64-bit CPU, v2 adds popcnt & SSE4.2, v3 adds AVX2 & BMI2 (most CPUs from ~2015).
+        # x86-64 runs on any 64-bit CPU, v2 adds popcnt & SSE4.2, v3 adds AVX2 & BMI2 (most CPUs from ~2015). The
+        # binary is named by the instructions it needs, the way engine testers know builds, not by the level.
         arch: [x86-64, x86-64-v2, x86-64-v3]
+        include:
+          - arch: x86-64
+            name: x86-64
+          - arch: x86-64-v2
+            name: x86-64-sse42-popcnt
+          - arch: x86-64-v3
+            name: x86-64-avx2-bmi2
     runs-on: ${{ matrix.os }}
     env:
       REF: ${{ github.event.release.tag_name || inputs.ref }}
@@ -52,7 +64,7 @@ jobs:
         version="$(head -n 1 version.txt | tr -d '\r[:space:]')"
         os="$([ "$RUNNER_OS" = Windows ] && echo windows || echo linux)"
         ext="$([ "$RUNNER_OS" = Windows ] && echo .exe || echo)"
-        echo "BINARY=elephant-gambit-$version-$os-${{ matrix.arch }}$ext" >> "$GITHUB_ENV"
+        echo "BINARY=elephant-gambit-$version-$os-${{ matrix.name }}$ext" >> "$GITHUB_ENV"
 
     - name: Build (Linux)
       if: runner.os == 'Linux'
@@ -95,6 +107,7 @@ jobs:
   # parsers report an illegal move by throwing) and ELEPHANT_BUILD_INDEXER, which fetches zlib, bzip2 & zstd; linked
   # static, the C runtime too.
   indexer:
+    if: ${{ inputs.indexer }}
     strategy:
       fail-fast: false
       matrix:
@@ -102,7 +115,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       REF: ${{ github.event.release.tag_name || inputs.ref }}
-      ATTACH: ${{ github.event_name == 'release' || inputs.attach }}
+      ATTACH: ${{ inputs.attach }}
 
     steps:
     - uses: actions/checkout@v4

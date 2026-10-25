@@ -201,11 +201,12 @@ whoever plays the games writes the players and tags.
 
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
   with its own `EXE`.
-- `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `x86-64`,
-  `x86-64-v2` and `x86-64-v3`, linked static, named `elephant-gambit-<version>-<os>-<arch>`; and, in a job of its own
-  with CMake and `ELEPHANT_BUILD_INDEXER=ON`, phant-indexer for Windows & Linux at `x86-64`, linked static (the C
-  runtime too), named `phant-indexer-<version>-<os>-x86-64` and smoke tested on OpenBench's workload, bz2 compressed,
-  before it is attached.
+- `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `-march=x86-64`,
+  `x86-64-v2` and `x86-64-v3`, linked static, named by the instructions each needs:
+  `elephant-gambit-<version>-<os>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
+  hand with `indexer` on, never on a release: in a job of its own with CMake and `ELEPHANT_BUILD_INDEXER=ON`, for
+  Windows & Linux at `x86-64`, linked static (the C runtime too), named `phant-indexer-<version>-<os>-x86-64` and
+  smoke tested on OpenBench's workload, bz2 compressed, before it is attached.
 - `version.txt` is the only place the version is written. major = engine generation or a UCI option change, minor =
   a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions. Pre-releases are
   `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight.
