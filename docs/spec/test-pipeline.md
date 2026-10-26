@@ -119,7 +119,7 @@ played, score, nodes, `time_ms` and PV.
 ### ob_sprt.py
 
 `python test/ob_sprt.py <dev> <base> [--ltc] [--nonreg | --bounds L,U] [--tc TC] [--options OPTS] [--book BOOK]
-[--win-adj ADJ] [--draw-adj ADJ] [--dry-run]`
+[--win-adj ADJ] [--draw-adj ADJ] [--priority N] [--dry-run]`
 queues an SPRT on OpenBench: the create test page's form, filled in and sent to the fork's `/scripts/` endpoint
 (`action=CREATE_TEST`) with the user's login. dev and base are branches or commits on GitHub, where OpenBench reads
 them; the script checks they're pushed and prints each side's bench from its commit message, which is where OpenBench

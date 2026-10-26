@@ -128,6 +128,8 @@ def form(args: argparse.Namespace) -> dict[str, str]:
         data["win_adj"] = args.win_adj
     if args.draw_adj:
         data["draw_adj"] = args.draw_adj
+    if args.priority is not None:
+        data["priority"] = str(args.priority)
     return data
 
 
@@ -155,6 +157,8 @@ def main() -> int:
     parser.add_argument("--book", help="opening book as OpenBench names it, e.g. Endgames.epd; 8moves_v3.epd by default")
     parser.add_argument("--win-adj", help="win adjudication, e.g. 'movecount=3 score=400', or None to play games out")
     parser.add_argument("--draw-adj", help="draw adjudication, e.g. 'movenumber=40 movecount=8 score=10', or None")
+    parser.add_argument("--priority", type=int, help="OpenBench's priority, 0 by default; the worker plays only the "
+                        "highest priority's tests, so -1 waits for the others and 1 goes first")
     parser.add_argument("--dry-run", action="store_true", help="print the form, send nothing")
     args = parser.parse_args()
 
@@ -165,7 +169,7 @@ def main() -> int:
 
     data = form(args)
     print(f"  test {data['dev_time_control']} {data['dev_options']} {data['test_bounds']} {data['book_name']}, "
-          f"win adj {data['win_adj']}, draw adj {data['draw_adj']}")
+          f"win adj {data['win_adj']}, draw adj {data['draw_adj']}, priority {data['priority']}")
     if args.dry_run:
         for key, value in data.items():
             print(f"    {key} = {value}")
