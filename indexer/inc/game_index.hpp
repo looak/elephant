@@ -29,7 +29,10 @@
 #include <vector>
 
 #include <io/pgn_parser.hpp>
+#include <move/move.hpp>
 #include <system/platform.hpp>
+
+class Chessboard;
 
 namespace indexer {
 
@@ -82,13 +85,27 @@ struct GameIndex {
     // with positions on: every position's Polyglot hash, the start position's first, then the one after each move, up
     // to an error.
     std::vector<u64> positions;
+
+    // with moves on: the position the game started from as a FEN, and the moves played from it, a null move as
+    // PackedMove::NullMove(), up to an error. What --draw replays to reach the positions it looks at.
+    std::string startFen;
+    std::vector<PackedMove> played;
 };
+
+// whether the side to move is in check and has a legal move; no legal move is checkmate or stalemate.
+struct PositionFacts {
+    bool inCheck = false;
+    bool canMove = false;
+};
+PositionFacts positionFacts(const Chessboard& board);
 
 // Replays a game, from its FEN tag when it has one, and reports what it finds. A Variant tag that isn't standard
 // chess is an error before the moves.
 // With positions on, every position's Polyglot hash is kept too, the start position's first, then the one after each
 // move: what --positions writes and --position scans.
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false);
+// With moves on, the start position and the moves are kept too.
+GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false,
+    bool moves = false);
 
 // The entry as one line of JSON, without its newline. The moves and the FEN are written when verbose.
 std::string toJson(const GameIndex& entry, bool verbose = false);

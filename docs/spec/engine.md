@@ -188,6 +188,12 @@ whoever plays the games writes the players and tags.
   that read, in the same pass as the cards; it takes one input and stops at 65 535 games or plies, the 2 byte fields'
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.
+- **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
+  lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
+  has a result, from ply P on, none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
+  With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
+  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  discarded, so every position written is one the game reached.
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
@@ -224,4 +230,5 @@ whoever plays the games writes the players and tags.
 | out | release binaries | `release.yml` |
 | in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
 | out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
 

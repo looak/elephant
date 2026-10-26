@@ -72,9 +72,11 @@ foreach(compression indexer_zlib indexer_bzip2 indexer_zstd)
 endforeach()
 
 add_library(${INDEXER_LIB} STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/inc/draw.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/game_index.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/input.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/inc/polyglot.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/draw.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/game_index.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/input.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/polyglot.cpp

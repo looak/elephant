@@ -1,11 +1,15 @@
 // phant-indexer: reads PGN, from files or standard input, plain, bz2, gzip or zstd, and writes one JSON line per game
 // to standard output, see game_index.hpp for what a line holds; with --positions every position's hash too, and with
-// --position the games that reach a position instead. indexer/README.md has the formats.
+// --position the games that reach a position instead, and with --draw the training positions drawn from the games.
+// indexer/README.md has the formats.
 
+#include "draw.hpp"
 #include "game_index.hpp"
 #include "input.hpp"
 #include "polyglot.hpp"
 
+#include <algorithm>
+#include <charconv>
 #include <cstdio>
 #include <exception>
 #include <format>
@@ -31,6 +35,7 @@ namespace {
         "usage: phant-indexer [--verbose] [FILE...]\n"
         "       phant-indexer --positions OUT [--verbose] [FILE]\n"
         "       phant-indexer --position FEN [FILE...]\n"
+        "       phant-indexer --draw N [--quiet] [--min-ply P] [--seed S] [FILE...]\n"
         "       phant-indexer --version\n"
         "\n"
         "Reads the games of each PGN FILE, or of standard input when there's none or FILE is -, and writes one JSON\n"
@@ -39,7 +44,39 @@ namespace {
         "\n"
         "--positions OUT also writes every position of every game that read to OUT, 12 bytes each: its Polyglot hash,\n"
         "the game's place in the input and the ply, little-endian; one input, of at most 65535 games.\n"
-        "--position FEN writes, instead of the entries, a JSON line for each game & ply that reach FEN's position.\n";
+        "--position FEN writes, instead of the entries, a JSON line for each game & ply that reach FEN's position.\n"
+        "\n"
+        "--draw N writes, instead of the entries, training positions as '<fen> [result]' lines, the result white's: up to\n"
+        "N positions of each game that read and has a result, none twice in the run. --quiet keeps the positions that\n"
+        "are naturally quiet, not in check and their own quiescence search result; --min-ply P skips the first P plies;\n"
+        "--seed S (default 1) repeats a run. A summary goes to standard error.\n";
+
+    bool toNumber(const char* text, u64& value)
+    {
+        const std::string_view view(text);
+        const auto [end, error] = std::from_chars(view.data(), view.data() + view.size(), value);
+        return error == std::errc{} && end == view.data() + view.size();
+    }
+
+    // the --draw summary: how many quiet positions the games yield, on average and at the low end.
+    void printDrawSummary(const indexer::DrawStats& stats, const indexer::DrawOptions& options)
+    {
+        std::vector<u32> quiet = stats.quietPerGame;
+        std::sort(quiet.begin(), quiet.end());
+        auto at = [&](double fraction) {
+            return quiet.empty() ? 0u : quiet[static_cast<size_t>(fraction * double(quiet.size() - 1))];
+        };
+        const double mean = quiet.empty() ? 0.0 : double(stats.quiet) / double(quiet.size());
+        const auto few = std::count_if(quiet.begin(), quiet.end(), [&](u32 n) { return n < options.perGame; });
+        std::cerr << std::format("phant-indexer: {} games, {} looked at (read, with a result), {} positions from ply {} with a "
+                                 "legal move and not in check, {} {}\n",
+            stats.games, stats.drawn, stats.candidates, options.minPly, stats.quiet,
+            options.quiet ? "naturally quiet" : "kept (no --quiet)");
+        std::cerr << std::format("phant-indexer: positions kept a game: mean {:.1f}, minimum {}, 5th percentile {}, median {}; "
+                                 "{} games under {}\n",
+            mean, at(0.0), at(0.05), at(0.5), few, options.perGame);
+        std::cerr << std::format("phant-indexer: {} written, {} left out as duplicates\n", stats.written, stats.duplicates);
+    }
 
     // the most games --positions numbers in an input, and the most plies in a game: 2 bytes each.
     constexpr size_t c_maxRecordValue = 0xffff;
@@ -99,13 +136,29 @@ int main(int argc, char** argv)
     bool verbose = false;
     std::string positionsPath;
     std::optional<u64> wanted;  // --position's hash
+    std::optional<indexer::DrawOptions> draw;  // --draw
+    u64 drawCount = 0, drawMinPly = 0, drawSeed = 1;
+    bool drawQuiet = false;
     std::vector<std::string> paths;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--verbose") {
             verbose = true;
         }
-        else if ((arg == "--positions" || arg == "--position") && i + 1 >= argc) {
+        else if (arg == "--quiet") {
+            drawQuiet = true;
+        }
+        else if ((arg == "--draw" || arg == "--min-ply" || arg == "--seed") && i + 1 < argc) {
+            u64 value = 0;
+            if (!toNumber(argv[++i], value) || (arg == "--draw" && value == 0)) {
+                std::cerr << "phant-indexer: " << arg << " needs a number" << (arg == "--draw" ? " above 0" : "") << ", got "
+                          << argv[i] << "\n";
+                return 2;
+            }
+            (arg == "--draw" ? drawCount : arg == "--min-ply" ? drawMinPly : drawSeed) = value;
+        }
+        else if ((arg == "--positions" || arg == "--position" || arg == "--draw" || arg == "--min-ply" || arg == "--seed")
+            && i + 1 >= argc) {
             std::cerr << "phant-indexer: " << arg << " needs a value\n" << c_usage;
             return 2;
         }
@@ -144,6 +197,18 @@ int main(int argc, char** argv)
             paths.push_back(arg);
         }
     }
+    if (drawCount != 0) {
+        draw = indexer::DrawOptions{ static_cast<u32>(std::min<u64>(drawCount, 0xffffffffu)),
+            static_cast<u32>(std::min<u64>(drawMinPly, 0xffffffffu)), drawQuiet, drawSeed };
+    }
+    else if (drawQuiet || drawMinPly != 0 || drawSeed != 1) {
+        std::cerr << "phant-indexer: --quiet, --min-ply and --seed go with --draw\n" << c_usage;
+        return 2;
+    }
+    if (draw && (!positionsPath.empty() || wanted || verbose)) {
+        std::cerr << "phant-indexer: --draw doesn't go with --positions, --position or --verbose\n" << c_usage;
+        return 2;
+    }
     if (!positionsPath.empty() && wanted) {
         std::cerr << "phant-indexer: --positions and --position don't go together\n" << c_usage;
         return 2;
@@ -165,7 +230,10 @@ int main(int argc, char** argv)
             return 1;
         }
     }
-    const bool positions = positionsFile.is_open() || wanted.has_value();
+    const bool positions = positionsFile.is_open() || wanted.has_value() || draw.has_value();
+    std::optional<indexer::Drawer> drawer;
+    if (draw)
+        drawer.emplace(*draw);
 
     int status = 0;
     std::string raw;
@@ -199,9 +267,15 @@ int main(int argc, char** argv)
         io::pgn_parser::GameReader reader(input);
         u32 number = 0;
         while (std::optional<io::pgn_parser::Game> game = reader.next()) {
-            indexer::GameIndex entry = indexer::index(*game, ++number, verbose, positions);
+            indexer::GameIndex entry = indexer::index(*game, ++number, verbose, positions, draw.has_value());
             if (fromFiles)
                 entry.source = path;
+
+            if (drawer) {
+                drawer->draw(entry, out);
+                flush(false);
+                continue;
+            }
 
             if (wanted) {
                 for (size_t ply = 0; entry.ok && ply < entry.positions.size(); ++ply) {
@@ -232,6 +306,8 @@ int main(int argc, char** argv)
     }
     flush(true);
     std::cout.flush();
+    if (drawer)
+        printDrawSummary(drawer->stats(), *draw);
     if (positionsFile.is_open()) {
         positionsFile.close();
         if (!positionsFile) {

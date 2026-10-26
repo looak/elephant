@@ -10,6 +10,7 @@ uploads), nothing is mapped here.
 phant-indexer [--verbose] [FILE...]                 the games of each FILE, or of standard input when there's none or FILE is -
 phant-indexer --positions OUT [--verbose] [FILE]    the entries, and every position's record to OUT; one input
 phant-indexer --position FEN [FILE...]              the games & plies that reach FEN's position, instead of the entries
+phant-indexer --draw N [--quiet] [--min-ply P] [--seed S] [FILE...]    training positions, instead of the entries
 phant-indexer --version                             phant-indexer <elephant version> format <format version>
 ```
 
@@ -96,9 +97,9 @@ didn't read writes none. A record is 12 bytes, little-endian, one after the othe
 
 | Bytes | Field |
 |:--|:--|
-| 0–7 | the Polyglot hash, u64 |
-| 8–9 | the game's place in its input, from 1, as the entry's `game`, u16 |
-| 10–11 | the ply, 0 for the start position, u16 |
+| 0â€“7 | the Polyglot hash, u64 |
+| 8â€“9 | the game's place in its input, from 1, as the entry's `game`, u16 |
+| 10â€“11 | the ply, 0 for the start position, u16 |
 
 The records name a game by its place in its input only, so `--positions` takes one input (a file or standard input).
 Two bytes number 65 535 games an input and 65 535 plies a game: a nyayo batch is 64 games, an OpenBench workload a
@@ -115,6 +116,45 @@ ply whose position has FEN's hash, in game order, `source` included when files w
 
 It is the oracle a filter built from the records is checked against: the same games, the same plies. FEN's move
 counters are ignored, as the hash ignores them. Only games that read are searched.
+
+## Training positions
+
+**`--draw N`** reads the games like the entries do and writes, instead of them, training positions for the evaluation's
+tuner: one `<fen> [result]` line each, the result white's, `[1.0]`, `[0.5]` or `[0.0]`, the format `ElephantTuner`
+reads (`tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any batch: zstd, bz2, gzip or
+plain PGN, several files if given, one run. For each game that read and has a result (a `Result` tag or the movetext's
+of `1-0`, `0-1` or `1/2-1/2`):
+
+- **`--min-ply P`** skips the first P plies: a position is a candidate from the one after the Pth ply on (16 skips an
+  eight move book). Default 0.
+- **`--quiet`** keeps only the candidates that are *naturally quiet*: the side to move is not in check, and Elephant's
+  own quiescence search, run on the position, finds nothing it would rather play than stand pat, so the search returns
+  the position's own static evaluation. The search is only a test. Its line is thrown away, and **every position
+  written is one the game reached**, as it stood on the board, FEN counters included. Without `--quiet` every
+  candidate that has a legal move and is not in check counts.
+- It samples up to **N** of the candidates a game has, a seeded shuffle and the first N, so a game with fewer gives
+  fewer. **`--seed S`** (default 1) repeats a run: the same inputs in the same order, options and seed give the same
+  lines on any platform. A game's sample doesn't depend on the other games'.
+- A position is written **once in a run**, by its Polyglot hash, with the result of the first game that gave it. A
+  later game's duplicates are skipped and the next candidates taken, so a game can still give N.
+
+A game that didn't read, one without a result and one with a null move (never played over the board) give nothing.
+The positions of a checkmate or stalemate aren't written. A summary goes to standard error: the games, the positions
+looked at and the naturally quiet among them, how many a game keeps (mean, minimum, 5th percentile, median, and how
+many games have fewer than N), and the duplicates left out. `--draw` doesn't go with `--positions`, `--position` or
+`--verbose`; `--quiet`, `--min-ply` and `--seed` go with `--draw` alone.
+
+```
+phant-indexer --draw 10 --quiet --min-ply 16 eg-1.4.pgn.zst > EG-1.4-own.book
+ElephantTuner EG-1.4-own.book --tune psqt_king
+```
+
+On 2026-10-26, on nyayo's 730 stored batches (45,088 games, from a rehearsal copy): 4,334,887 positions from ply 16
+with a legal move and not in check, 3,500,769 of them naturally quiet; a game keeps 77.6 on average, 65 at the median,
+18 at the 5th percentile, none at the minimum, and 773 games (1.7%) have fewer than 10. With `--draw 10`, 443,761
+positions were written (13,086 duplicates left out), 136,250 won by white, 189,056 drawn and 118,455 won by black, in
+10 seconds on one thread. `ElephantTuner` reads all of them, and its own quiescence search finds every one already
+quiet (443,761 already quiet, 0 resolved).
 
 ## Read as python-chess reads it
 
@@ -140,7 +180,9 @@ Every choice below is `chess.pgn.read_game`'s, which nyayo reads games with toda
 `test/indexer_smoke.py` reads games with phant-indexer and python-chess and compares every game's moves, final
 position and entry. Its games are `test/pgn/*.pgn` (OpenBench's workload as uploaded and cutechess-ob's games before
 OpenBench strips them, a fastchess gauntlet, edge cases, python-chess's quirks), random games played by python-chess,
-which promote, castle and capture en passant far more often than engines do, and with `--games DIR` real games. Each
+which promote, castle and capture en passant far more often than engines do, and with `--games DIR` real games. For
+`--draw` it checks that every position written is a position of a game that read, from the 16th ply on, not in check,
+labelled with the result of a game that reached it, once in the run, at most 10 a game and the same on a second run. Each
 file is read bz2'd, gzipped and zstd'd on standard input too, zstd in one frame and in a frame every 64 games, and has
 to give the same entries. Every record `--positions` writes has to be python-chess's `zobrist_hash` of that position,
 for exactly the games that read, and `--position` for the first game's start position and six positions picked from

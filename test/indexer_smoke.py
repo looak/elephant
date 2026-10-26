@@ -15,7 +15,9 @@ captures en passant far more often than engines do. Each game is compared on: wh
 the moves in UCI notation, the final position, and every fact of the entry (result, plies, how it ended, promotions,
 castling, captures, en passant captures, checks, the fewest pieces, material, the start & opening hashes), and every
 position's Polyglot hash that --positions writes is python-chess's chess.polyglot.zobrist_hash. --position scans for
-a sample of each file's positions have to find the games & plies python-chess finds. Each file is read compressed too, bz2,
+a sample of each file's positions have to find the games & plies python-chess finds. --draw positions have to
+be positions of the games, past the opening, not in check, labelled with the result of a game that reached them, none
+twice, and the same on a second run. Each file is read compressed too, bz2,
 gzip, zstd in one frame and zstd a frame every 64 games (as a batch may be written), on standard input, and has to
 give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
 2 when it couldn't run.
@@ -69,7 +71,9 @@ ROOT = Path(__file__).resolve().parent
 FORMAT = 2
 OPENING_PLY = 16
 SCANS = 6  # --position scans a file, besides its first game's start position
-CHECKED = {"positions": 0, "scans": 0}  # what the summary counts
+DRAW_PER_GAME = 10
+DRAW_MIN_PLY = 16
+CHECKED = {"positions": 0, "scans": 0, "drawn": 0}  # what the summary counts
 STANDARD = {"", "standard", "chess", "classical", "normal", "illegal", "from position"}  # python-chess's chess.Board
 MATERIAL_PLIES = (20, 40)
 VALUES = {chess.PAWN: 1, chess.KNIGHT: 3, chess.BISHOP: 3, chess.ROOK: 5, chess.QUEEN: 9}
@@ -296,6 +300,50 @@ def scans_agree(indexer: str, path: Path, games: list[chess.pgn.Game], wants: li
     return diffs
 
 
+def draws_agree(indexer: str, path: Path, wants: list[dict]) -> list[str]:
+    """--draw --quiet: every line is a position of a game that read, from the 16th ply on, not in check, with a legal
+    move, labelled with the result of a game that reached it, once in the run, at most 10 a game, repeatable."""
+    labels = {"1-0": "[1.0]", "0-1": "[0.0]", "1/2-1/2": "[0.5]"}
+    reached: dict[int, set[str]] = {}
+    games = 0
+    for want in wants:
+        if not want["ok"] or want["result"] not in labels:
+            continue
+        games += 1
+        for ply, hash_ in enumerate(want["positions"]):
+            if ply >= DRAW_MIN_PLY:
+                reached.setdefault(hash_, set()).add(labels[want["result"]])
+    args = ("--draw", str(DRAW_PER_GAME), "--quiet", "--min-ply", str(DRAW_MIN_PLY))
+    out = subprocess.run([indexer, *args, str(path)], capture_output=True, check=True).stdout.decode()
+    again = subprocess.run([indexer, *args, str(path)], capture_output=True, check=True).stdout.decode()
+    diffs = []
+    if out != again:
+        diffs.append("--draw gave other positions the second time")
+    lines = out.splitlines()
+    if len(lines) > DRAW_PER_GAME * games:
+        diffs.append(f"--draw wrote {len(lines)} positions from {games} games, at most {DRAW_PER_GAME} each")
+    seen = set()
+    for line in lines:
+        fen, _, label = line.rpartition(" ")
+        try:
+            board = chess.Board(fen)
+        except ValueError:
+            diffs.append(f"--draw wrote a FEN python-chess doesn't read: {line}")
+            continue
+        hash_ = chess.polyglot.zobrist_hash(board)
+        CHECKED["drawn"] += 1
+        if hash_ not in reached:
+            diffs.append(f"--draw wrote a position no game reached after ply {DRAW_MIN_PLY}: {line}")
+        elif label not in reached[hash_]:
+            diffs.append(f"--draw labelled a position {label}, the games that reached it say {sorted(reached[hash_])}: {line}")
+        if board.is_check() or not any(board.legal_moves):
+            diffs.append(f"--draw wrote a position in check or without a move: {line}")
+        if hash_ in seen:
+            diffs.append(f"--draw wrote a position twice: {line}")
+        seen.add(hash_)
+    return diffs[:10]
+
+
 def check_file(indexer: str, path: Path, label: str) -> tuple[int, int, float, float]:
     """Compares one PGN file, returns (games, disagreements, phant-indexer seconds, python-chess seconds)."""
     with tempfile.TemporaryDirectory() as scratch:
@@ -319,7 +367,7 @@ def check_file(indexer: str, path: Path, label: str) -> tuple[int, int, float, f
                 print(f"FAIL {label} game {number} (byte {entry.get('offset')}):")
                 for diff in diffs:
                     print(f"       {diff}")
-    for diff in positions_agree(records, wants) + scans_agree(indexer, path, games, wants):
+    for diff in positions_agree(records, wants) + scans_agree(indexer, path, games, wants) + draws_agree(indexer, path, wants):
         bad += 1
         if bad <= 20:
             print(f"FAIL {label}: {diff}")
@@ -379,7 +427,7 @@ def main() -> int:
         print(f"indexer_smoke: {total_bad} of {total_games} games disagree, seed {seed}")
         return 1
     print(f"indexer_smoke: all {total_games} games agree, {CHECKED['positions']:,} position hashes & "
-          f"{CHECKED['scans']} --position scans too, seed {seed}")
+          f"{CHECKED['scans']} --position scans and {CHECKED['drawn']:,} --draw positions too, seed {seed}")
     return 0
 
 
