@@ -108,8 +108,9 @@ TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
     EXPECT_EQ(ELEPHANT_GAMBIT_VERSION_FULL, entries["version"]);
     for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
         EXPECT_FALSE(entries[key].empty()) << key;
-    if (entries.contains("commit"))
+    if (entries.contains("commit")) {
         EXPECT_EQ(40u, entries["commit"].size());
+    }
 }
 
 TEST_F(UciFixture, Enabled_Outputs_uciok)
