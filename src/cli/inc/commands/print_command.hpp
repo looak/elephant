@@ -35,7 +35,7 @@ public:
             byte prevRank = 0xFF;
             do {
                 if (prevRank != posItr.rank()) {
-                    ranks[posItr.rank()] << " " << static_cast<int>(posItr.rank() + 1) << "  ";
+                    ranks[posItr.rank()] << " " << (posItr.rank() + 1) << "  ";
                 }
 
                 ranks[posItr.rank()] << '[' << posItr.get().toString() << ']';
