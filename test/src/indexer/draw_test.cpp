@@ -158,6 +158,77 @@ TEST_F(DrawFixture, MinPly_SkipsTheFirstPlies)
     EXPECT_EQ(std::set<size_t>({ 4, 5, 6, 7, 8 }), pliesWritten(entry, out));
 }
 
+// the ply is counted from the initial position, wherever the game began.
+TEST_F(DrawFixture, StartPly_FromTheInitialPosition)
+{
+    const std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    EXPECT_EQ(0u, indexer::startPly(initial + " w KQkq - 0 1"));
+    EXPECT_EQ(0u, indexer::startPly(initial + " w - - 0 1"));
+    // fastchess's FENs carry the book's move numbers: the 8th move, white to move, is ply 14, black to move 15.
+    EXPECT_EQ(14u, indexer::startPly("4k3/8/8/8/8/8/4P3/4K3 w - - 0 8"));
+    EXPECT_EQ(15u, indexer::startPly("4k3/8/8/8/8/8/4P3/4K3 b - - 0 8"));
+    EXPECT_EQ(2u, indexer::startPly("rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2"));
+    // the position after 1.e4 says so by itself.
+    EXPECT_EQ(1u, indexer::startPly("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"));
+}
+
+// a book's position with the counters reset: OpenBench's 8 move book gives "... w KQkq - 0 1" eight moves in.
+TEST_F(DrawFixture, StartPly_UnknownWhenTheCountersWereReset)
+{
+    EXPECT_FALSE(indexer::startPly("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1"));
+    EXPECT_FALSE(indexer::startPly("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 1"));
+    EXPECT_FALSE(indexer::startPly("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1"));
+    // black has moved too, it isn't one white move from the initial position.
+    EXPECT_FALSE(indexer::startPly("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"));
+}
+
+// --min-ply counts from the initial position, wherever the game began: a game from the 9th move starts at ply 16.
+TEST_F(DrawFixture, MinPly_CountsFromTheInitialPosition)
+{
+    indexer::Drawer drawer({ .perGame = 100, .minPly = 18, .quiet = false, .seed = 1 });
+    const indexer::GameIndex entry = index(
+        "[Result \"1/2-1/2\"]\n[FEN \"4k3/8/8/8/8/8/4P3/4K3 w - - 0 9\"]\n\n1. Kd2 Kd7 2. Kd3 Kd6 1/2-1/2");
+    std::string out;
+    drawer.draw(entry, out);
+
+    EXPECT_EQ(std::set<size_t>({ 2, 3, 4 }), pliesWritten(entry, out));   // plies 18, 19 and 20 of the game
+    EXPECT_EQ(0u, drawer.stats().unknownStart);
+}
+
+// with no move number to count from the game phase decides: nothing traded yet is too early, here until Nxc6.
+TEST_F(DrawFixture, MinPly_GamePhaseDecidesWithoutAMoveNumber)
+{
+    indexer::Drawer drawer({ .perGame = 100, .minPly = 16, .quiet = false, .seed = 1 });
+    const indexer::GameIndex entry = index("[Result \"1-0\"]\n"
+        "[FEN \"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 1\"]\n\n"
+        "1... Nf6 2. Nxe5 Nxe4 3. Nxc6 dxc6 4. d3 Nf6 1-0");
+    std::string out;
+    drawer.draw(entry, out);
+
+    // phase 24 until the knights go: Nxc6 leaves 23, dxc6 22.
+    EXPECT_EQ(std::set<size_t>({ 5, 6, 7 }), pliesWritten(entry, out));
+    EXPECT_EQ(1u, drawer.stats().unknownStart);
+
+    // a game from the initial position doesn't need it: ply 16 is ply 16.
+    indexer::Drawer other({ .perGame = 100, .minPly = 6, .quiet = false, .seed = 1 });
+    std::string text;
+    other.draw(index(c_pawnTrade), text);
+    EXPECT_EQ(3u, lines(text).size());
+    EXPECT_EQ(0u, other.stats().unknownStart);
+}
+
+// without --min-ply there is no too early.
+TEST_F(DrawFixture, MinPly_ZeroNeverLooksAtThePhase)
+{
+    indexer::Drawer drawer({ .perGame = 100, .minPly = 0, .quiet = false, .seed = 1 });
+    const indexer::GameIndex entry = index("[Result \"1-0\"]\n"
+        "[FEN \"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 1\"]\n\n1... Nf6 2. Nxe5 1-0");
+    std::string out;
+    drawer.draw(entry, out);
+
+    EXPECT_EQ(3u, lines(out).size());
+}
+
 TEST_F(DrawFixture, PerGame_CapsTheSample)
 {
     indexer::Drawer drawer({ .perGame = 3, .minPly = 0, .quiet = false, .seed = 1 });

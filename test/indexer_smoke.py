@@ -17,7 +17,8 @@ castling, captures, en passant captures, checks, the fewest pieces, material, th
 position's Polyglot hash that --positions writes is python-chess's chess.polyglot.zobrist_hash, with the move played
 from it as the engine packs it. --position scans for
 a sample of each file's positions have to find the games & plies python-chess finds. --draw positions have to
-be positions of the games, past the opening, not in check, labelled with the result of a game that reached them, none
+be positions of the games, past ply 16 counted from the initial position (by the game phase when the FEN has no move
+number to count from), not in check, labelled with the result of a game that reached them, none
 twice, and the same on a second run. Each file is read compressed too, bz2,
 gzip, zstd in one frame and zstd a frame every 64 games (as a batch may be written), on standard input, and has to
 give the same entries. Prints both readers' speed. Exits 1 on a disagreement,
@@ -74,6 +75,9 @@ OPENING_PLY = 16
 SCANS = 6  # --position scans a file, besides its first game's start position
 DRAW_PER_GAME = 10
 DRAW_MIN_PLY = 16
+EARLY_PHASE = 22  # a position is too early above this game phase, when the game's ply at its start isn't known
+INITIAL_PLACEMENT = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+PHASE_WEIGHTS = {chess.KNIGHT: 1, chess.BISHOP: 1, chess.ROOK: 2, chess.QUEEN: 4}
 CHECKED = {"positions": 0, "scans": 0, "drawn": 0}  # what the summary counts
 STANDARD = {"", "standard", "chess", "classical", "normal", "illegal", "from position"}  # python-chess's chess.Board
 MATERIAL_PLIES = (20, 40)
@@ -127,6 +131,33 @@ def packed(board: chess.Board, move: chess.Move) -> int:
     return move.from_square | move.to_square << 6 | flags << 12
 
 
+def phase(board: chess.Board) -> int:
+    """PeSTO's game phase, 24 with every knight, bishop, rook and queen on the board."""
+    return min(24, sum(w * len(board.pieces(t, c)) for t, w in PHASE_WEIGHTS.items() for c in (chess.WHITE, chess.BLACK)))
+
+
+def start_ply(board: chess.Board) -> int | None:
+    """The ply from the initial position of the position a game starts from, None when the FEN has no move number to
+    say so: a position that isn't the initial one but whose move number is 1, black to move being the one white move
+    from the initial position excepted."""
+    placement = board.fen().split()[0]
+    if placement == INITIAL_PLACEMENT and board.turn == chess.WHITE:
+        return 0
+    if board.fullmove_number > 1:
+        return 2 * (board.fullmove_number - 1) + (0 if board.turn == chess.WHITE else 1)
+    if board.turn == chess.BLACK:
+        def squares(text):
+            out = []
+            for c in text.replace("/", ""):
+                out.extend("." * int(c) if c.isdigit() else c)
+            return out
+        initial, now = squares(INITIAL_PLACEMENT), squares(placement)
+        differing = [i for i in range(64) if initial[i] != now[i]]
+        if len(differing) == 2 and all(i >= 16 for i in differing):
+            return 1
+    return None
+
+
 def expected(game: chess.pgn.Game) -> dict:
     """The entry python-chess reads from a game, the fields phant-indexer's verbose entry has."""
     entry = {"ok": not game.errors, "tags": dict(game.headers), "result": game.headers.get("Result", "*"), "moves": []}
@@ -137,6 +168,8 @@ def expected(game: chess.pgn.Game) -> dict:
     board = game.board()
     positions = [chess.polyglot.zobrist_hash(board)]
     packed_moves = []
+    phases = [phase(board)]
+    first_ply = start_ply(board)
     promotions = dict.fromkeys("qrbn", 0)
     castled = {"white": None, "black": None}
     captures = ep_captures = checks = plies = 0
@@ -157,6 +190,7 @@ def expected(game: chess.pgn.Game) -> dict:
         packed_moves.append(packed(board, move))
         board.push(move)
         positions.append(chess.polyglot.zobrist_hash(board))
+        phases.append(phase(board))
         if move and board.is_check():
             checks += 1
         min_pieces = min(min_pieces, len(board.piece_map()))
@@ -166,6 +200,8 @@ def expected(game: chess.pgn.Game) -> dict:
     entry["fen"] = fen(board)
     entry["positions"] = positions
     entry["packed"] = [*packed_moves, 0]  # none from the last position
+    entry["phases"] = phases
+    entry["start_ply"] = first_ply
     if entry["ok"]:
         mat["end"] = material(board)
         entry.update(ended=ending(board), promotions=promotions, castled=castled, captures=captures,
@@ -326,7 +362,8 @@ def scans_agree(indexer: str, path: Path, games: list[chess.pgn.Game], wants: li
 
 
 def draws_agree(indexer: str, path: Path, wants: list[dict]) -> list[str]:
-    """--draw --quiet: every line is a position of a game that read, from the 16th ply on, not in check, with a legal
+    """--draw --quiet: every line is a position of a game that read, from the 16th ply on from the initial position (by
+    the game phase when the game's FEN has no move number), not in check, with a legal
     move, labelled with the result of a game that reached it, once in the run, at most 10 a game, repeatable."""
     labels = {"1-0": "[1.0]", "0-1": "[0.0]", "1/2-1/2": "[0.5]"}
     reached: dict[int, set[str]] = {}
@@ -336,7 +373,8 @@ def draws_agree(indexer: str, path: Path, wants: list[dict]) -> list[str]:
             continue
         games += 1
         for ply, hash_ in enumerate(want["positions"]):
-            if ply >= DRAW_MIN_PLY:
+            first = want["start_ply"]
+            if (first + ply >= DRAW_MIN_PLY) if first is not None else (want["phases"][ply] <= EARLY_PHASE):
                 reached.setdefault(hash_, set()).add(labels[want["result"]])
     args = ("--draw", str(DRAW_PER_GAME), "--quiet", "--min-ply", str(DRAW_MIN_PLY))
     out = subprocess.run([indexer, *args, str(path)], capture_output=True, check=True).stdout.decode()
@@ -358,7 +396,7 @@ def draws_agree(indexer: str, path: Path, wants: list[dict]) -> list[str]:
         hash_ = chess.polyglot.zobrist_hash(board)
         CHECKED["drawn"] += 1
         if hash_ not in reached:
-            diffs.append(f"--draw wrote a position no game reached after ply {DRAW_MIN_PLY}: {line}")
+            diffs.append(f"--draw wrote a position no game reached from ply {DRAW_MIN_PLY} on: {line}")
         elif label not in reached[hash_]:
             diffs.append(f"--draw labelled a position {label}, the games that reached it say {sorted(reached[hash_])}: {line}")
         if board.is_check() or not any(board.legal_moves):

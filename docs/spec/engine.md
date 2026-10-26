@@ -191,7 +191,8 @@ whoever plays the games writes the players and tags.
   cards.
 - **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
   lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
-  has a result, from ply P on, none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
+  has a result, from ply P on counted from the initial position (from the FEN's move number, or by the game phase,
+  above 22 being too early, when the FEN's counters were reset), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
   With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
   search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
   discarded, so every position written is one the game reached.
