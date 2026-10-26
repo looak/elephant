@@ -172,7 +172,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         (void)passerScore(context.position.read().material(), pawns, trace);
         (void)kingSafetyScore(context.position.read().material(), trace);
         (void)kingAttackScore(context.position.read().material(), onKing, trace);
-        (void)pieceScore(context.position.read().material(), trace);
+        (void)pieceScore(context.position.read().material(), pawns, trace);
 
         // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
         Evaluator evaluator(context.position.read(), traced);

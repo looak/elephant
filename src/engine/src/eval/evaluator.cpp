@@ -37,6 +37,6 @@ Evaluator::EvaluateTapered() const
     KingZoneAttacks onKing[2];
     const TaperedScore mobility = mobilityScore(material, onKing);
     const TaperedScore score = m_accumulator.psqt + mobility + pawns.score + passerScore(material, pawns)
-                             + kingSafetyScore(material) + kingAttackScore(material, onKing) + pieceScore(material);
+                             + kingSafetyScore(material) + kingAttackScore(material, onKing) + pieceScore(material, pawns);
     return evaluator_data::taper(score, m_accumulator.phase);
 }

@@ -110,18 +110,33 @@ TaperedScore sideScore(const MaterialPositionMask& material, u64& passed, Trace&
 // pawn_hash.hpp): the score, and each side's passed pawns for passerScore (see passed_pawns.hpp).
 struct PawnInfo {
     TaperedScore score = S(0, 0);
+    u8 files[2] = { 0, 0 };    // by Set, a bit per file (a = bit 0) holding at least one of that side's pawns
     u64 passed[2] = { 0, 0 };  // by Set, white 0 & black 1
 
     [[nodiscard]] constexpr u64 passedOf(Set set) const { return passed[static_cast<size_t>(set)]; }
+    [[nodiscard]] constexpr u8 filesOf(Set set) const { return files[static_cast<size_t>(set)]; }
 };
 
+namespace pawn_internals {
+// a bit per file, a = bit 0, set where pawns has one: every rank folded onto the first.
+constexpr u8 occupiedFiles(u64 pawns) {
+    pawns |= pawns >> 32;
+    pawns |= pawns >> 16;
+    pawns |= pawns >> 8;
+    return static_cast<u8>(pawns & 0xFF);
+}
+} // namespace pawn_internals
+
 /**
- * Pawn structure of both sides, white's minus black's, midgame & endgame packed, and the passed pawns.    */
+ * Pawn structure of both sides, white's minus black's, midgame & endgame packed, the passed pawns and the files each
+ * side has pawns on.    */
 template<typename Trace>
 [[nodiscard]] PawnInfo pawnInfo(const MaterialPositionMask& material, Trace& trace) {
     PawnInfo info;
     info.score = pawn_internals::sideScore<Set::WHITE>(material, info.passed[0], trace)
                - pawn_internals::sideScore<Set::BLACK>(material, info.passed[1], trace);
+    info.files[0] = pawn_internals::occupiedFiles(material.pawns<Set::WHITE>().read());
+    info.files[1] = pawn_internals::occupiedFiles(material.pawns<Set::BLACK>().read());
     return info;
 }
 

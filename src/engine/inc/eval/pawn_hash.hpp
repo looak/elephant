@@ -70,6 +70,7 @@ private:
         u64 black = 0;
         PawnInfo info;
     };
+    static_assert(sizeof(Entry) == 40, "An entry grew, the table's size above is out of date.");
 
     // both bitboards multiplied and the top bits of their mix taken, every pawn moves them. Pawns sit in the middle
     // ranks, a plain mask of the bitboards would put most structures in few entries.
