@@ -24,7 +24,14 @@
  * Tuned by ElephantTuner, every other value kept, on E12.52-1M-D12-Resolved (9.5M positions, 1000 passes at rate 1).
  * Shelter & storm: --tune king_shelter, K 1.1798, error 0.086174 -> 0.085840, held back 0.38% lower. kingDanger: then
  * --tune king_attack, K 1.1959, error 0.085820 -> 0.085285, held back 0.61% lower; made monotonic afterwards, each value
- * at most the one before it, the fit's tail from 48 units rose back towards 0 where few positions are.    */
+ * at most the one before it, the fit's tail from 48 units rose back towards 0 where few positions are.
+ *
+ * Rebalanced in 1.4, every term fitted together but material, the king's table and kingDanger (--tune psqt_pawn,
+ * psqt_knight, psqt_bishop, psqt_rook, psqt_queen, mobility, pawns_passed, pawns_structure, pawns_passed_extras,
+ * king_shelter, pieces_pairs --min-usage 50000 on E12.52-1M-D12-Resolved, K 1.1889, 1000 passes at rate 1, error
+ * 0.085192 -> 0.084398, held back 0.87% lower). Each tuned piece square table kept centred on its own average, so
+ * the pieces keep their values and only the shapes moved; the 120 values fewer than 50k positions use kept as they
+ * were.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -35,25 +42,25 @@ namespace evaluator_data
 
 // the king's own pawn nearest it on a file, file a & h to d & e, then no pawn & relative rank 2 to 7.
 constexpr TaperedScore kingShelter[32] = {
-    S(  -5,   2), S(  28, -23), S(  30, -15), S(  25,  -8), S(  28,   4), S(  14,  22), S(  79,   2), S(   0,   0),
-    S( -29,   9), S(   7,   5), S(  13,  -1), S(  -3,   5), S(  -1,  12), S(   7,  27), S(  36,  23), S(   0,   0),
-    S( -12,  -3), S(   9,   0), S(   4,  -2), S(   1,  -1), S(   7,   3), S(  -6,  14), S(  35,  16), S(   0,   0),
-    S( -15,   1), S(  17,  -5), S(   7,  -4), S(   2,   5), S(   5,  12), S( -22,  22), S(  -7,  21), S(   0,   0),
+    S( -11,   7), S(  32, -36), S(  31, -20), S(  20,  -9), S(  18,   5), S(   9,  21), S(  79,   2), S(   0,   0),
+    S( -22,  15), S(  19,   4), S(  12,  -1), S(  -4,   5), S(  -2,  13), S(  20,  21), S(  36,  23), S(   0,   0),
+    S( -14,   0), S(  16,   4), S(  -2,   0), S(  -6,  -1), S(   7,   1), S(   4,   7), S(  35,  16), S(   0,   0),
+    S( -17,   0), S(   5,  -4), S(  -4,  -2), S( -11,  10), S( -11,  18), S( -37,  24), S(  -7,  21), S(   0,   0),
 };
 
 // the enemy pawn nearest the king on a file, free to advance, file a & h to d & e, then no pawn & the relative rank
 // from the king's side 2 to 7.
 constexpr TaperedScore kingStorm[32] = {
-    S( -24,  -9), S(  35,  78), S( -12,  51), S( -17,  16), S(  -9,  -2), S(  -7,  -6), S( -11,  -4), S(   0,   0),
-    S( -18, -10), S(  -5,  85), S( -22,  52), S( -11,   6), S(  -1,  -2), S(  12,  -8), S(   5,  -5), S(   0,   0),
-    S(   0, -14), S( -12,  59), S( -24,  33), S(   9,  -3), S(  10,  -8), S(  14,  -9), S(  19, -12), S(   0,   0),
-    S(  -2,  -9), S(-135,  66), S( -42,  26), S(  -6,  -2), S(  10,  -8), S(  21,  -9), S(  19, -11), S(   0,   0),
+    S( -18, -34), S(  35,  78), S( -49,  62), S( -26,   6), S( -12, -18), S(  -6, -22), S(  -6, -16), S(   0,   0),
+    S(  -9, -35), S(  -5,  85), S( -63,  59), S( -13,  -8), S(   6, -17), S(  18, -27), S(   6, -28), S(   0,   0),
+    S(  17, -34), S( -12,  59), S( -52,  34), S(  -2, -14), S(  20, -25), S(  24, -30), S(  29, -39), S(   0,   0),
+    S(   7, -23), S(-135,  66), S( -49,  25), S( -10, -15), S(   8, -24), S(  23, -24), S(  21, -24), S(   0,   0),
 };
 
 // the enemy pawn nearest the king on a file, blocked by the king's own pawn right in front of it, by the relative
 // rank from the king's side, 0 & 1 can't happen.
 constexpr TaperedScore kingStormBlocked[8] = {
-    S(   0,   0), S(   0,   0), S(  -4, -32), S(  10, -19), S(   8, -22), S(   6, -28), S(   8, -36), S(   0,   0),
+    S(   0,   0), S(   0,   0), S( -20, -49), S(  10, -34), S(  13, -39), S(  14, -47), S(  15, -49), S(   0,   0),
 };
 
 // king attack, see king_safety.hpp: what each enemy piece adds to the attack units per square of the king zone it

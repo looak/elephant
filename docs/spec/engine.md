@@ -136,13 +136,13 @@ The tables are plain `constexpr` arrays of `S(mg, eg)` in `src/engine/inc/eval/*
 reads weights at runtime: there is no weights file, no tuning build and no option that changes them. A new value
 reaches the engine as a changed header in a commit, which moves the bench.
 
-| File | Tables | Values | 1.3.0 status |
+| File | Tables | Values | Status (1.4 rebalance on the branch) |
 |:--|:--|--:|:--|
-| `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's published values, but `pestoPawn`: retuned with the pawn terms, which pay for passed and connected pawns now |
-| `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | tuned with PeSTO kept, each table centred |
-| `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | tuned with `pestoPawn`, the rest kept |
-| `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm tuned with the rest kept, then the danger with them kept; the danger's sparse tail made monotonic |
-| `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | tuned with the rest kept (1.4 cycle) |
+| `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's material and king table; the pawn to queen tables rebalanced with every term, each kept centred on its own average |
+| `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | rebalanced with every term, each table centred at 0 |
+| `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | rebalanced with every term |
+| `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm rebalanced with every term; the danger tuned in 1.3, its sparse tail made monotonic, kept since |
+| `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | rebalanced with every term |
 
 **ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
@@ -156,7 +156,11 @@ values back untouched and checks the files come out byte for byte the same.
 The values are tuned in groups, `--tune` naming the ones that move while the rest stay as they are: `material`,
 `psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`.
 The practice so far is to tune only the new group with everything else kept, then SPRT it, and at the end of a cycle
-the piece square table the new terms overlap together with them. Tables that are rare in the data mislead: fitted with
+the piece square table the new terms overlap together with them. Fitted together, the tables re-price the pieces: with
+material free its midgame values fell by a fifth, with material fixed the piece square tables moved their averages
+instead, by up to 175 centipawns in the endgame. So the tuned piece square tables are kept centred on the average each
+starts with, as mobility's are at 0 (`--free-psqt` turns it off), and `--min-usage N` keeps the values fewer than N
+positions use as they are. Tables that are rare in the data mislead: fitted with
 the pawn terms, the king table learned large midgame bonuses for an advanced king, a king that far up with the queens
 on being mostly a game already won, and was left out; the danger table's tail past 48 units, where few positions are,
 rose back towards 0 and was made monotonic by hand. The fit's held back error is a weak guide to Elo: king attack's
