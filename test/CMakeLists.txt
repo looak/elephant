@@ -59,12 +59,13 @@ function(elephant_add_test_executable target)
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
 
-    target_include_directories(${target}
+    target_include_directories(${target} PRIVATE ${TEST_INC_DIR})
+    # This tells the compiler to ignore warnings from Google Test's headers. SYSTEM goes first and covers the whole
+    # call, after PRIVATE it's read as a directory named SYSTEM.
+    target_include_directories(${target} SYSTEM
       PRIVATE
-        ${TEST_INC_DIR}
-        # This tells the compiler to ignore warnings from Google Test's headers
-        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
-        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
+        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
+        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
 
     target_link_libraries(${target} common_warnings gtest_main engine spdlog)
 
