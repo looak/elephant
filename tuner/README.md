@@ -140,7 +140,7 @@ flowchart LR
     C & PH & OFF --> ENT["TunerEntry"]
 ```
 
-The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 649 in all, each with a
+The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 653 in all, each with a
 midgame and an endgame number:
 
 | Group                 | Indexes   | What                                                                       |
@@ -154,6 +154,7 @@ midgame and an endgame number:
 | `king_shelter`        | 510–581   | king shelter & unblocked storm by file folded onto a–d × no pawn & rank 2–7 (8 each), blocked storm by rank |
 | `king_attack`         | 582–645   | king danger by attack units 0–63 (unit weights hand-set in `king_tables.hpp`) |
 | `pieces_pairs`        | 646–648   | knight pair, bishop pair & rook pair                                       |
+| `pieces_files`        | 649–652   | rook, then queen, on a half-open & an open file                            |
 
 A group is the unit `--tune` switches on or off, its parts are only where each term's values sit inside it. A new
 group is an entry in `params::Group`, a name in `groupInfos` and a start in `groupStarts`; the `static_assert`s on
@@ -259,7 +260,7 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 | `--leave`         | 0               | cores to keep free, taken off `--threads`                    |
 | `--epochs`        | 1000            | passes of the fit; 0 only checks the writer                  |
 | `--rate`          | 1.0             | Adam's step, roughly centipawns moved per pass               |
-| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt` (or `psqt_pawn` … `psqt_king`), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs` |
+| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt` (or `psqt_pawn` … `psqt_king`), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`, `pieces_files` |
 | `--out`           | `.`             | folder for the `*.tuned.hpp` files                           |
 | `--held-back`     | 20              | every Nth position is kept out of the fit, 0 for none        |
 | `--free-mobility` | off             | don't keep mobility's tables centred                         |

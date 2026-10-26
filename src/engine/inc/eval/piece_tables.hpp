@@ -27,7 +27,10 @@
  * king_shelter, pieces_pairs --min-usage 50000 on E12.52-1M-D12-Resolved, K 1.1889, 1000 passes at rate 1, error
  * 0.085192 -> 0.084398, held back 0.87% lower). Each tuned piece square table kept centred on its own average, so
  * the pieces keep their values and only the shapes moved; the 120 values fewer than 50k positions use kept as they
- * were.    */
+ * were.
+ *
+ * Files: then --tune pieces_files on the rebalanced tables, K 1.2293, error 0.084239 -> 0.084237, held back 0.00%
+ * lower: the values first fitted on the old tables (K 1.1889, held back 0.16% lower) barely moved.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -39,6 +42,14 @@ namespace evaluator_data
 // a side with two or more knights, bishops on both colours, two or more rooks; knight, bishop & rook.
 constexpr TaperedScore piecePair[3] = {
     S(   1,  16), S(  -3,  54), S(   3,  26),
+};
+
+// a rook or queen on a file without its own pawns: half-open (the enemy's pawns there), open (none at all).
+constexpr TaperedScore rookOnFile[2] = {
+    S(   6,   3), S(  17,   4),
+};
+constexpr TaperedScore queenOnFile[2] = {
+    S(   4,   3), S(   3,   6),
 };
 
 } // namespace evaluator_data
