@@ -40,7 +40,7 @@ bool isCounter(std::string_view token) {
     return true;
 }
 
-// "1-0", "1/2-1/2", "0-1", or a number 1, 1.0, 0.5, 0, 0.0. Quotes, brackets & a trailing ; are stripped first.
+// "1-0", "1/2-1/2", "0-1", or a number from 0 to 1: 1, 1.0, 0.5, 0, 0.0, 0.75. Quotes, brackets & a trailing ; are stripped first.
 std::optional<double> parseResult(std::string_view token) {
     while (!token.empty() && (token.back() == ';' || token.back() == '"' || token.back() == ']'))
         token.remove_suffix(1);
@@ -58,7 +58,9 @@ std::optional<double> parseResult(std::string_view token) {
     const auto [end, error] = std::from_chars(token.data(), token.data() + token.size(), value);
     if (error != std::errc{} || end != token.data() + token.size())
         return std::nullopt;
-    if (value == 0.0 || value == 0.5 || value == 1.0)
+    // 1, 0.5, 0, and any average of results in between: phant-indexer --draw --merge writes [0.75] for a position four
+    // games reached, three won by white.
+    if (value >= 0.0 && value <= 1.0)
         return value;
     return std::nullopt;
 }

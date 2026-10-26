@@ -246,7 +246,7 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 
 | Option            | Default         | Meaning                                                      |
 |-------------------|-----------------|--------------------------------------------------------------|
-| `dataset`         | (required)      | one position per line: FEN and result (`[1.0]`, `c9 "1-0";`, or bare `1-0`) |
+| `dataset`         | (required)      | one position per line: FEN and result (`[1.0]`, `c9 "1-0";`, or bare `1-0`; a number from 0 to 1 is a result too, `[0.75]` for an average) |
 | `--limit`         | all             | only the first N positions                                   |
 | `--threads`       | all cores       | threads to use                                               |
 | `--leave`         | 0               | cores to keep free, taken off `--threads`                    |

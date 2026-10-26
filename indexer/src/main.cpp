@@ -35,7 +35,7 @@ namespace {
         "usage: phant-indexer [--verbose] [FILE...]\n"
         "       phant-indexer --positions OUT [--verbose] [FILE]\n"
         "       phant-indexer --position FEN [FILE...]\n"
-        "       phant-indexer --draw N [--quiet] [--min-ply P] [--seed S] [FILE...]\n"
+        "       phant-indexer --draw N [--quiet] [--min-ply P] [--merge] [--seed S] [--stats OUT] [FILE[:P]...]\n"
         "       phant-indexer --version\n"
         "\n"
         "Reads the games of each PGN FILE, or of standard input when there's none or FILE is -, and writes one JSON\n"
@@ -48,9 +48,12 @@ namespace {
         "\n"
         "--draw N writes, instead of the entries, training positions as '<fen> [result]' lines, the result white's: up to\n"
         "N positions of each game that read and has a result, none twice in the run. --quiet keeps the positions that\n"
-        "are naturally quiet, not in check and their own quiescence search result; --min-ply P skips the positions before\n"
-        "ply P of the game from the initial position (the game phase decides when its FEN has no move number);\n"
-        "--seed S (default 1) repeats a run. A summary goes to standard error.\n";
+        "are naturally quiet, not in check and their own quiescence search result. --min-ply P (default 0) skips the\n"
+        "first P plies of each game, counted from the position it starts at; FILE:P gives that file's games their own\n"
+        "minimum, and a game's [DrawMinPly \"P\"] tag overrides both (it is how standard input carries one). --merge\n"
+        "writes each position once, when the run ends, with the average of the results of the games that drew it,\n"
+        "like [0.75]. --seed S (default 1) repeats a run. Progress for each file and a summary go to standard error;\n"
+        "--stats OUT writes the run's statistics as JSON.\n";
 
     bool toNumber(const char* text, u64& value)
     {
@@ -69,19 +72,27 @@ namespace {
         };
         const double mean = quiet.empty() ? 0.0 : double(stats.quiet) / double(quiet.size());
         const auto few = std::count_if(quiet.begin(), quiet.end(), [&](u32 n) { return n < options.perGame; });
-        std::cerr << std::format("phant-indexer: {} games, {} looked at (read, with a result), {} positions from ply {} with a "
-                                 "legal move and not in check, {} {}\n",
-            stats.games, stats.drawn, stats.candidates, options.minPly, stats.quiet,
-            options.quiet ? "naturally quiet" : "kept (no --quiet)");
+        std::cerr << std::format("phant-indexer: {} games looked at, {} positions past the minimum with a legal move and not in "
+                                 "check, {} {}\n",
+            stats.drawn, stats.candidates, stats.quiet, options.quiet ? "naturally quiet" : "kept (no --quiet)");
         std::cerr << std::format("phant-indexer: positions kept a game: mean {:.1f}, minimum {}, 5th percentile {}, median {}; "
                                  "{} games under {}\n",
             mean, at(0.0), at(0.05), at(0.5), few, options.perGame);
-        if (options.minPly > 0) {
-            std::cerr << std::format("phant-indexer: {} of {} games have no ply for their start position, the game phase "
-                                     "(above {} is early) decided for them\n",
-                stats.unknownStart, stats.drawn, indexer::c_earlyPhase);
+        std::cerr << std::format("phant-indexer: {} of {} games skipped: {} didn't read, {} have no result, {} play a null move\n",
+            stats.games - stats.drawn, stats.games, stats.unread, stats.noResult, stats.nullMoves);
+        if (stats.ownMinimum > 0 || stats.badMinimumTags > 0) {
+            std::cerr << std::format("phant-indexer: {} of {} games had a minimum of their own (their file's or a "
+                                     "DrawMinPly tag); {} DrawMinPly tags weren't numbers\n",
+                stats.ownMinimum, stats.drawn, stats.badMinimumTags);
         }
-        std::cerr << std::format("phant-indexer: {} written, {} left out as duplicates\n", stats.written, stats.duplicates);
+        if (options.merge) {
+            std::cerr << std::format("phant-indexer: {} positions drawn, {} different, {} of them drawn by more than one "
+                                     "game and written with the average of their results\n",
+                stats.draws, stats.written, stats.merged);
+        }
+        else {
+            std::cerr << std::format("phant-indexer: {} written, {} left out as duplicates\n", stats.written, stats.duplicates);
+        }
     }
 
     // the most games --positions numbers in an input, and the most plies in a game: 2 bytes each.
@@ -144,7 +155,9 @@ int main(int argc, char** argv)
     std::optional<u64> wanted;  // --position's hash
     std::optional<indexer::DrawOptions> draw;  // --draw
     u64 drawCount = 0, drawMinPly = 0, drawSeed = 1;
-    bool drawQuiet = false;
+    bool drawQuiet = false, drawMerge = false;
+    std::string statsPath;                                  // --stats
+    std::vector<std::optional<u32>> fileMinimum;            // FILE:P, one for each of the paths
     std::vector<std::string> paths;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
@@ -153,6 +166,12 @@ int main(int argc, char** argv)
         }
         else if (arg == "--quiet") {
             drawQuiet = true;
+        }
+        else if (arg == "--merge") {
+            drawMerge = true;
+        }
+        else if (arg == "--stats" && i + 1 < argc) {
+            statsPath = argv[++i];
         }
         else if ((arg == "--draw" || arg == "--min-ply" || arg == "--seed") && i + 1 < argc) {
             u64 value = 0;
@@ -163,8 +182,8 @@ int main(int argc, char** argv)
             }
             (arg == "--draw" ? drawCount : arg == "--min-ply" ? drawMinPly : drawSeed) = value;
         }
-        else if ((arg == "--positions" || arg == "--position" || arg == "--draw" || arg == "--min-ply" || arg == "--seed")
-            && i + 1 >= argc) {
+        else if ((arg == "--positions" || arg == "--position" || arg == "--draw" || arg == "--min-ply" || arg == "--seed"
+                     || arg == "--stats") && i + 1 >= argc) {
             std::cerr << "phant-indexer: " << arg << " needs a value\n" << c_usage;
             return 2;
         }
@@ -203,12 +222,20 @@ int main(int argc, char** argv)
             paths.push_back(arg);
         }
     }
+    // FILE:P is read for --draw only, anywhere else a colon is part of the name.
+    if (drawCount != 0) {
+        for (std::string& path : paths) {
+            auto [file, minimum] = indexer::splitInputMinimum(path);
+            path = file;
+            fileMinimum.push_back(minimum);
+        }
+    }
     if (drawCount != 0) {
         draw = indexer::DrawOptions{ static_cast<u32>(std::min<u64>(drawCount, 0xffffffffu)),
-            static_cast<u32>(std::min<u64>(drawMinPly, 0xffffffffu)), drawQuiet, drawSeed };
+            static_cast<u32>(std::min<u64>(drawMinPly, 0xffffffffu)), drawQuiet, drawMerge, drawSeed };
     }
-    else if (drawQuiet || drawMinPly != 0 || drawSeed != 1) {
-        std::cerr << "phant-indexer: --quiet, --min-ply and --seed go with --draw\n" << c_usage;
+    else if (drawQuiet || drawMerge || drawMinPly != 0 || drawSeed != 1 || !statsPath.empty()) {
+        std::cerr << "phant-indexer: --quiet, --min-ply, --merge, --seed and --stats go with --draw\n" << c_usage;
         return 2;
     }
     if (draw && (!positionsPath.empty() || wanted || verbose)) {
@@ -227,6 +254,8 @@ int main(int argc, char** argv)
     const bool fromFiles = !paths.empty();
     if (!fromFiles)
         paths.push_back("-");
+    if (draw && !fromFiles)
+        fileMinimum.push_back(std::nullopt);
 
     std::ofstream positionsFile;
     if (!positionsPath.empty()) {
@@ -238,6 +267,7 @@ int main(int argc, char** argv)
     }
     const bool positions = positionsFile.is_open() || wanted.has_value() || draw.has_value();
     std::optional<indexer::Drawer> drawer;
+    std::vector<indexer::DrawInput> drawInputs;
     if (draw)
         drawer.emplace(*draw);
 
@@ -257,7 +287,10 @@ int main(int argc, char** argv)
             records.clear();
         }
     };
-    for (const std::string& path : paths) {
+    for (size_t at = 0; at < paths.size(); ++at) {
+        const std::string& path = paths[at];
+        if (drawer)
+            drawInputs.push_back({ path, fileMinimum[at], 0, 0 });
         if (!readAll(path, raw)) {
             std::cerr << "phant-indexer: can't read " << path << "\n";
             status = 1;
@@ -278,7 +311,10 @@ int main(int argc, char** argv)
                 entry.source = path;
 
             if (drawer) {
-                drawer->draw(entry, out);
+                const u64 usedBefore = drawer->stats().drawn;
+                drawer->draw(entry, out, fileMinimum[at]);
+                ++drawInputs.back().games;
+                drawInputs.back().drawn += drawer->stats().drawn - usedBefore;
                 flush(false);
                 continue;
             }
@@ -309,11 +345,29 @@ int main(int argc, char** argv)
             out += '\n';
             flush(false);
         }
+        if (drawer) {
+            const indexer::DrawStats& stats = drawer->stats();
+            std::cerr << std::format("phant-indexer: [{}/{}] {}{}: {} games, {} used; so far {} games, {} {}\n", at + 1,
+                paths.size(), path, fileMinimum[at] ? std::format(" (minimum {})", *fileMinimum[at]) : std::string(),
+                drawInputs.back().games, drawInputs.back().drawn, stats.games, draw->merge ? stats.draws : stats.written,
+                draw->merge ? "positions drawn" : "positions written");
+        }
     }
+    if (drawer)
+        drawer->finish(out);
     flush(true);
     std::cout.flush();
     if (drawer)
         printDrawSummary(drawer->stats(), *draw);
+    if (drawer && !statsPath.empty()) {
+        std::ofstream statsFile(statsPath, std::ios::binary | std::ios::trunc);
+        statsFile << indexer::statsJson(drawer->stats(), *draw, drawInputs, version()) << "\n";
+        statsFile.close();
+        if (!statsFile) {
+            std::cerr << "phant-indexer: can't write " << statsPath << "\n";
+            return 1;
+        }
+    }
     if (positionsFile.is_open()) {
         positionsFile.close();
         if (!positionsFile) {
