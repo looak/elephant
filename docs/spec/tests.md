@@ -84,8 +84,9 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
 - `input_test.cpp` covers detecting plain, bz2, gzip and zstd by the first bytes, concatenated streams, zstd frames with
   and without their content size and with a skippable frame between, and cut streams being an error.
 - `draw_test.cpp` covers `--draw`: positions with a capture to make left out under `--quiet`, none in check or
-  checkmated, `--min-ply` counted from the initial position, from a FEN's move number or by the game phase when the
-  counters were reset, and the per-game cap, a sample that repeats with its seed and changes with another, a
+  checkmated, `--min-ply` counted from where the game starts whatever its FEN's move number, a file's `FILE:P` and a
+  `DrawMinPly` tag overriding it (and `FILE:P`'s parsing), the statistics JSON byte for byte for a plain and a merged run,
+  `--merge` averaging the results of the games that drew a position and repeating, and the per-game cap, a sample that repeats with its seed and changes with another, a
   position written once in a run, nothing from a game that didn't read, has no result or has a null move, and a game
   from a FEN.
 - `polyglot_test.cpp` checks the Polyglot hash against all nine test vectors Polyglot's book format documents, from
