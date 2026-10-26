@@ -42,6 +42,11 @@ inline constexpr u32 c_formatVersion = 2;
 // the ply after which the opening's position is hashed.
 inline constexpr u32 c_openingPly = 16;
 
+// the version of the --positions records, which have no header to carry it: 1 was 12 bytes (hash, game, ply), 2 adds
+// the move played from the position, 14 bytes.
+inline constexpr u32 c_positionsVersion = 2;
+inline constexpr size_t c_positionRecordSize = 14;
+
 // the plies after which the material balance is taken, besides at the end.
 inline constexpr std::array<u32, 2> c_materialPlies = { 20, 40 };
 
@@ -91,6 +96,11 @@ struct GameIndex {
     std::string startFen;
     std::vector<PackedMove> played;
 };
+
+// Appends a --positions record: the hash, the game's place in its input, the ply and the move played from the position
+// as the engine packs it (source square in bits 0-5, target in 6-11, the move type in 12-15), 0 when there is none,
+// at a game's last position, and for a null move too; all little-endian.
+void appendPositionRecord(std::string& out, u64 hash, u32 game, u32 ply, PackedMove move);
 
 // whether the side to move is in check and has a legal move; no legal move is checkmate or stalemate.
 struct PositionFacts {
