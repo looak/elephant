@@ -22,6 +22,7 @@
  * @author Alexander Loodin Ek  */
 #pragma once
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -32,8 +33,14 @@ const std::string& commit();
 // the commit's first 7 characters plus "-dirty" when the working tree had changes, "nogit" outside a checkout.
 std::string shortCommit();
 
-// key, value pairs in the order "buildinfo" prints them: version, commit, dirty, branch, compiler, config,
-// assertions, exceptions, bits. A value never holds a newline, a key never holds a space.
+// The version as people read it: 1.3.2 "Matriarch", or just 1.3.2 when the release has no codename.
+std::string formatVersion(std::string_view version, std::string_view codename);
+// formatVersion of this build's version and codename.
+std::string versionWithCodename();
+
+// key, value pairs in the order "buildinfo" prints them: version, codename (only when the release has one), commit,
+// dirty, branch, compiler, config, assertions, exceptions, bits. A value never holds a newline, a key never holds a
+// space.
 std::vector<std::pair<std::string, std::string>> entries();
 
 }  // namespace build_info

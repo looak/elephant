@@ -1,7 +1,7 @@
 # Elephant engine
 
-Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.3.1
-on `main`, with a bench of 520775
+Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.3.2
+"Matriarch" on `main`, with a bench of 520775
 
 ## Purpose
 
@@ -37,7 +37,7 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 
 | Command | Notes |
 |:--|:--|
-| `uci` | `id name Elephant Gambit <version>`, `id author Alexander Loodin Ek`, the options, `uciok` |
+| `uci` | `id name Elephant Gambit <version>` (the version alone, no codename: uwanja and nyayo take the engine's name from it), `id author Alexander Loodin Ek`, the options, `uciok` |
 | `isready` | `readyok`, straight away |
 | `setoption name <name> value <v>` | names may contain spaces (`Move Overhead`) |
 | `ucinewgame` | clears the transposition table and the game's history |
@@ -65,8 +65,8 @@ without exactly one king a side.
 
 **buildinfo.** `buildinfo` answers one `buildinfo <key> <value>` line per key, then nothing; callers send `isready`
 right after and take whatever arrives before `readyok`. Engines that don't know the command ignore it, as UCI says,
-so the pattern works with any engine. Keys: `version`, `commit` (full hash), `dirty`, `branch` (left out on a detached
-HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
+so the pattern works with any engine. Keys: `version`, `codename` (left out when the release has none), `commit` (full hash), `dirty`, `branch` (left out
+on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
 (`cmake/build_info.cmake`, the makefile's rule), so a binary can't claim a commit it wasn't built from. `compiler`,
 `config`, `assertions`, `exceptions` and `bits` decide which results are comparable, in nyayo's terms.
 
@@ -76,7 +76,7 @@ HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
-520775 on `main` at 1.3.1, a version that was node identical to 1.3.0. Every commit
+520775 on `main` at 1.3.2, as it was at 1.3.0 (1.3.1 and 1.3.2 were node identical). Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
 (`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
@@ -205,10 +205,15 @@ whoever plays the games writes the players and tags.
   `x86-64-v2` and `x86-64-v3`, linked static, named `elephant-gambit-<version>-<os>-<arch>`; and, in a job of its own
   with CMake and `ELEPHANT_BUILD_INDEXER=ON`, phant-indexer for Windows & Linux at `x86-64`, linked static (the C
   runtime too), named `phant-indexer-<version>-<os>-x86-64` and smoke tested on OpenBench's workload, bz2 compressed,
-  before it is attached.
-- `version.txt` is the only place the version is written. major = engine generation or a UCI option change, minor =
-  a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions. Pre-releases are
-  `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight.
+  before it is attached. A third job titles the GitHub release `<version> "<codename>"` from `version.txt` at the tag
+  when it has a codename, and leaves the title as published when it hasn't.
+- `version.txt` is the only place the version is written. Line 1 is the version: major = engine generation or a UCI
+  option change, minor = a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions.
+  Pre-releases are `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight. Line 2, optional, is the
+  release's **codename** (1.0.0 was "Herd", 1.3.2 is "Matriarch"): letters, digits, spaces, `.`, `_` and `-`, empty when
+  absent. CMake and `ob_build/makefile` read it into `ELEPHANT_GAMBIT_CODENAME` next to `ELEPHANT_GAMBIT_VERSION_FULL`;
+  a malformed one fails the configure or the make. It shows as `v: 1.3.2 "Matriarch"` in the CLI banner and the
+  `about` command's engine version, and as `buildinfo codename`; not in `id name`.
 - A cycle has its own branch off `main` (`eval-pawns` for 1.2), each change a branch `<cycle>-<change>` off it, SPRT'd
   against the cycle's tip and merged on a pass; `version.txt` on the cycle branch counts the merges
   (`1.2.0-pawns.1`). `main` takes a cycle when it is released, and work that doesn't move the bench (cleanups, the
