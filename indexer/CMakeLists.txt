@@ -67,7 +67,9 @@ add_library(indexer_zstd STATIC
 target_include_directories(indexer_zstd SYSTEM PUBLIC ${ZSTD_LIB})
 target_compile_definitions(indexer_zstd PRIVATE ZSTD_DISABLE_ASM ZSTD_LEGACY_SUPPORT=0)
 foreach(compression indexer_zlib indexer_bzip2 indexer_zstd)
-    target_compile_options(${compression} PRIVATE $<IF:$<BOOL:${MSVC}>,/w,-w>)
+    # /W0 rather than /w: the Visual Studio generator turns /W0 into the project's warning level, /w would clash with
+    # its default /W1 (D9025).
+    target_compile_options(${compression} PRIVATE $<IF:$<BOOL:${MSVC}>,/W0,-w>)
     set_target_properties(${compression} PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
 endforeach()
 

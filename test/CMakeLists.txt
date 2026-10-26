@@ -30,7 +30,9 @@ FetchContent_MakeAvailable(googletest)
 # Silence compiler warnings in third-party googletest sources
 foreach(gtest_target gtest gtest_main gmock gmock_main)
     if(TARGET ${gtest_target})
-        target_compile_options(${gtest_target} PRIVATE $<IF:$<BOOL:${MSVC}>,/w,-w>)
+        # /W0 rather than /w: the Visual Studio generator turns /W0 into the project's warning level, /w would clash
+        # with googletest's own /W4 (D9025).
+        target_compile_options(${gtest_target} PRIVATE $<IF:$<BOOL:${MSVC}>,/W0,-w>)
     endif()
 endforeach()
 
