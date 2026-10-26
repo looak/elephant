@@ -107,8 +107,8 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 |:--|:--|:--|
 | the edit loop | `ElephantTest`, or `ElephantSuite --gtest_filter=PerftFixture.*` after a move generation change | console |
 | `test/smoke.sh`, locally before a merge | `ElephantTest --gtest_brief=1`, then all of `ElephantSuite`, then phant-indexer against python-chess | pass/fail in the smoke summary, logs in `logs/` |
-| CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off | thrown away |
-| CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."` | thrown away |
+| CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off, warnings as errors | thrown away |
+| CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."`, warnings as errors | thrown away |
 
 ## Interfaces
 
