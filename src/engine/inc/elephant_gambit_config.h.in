@@ -25,6 +25,8 @@
 #define ELEPHANT_GAMBIT_VERSION_PRERELEASE "@ElephantGambit_VERSION_PRERELEASE@"
 // e.g. 0.12.1-eval, the version as written in version.txt plus -dbg for debug builds.
 #define ELEPHANT_GAMBIT_VERSION_FULL ELEPHANT_GAMBIT_VERSION_STR ELEPHANT_GAMBIT_VERSION_PRERELEASE ELEPHANT_GAMBIT_VERSION_SUFFIX
+// the release's name, version.txt line 2, e.g. "Matriarch", or "" when it has none. Not part of the engine's UCI name.
+#define ELEPHANT_GAMBIT_CODENAME "@ElephantGambit_CODENAME@"
 
 #define ELEPHANT_GAMBIT_BUILD_TIMESTAMP "@VAR_ELEPHANT_BUILD_TIMESTAMP@"
 
