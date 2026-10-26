@@ -219,6 +219,12 @@ flowchart TD
 - **Mobility is kept centred.** After every step, each piece's mobility table is shifted so its usage-weighted average
   is 0. Otherwise the table's average acts as a second material value, and the fit uses it to re-price the pieces (it
   lowered every piece's midgame value by about 60 that way). `--free-mobility` turns centring off.
+- **The tuned piece square tables are kept centred** on the usage-weighted average each starts with. A table's
+  average is part of what its piece is worth, and fitted together with everything else the tables moved their
+  averages by up to 175 centipawns in the endgame, re-pricing the pieces. Centred, a table only learns where its piece
+  stands better or worse. `--free-psqt` turns this off.
+- **Rarely used values can be kept.** `--min-usage N` leaves every value fewer than N positions use as it is; a value
+  fitted on a few thousand positions is fitted on noise. Centring then moves only the values that aren't kept.
 - **Material and PSQT don't tune together by default.** Adding the same amount to every square of a table is the same
   as adding it to the piece's value. The two would trade back and forth without changing the error.
 
@@ -242,7 +248,7 @@ the writer itself (exit code 4 if they don't).
 
 ```
 ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]
-              [--tune LIST] [--out DIR] [--held-back N] [--free-mobility]
+              [--tune LIST] [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]
 ```
 
 | Option            | Default         | Meaning                                                      |
@@ -257,6 +263,8 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 | `--out`           | `.`             | folder for the `*.tuned.hpp` files                           |
 | `--held-back`     | 20              | every Nth position is kept out of the fit, 0 for none        |
 | `--free-mobility` | off             | don't keep mobility's tables centred                         |
+| `--free-psqt`     | off             | don't keep the tuned piece square tables centred             |
+| `--min-usage`     | 0               | keep the values fewer than N positions use as they are       |
 
 | Exit code | Meaning                                          |
 |-----------|--------------------------------------------------|

@@ -20,7 +20,14 @@
  * to include anywhere.
  *
  * Tuned by ElephantTuner, every other value kept, on E12.52-1M-D12-Resolved (10M positions, 1000 passes at rate 1).
- * Pairs: --tune pieces_pairs, K 1.1694, error 0.085446 -> 0.085198, held back 0.30% lower.    */
+ * Pairs: --tune pieces_pairs, K 1.1694, error 0.085446 -> 0.085198, held back 0.30% lower.
+ *
+ * Rebalanced in 1.4, every term fitted together but material, the king's table and kingDanger (--tune psqt_pawn,
+ * psqt_knight, psqt_bishop, psqt_rook, psqt_queen, mobility, pawns_passed, pawns_structure, pawns_passed_extras,
+ * king_shelter, pieces_pairs --min-usage 50000 on E12.52-1M-D12-Resolved, K 1.1889, 1000 passes at rate 1, error
+ * 0.085192 -> 0.084398, held back 0.87% lower). Each tuned piece square table kept centred on its own average, so
+ * the pieces keep their values and only the shapes moved; the 120 values fewer than 50k positions use kept as they
+ * were.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -31,7 +38,7 @@ namespace evaluator_data
 
 // a side with two or more knights, bishops on both colours, two or more rooks; knight, bishop & rook.
 constexpr TaperedScore piecePair[3] = {
-    S(   2,  15), S(   0,  52), S(  -1,  27),
+    S(   1,  16), S(  -3,  54), S(   3,  26),
 };
 
 } // namespace evaluator_data

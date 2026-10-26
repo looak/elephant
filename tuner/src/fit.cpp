@@ -158,29 +158,86 @@ std::vector<double> usage(const TunerData& data, std::size_t values) {
     return used;
 }
 
-// Moves each piece's mobility table up or down so its average, weighted by how much each count is used, is 0. Every
-// piece has exactly one mobility value, so a table's average works like the piece's material value: centred, mobility
-// can't change what a piece is worth on average, only how much a free piece is worth over a hemmed in one.
-void centreMobility(Values& values, const std::vector<double>& used) {
-    for (u32 pieceId = 1; pieceId <= 4; ++pieceId) {
-        double weight = 0.0, mgSum = 0.0, egSum = 0.0;
-        for (u32 safe = 0; safe < params::mobilityCounts[pieceId]; ++safe) {
-            const u32 i = params::mobility(pieceId, safe);
-            weight += used[i];
-            mgSum += used[i] * values.mg[i];
-            egSum += used[i] * values.eg[i];
-        }
-        if (weight == 0.0)
+// a table's average, weighted by how much each of its values is used, midgame & endgame.
+struct Average {
+    double mg = 0.0;
+    double eg = 0.0;
+};
+
+// the values from first to first + size, a table in params:: layout.
+struct Table {
+    u32 first;
+    u32 size;
+};
+
+Average average(const Values& values, const std::vector<double>& used, Table table) {
+    double weight = 0.0;
+    Average sum;
+    for (u32 i = table.first; i < table.first + table.size; ++i) {
+        weight += used[i];
+        sum.mg += used[i] * values.mg[i];
+        sum.eg += used[i] * values.eg[i];
+    }
+    return weight == 0.0 ? Average{} : Average{ sum.mg / weight, sum.eg / weight };
+}
+
+// Moves a table's values up or down, the kept ones excepted, so its usage weighted average is back at target. A
+// table whose values are all kept, or unused, stays as it is.
+void centre(Values& values, const std::vector<double>& used, const std::vector<bool>& kept, Table table,
+            Average target) {
+    double weight = 0.0, movable = 0.0;
+    Average sum;
+    for (u32 i = table.first; i < table.first + table.size; ++i) {
+        weight += used[i];
+        sum.mg += used[i] * values.mg[i];
+        sum.eg += used[i] * values.eg[i];
+        if (!kept[i])
+            movable += used[i];
+    }
+    if (movable == 0.0)
+        return;
+    const double mgShift = (target.mg * weight - sum.mg) / movable;
+    const double egShift = (target.eg * weight - sum.eg) / movable;
+    for (u32 i = table.first; i < table.first + table.size; ++i) {
+        if (kept[i])
             continue;
-        for (u32 safe = 0; safe < params::mobilityCounts[pieceId]; ++safe) {
-            const u32 i = params::mobility(pieceId, safe);
-            values.mg[i] -= mgSum / weight;
-            values.eg[i] -= egSum / weight;
-        }
+        values.mg[i] += mgShift;
+        values.eg[i] += egShift;
     }
 }
 
+// the tables kept centred and where: every piece's mobility table at 0, see "What's kept fixed" in fit.hpp, and every
+// tuned piece square table on the average it starts with.
+struct Centred {
+    Table table;
+    Average target;
+};
+
+std::vector<Centred> centredTables(const Values& values, const std::vector<double>& used,
+                                   const FitSettings& settings) {
+    std::vector<Centred> tables;
+    if (settings.centreMobility && settings.tunes(params::Group::Mobility)) {
+        for (u32 pieceId = 1; pieceId <= 4; ++pieceId)
+            tables.push_back({ { params::mobility(pieceId, 0), params::mobilityCounts[pieceId] }, Average{} });
+    }
+    if (settings.centrePsqt) {
+        for (u32 pieceId = 0; pieceId < 6; ++pieceId) {
+            const Table table{ params::psqt(pieceId, 0), 64 };
+            if (settings.tunes(params::groupOf(table.first)))
+                tables.push_back({ table, average(values, used, table) });
+        }
+    }
+    return tables;
+}
+
 } // namespace
+
+std::vector<std::size_t> positionsUsing(const TunerData& data) {
+    std::vector<std::size_t> positions(params::count, 0);
+    for (const Coefficient& c : data.coefficients)
+        ++positions[c.index()];
+    return positions;
+}
 
 double fitError(const TunerData& data, const Values& values, double k, std::size_t threads) {
     std::vector<double> unusedMg, unusedEg;
@@ -192,24 +249,31 @@ void fit(const TunerData& data, Values& values, const FitSettings& settings,
     std::vector<Adam> mgAdam(values.mg.size());
     std::vector<Adam> egAdam(values.eg.size());
     std::vector<double> mgGradient, egGradient;
-    const bool centring = settings.tunes(params::Group::Mobility) && settings.centreMobility;
-    const std::vector<double> used = centring ? usage(data, values.mg.size()) : std::vector<double>{};
-    if (centring)
-        centreMobility(values, used);
+    const std::vector<double> used = usage(data, values.mg.size());
+    // values too few positions use are kept as they are, see "What's kept fixed" in fit.hpp.
+    std::vector<bool> kept(values.mg.size(), false);
+    if (settings.minUsage > 0) {
+        const std::vector<std::size_t> positions = positionsUsing(data);
+        for (std::size_t i = 0; i < kept.size(); ++i)
+            kept[i] = positions[i] < settings.minUsage;
+    }
+    const std::vector<Centred> centred = centredTables(values, used, settings);
+    for (const Centred& c : centred)
+        centre(values, used, kept, c.table, c.target);
 
     for (std::size_t epoch = 1; epoch <= settings.epochs; ++epoch) {
         const double error = pass(data, values, settings.k, settings.threads, mgGradient, egGradient);
 
         for (std::size_t i = 0; i < values.mg.size(); ++i) {
-            if (!settings.tunes(params::groupOf(static_cast<u32>(i))))
+            if (!settings.tunes(params::groupOf(static_cast<u32>(i))) || kept[i])
                 continue;   // kept as it is, see "What's kept fixed" in fit.hpp
             // against the gradient: the direction that lowers the error.
             values.mg[i] -= mgAdam[i].step(mgGradient[i], settings.rate, epoch);
             values.eg[i] -= egAdam[i].step(egGradient[i], settings.rate, epoch);
         }
         // the step may have moved a table's average, it's put back so only the table's shape changes.
-        if (centring)
-            centreMobility(values, used);
+        for (const Centred& c : centred)
+            centre(values, used, kept, c.table, c.target);
 
         progress(epoch, error);
     }

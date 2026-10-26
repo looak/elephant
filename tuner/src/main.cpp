@@ -1,7 +1,7 @@
 // ElephantTuner, the offline evaluation tuner, see tuner/CMakeLists.txt and tuner/README.md.
 //
 //   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
-//                 [--out DIR] [--held-back N] [--free-mobility]
+//                 [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]
 //
 //   dataset          a text file, one position per line: a FEN and the game's result, see dataset.hpp
 //   --limit          only the first N positions
@@ -17,6 +17,8 @@
 //                    *.tuned.hpp, the current folder by default
 //   --held-back      every Nth position is kept out of the fit to check it with, 20 by default, 0 for none
 //   --free-mobility  don't keep mobility's tables centred, they then shift piece values (see fit.hpp)
+//   --free-psqt      don't keep the tuned piece square tables centred, they then shift piece values (see fit.hpp)
+//   --min-usage      keep the values fewer than N positions use as they are, 0 by default (see fit.hpp)
 //
 // Phase 0: every position resolved to a quiet one with quiescence search, traced and kept as an entry.
 // Phase 1: K, the scale between the evaluation and the game's result, and the current evaluation's error at it.
@@ -74,7 +76,8 @@ struct Options {
 
 int usage() {
     std::cerr << "usage: ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]\n"
-                 "                     [--tune LIST] [--out DIR] [--held-back N] [--free-mobility]\n"
+                 "                     [--tune LIST] [--out DIR] [--held-back N] [--free-mobility] [--free-psqt]\n"
+                 "                     [--min-usage N]\n"
                  "  dataset:         one position per line, a FEN and the game's result from white's side,\n"
                  "                   e.g. [1.0], c9 \"1/2-1/2\"; or a bare 0-1\n"
                  "  --limit:         only the first N positions\n"
@@ -87,7 +90,9 @@ int usage() {
                  "                   pawns_passed_extras, king_shelter, king_attack; psqt,mobility by default\n"
                  "  --out:           folder for the tuned *.tuned.hpp files, the current folder by default\n"
                  "  --held-back:     every Nth position is kept out of the fit to check it with, 20 by default, 0 none\n"
-                 "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n";
+                 "  --free-mobility: don't keep mobility's tables centred (they then shift piece values, see fit.hpp)\n"
+                 "  --free-psqt:     don't keep the tuned piece square tables centred (they then shift piece values)\n"
+                 "  --min-usage:     keep the values fewer than N positions use as they are, 0 by default\n";
     return c_exitUsage;
 }
 
@@ -146,6 +151,10 @@ std::optional<Options> parseOptions(int argc, char* argv[]) {
             options.outDir = argv[++i];
         else if (std::strcmp(argv[i], "--free-mobility") == 0)
             settings.centreMobility = false;
+        else if (std::strcmp(argv[i], "--free-psqt") == 0)
+            settings.centrePsqt = false;
+        else if (std::strcmp(argv[i], "--min-usage") == 0 && hasValue)
+            valid = parseCount(argv[++i], settings.minUsage);
         else if (std::strcmp(argv[i], "--held-back") == 0 && hasValue)
             valid = parseCount(argv[++i], options.heldBackEvery);
         else if (options.path.empty() && argv[i][0] != '-')
@@ -286,6 +295,16 @@ std::vector<TaperedScore> runFit(tuner::TunerData&& data, const std::vector<Tape
     std::cout << std::format("  start        error {:.6f}, held back {:.6f}; {} passes at rate {}, tuning {}, the "
                              "rest kept\n",
                              startError, startHeldBack, settings.epochs, settings.rate, tunedGroups(settings));
+    if (settings.minUsage > 0) {
+        const std::vector<std::size_t> positions = tuner::positionsUsing(fitted);
+        std::size_t kept = 0;
+        for (u32 i = 0; i < tuner::params::count; ++i)
+            kept += settings.tunes(tuner::params::groupOf(i)) && positions[i] < settings.minUsage;
+        std::cout << std::format("  kept         {} of the tuned values as they are, fewer than {} positions use them\n",
+                                 kept, settings.minUsage);
+    }
+    std::cout << std::format("  centred      mobility {}, piece square tables {}\n",
+                             settings.centreMobility ? "yes" : "no", settings.centrePsqt ? "yes" : "no");
 
     const auto fitStart = std::chrono::steady_clock::now();
     tuner::fit(fitted, values, settings, [&](std::size_t epoch, double error) {
