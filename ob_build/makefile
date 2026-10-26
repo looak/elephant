@@ -36,7 +36,9 @@ INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CXX := g++
 ARCH ?= native
 LDFLAGS ?=
-CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion \
+	-Wnon-virtual-dtor -Woverloaded-virtual -Wcast-qual -Wformat=2 -Wimplicit-fallthrough -Wundef -Wduplicated-cond \
+	-Wduplicated-branches -Wlogical-op -Wuseless-cast
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")

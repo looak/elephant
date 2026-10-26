@@ -108,8 +108,9 @@ TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
     EXPECT_EQ(ELEPHANT_GAMBIT_VERSION_FULL, entries["version"]);
     for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
         EXPECT_FALSE(entries[key].empty()) << key;
-    if (entries.contains("commit"))
+    if (entries.contains("commit")) {
         EXPECT_EQ(40u, entries["commit"].size());
+    }
 }
 
 TEST_F(UciFixture, Enabled_Outputs_uciok)
@@ -479,11 +480,11 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
     auto search = [](u64 nodeLimit) {
         GameContext context;
         context.NewGame();
-        Search search(context);
+        Search searcher(context);
         SearchParameters params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
-        return search.go<Set::WHITE>(params, clock);
+        return searcher.go<Set::WHITE>(params, clock);
     };
 
     // do

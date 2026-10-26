@@ -45,7 +45,7 @@ struct PrioritizedMove {
 
     PrioritizedMove(PackedMove _move, u16 _priority) :
         move(_move),
-        priority(_priority),
+        priority(_priority & 0x7FFF), // 15 bits, like ScoredMove::priorityMask
         check(0) {};
 
     void setCheck(bool value) { check = value ? 1 : 0; }
