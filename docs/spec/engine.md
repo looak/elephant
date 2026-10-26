@@ -184,7 +184,8 @@ whoever plays the games writes the players and tags.
   one difference: a `Variant` that isn't standard chess is an error, Elephant doesn't play Chess960.
 - **Positions.** A position is its Polyglot hash, the standard one (the 781 numbers of Polyglot's book format, not the
   engine's own Zobrist keys), which python-chess computes as `chess.polyglot.zobrist_hash`. `--positions FILE` writes
-  12 byte little-endian records, the hash, the game's place in the input and the ply, for every position of every game
+  14 byte little-endian records, the hash, the game's place in the input, the ply and the move played from the
+  position (the engine's packed 16 bit move, 0 at a game's last position), for every position of every game
   that read, in the same pass as the cards; it takes one input and stops at 65 535 games or plies, the 2 byte fields'
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.

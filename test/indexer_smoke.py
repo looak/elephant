@@ -14,7 +14,8 @@ tokenizer sees all of PGN and the SAN parser every kind of move: random play pro
 captures en passant far more often than engines do. Each game is compared on: whether it read and where it stopped,
 the moves in UCI notation, the final position, and every fact of the entry (result, plies, how it ended, promotions,
 castling, captures, en passant captures, checks, the fewest pieces, material, the start & opening hashes), and every
-position's Polyglot hash that --positions writes is python-chess's chess.polyglot.zobrist_hash. --position scans for
+position's Polyglot hash that --positions writes is python-chess's chess.polyglot.zobrist_hash, with the move played
+from it as the engine packs it. --position scans for
 a sample of each file's positions have to find the games & plies python-chess finds. --draw positions have to
 be positions of the games, past the game's first 16 plies, not in check, labelled with the result of a game that
 reached them, none twice, and the same on a second run; with --merge each once with a result between the results of the
@@ -106,6 +107,27 @@ def fen(board: chess.Board) -> str:
     return board.fen(en_passant="xfen")
 
 
+PROMOTION_FLAGS = {chess.KNIGHT: 8, chess.BISHOP: 9, chess.ROOK: 10, chess.QUEEN: 11}
+
+
+def packed(board: chess.Board, move: chess.Move) -> int:
+    """The move as the engine packs it: source in bits 0-5, target in 6-11, the type in 12-15: a capture 4, en passant
+    5, castling 2 (king side) or 3 (queen side), a promotion 8-11 by the piece (knight to queen) plus 4 for a capture;
+    a double pawn push has no flag of its own, and a null move is 0."""
+    if not move:
+        return 0
+    capture = board.is_capture(move)
+    if move.promotion:
+        flags = PROMOTION_FLAGS[move.promotion] + (4 if capture else 0)
+    elif board.is_en_passant(move):
+        flags = 5
+    elif board.is_castling(move):
+        flags = 2 if chess.square_file(move.to_square) > chess.square_file(move.from_square) else 3
+    else:
+        flags = 4 if capture else 0
+    return move.from_square | move.to_square << 6 | flags << 12
+
+
 def expected(game: chess.pgn.Game) -> dict:
     """The entry python-chess reads from a game, the fields phant-indexer's verbose entry has."""
     entry = {"ok": not game.errors, "tags": dict(game.headers), "result": game.headers.get("Result", "*"), "moves": []}
@@ -115,6 +137,7 @@ def expected(game: chess.pgn.Game) -> dict:
         return entry
     board = game.board()
     positions = [chess.polyglot.zobrist_hash(board)]
+    packed_moves = []
     promotions = dict.fromkeys("qrbn", 0)
     castled = {"white": None, "black": None}
     captures = ep_captures = checks = plies = 0
@@ -132,6 +155,7 @@ def expected(game: chess.pgn.Game) -> dict:
             if board.is_castling(move):
                 castled["white" if board.turn == chess.WHITE else "black"] = plies
         entry["moves"].append(move.uci())
+        packed_moves.append(packed(board, move))
         board.push(move)
         positions.append(chess.polyglot.zobrist_hash(board))
         if move and board.is_check():
@@ -142,6 +166,7 @@ def expected(game: chess.pgn.Game) -> dict:
     entry["plies"] = plies
     entry["fen"] = fen(board)
     entry["positions"] = positions
+    entry["packed"] = [*packed_moves, 0]  # none from the last position
     if entry["ok"]:
         mat["end"] = material(board)
         entry.update(ended=ending(board), promotions=promotions, castled=castled, captures=captures,
@@ -259,20 +284,20 @@ def read_games(path: Path) -> tuple[list[chess.pgn.Game], float]:
 
 def positions_agree(records: bytes, wants: list[dict]) -> list[str]:
     """--positions' records: each game that read, every position in order, python-chess's hash; nothing for the rest."""
-    if len(records) % 12:
-        return [f"--positions wrote {len(records)} bytes, not 12-byte records"]
-    CHECKED["positions"] += len(records) // 12
-    got: dict[int, list[tuple[int, int]]] = {}
-    for hash_, game, ply in struct.iter_unpack("<QHH", records):
-        got.setdefault(game, []).append((ply, hash_))
+    if len(records) % 14:
+        return [f"--positions wrote {len(records)} bytes, not 14-byte records"]
+    CHECKED["positions"] += len(records) // 14
+    got: dict[int, list[tuple[int, int, int]]] = {}
+    for hash_, game, ply, move in struct.iter_unpack("<QHHH", records):
+        got.setdefault(game, []).append((ply, hash_, move))
     diffs = []
     for number, want in enumerate(wants, start=1):
-        expect = list(enumerate(want["positions"])) if want["ok"] else []
+        expect = [(ply, hash_, want["packed"][ply]) for ply, hash_ in enumerate(want["positions"])] if want["ok"] else []
         have = got.pop(number, [])
         if have != expect:
             at = next((i for i, (a, b) in enumerate(zip(expect, have)) if a != b), min(len(expect), len(have)))
             diffs.append(f"--positions game {number}: {len(have)} records, python-chess {len(expect)}, first difference "
-                         f"at record {at}: {have[at:at + 1]} vs {[(p, h) for p, h in expect[at:at + 1]]}")
+                         f"at record {at} (ply, hash, move): {have[at:at + 1]} vs {expect[at:at + 1]}")
     if got:
         diffs.append(f"--positions wrote records for games {sorted(got)[:5]}..., which python-chess doesn't have")
     return diffs

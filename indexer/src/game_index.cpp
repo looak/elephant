@@ -165,6 +165,16 @@ std::string_view toString(Ending ending)
     return "null";
 }
 
+void appendPositionRecord(std::string& out, u64 hash, u32 game, u32 ply, PackedMove move)
+{
+    for (int i = 0; i < 8; ++i)
+        out += static_cast<char>((hash >> (8 * i)) & 0xff);
+    for (u32 value : { game, ply, u32(move.read()) }) {
+        out += static_cast<char>(value & 0xff);
+        out += static_cast<char>((value >> 8) & 0xff);
+    }
+}
+
 PositionFacts positionFacts(const Chessboard& board)
 {
     const PositionReader position = board.readPosition();

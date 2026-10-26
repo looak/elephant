@@ -79,6 +79,8 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
   (promotions with a capture, castling plies, en passant, checks, the fewest pieces, material at fixed plies, every
   way a game ends by the rules), an illegal move's ply, a `FEN` that doesn't read, a `Variant` that isn't standard
   chess, the result rules, repeated tags, null moves, and the `start` and `opening` hashes.
+- The same file pins the `--positions` record (its 14 bytes, the move's packed bits for a quiet move, a capture, a
+  promotion with a capture, castling both ways, an en passant capture and a null move, and none at the last position).
 - `input_test.cpp` covers detecting plain, bz2, gzip and zstd by the first bytes, concatenated streams, zstd frames with
   and without their content size and with a skippable frame between, and cut streams being an error.
 - `draw_test.cpp` covers `--draw`: positions with a capture to make left out under `--quiet`, none in check or

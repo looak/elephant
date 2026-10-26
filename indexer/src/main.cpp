@@ -42,8 +42,9 @@ namespace {
         "line per game to standard output. An input may be bz2, gzip or zstd, told by its first bytes. --verbose\n"
         "adds each game's moves in UCI notation and its final position.\n"
         "\n"
-        "--positions OUT also writes every position of every game that read to OUT, 12 bytes each: its Polyglot hash,\n"
-        "the game's place in the input and the ply, little-endian; one input, of at most 65535 games.\n"
+        "--positions OUT also writes every position of every game that read to OUT, 14 bytes each: its Polyglot hash,\n"
+        "the game's place in the input, the ply and the move played from it, little-endian; one input, of at most 65535\n"
+        "games.\n"
         "--position FEN writes, instead of the entries, a JSON line for each game & ply that reach FEN's position.\n"
         "\n"
         "--draw N writes, instead of the entries, training positions as '<fen> [result]' lines, the result white's: up to\n"
@@ -97,17 +98,6 @@ namespace {
 
     // the most games --positions numbers in an input, and the most plies in a game: 2 bytes each.
     constexpr size_t c_maxRecordValue = 0xffff;
-
-    // a position record: the hash, the game's place in its input, the ply, little-endian.
-    void appendRecord(std::string& out, u64 hash, u32 game, size_t ply)
-    {
-        for (int i = 0; i < 8; ++i)
-            out += static_cast<char>((hash >> (8 * i)) & 0xff);
-        for (u64 value : { u64(game), u64(ply) }) {
-            out += static_cast<char>(value & 0xff);
-            out += static_cast<char>((value >> 8) & 0xff);
-        }
-    }
 
     std::string version()
     {
@@ -207,7 +197,8 @@ int main(int argc, char** argv)
             wanted = indexer::polyglotHash(board);
         }
         else if (arg == "--version") {
-            std::cout << "phant-indexer " << version() << " format " << indexer::c_formatVersion << "\n";
+            std::cout << "phant-indexer " << version() << " format " << indexer::c_formatVersion << " positions "
+                      << indexer::c_positionsVersion << "\n";
             return 0;
         }
         else if (arg == "--help" || arg == "-h") {
@@ -306,7 +297,7 @@ int main(int argc, char** argv)
         io::pgn_parser::GameReader reader(input);
         u32 number = 0;
         while (std::optional<io::pgn_parser::Game> game = reader.next()) {
-            indexer::GameIndex entry = indexer::index(*game, ++number, verbose, positions, draw.has_value());
+            indexer::GameIndex entry = indexer::index(*game, ++number, verbose, positions, draw.has_value() || positionsFile.is_open());
             if (fromFiles)
                 entry.source = path;
 
@@ -338,8 +329,10 @@ int main(int argc, char** argv)
                         number, path, c_maxRecordValue, c_maxRecordValue);
                     return 1;
                 }
-                for (size_t ply = 0; ply < entry.positions.size(); ++ply)
-                    appendRecord(records, entry.positions[ply], number, ply);
+                for (size_t ply = 0; ply < entry.positions.size(); ++ply) {
+                    const PackedMove move = ply < entry.played.size() ? entry.played[ply] : PackedMove::NullMove();
+                    indexer::appendPositionRecord(records, entry.positions[ply], number, static_cast<u32>(ply), move);
+                }
             }
             out += indexer::toJson(entry, verbose);
             out += '\n';

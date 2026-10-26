@@ -12,7 +12,7 @@ phant-indexer --positions OUT [--verbose] [FILE]    the entries, and every posit
 phant-indexer --position FEN [FILE...]              the games & plies that reach FEN's position, instead of the entries
 phant-indexer --draw N [--quiet] [--min-ply P] [--merge] [--seed S] [--stats OUT] [FILE[:P]...]
                                                     training positions, instead of the entries
-phant-indexer --version                             phant-indexer <elephant version> format <format version>
+phant-indexer --version                             phant-indexer <elephant version> format <card format> positions <records version>
 ```
 
 An input is plain PGN, bz2 (as an OpenBench worker uploads a workload), zstd (as nyayo stores its batches) or gzip,
@@ -94,13 +94,37 @@ a game is the same position. The card's `start` and `opening` are this hash.
 
 **`--positions OUT`** writes, in the pass that writes the entries, a record for each position of each game that
 read: the start position (ply 0), then the position after each move, null moves included, in game order. A game that
-didn't read writes none. A record is 12 bytes, little-endian, one after the other with nothing else in the file:
+didn't read writes none. A record is 14 bytes, little-endian, one after the other with nothing else in the file:
 
 | Bytes | Field |
 |:--|:--|
 | 0–7 | the Polyglot hash, u64 |
 | 8–9 | the game's place in its input, from 1, as the entry's `game`, u16 |
 | 10–11 | the ply, 0 for the start position, u16 |
+| 12–13 | the move played from the position, as the engine packs it, u16; 0 at a game's last position |
+
+The move is what the position explorer shows, the moves played from a position: a game's record at ply *p* holds its
+move *p + 1* and its hash is the position before that move. The 16 bits are Elephant's packed move
+(`src/engine/inc/move/move.hpp`): the source square in bits 0–5 and the target in 6–11, squares numbered from a1 = 0 along
+the rank, h1 = 7, a2 = 8, up to h8 = 63; and in bits 12–15 the type:
+
+| Type | Move |
+|:--|:--|
+| 0 | a quiet move, a double pawn push included: it has no flag of its own |
+| 2, 3 | castling king side, queen side, written as the king's move (e1g1, e1c1) |
+| 4 | a capture |
+| 5 | an en passant capture |
+| 8, 9, 10, 11 | a promotion to a knight, bishop, rook, queen |
+| 12, 13, 14, 15 | the same promotions with a capture |
+
+A move of 0 means none: the last position of a game, and a null move (`--`, `Z0`, `0000`, `@@@@`), which has no piece to
+move; no real move is 0, a1a1 isn't one. A reader that wants UCI notation takes the squares, adds the promotion piece
+from the type, and turns a castling type's king move back into whatever its own convention is.
+
+**The records' format changed** in this version. Version 1 (elephant#29, 12 bytes: hash, game, ply, no move) is gone;
+version 2 is 14 bytes. The file has no header, so the version comes from the reader that wrote it:
+`phant-indexer --version` prints `positions 2`, and a reader pinned to a release knows its records' size. Nothing
+reads version 1 records yet. The cards are unchanged, still format 2.
 
 The records name a game by its place in its input only, so `--positions` takes one input (a file or standard input).
 Two bytes number 65 535 games an input and 65 535 plies a game: a nyayo batch is 64 games, an OpenBench workload a
