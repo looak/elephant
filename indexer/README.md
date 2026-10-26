@@ -10,6 +10,8 @@ uploads), nothing is mapped here.
 phant-indexer [--verbose] [FILE...]                 the games of each FILE, or of standard input when there's none or FILE is -
 phant-indexer --positions OUT [--verbose] [FILE]    the entries, and every position's record to OUT; one input
 phant-indexer --position FEN [FILE...]              the games & plies that reach FEN's position, instead of the entries
+phant-indexer --draw N [--quiet] [--min-ply P] [--merge] [--seed S] [--stats OUT] [FILE[:P]...]
+                                                    training positions, instead of the entries
 phant-indexer --version                             phant-indexer <elephant version> format <format version>
 ```
 
@@ -96,9 +98,9 @@ didn't read writes none. A record is 12 bytes, little-endian, one after the othe
 
 | Bytes | Field |
 |:--|:--|
-| 0–7 | the Polyglot hash, u64 |
-| 8–9 | the game's place in its input, from 1, as the entry's `game`, u16 |
-| 10–11 | the ply, 0 for the start position, u16 |
+| 0â€“7 | the Polyglot hash, u64 |
+| 8â€“9 | the game's place in its input, from 1, as the entry's `game`, u16 |
+| 10â€“11 | the ply, 0 for the start position, u16 |
 
 The records name a game by its place in its input only, so `--positions` takes one input (a file or standard input).
 Two bytes number 65 535 games an input and 65 535 plies a game: a nyayo batch is 64 games, an OpenBench workload a
@@ -115,6 +117,103 @@ ply whose position has FEN's hash, in game order, `source` included when files w
 
 It is the oracle a filter built from the records is checked against: the same games, the same plies. FEN's move
 counters are ignored, as the hash ignores them. Only games that read are searched.
+
+## Training positions
+
+**`--draw N`** reads the games like the entries do and writes, instead of them, training positions for the evaluation's
+tuner: one `<fen> [result]` line each, the result white's, `[1.0]`, `[0.5]` or `[0.0]` (`--merge` below writes averages),
+the format `ElephantTuner` reads (`tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any
+batch: zstd, bz2, gzip or plain PGN, **any number of files in one run**, or standard input. For each game that read and
+has a result (a `Result` tag or the movetext's, `1-0`, `0-1` or `1/2-1/2`):
+
+- **The first plies are skipped, counted from the position the game starts at**, its first position, whatever its FEN's
+  move number says. `--min-ply P` (default 0) skips a game's first P plies: a position is a candidate from the one after
+  the Pth ply on, and 0 keeps the position the game began from. There is nothing else to the count, no book knowledge, no
+  reading of the move number and no look at the pieces left: the reader doesn't know about books, whoever calls it
+  does, and passes the numbers.
+- **A minimum of its own** for the games of one input, for when a run mixes books: **`FILE:P`** on the command line
+  (`match60/1.pgn.zst:4 endgames/1.pgn.zst:0`). A file without `:P` takes `--min-ply`. The part after the last colon is
+  the minimum when it is a number and there is a file before it, so `C:\games\a.pgn` is a file and `C:\games\a.pgn:4`
+  is that file with 4; `-:4` is standard input. For standard input, whose games can't be told apart by file, **a game's
+  own tag** `[DrawMinPly "4"]` says the same for that game and wins over the file's and `--min-ply`: a caller that feeds
+  one process batch after batch adds the tag to the copy it passes on. A tag that isn't a number counts as none and is
+  counted in the statistics.
+- **`--quiet`** keeps only the candidates that are *naturally quiet*: the side to move is not in check, and Elephant's
+  own quiescence search, run on the position, finds nothing it would rather play than stand pat, so the search returns
+  the position's own static evaluation. The search is only a test. Its line is thrown away, and **every position
+  written is one the game reached**, as it stood on the board, FEN counters included. Without `--quiet` every
+  candidate that has a legal move and is not in check counts.
+- It samples up to **N** of the candidates a game has, a seeded shuffle and the first N, so a game with fewer gives
+  fewer. **`--seed S`** (default 1) repeats a run: the same inputs in the same order, options and seed give the same
+  lines on any platform. A game's sample doesn't depend on the other games'.
+- A position is written **once in a run**, by its Polyglot hash, with the result of the first game that gave it. A
+  later game's duplicates are skipped and the next candidates taken, so a game can still give N.
+  - **`--merge`** keeps the duplicates instead and averages them: each game gives up to N of its candidates as if no
+    other game had, and a position that several games gave is written once, with the average of their results, white's:
+    `[0.75]` for three wins and a loss, `[0.3333]` for a win and two losses (four places at most, no trailing zeros, at
+    least one place). The lines are written when the run ends, not as it goes, in the order the positions were first
+    drawn, so a long run that feeds on standard input holds its positions until the input closes. The same inputs in
+    the same order with the same seed give the same lines. `ElephantTuner` reads fractional results: its dataset reader
+    takes any number from 0 to 1 (widened from 1, 0.5 and 0 in the same change).
+
+A game that didn't read, one without a result and one with a null move (never played over the board) give nothing. The
+positions of a checkmate or stalemate aren't written. `--draw` doesn't go with `--positions`, `--position` or
+`--verbose`; `--quiet`, `--min-ply`, `--merge`, `--seed` and `--stats` go with `--draw` alone.
+
+**Progress and a summary go to standard error** while standard output holds the positions: a line when each input is
+done, `phant-indexer: [3/734] match60/3.pgn.zst: 64 games, 64 used; so far 192 games, 1920 positions written`, and at the
+end the games and positions looked at, how many a game keeps, the games skipped and why, the games that had a minimum
+of their own, and the duplicates left out (with `--merge`: how many positions were drawn, how many were different and
+how many several games drew).
+
+**`--stats OUT`** writes the run's statistics to OUT as one JSON object, once the run is over:
+
+```jsonc
+{
+  "stats": 1,                       // the version of this object; a field added or changed means a new one
+  "reader": "1.3.2",                // the Elephant version phant-indexer was built from
+  "options": { "draw": 10, "quiet": true, "min_ply": 4, "merge": false, "seed": 1 },
+  "inputs": [                       // in the order given
+    { "file": "match60/1.pgn.zst", "min_ply": 4, "games": 64, "used": 64 }   // min_ply null without FILE:P
+  ],
+  "games": {
+    "read": 45248,                  // given to --draw
+    "used": 45248,                  // looked at: read, with a result, no null move
+    "skipped": 0,                   // read - used, and the three reasons add up to it:
+    "unread": 0, "no_result": 0, "null_moves": 0,
+    "own_minimum": 0,               // used games whose minimum came from FILE:P or a DrawMinPly tag
+    "bad_minimum_tags": 0           // DrawMinPly tags that weren't numbers
+  },
+  "positions": {
+    "candidates": 4878988,          // past the game's minimum, with a legal move, not in check
+    "quiet": 3906157,               // of them naturally quiet; equal to candidates without --quiet
+    "quiet_per_game": { "mean": 86.33, "median": 74, "p5": 26, "min": 0 },   // over the games used
+    "games_under_n": 146,           // games that had fewer than N to draw from
+    "written": 449413,              // lines written
+    "duplicates_dropped": 14272,    // quiet positions left out because an earlier game gave them; null with --merge
+    "drawn": null,                  // with --merge: positions drawn, a position several games drew counted for each
+    "merged": null,                 // with --merge: written positions that more than one game drew
+    "results": { "white": 136303, "draw": 188910, "black": 118150, "mixed": 568 }
+                                    // the written lines' results: [1.0], [0.5], [0.0]; mixed, with --merge, an average
+  }
+}
+```
+
+The numbers in it add up: `read` is `used` plus `skipped`, and the inputs' `games` and `used` add up to `read` and `used`
+(for the files given, or `-` for standard input); `written` is the lines of standard output, and `results` adds up to it.
+A run over many files has an entry for each, 734 on nyayo's stored batches.
+
+```
+phant-indexer --draw 10 --quiet --min-ply 4 --merge --stats eg-1.4.stats.json eg-1.4/*.pgn.zst > EG-1.4-own.book
+ElephantTuner EG-1.4-own.book --tune psqt_king
+```
+
+On 2026-10-26, on nyayo's 730 stored batches (734 files, 45,248 games, a rehearsal copy), `--draw 10 --quiet --min-ply 4`,
+one thread, 15 seconds: 4,878,988 candidate positions of which 3,906,157 (80%) are naturally quiet; a game has 86.3 on
+average, 74 at the median, 26 at the 5th percentile, none at the minimum, and 146 games (0.3%) have fewer than 10. It
+writes 449,413 positions (14,272 duplicates left out). With `--merge` the same run draws 451,933 positions, 443,931
+different, 6,081 of them drawn by more than one game and written with an average (568 of them not a win, draw or loss
+but between). `ElephantTuner` reads all 443,931, finds each already quiet, and takes the averages as results.
 
 ## Read as python-chess reads it
 
@@ -140,7 +239,11 @@ Every choice below is `chess.pgn.read_game`'s, which nyayo reads games with toda
 `test/indexer_smoke.py` reads games with phant-indexer and python-chess and compares every game's moves, final
 position and entry. Its games are `test/pgn/*.pgn` (OpenBench's workload as uploaded and cutechess-ob's games before
 OpenBench strips them, a fastchess gauntlet, edge cases, python-chess's quirks), random games played by python-chess,
-which promote, castle and capture en passant far more often than engines do, and with `--games DIR` real games. Each
+which promote, castle and capture en passant far more often than engines do, and with `--games DIR` real games. For
+`--draw` it checks that every position written is a position of a game that read, past the game's first 16 plies, not in
+check, labelled with the result of a game that reached it, once in the run, at most 10 a game and the same on a second
+run; that `--merge` writes each once with a result between those of the games that reached it; that `FILE:P` skips the
+game's own first P plies; and that the numbers of `--stats` match what python-chess finds and add up. Each
 file is read bz2'd, gzipped and zstd'd on standard input too, zstd in one frame and in a frame every 64 games, and has
 to give the same entries. Every record `--positions` writes has to be python-chess's `zobrist_hash` of that position,
 for exactly the games that read, and `--position` for the first game's start position and six positions picked from

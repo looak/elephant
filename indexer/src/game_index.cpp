@@ -165,7 +165,15 @@ std::string_view toString(Ending ending)
     return "null";
 }
 
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool positions)
+PositionFacts positionFacts(const Chessboard& board)
+{
+    const PositionReader position = board.readPosition();
+    const auto [canMove, checked] = board.readToPlay() == Set::WHITE ? legalMoveAndCheck<Set::WHITE>(position)
+                                                                      : legalMoveAndCheck<Set::BLACK>(position);
+    return { checked, canMove };
+}
+
+GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool positions, bool moves)
 {
     static const std::string c_reader = readerVersion();
     GameIndex entry;
@@ -215,6 +223,8 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool
     hashes.push_back(board.readPosition().hash());
     entry.minPieces = pieceCount(board.readPosition());
     entry.start = polyglotHash(board);
+    if (moves)
+        io::fen_parser::serialize(board, entry.startFen);
     if (positions)
         entry.positions.push_back(entry.start);
     io::pgn_parser::MovetextTokenizer tokenizer(game.movetext);
@@ -252,6 +262,8 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool
             state.moveCount += static_cast<u16>(state.whiteToMove);
         }
         hashes.push_back(board.readPosition().hash());
+        if (moves)
+            entry.played.push_back(move);
 
         ++entry.plies;
         if (positions || entry.plies == c_openingPly) {

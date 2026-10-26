@@ -62,6 +62,11 @@ position, and every fact in the entry. It also compares:
 
 - every record `--positions` writes with python-chess's `chess.polyglot.zobrist_hash` of that position, for exactly
   the games that read;
+- `--draw 10 --quiet --min-ply 16`: every line a position of a game that read, past ply 16, not in check, labelled
+  with the result of a game that reached it, none twice, at most 10 a game, and the same output run twice; with
+  `--merge`, each once with a result between the lowest and the highest of the games that reached it, and the same
+  twice; with `FILE:P`, positions the games had that many plies in; and `--stats`, whose game counts are
+  python-chess's and whose numbers add up;
 - `--position` for the first game's start position and six positions picked from each file with the games and plies
   python-chess finds;
 - the entries from each file read bz2, gzip and zstd compressed on standard input, zstd both in one frame and in a
