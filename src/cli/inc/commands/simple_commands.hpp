@@ -53,7 +53,6 @@ class ExitCommand : public CommandNoArgs<> {
     {
         prnt::out << "Exiting Elephant Gambit CLI...";
         std::exit(0);
-        return true;
     }
     // Outputs help information for the command.
     void help(bool extended) override 
