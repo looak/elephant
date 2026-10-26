@@ -48,7 +48,8 @@ namespace {
         "\n"
         "--draw N writes, instead of the entries, training positions as '<fen> [result]' lines, the result white's: up to\n"
         "N positions of each game that read and has a result, none twice in the run. --quiet keeps the positions that\n"
-        "are naturally quiet, not in check and their own quiescence search result; --min-ply P skips the first P plies;\n"
+        "are naturally quiet, not in check and their own quiescence search result; --min-ply P skips the positions before\n"
+        "ply P of the game from the initial position (the game phase decides when its FEN has no move number);\n"
         "--seed S (default 1) repeats a run. A summary goes to standard error.\n";
 
     bool toNumber(const char* text, u64& value)
@@ -75,6 +76,11 @@ namespace {
         std::cerr << std::format("phant-indexer: positions kept a game: mean {:.1f}, minimum {}, 5th percentile {}, median {}; "
                                  "{} games under {}\n",
             mean, at(0.0), at(0.05), at(0.5), few, options.perGame);
+        if (options.minPly > 0) {
+            std::cerr << std::format("phant-indexer: {} of {} games have no ply for their start position, the game phase "
+                                     "(above {} is early) decided for them\n",
+                stats.unknownStart, stats.drawn, indexer::c_earlyPhase);
+        }
         std::cerr << std::format("phant-indexer: {} written, {} left out as duplicates\n", stats.written, stats.duplicates);
     }
 

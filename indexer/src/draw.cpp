@@ -1,11 +1,14 @@
 #include "draw.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
+#include <sstream>
 #include <unordered_set>
 
 #include "polyglot.hpp"
 
+#include <bitboard/intrinsics.hpp>
 #include <core/chessboard.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move_executor.hpp>
@@ -27,6 +30,37 @@ namespace {
             return z ^ (z >> 31);
         }
     };
+
+    constexpr std::string_view c_initialPlacement = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+    // a FEN's piece placement as 64 squares, a8 first as the FEN has them, '.' for an empty one.
+    std::array<char, 64> squares(std::string_view placement)
+    {
+        std::array<char, 64> board;
+        board.fill('.');
+        size_t index = 0;
+        for (char c : placement) {
+            if (c == '/')
+                continue;
+            if (c >= '1' && c <= '8')
+                index += static_cast<size_t>(c - '0');
+            else if (index < 64)
+                board[index++] = c;
+        }
+        return board;
+    }
+
+    // PeSTO's game phase, as the evaluation tapers on: 24 with every knight, bishop, rook and queen on the board.
+    u32 gamePhase(const Chessboard& board)
+    {
+        const PositionReader position = board.readPosition();
+        u32 phase = 0;
+        for (Set set : { Set::WHITE, Set::BLACK }) {
+            auto count = [&](u8 pieceId) { return static_cast<u32>(intrinsics::popcnt(position.material().read(set, pieceId).read())); };
+            phase += count(knightId) + count(bishopId) + 2 * count(rookId) + 4 * count(queenId);
+        }
+        return std::min(phase, 24u);
+    }
 
     // a mixed seed for each game, so the games draw independently and a game's sample doesn't depend on the others'.
     u64 gameSeed(u64 seed, u64 game)
@@ -69,6 +103,40 @@ struct Drawer::Impl {
 Drawer::Drawer(DrawOptions options) : m_impl(std::make_unique<Impl>(options)) {}
 Drawer::~Drawer() = default;
 
+std::optional<u32> startPly(const std::string& fen)
+{
+    std::istringstream fields(fen);
+    std::string placement, side, castling, enPassant;
+    u32 halfmove = 0, fullmove = 0;
+    if (!(fields >> placement >> side))
+        return std::nullopt;
+    fields >> castling >> enPassant >> halfmove >> fullmove;
+    const bool black = side == "b";
+
+    if (placement == c_initialPlacement && !black)
+        return 0u;
+    if (fullmove > 1)
+        return 2 * (fullmove - 1) + (black ? 1u : 0u);
+
+    // move number 1: the position after one white move says so by itself, black to move with white's pieces on all
+    // but the two squares that move touched, which is none of the reset counters of a book's position.
+    if (black) {
+        const std::array<char, 64> initial = squares(c_initialPlacement);
+        const std::array<char, 64> now = squares(placement);
+        size_t differing = 0;
+        bool blackMoved = false;
+        for (size_t i = 0; i < 64; ++i) {
+            if (initial[i] == now[i])
+                continue;
+            ++differing;
+            blackMoved = blackMoved || i < 16;  // the 7th & 8th ranks are black's
+        }
+        if (differing == 2 && !blackMoved)
+            return 1u;
+    }
+    return std::nullopt;
+}
+
 std::string resultLabel(const std::string& result)
 {
     if (result == "1-0")
@@ -103,6 +171,10 @@ void Drawer::draw(const GameIndex& entry, std::string& out)
     }
 
     ++m_stats.drawn;
+    // the ply the game starts at, from its FEN. When it isn't there the positions are judged by their game phase.
+    const std::optional<u32> firstPly = startPly(entry.startFen);
+    if (!firstPly)
+        ++m_stats.unknownStart;
     struct Candidate {
         u32 ply;
         std::string fen;
@@ -113,7 +185,9 @@ void Drawer::draw(const GameIndex& entry, std::string& out)
     MoveUndoUnit undo;
     u32 candidateCount = 0;
     for (u32 ply = 0;; ++ply) {
-        if (ply >= impl.options.minPly) {
+        const bool early = firstPly ? *firstPly + ply < impl.options.minPly
+                                    : impl.options.minPly > 0 && gamePhase(board) > c_earlyPhase;
+        if (!early) {
             const PositionFacts facts = positionFacts(board);
             if (!facts.inCheck && facts.canMove) {
                 ++candidateCount;

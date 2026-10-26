@@ -125,8 +125,19 @@ reads (`tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's expor
 plain PGN, several files if given, one run. For each game that read and has a result (a `Result` tag or the movetext's
 of `1-0`, `0-1` or `1/2-1/2`):
 
-- **`--min-ply P`** skips the first P plies: a position is a candidate from the one after the Pth ply on (16 skips an
-  eight move book). Default 0.
+- **`--min-ply P`** skips the positions before ply P **counted from the initial position**, wherever the game began
+  (16 skips an eight move book). A game from a FEN counts from the FEN's move number: ply 2 * (move - 1), plus 1 when
+  black is to move, so a gauntlet game from move 9 starts at ply 16, and a game with no FEN starts at ply 0. Default 0.
+  - **When the FEN has no move number to count from** (a book's position with the counters reset, as OpenBench's
+    8-move book gives, `... w KQkq - 0 1` eight moves in) the ply isn't known, and **the evaluation's game phase
+    decides**: a position is too early while its phase, PeSTO's (knights and bishops 1, rooks 2, queens 4, 24 with
+    everything on the board), is **above 22**, that is while nothing, or only a piece for a pawn, has been traded.
+    The position after one white move from the initial position is a known ply 1; anything else with move number 1
+    and not the initial position is unknown. The summary says how many games went by the phase.
+  - Why 22: on fastchess's book games (2,899 games whose FEN carries real move numbers), 93% of the positions from ply
+    16 have a phase of 22 or less and 12% of those before ply 16 do; 21 or less keeps 85% and passes 4%, 23 or less
+    keeps 94% and passes 16%. A threshold of the phase is a rougher cut than the ply, a game that trades early passes
+    sooner, and the phase doesn't scale with P: P above 0 asks for the same cut.
 - **`--quiet`** keeps only the candidates that are *naturally quiet*: the side to move is not in check, and Elephant's
   own quiescence search, run on the position, finds nothing it would rather play than stand pat, so the search returns
   the position's own static evaluation. The search is only a test. Its line is thrown away, and **every position
