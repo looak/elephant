@@ -479,11 +479,11 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
     auto search = [](u64 nodeLimit) {
         GameContext context;
         context.NewGame();
-        Search search(context);
+        Search searcher(context);
         SearchParameters params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
-        return search.go<Set::WHITE>(params, clock);
+        return searcher.go<Set::WHITE>(params, clock);
     };
 
     // do
