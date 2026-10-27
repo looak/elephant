@@ -1,36 +1,51 @@
 # .clang-format
 # https://clang.llvm.org/docs/ClangFormatStyleOptions.html
-# basing on https://chromium.googlesource.com/chromium/src/+/refs/heads/main/styleguide/c++/c++.md
+#
+# The code isn't formatted by it yet and mixes styles (function braces on their own line or not, return types on their
+# own line or not), so a whole-tree run rewrites most files. Format only the lines a change touches:
+#   git clang-format origin/main          the lines changed since main, in the working tree
+# A one-off whole-tree reformat would be its own commit, listed in .git-blame-ignore-revs.
 Language: Cpp
 Standard: c++20
 BasedOnStyle: Chromium
-ColumnLimit: 196
+# the comments are wrapped at 120, the editor's ruler is 128.
+ColumnLimit: 120
 UseTab: Never
 IndentWidth: 4
-# Force pointers to the type for C++.
+AccessModifierOffset: -4
+IndentAccessModifiers: false
 DerivePointerAlignment: false
 PointerAlignment: Left
 
-AlignAfterOpenBracket: Align
-AllowShortFunctionsOnASingleLine: All
+# Braces: functions on their own line, else & catch on their own line, everything else attached.
 BreakBeforeBraces: Stroustrup
-AlwaysBreakAfterReturnType: TopLevelDefinitions
+AlwaysBreakAfterReturnType: None
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+AlignAfterOpenBracket: Align
 BinPackParameters: true
+# { "name", "Hash" }, not {"name", "Hash"}.
+Cpp11BracedListStyle: false
 
 # Constructors
 BreakConstructorInitializers: AfterColon
 PackConstructorInitializers: Never
 
-# Comments
+# Comments: the prose comments are wrapped by hand, keep them.
+ReflowComments: false
 CommentPragmas: "^!|^:"
 AlignTrailingComments: true
+SpacesBeforeTrailingComments: 1
 
 NamespaceIndentation: None
-SortIncludes: true
+# includes are grouped by hand, system/platform first.
+SortIncludes: Never
 SpaceAfterTemplateKeyword: false
 BreakBeforeBinaryOperators: None
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 2
 
 # Headers
 EmptyLineBeforeAccessModifier: LogicalBlock
-IndentAccessModifiers: false
-AccessModifierOffset: -4

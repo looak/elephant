@@ -1,5 +1,6 @@
 ---
-# Requires LLVM 15.0
+# Written for LLVM 15, checked with 22 (Visual Studio's clang-tidy). Run it over the files a change touches:
+#   clang-tidy -p build <files>
 
 # The checks are split it into 4 groups:
 #
@@ -161,7 +162,7 @@ Checks: >
   portability-restrict-system-includes,
   -portability-simd-intrinsics,
   readability-avoid-const-params-in-decls,
-  readability-braces-around-statements,
+  -readability-braces-around-statements,
   readability-const-return-type,
   -readability-convert-member-functions-to-static,
   readability-delete-null-pointer,
@@ -282,29 +283,40 @@ CheckOptions:
   modernize-deprecated-headers.CheckHeaderFile: true
   modernize-use-auto.MinTypeNameLength: 0
   modernize-use-default-member-init.UseAssignment: true
+  # Naming as the code is written: types CamelCase, functions, variables & constants camelBack, private members m_,
+  # enum values UPPER_CASE. The PascalCase methods left (UCI, GameContext) & snake_case helpers are the exceptions to
+  # rename, see the naming cleanup plan.
   readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.UnionCase: CamelCase
   readability-identifier-naming.EnumCase: CamelCase
   readability-identifier-naming.EnumConstantCase: UPPER_CASE
-  readability-identifier-naming.FunctionCase: lower_case
-  readability-identifier-naming.GlobalConstantCase: UPPER_CASE
-  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
-  readability-identifier-naming.MemberCase: lower_case
-  readability-identifier-naming.NamespaceCase: lower_case
-  readability-identifier-naming.ParameterCase: lower_case
-  readability-identifier-naming.ParameterPrefix: p_
   readability-identifier-naming.ScopedEnumConstantCase: UPPER_CASE
-  readability-identifier-naming.TemplateParameterCase: CamelCase
-  readability-identifier-naming.TemplateParameterPrefix: T
-  readability-identifier-naming.TypeAliasCase: CamelCase
-  readability-identifier-naming.TypedefCase: CamelCase
-  readability-identifier-naming.UnionCase: CamelCase
-  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.FunctionCase: camelBack
+  readability-identifier-naming.MethodCase: camelBack
+  readability-identifier-naming.PrivateMemberCase: camelBack
+  readability-identifier-naming.PrivateMemberPrefix: m_
+  readability-identifier-naming.ProtectedMemberCase: camelBack
+  readability-identifier-naming.ProtectedMemberPrefix: m_
+  readability-identifier-naming.PublicMemberCase: camelBack
+  readability-identifier-naming.ParameterCase: camelBack
+  readability-identifier-naming.LocalVariableCase: camelBack
+  readability-identifier-naming.ConstexprVariableCase: camelBack
+  readability-identifier-naming.GlobalConstantCase: camelBack
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.TypeTemplateParameterCase: CamelCase
+  readability-identifier-naming.ValueTemplateParameterCase: camelBack
+  # u8 .. u64 & i8 .. i64 are the integer aliases.
+  readability-identifier-naming.TypeAliasIgnoredRegexp: '^[ui](8|16|32|64)$'
+  readability-identifier-naming.TypedefIgnoredRegexp: '^[ui](8|16|32|64)$'
   readability-inconsistent-declaration-parameter-name.Strict: true
   readability-simplify-boolean-expr.ChainedConditionalAssignment: true
   readability-simplify-boolean-expr.ChainedConditionalReturn: true
   readability-simplify-boolean-expr.SimplifyDeMorganRelaxed: true
   readability-uppercase-literal-suffix.NewSuffixes: L;LL;U;UL;ULL;f
 
-WarningsAsErrors: '*'
-HeaderFilterRegex: src/.+
-...
+# Warnings only until the tree is clean, then '*' and a CI job, see the naming cleanup plan.
+WarningsAsErrors: ''
+HeaderFilterRegex: '(src|tuner|indexer)/.+'
+ExcludeHeaderFilterRegex: '(third_party|_deps)/.+'
