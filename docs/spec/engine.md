@@ -1,7 +1,7 @@
 # Elephant engine
 
-Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.3.1
-on `main`, with a bench of 520775
+Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.4.0
+on `main`, with a bench of 504347
 
 ## Purpose
 
@@ -76,7 +76,7 @@ HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
-520775 on `main` at 1.3.1, a version that was node identical to 1.3.0. Every commit
+504347 on `main` at 1.4.0. Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
 (`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
@@ -136,13 +136,16 @@ The tables are plain `constexpr` arrays of `S(mg, eg)` in `src/engine/inc/eval/*
 reads weights at runtime: there is no weights file, no tuning build and no option that changes them. A new value
 reaches the engine as a changed header in a commit, which moves the bench.
 
-| File | Tables | Values | Status (1.4 rebalance on the branch) |
+| File | Tables | Values | Status (1.4.0) |
 |:--|:--|--:|:--|
 | `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's material and king table; the pawn to queen tables rebalanced with every term, each kept centred on its own average |
 | `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | rebalanced with every term, each table centred at 0 |
 | `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | rebalanced with every term |
 | `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm rebalanced with every term; the danger tuned in 1.3, its sparse tail made monotonic, kept since |
 | `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | rebalanced with every term |
+
+Every table rebalanced with every term was then fine-tuned on Elephant's own games, the same groups, kept values and
+centring (1.4.0-pieces.3).
 
 **ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
@@ -165,8 +168,10 @@ the pawn terms, the king table learned large midgame bonuses for an advanced kin
 on being mostly a game already won, and was left out; the danger table's tail past 48 units, where few positions are,
 rose back towards 0 and was made monotonic by hand. The fit's held back error is a weak guide to Elo: king attack's
 0.61% gave less at short time control than shelter's 0.38%, both passed at long time control. The datasets are in `res/tuning_positions/`; every table above was fitted on
-`E12.52-1M-D12-Resolved`, the one to keep using while groups are added one at a time, since the kept values are only
-best for the data they were fitted on.
+`E12.52-1M-D12-Resolved` (10M positions), the one to keep using while groups are added one at a time, since the kept
+values are only best for the data they were fitted on. `elephant-positions-0.1` holds 1.2M positions from Elephant's
+own games in nyayo (FEN and result, no duplicates); the 1.4 fine-tune fitted on it lowered its held back error 1.23%
+and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and the positions Elephant reaches won.
 
 ### ElephantGambit, the development binary
 
