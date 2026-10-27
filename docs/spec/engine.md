@@ -1,7 +1,7 @@
 # Elephant engine
 
 Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.4.0
-on `main`, with a bench of 504347
+"Matriarch" on `main`, with a bench of 504347
 
 ## Purpose
 
