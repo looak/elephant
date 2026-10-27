@@ -68,10 +68,12 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/pesto_accumulator_test.cpp
     ${TEST_SRC_DIR}/position/material_topology_test.cpp
     ${TEST_SRC_DIR}/position/mobility_test.cpp
+    ${TEST_SRC_DIR}/position/mop_up_test.cpp
     ${TEST_SRC_DIR}/position/passed_pawns_test.cpp
     ${TEST_SRC_DIR}/position/pawn_hash_test.cpp
     ${TEST_SRC_DIR}/position/pawn_structure_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
+    ${TEST_SRC_DIR}/position/pieces_test.cpp
     ${TEST_SRC_DIR}/position/position_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
     ${TEST_SRC_DIR}/position/tapered_score_test.cpp

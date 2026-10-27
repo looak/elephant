@@ -33,12 +33,8 @@ constexpr const char* file_name(const char* path) {
 
 class ephsert final {
 public:
-    // logs the failure as critical, see assert.cpp: the log is in logger.cpp, not in every file that asserts.
+    // logs the failure as critical and aborts, see assert.cpp: the log is in logger.cpp, not in every file that asserts.
     ephsert(char const* expression, const std::string& prefix, const std::string& file, int line, const std::string& message = "");
-
-    ~ephsert() {
-        abort();
-    }
 };
 
 }  // namespace ephant

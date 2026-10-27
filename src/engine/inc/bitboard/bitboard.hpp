@@ -255,25 +255,25 @@ public:
 
     [[nodiscard]] constexpr BitboardImpl inclusiveFillNorthEast(i8 file, i8 rank)
     {
-        i8 index = file + rank;
+        int index = file + rank;
         return inclusiveFill(&board_constants::backwardDiagonalMasks[index], &board_constants::backwardDiagonalMasks[14]);
     }
 
     [[nodiscard]] constexpr BitboardImpl inclusiveFillSouthEast(i8 file, i8 rank)
     {
-        i8 index = 7 + file - rank;
+        int index = 7 + file - rank;
         return inclusiveFill(&board_constants::forwardDiagonalMasks[index], &board_constants::forwardDiagonalMasks[14]);
     }
 
     [[nodiscard]] constexpr BitboardImpl inclusiveFillSouthWest(i8 file, i8 rank)
     {
-        i8 index = file + rank;
+        int index = file + rank;
         return inclusiveFill(&board_constants::backwardDiagonalMasks[0], &board_constants::backwardDiagonalMasks[index]);
     }
 
     [[nodiscard]] constexpr BitboardImpl inclusiveFillNorthWest(i8 file, i8 rank)
     {
-        i8 index = 7 + file - rank;
+        int index = 7 + file - rank;
         return inclusiveFill(&board_constants::forwardDiagonalMasks[0], &board_constants::forwardDiagonalMasks[index]);
     }
 

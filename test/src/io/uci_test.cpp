@@ -114,8 +114,9 @@ TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
         EXPECT_EQ(ELEPHANT_GAMBIT_CODENAME, entries["codename"]);
     for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
         EXPECT_FALSE(entries[key].empty()) << key;
-    if (entries.contains("commit"))
+    if (entries.contains("commit")) {
         EXPECT_EQ(40u, entries["commit"].size());
+    }
 }
 
 // uwanja and nyayo take the engine's name from here, a codename in it would split an engine's history.
@@ -517,11 +518,11 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
     auto search = [](u64 nodeLimit) {
         GameContext context;
         context.NewGame();
-        Search search(context);
+        Search searcher(context);
         SearchParameters params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
-        return search.go<Set::WHITE>(params, clock);
+        return searcher.go<Set::WHITE>(params, clock);
     };
 
     // do

@@ -65,7 +65,8 @@ static UCICommandsMap commands = {
     { "stop", StopCommand },
     { "ponderhit", PonderHitCommand },
     { "print", PrintCommand },
-    { "quit", QuitCommand }
+    { "quit", QuitCommand },
+    { "exit", QuitCommand }
 };
 
 static UCIOptionsMap options = {

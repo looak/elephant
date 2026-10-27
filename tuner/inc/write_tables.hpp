@@ -49,4 +49,9 @@ std::string rewritePawnTables(const std::string& header, const std::vector<Taper
  * kingDanger replaced by values (params:: layout), eight to a line as the file has them. Throws when a table isn't found.    */
 std::string rewriteKingTables(const std::string& header, const std::vector<TaperedScore>& values);
 
+/**
+ * header is the text of piece_tables.hpp. Returns it with the body of piecePair replaced by values (params:: layout),
+ * one line as the file has it. Throws when a table isn't found.    */
+std::string rewritePieceTables(const std::string& header, const std::vector<TaperedScore>& values);
+
 } // namespace tuner

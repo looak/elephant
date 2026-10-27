@@ -168,7 +168,7 @@ public:
             ++(*this);
             return temp;
         }
-        PositionIterator& operator+=(int incre) {
+        PositionIterator& operator+=(byte incre) {
             m_index += incre;
             return *this;
         }
