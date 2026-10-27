@@ -79,8 +79,16 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
   (promotions with a capture, castling plies, en passant, checks, the fewest pieces, material at fixed plies, every
   way a game ends by the rules), an illegal move's ply, a `FEN` that doesn't read, a `Variant` that isn't standard
   chess, the result rules, repeated tags, null moves, and the `start` and `opening` hashes.
+- The same file pins the `--positions` record (its 14 bytes, the move's packed bits for a quiet move, a capture, a
+  promotion with a capture, castling both ways, an en passant capture and a null move, and none at the last position).
 - `input_test.cpp` covers detecting plain, bz2, gzip and zstd by the first bytes, concatenated streams, zstd frames with
   and without their content size and with a skippable frame between, and cut streams being an error.
+- `draw_test.cpp` covers `--draw`: positions with a capture to make left out under `--quiet`, none in check or
+  checkmated, `--min-ply` counted from where the game starts whatever its FEN's move number, a file's `FILE:P` and a
+  `DrawMinPly` tag overriding it (and `FILE:P`'s parsing), the statistics JSON byte for byte for a plain and a merged run,
+  `--merge` averaging the results of the games that drew a position and repeating, and the per-game cap, a sample that repeats with its seed and changes with another, a
+  position written once in a run, nothing from a game that didn't read, has no result or has a null move, and a game
+  from a FEN.
 - `polyglot_test.cpp` checks the Polyglot hash against all nine test vectors Polyglot's book format documents, from
   moves and from FEN, and the rules python-chess follows where they matter: an en passant file hashed only with a
   pawn to take, a castling right counted only with the king and rook at home.

@@ -21,7 +21,8 @@
  *
  *     <fen> [1.0]                      lichess-big3 & Ethereal style, also [0.5] & [0.0]
  *     <fen> c9 "1-0";                  zurichess quiet-labeled, also "1/2-1/2" & "0-1", any EPD opcode
- *     <fen> 1-0                        a bare result as the last token, also 1/2-1/2, 0-1, 1.0, 0.5, 0.0
+ *     <fen> 1-0                        a bare result as the last token, also 1/2-1/2, 0-1, 1.0, 0.5, 0.0, or any number
+ *                                      from 0 to 1, the average of several games' results
  *
  * The FEN needs its first four fields, the halfmove & fullmove counters are optional. Results are always from white's
  * side: 1.0 white won, 0.5 draw, 0.0 black won. Empty lines and lines starting with # are skipped.

@@ -1,9 +1,15 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
 EXE ?= elephant_ob
 
-# Versioning, read from ../version.txt (major.minor.patch[-label]), the only place the version is written.
+# Versioning, read from ../version.txt (major.minor.patch[-label] on line 1, the release's codename on line 2 when
+# there is one), the only place the version is written.
 VERSION_FILE := ../version.txt
 VERSION_FULL := $(shell head -n 1 $(VERSION_FILE) | tr -d '\r[:space:]')
+CODENAME := $(strip $(shell sed -n 2p $(VERSION_FILE) | tr -d '\r'))
+ifneq ($(shell printf '%s' '$(CODENAME)' | tr -d 'A-Za-z0-9 ._-'),)
+$(error version.txt line 2 is the codename, letters, digits, spaces, . _ and -, got '$(CODENAME)')
+endif
+export ElephantGambit_CODENAME = $(CODENAME)
 VERSION_CORE := $(firstword $(subst -, ,$(VERSION_FULL)))
 export ElephantGambit_VERSION_MAJOR = $(word 1,$(subst ., ,$(VERSION_CORE)))
 export ElephantGambit_VERSION_MINOR = $(word 2,$(subst ., ,$(VERSION_CORE)))
@@ -80,6 +86,7 @@ $(VERSION_HEADER): $(VERSION_HEADER_TEMPLATE) $(VERSION_FILE)
 		-e 's/@ElephantGambit_VERSION@/$(ElephantGambit_VERSION)/g' \
 		-e 's/@ElephantGambit_VERSION_PRERELEASE@/$(ElephantGambit_VERSION_PRERELEASE)/g' \
 		-e 's/@ElephantGambit_VERSION_SUFFIX@//g' \
+		-e 's/@ElephantGambit_CODENAME@/$(CODENAME)/g' \
 		-e 's/@VAR_ELEPHANT_BUILD_TIMESTAMP@/$(BUILD_TIMESTAMP)/g' \
 		$< > $@
 

@@ -37,7 +37,7 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 
 | Command | Notes |
 |:--|:--|
-| `uci` | `id name Elephant Gambit <version>`, `id author Alexander Loodin Ek`, the options, `uciok` |
+| `uci` | `id name Elephant Gambit <version>` (the version alone, no codename: uwanja and nyayo take the engine's name from it), `id author Alexander Loodin Ek`, the options, `uciok` |
 | `isready` | `readyok`, straight away |
 | `setoption name <name> value <v>` | names may contain spaces (`Move Overhead`) |
 | `ucinewgame` | clears the transposition table and the game's history |
@@ -65,8 +65,8 @@ without exactly one king a side.
 
 **buildinfo.** `buildinfo` answers one `buildinfo <key> <value>` line per key, then nothing; callers send `isready`
 right after and take whatever arrives before `readyok`. Engines that don't know the command ignore it, as UCI says,
-so the pattern works with any engine. Keys: `version`, `commit` (full hash), `dirty`, `branch` (left out on a detached
-HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
+so the pattern works with any engine. Keys: `version`, `codename` (left out when the release has none), `commit` (full hash), `dirty`, `branch` (left out
+on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
 (`cmake/build_info.cmake`, the makefile's rule), so a binary can't claim a commit it wasn't built from. `compiler`,
 `config`, `assertions`, `exceptions` and `bits` decide which results are comparable, in nyayo's terms.
 
@@ -195,10 +195,22 @@ whoever plays the games writes the players and tags.
   one difference: a `Variant` that isn't standard chess is an error, Elephant doesn't play Chess960.
 - **Positions.** A position is its Polyglot hash, the standard one (the 781 numbers of Polyglot's book format, not the
   engine's own Zobrist keys), which python-chess computes as `chess.polyglot.zobrist_hash`. `--positions FILE` writes
-  12 byte little-endian records, the hash, the game's place in the input and the ply, for every position of every game
+  14 byte little-endian records, the hash, the game's place in the input, the ply and the move played from the
+  position (the engine's packed 16 bit move, 0 at a game's last position), for every position of every game
   that read, in the same pass as the cards; it takes one input and stops at 65 535 games or plies, the 2 byte fields'
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.
+- **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
+  lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
+  has a result, past the game's first P plies, counted from the position the game starts at (`--min-ply`, 0 by
+  default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
+  carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
+  With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
+  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
+  ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
+  duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
+  `--stats OUT` writes the run's statistics as versioned JSON (`indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
@@ -216,10 +228,15 @@ whoever plays the games writes the players and tags.
   `x86-64-v2` and `x86-64-v3`, linked static, named `elephant-gambit-<version>-<os>-<arch>`; and, in a job of its own
   with CMake and `ELEPHANT_BUILD_INDEXER=ON`, phant-indexer for Windows & Linux at `x86-64`, linked static (the C
   runtime too), named `phant-indexer-<version>-<os>-x86-64` and smoke tested on OpenBench's workload, bz2 compressed,
-  before it is attached.
-- `version.txt` is the only place the version is written. major = engine generation or a UCI option change, minor =
-  a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions. Pre-releases are
-  `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight.
+  before it is attached. A third job titles the GitHub release `<version> "<codename>"` from `version.txt` at the tag
+  when it has a codename, and leaves the title as published when it hasn't.
+- `version.txt` is the only place the version is written. Line 1 is the version: major = engine generation or a UCI
+  option change, minor = a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions.
+  Pre-releases are `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight. Line 2, optional, is the
+  release's **codename** (1.0.0 was "Herd", 1.3.2 is "Matriarch"): letters, digits, spaces, `.`, `_` and `-`, empty when
+  absent. CMake and `ob_build/makefile` read it into `ELEPHANT_GAMBIT_CODENAME` next to `ELEPHANT_GAMBIT_VERSION_FULL`;
+  a malformed one fails the configure or the make. It shows as `v: 1.3.2 "Matriarch"` in the CLI banner and the
+  `about` command's engine version, and as `buildinfo codename`; not in `id name`.
 - A cycle has its own branch off `main` (`eval-pawns` for 1.2), each change a branch `<cycle>-<change>` off it, SPRT'd
   against the cycle's tip and merged on a pass; `version.txt` on the cycle branch counts the merges
   (`1.2.0-pawns.1`). `main` takes a cycle when it is released, and work that doesn't move the bench (cleanups, the
@@ -235,4 +252,5 @@ whoever plays the games writes the players and tags.
 | out | release binaries | `release.yml` |
 | in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
 | out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
 
