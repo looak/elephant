@@ -94,7 +94,8 @@ TEST_F(DrawFixture, ResultLabels)
     EXPECT_EQ("", indexer::resultLabel("*"));
 }
 
-// a position with a capture worth making isn't quiet: after 1.e4 d5 white takes on d5, after 2.exd5 black does.
+// a position with a capture worth making isn't quiet: after 2.exd5 black is a pawn down and takes it back. Whether
+// 2.exd5 itself, a pawn trade, beats standing pat after 1.e4 d5 is the evaluation's call, so ply 2 isn't checked.
 TEST_F(DrawFixture, Quiet_LeavesOutPositionsWithACaptureToMake)
 {
     indexer::Drawer drawer({ .perGame = 100, .minPly = 0, .quiet = true, .seed = 1 });
@@ -104,8 +105,7 @@ TEST_F(DrawFixture, Quiet_LeavesOutPositionsWithACaptureToMake)
 
     const std::set<size_t> plies = pliesWritten(entry, out);
     EXPECT_TRUE(plies.contains(0));     // the start position
-    EXPECT_FALSE(plies.contains(2));    // exd5 is there to be played
-    EXPECT_FALSE(plies.contains(3));    // and Qxd5
+    EXPECT_FALSE(plies.contains(3));    // Qxd5 wins the pawn back
     EXPECT_TRUE(plies.contains(4));
     EXPECT_EQ(plies.size(), lines(out).size());
     for (const std::string& line : lines(out))
