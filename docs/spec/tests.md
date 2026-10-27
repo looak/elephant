@@ -139,7 +139,7 @@ gates anything.
 | `test/smoke.sh`, locally before a merge | `ElephantTest --gtest_brief=1`, then all of `ElephantSuite`, then phant-indexer against python-chess | pass/fail in the smoke summary, logs in `logs/` |
 | CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off | thrown away |
 | CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."` | thrown away |
-| CI `coverage.yml`, run by hand on any branch, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away |
+| CI `coverage.yml`, run by hand on any branch, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away; on `main` the line coverage replaces `coverage.json` on the `badges` branch, the README's badge |
 | `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `build-cov/coverage/` |
 
 ## Interfaces
@@ -148,5 +148,5 @@ gates anything.
 |:--|:--|
 | in | the engine library (`engine` target), `res/` for test data |
 | out | gtest console output & exit code, ctest labels `unit` & `suite` |
-| out | coverage: an HTML report in `build-cov/coverage/`, a text summary on CI's summary page |
+| out | coverage: an HTML report in `build-cov/coverage/`, a text summary on CI's summary page, `coverage.json` (shields.io endpoint format: `schemaVersion`, `label`, `message` the line percent, `color`) on the `badges` branch for the README |
 

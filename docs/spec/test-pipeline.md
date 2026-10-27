@@ -28,7 +28,8 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 
 **Doesn't:** Elo or speed (OpenBench), live games (nyayo shows them, uwanja plays them), CI results. CI (`ci.yml`)
 runs only the unit tests and perft, correctness checks whose results are thrown away; the unit tests' coverage is
-`coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page, no upload); no EPD tier runs in CI.
+`coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it keeps one number, the line
+coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
 
 ## Current
 
