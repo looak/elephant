@@ -6,6 +6,7 @@ intermediate/
 output/
 out/
 build/
+build-cov/
 .vs/
 .vscode/
 .idea/

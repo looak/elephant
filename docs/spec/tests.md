@@ -18,7 +18,8 @@ reader, is tested here too, and checked against python-chess by a script in the 
 Both come from `elephant_add_test_executable()` in `test/CMakeLists.txt`, which registers every test with ctest under
 its label (`ctest -L unit`). `ELEPHANT_BUILD_TEST_SUITE=OFF` leaves `ElephantSuite` out. `ElephantTest` includes
 the indexer's tests only when `ELEPHANT_BUILD_INDEXER` is on (off by default, phant-indexer needs it) and exceptions
-are enabled; the engine's tests are the same either way.
+are enabled; the engine's tests are the same either way. `ELEPHANT_COVERAGE` instruments `ElephantTest` and what it
+tests for a coverage report, below.
 
 ## Scope
 
@@ -26,8 +27,8 @@ are enabled; the engine's tests are the same either way.
 PGN, evaluation symmetry, SEE, the transposition table, time management, UCI command handling, and a few search
 expectations (mate in N, the zugzwang positions); and prove phant-indexer's entries, input and position hashes.
 
-**Doesn't:** measure strength or speed, or keep history. Results go to the console and ctest only; history of EPD
-positions is the test pipeline's and nyayo's job ([test-pipeline.md](test-pipeline.md)).
+**Doesn't:** measure strength or speed, or keep history, coverage included. Results go to the console and ctest
+only; history of EPD positions is the test pipeline's and nyayo's job ([test-pipeline.md](test-pipeline.md)).
 
 ## Current
 
@@ -109,6 +110,27 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
   depth 22 (searched to 23, ~5 s); its comment records the depth history. Raise the depth when new pruning or
   evaluation pushes it out of reach.
 
+### Coverage
+
+`ELEPHANT_COVERAGE=ON` (`cmake/options.cmake`, off by default) links `coverage_flags` (`cmake/coverage.cmake`) into
+`engine`, `cli`, `PhantIndexerLib` and `ElephantTest`, never googletest, the compression libraries or `third_party`:
+`--coverage` with gcc, `-fprofile-instr-generate -fcoverage-mapping` with clang and clang-cl (clang-cl's link gets
+the profile runtime's directory), both with atomic counters (`-fprofile-update=atomic`), the search's threads race on
+them otherwise. It turns link time optimization off; the scripts build Debug so lines map one to one.
+`ElephantSuite` is never measured, too slow instrumented. `cli` is instrumented but `ElephantTest` doesn't link it,
+so it isn't in the report.
+
+- `test/coverage.ps1 [build dir]` (Windows, clang-cl, loads Visual Studio's developer environment when needed):
+  configures `build-cov` (ignored by git) with coverage, Debug, `ELEPHANT_BUILD_INDEXER=ON`, the suite & tuner off,
+  builds `ElephantTest`, runs `ctest -L unit` with `LLVM_PROFILE_FILE` set (a pool of profiles the test processes
+  merge into), merges them with `llvm-profdata` and writes `llvm-cov show`'s HTML to `build-cov/coverage/index.html`,
+  then prints `llvm-cov report`. Exit code: the tests'.
+- `test/coverage.sh [build dir]` (Linux, gcc, needs gcovr): the same with gcovr, throw branches left out, HTML to
+  `<build dir>/coverage/index.html` and the text summary to the console.
+
+Both leave out sources under `test/`, `third_party/` and `_deps/`. Nothing is recorded or uploaded, and no number
+gates anything.
+
 ### Where they run
 
 | Where | How | Kept |
@@ -117,6 +139,8 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 | `test/smoke.sh`, locally before a merge | `ElephantTest --gtest_brief=1`, then all of `ElephantSuite`, then phant-indexer against python-chess | pass/fail in the smoke summary, logs in `logs/` |
 | CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off | thrown away |
 | CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."` | thrown away |
+| CI `ci.yml` job `coverage`, pushes & PRs to main, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away |
+| `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `build-cov/coverage/` |
 
 ## Interfaces
 
@@ -124,4 +148,5 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 |:--|:--|
 | in | the engine library (`engine` target), `res/` for test data |
 | out | gtest console output & exit code, ctest labels `unit` & `suite` |
+| out | coverage: an HTML report in `build-cov/coverage/`, a text summary on CI's summary page |
 

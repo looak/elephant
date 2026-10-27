@@ -187,6 +187,8 @@ Either run the output binary `ElephantTest` after build or browse to `.\build\` 
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. The runner's `--nodes`, `--depth`, `--movetime`, `--threads` and `--hash` override the settings for experiments. Every position searched is recorded, `test/smoke.sh` compares the run with the nearest ancestor commit's position by position, see [test/RESULTS.md](test/RESULTS.md).
 
+`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `build-cov` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `build-cov/coverage/index.html`. CI's `coverage` job prints the same summary on its page.
+
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 
 ### Bench

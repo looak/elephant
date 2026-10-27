@@ -43,5 +43,6 @@ target_include_directories(${CLI_LIB}
 target_link_libraries(${CLI_LIB}
     PRIVATE
         common_warnings
+        coverage_flags
         spdlog
 )

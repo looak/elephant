@@ -87,7 +87,7 @@ set_target_properties(${INDEXER_LIB} PROPERTIES
     CXX_EXTENSIONS OFF)
 target_include_directories(${INDEXER_LIB} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 target_link_libraries(${INDEXER_LIB} PUBLIC engine spdlog
-    PRIVATE common_warnings indexer_zlib indexer_bzip2 indexer_zstd)
+    PRIVATE common_warnings coverage_flags indexer_zlib indexer_bzip2 indexer_zstd)
 # bzlib.h includes windows.h, whose min & max macros break std::min.
 target_compile_definitions(${INDEXER_LIB} PRIVATE $<$<BOOL:${WIN32}>:NOMINMAX WIN32_LEAN_AND_MEAN>)
 
