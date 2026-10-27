@@ -39,8 +39,10 @@ namespace evaluator_data
  * quiet position fit doesn't see it.  */
 constexpr i16 tempoBonus = 15;
 
-// mop-up's bonus for the winning king's square, see Evaluator::MopUpValue.
-constexpr i32 center_bias[64] = {
+// mop-up, see mop_up.hpp, hand-set: per square the kings are closer than the farthest apart they can be (14, corner to
+// corner), and the winning king's square, 2 on the edge to 16 in the middle.
+constexpr i32 mopUpKingDistance = 8;
+constexpr i32 mopUpCentre[64] = {
       2,   2,   2,   2,   2,   2,   2,  2,
       2,   4,   4,   4,   4,   4,   4,  2,
       2,   4,   8,   8,   8,   8,   4,  2,

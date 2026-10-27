@@ -55,7 +55,6 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             searchContext.rootMoves = rootMoves;
             searchContext.begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
-            // TODO: This could be done once for all ThreadContexts.
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
                 searchContext.history.push(undoUnit.hash);
             }
