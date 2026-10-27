@@ -30,7 +30,11 @@
  * king_shelter, pieces_pairs --min-usage 50000 on E12.52-1M-D12-Resolved, K 1.1889, 1000 passes at rate 1, error
  * 0.085192 -> 0.084398, held back 0.87% lower). Each tuned piece square table kept centred on its own average, so
  * the pieces keep their values and only the shapes moved; the 120 values fewer than 50k positions use kept as they
- * were.    */
+ * were.
+ *
+ * Then fine-tuned on Elephant's own games, the same groups, kept values and centring as the rebalance (--min-usage
+ * 6000 on elephant-positions-0.1, 1.2M positions from nyayo, K 1.2633): its held back error 1.23% lower, but
+ * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -41,27 +45,27 @@ namespace evaluator_data
 
 // a knight, 0 to 8 safe squares.
 constexpr TaperedScore knightMobility[9] = {
-    S( -13,-169), S(  -6, -54), S(  -4, -19), S(  -3,   2), S(  -1,   8), S(   1,  11), S(   4,  12), S(   8,   8),
-    S(  16,  -9),
+    S( -40,-204), S( -24, -66), S( -14, -19), S(  -6,   2), S(   0,   8), S(   5,  11), S(   8,  12), S(  13,   7),
+    S(  19,  -7),
 };
 
 // a bishop, 0 to 13 safe squares.
 constexpr TaperedScore bishopMobility[14] = {
-    S( -11, -28), S( -12, -25), S(  -8, -22), S(  -4, -12), S(   0,  -1), S(   4,  10), S(   5,  19), S(   3,  22),
-    S(   4,  26), S(   9,  22), S(  19,  20), S(  39,  11), S(  52,  17), S( 114, -12),
+    S( -27, -31), S( -20, -31), S( -12, -22), S(  -6, -13), S(  -1,   0), S(   3,  10), S(   6,  14), S(   8,  16),
+    S(  10,  19), S(   8,  21), S(  17,  18), S(  33,  10), S(  52,  17), S( 159, -15),
 };
 
 // a rook, 0 to 14 safe squares.
 constexpr TaperedScore rookMobility[15] = {
-    S( -21, -67), S( -18, -41), S( -14, -34), S( -12, -18), S( -13,  -5), S(  -8,   3), S(  -5,  10), S(   1,  14),
-    S(   6,  18), S(  12,  21), S(  17,  24), S(  21,  26), S(  25,  29), S(  41,  18), S(  80,  -2),
+    S( -37, -22), S( -30, -21), S( -24, -22), S( -20,  -7), S( -19,  -3), S( -11,   1), S(  -6,   6), S(   2,   7),
+    S(   6,  13), S(  12,  14), S(  19,  14), S(  27,  12), S(  29,  12), S(  51,   4), S( 106, -22),
 };
 
 // a queen, 0 to 27 safe squares.
 constexpr TaperedScore queenMobility[28] = {
-    S( -22,  23), S(   0,-160), S(  -6,-137), S(  -6, -87), S(  -6, -56), S(  -4, -35), S(  -2, -21), S(  -1,  -9),
-    S(   1,   2), S(   2,  12), S(   3,  19), S(   4,  24), S(   5,  30), S(   5,  33), S(   2,  43), S(  -1,  49),
-    S(  -5,  54), S(  -1,  51), S(  -4,  54), S(   1,  51), S(   2,  51), S(   8,  39), S(  -6,  45), S(  35,  17),
+    S( -22,  23), S(   0,-160), S( -17, -20), S( -13, -15), S(  -8, -48), S(  -5, -38), S(  -5, -16), S(  -4, -13),
+    S(  -1,  -5), S(   0,   5), S(   0,  20), S(   4,  14), S(   3,  29), S(   7,  24), S(   9,  29), S(  13,  33),
+    S(  11,  32), S(   9,  41), S(  18,  35), S(  22,  31), S(   2,  47), S(  24,  35), S(  -6,  45), S(  35,  17),
     S(   0,  31), S(  -3,  36), S(  -1,  51), S(  34,  61),
 };
 
