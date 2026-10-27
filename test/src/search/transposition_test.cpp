@@ -58,7 +58,8 @@ TEST(TranspositionTest, Probe_EmptyTableAndOtherKeyMiss) {
 TEST(TranspositionTest, Bucket_HoldsEightPositions) {
     TranspositionTable table(1);
     for (u16 key = 1; key <= 8; ++key)
-        table.store(inBucket(key), PackedMove(Square::E2, Square::E4), key, static_cast<u8>(key), TTF_CUT_EXACT);
+        table.store(inBucket(key), PackedMove(Square::E2, Square::E4), static_cast<Score>(key), static_cast<u8>(key),
+                    TTF_CUT_EXACT);
 
     for (u16 key = 1; key <= 8; ++key) {
         ProbeResult result = probe(table, inBucket(key));

@@ -56,7 +56,7 @@ i16 Evaluator::MopUpValue(i16 materialScore) const {
 
 template<Set us>
 i16 Evaluator::MopUpValue(i16 materialScore) const {
-    i16 result = 0;
+    i32 result = 0;
     const auto& material = m_position.material();
 
     if (materialScore > 2 * piece_constants::value[pawnId] && calculateEndGameCoeficient() > 0.5f)
@@ -69,7 +69,7 @@ i16 Evaluator::MopUpValue(i16 materialScore) const {
         result += tmp;
     }
 
-    return result;
+    return checked_cast<i16>(result);
 }
 
 template i16 Evaluator::MopUpValue<Set::WHITE>(i16) const;

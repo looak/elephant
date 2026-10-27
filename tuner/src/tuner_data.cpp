@@ -121,7 +121,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     TunerData& data = part.data;
     PrepareReport& report = part.report;
     // about 65 bytes a line and 15 coefficients a position in the datasets seen so far.
-    const std::size_t expected = static_cast<std::size_t>((range.end - range.begin) / 60);
+    const std::size_t expected = (range.end - range.begin) / 60;
     data.entries.reserve(expected);
     data.coefficients.reserve(expected * 16);
 

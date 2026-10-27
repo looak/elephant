@@ -214,7 +214,7 @@ public:
     }
 
     [[nodiscard]] u32 index() const { return m_packed & ((1u << c_indexBits) - 1); }
-    [[nodiscard]] i32 value() const { return static_cast<i32>(m_packed >> c_indexBits) + c_minValue; }
+    [[nodiscard]] i32 value() const { return (m_packed >> c_indexBits) + c_minValue; }
 
 private:
     u16 m_packed;

@@ -82,8 +82,9 @@ TEST(KingSafety, MirroredPositionsCancel) {
     // the same structure for both sides, every white term has a black one with the opposite sign.
     const RecordingTrace trace = traceOf("6k1/5pp1/7p/8/8/7P/5PP1/6K1 w - - 0 1");
     for (const auto& entry : trace.entries) {
-        if (entry.sign == 1)
+        if (entry.sign == 1) {
             EXPECT_EQ(1u, trace.count(entry.term, entry.folded, entry.rank, -1));
+        }
     }
 }
 

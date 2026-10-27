@@ -64,7 +64,8 @@ enum class MoveTypes {
 constexpr int c_sourceSquareConstant = 0x3F;
 constexpr int c_targetSquareConstant = 0xfc0;
 
-enum PackedMoveType {
+// u16 underneath: operator<< shifts a type into the flag bits, CAPTURES << 12 must still be a value of the enum.
+enum PackedMoveType : u16 {
     QUIET_MOVES = 0,
     DBL_PAWN_PUSH = 1,
     CASTLE = 2,
@@ -182,9 +183,9 @@ public:
     inline void setPromoteTo(ChessPiece piece) { setPromoteTo(piece.index()); }
     inline void setPromoteTo(u16 pieceIndx)
     {
-        m_internals &= (u16)~(11 << 12);         // clear promotion bits
-        m_internals |= (8 << 12);                // set promotion flag
-        m_internals |= ((pieceIndx - 1) << 12);  // store piece type
+        m_internals &= (u16)~(11 << 12);                         // clear promotion bits
+        m_internals |= (8 << 12);                                // set promotion flag
+        m_internals |= checked_cast<u16>((pieceIndx - 1) << 12); // store piece type
     }
 
     inline void setCastleQueenSide(bool value)

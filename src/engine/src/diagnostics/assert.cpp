@@ -7,8 +7,9 @@ ephsert::ephsert(char const* expression, const std::string& prefix, const std::s
                  const std::string& message)
 {
     spdlog::critical("{}{}:{} Assertion failed: {} > {}", prefix, file, line, expression, message);
-    // the destructor aborts, which doesn't flush.
+    // abort doesn't flush.
     spdlog::default_logger_raw()->flush();
+    std::abort();
 }
 
 }  // namespace ephant
