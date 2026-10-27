@@ -12,7 +12,7 @@ reader, is tested here too, and checked against python-chess by a script in the 
 
 | Binary | ctest label | Holds | Takes | Runs in | Why there |
 |:--|:--|:--|:--|:--|:--|
-| `ElephantTest` | `unit` | ~410 unit tests (~435 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
+| `ElephantTest` | `unit` | ~530 unit tests (~580 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
 | `ElephantSuite` | `suite` | `PerftFixture.ReferencePositions` (~0.8 billion nodes), `PerftFixture.DeepPositions` (~22 billion), `SearchDepthFixture.*` (moves found only deep in a search) | ~15 s on 24 threads, perft on every core | CI `perft` (perft only); smoke step 3 (all of it) | perft is the authority on move generation and deterministic, so CI gates on it; the deep searches move with the evaluation, so only smoke runs them |
 
 Both come from `elephant_add_test_executable()` in `test/CMakeLists.txt`, which registers every test with ctest under
@@ -50,6 +50,13 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
   generator. Only the staged "tusk" generator is left since the legacy one was removed in 1.0; the harness stays for
   the next one. `PerftShallow` runs every perft position in milliseconds, and checks that `divide`'s per move counts
   add up to the perft count.
+- **The position** (`position/position_test.cpp`), a fixture per area: the basics (empty, one of each piece, the
+  starting position, copies & equality), edit access (validated & unvalidated placing and clearing, the square
+  operator, the material editor, `restoreState`, readers), board iteration, hashing (the kept hash equals one
+  computed from scratch after every kind of edit, and through make & unmake of castling, en passant and promotions),
+  the material mask, the squares the material threatens, castling & en passant state, and FEN round trips of
+  positions built piece by piece. Each test that sets up a position draws the board above it, white uppercase, black
+  lowercase, `x` on the squares the test is about.
 - **Evaluation symmetry**: `evaluation_test.cpp` flips each position (ranks mirrored, colours swapped) and expects the
   same score from the other side.
 - **Search expectations** (`search_test.cpp`) search to a fixed depth, 12 by default, and expect a move.

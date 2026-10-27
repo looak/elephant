@@ -2167,4 +2167,432 @@ TEST_F(MaterialThreatsFixture, ThreatenedSquares_EnemyPieces_NotCountedForUs)
     EXPECT_EQ(squares({ A2, B1, B2 }), (topology<Set::WHITE>().computeThreatenedSquares<false, true>()));
 }
 
+////////////////////////////////////////////////////////////////
+// Castling state: the rights as four bits, and the proxy that edits them through a position.
+class CastlingStateFixture : public ::testing::Test {
+public:
+    Position m_position;
+};
+
+TEST_F(CastlingStateFixture, Castling_EveryState_ProxyReadsAgreeWithTheState)
+{
+    auto castling = m_position.edit().castling();
+    for (u8 state = 0; state < 16; ++state) {
+        castling.write(state);
+        const CastlingStateInfo info = m_position.read().castling();
+        EXPECT_EQ(info.hasAll(), castling.hasAll()) << int(state);
+        EXPECT_EQ(info.hasAny(), castling.hasAny()) << int(state);
+        EXPECT_EQ(info.hasNone(), castling.hasNone()) << int(state);
+        EXPECT_EQ(info.hasWhite(), castling.hasWhite()) << int(state);
+        EXPECT_EQ(info.hasBlack(), castling.hasBlack()) << int(state);
+        EXPECT_EQ(info.hasWhiteKingSide(), castling.hasWhiteKingSide()) << int(state);
+        EXPECT_EQ(info.hasWhiteQueenSide(), castling.hasWhiteQueenSide()) << int(state);
+        EXPECT_EQ(info.hasBlackKingSide(), castling.hasBlackKingSide()) << int(state);
+        EXPECT_EQ(info.hasBlackQueenSide(), castling.hasBlackQueenSide()) << int(state);
+        EXPECT_EQ(state, castling.read());
+    }
+}
+
+TEST_F(CastlingStateFixture, Castling_EveryState_ToStringInFenOrderOrADash)
+{
+    const char* expected[16] = { "-", "K", "Q", "KQ", "k", "Kk", "Qk", "KQk", "q", "Kq", "Qq", "KQq", "kq", "Kkq", "Qkq", "KQkq" };
+    CastlingStateInfo info;
+    for (u8 state = 0; state < 16; ++state) {
+        info.write(state);
+        EXPECT_EQ(expected[state], info.toString()) << int(state);
+    }
+}
+
+TEST_F(CastlingStateFixture, Castling_RevokingOneSide_LeavesTheOtherColour)
+{
+    auto castling = m_position.edit().castling();
+    castling.grantAll();
+
+    castling.revokeAllWhite();
+    EXPECT_FALSE(castling.hasWhite());
+    EXPECT_TRUE(castling.hasBlackKingSide());
+    EXPECT_TRUE(castling.hasBlackQueenSide());
+
+    castling.grantWhiteQueenSide();
+    castling.revokeAllBlack();
+    EXPECT_FALSE(castling.hasBlack());
+    EXPECT_TRUE(castling.hasWhiteQueenSide());
+    EXPECT_FALSE(castling.hasWhiteKingSide());
+}
+
+TEST_F(CastlingStateFixture, Castling_GrantingTwice_SameAsOnce)
+{
+    auto castling = m_position.edit().castling();
+    castling.grantBlackKingSide();
+    const u64 hash = m_position.read().hash();
+    const u8 state = castling.read();
+
+    castling.grantBlackKingSide();
+
+    EXPECT_EQ(state, castling.read());
+    EXPECT_EQ(hash, m_position.read().hash());
+}
+
+TEST_F(CastlingStateFixture, Castling_CopyAndAssign_CarryTheRights)
+{
+    CastlingStateInfo info;
+    info.grantWhiteKingSide();
+    info.grantBlackQueenSide();
+
+    CastlingStateInfo copy(info);
+    CastlingStateInfo assigned;
+    assigned = info;
+
+    EXPECT_EQ(info, copy);
+    EXPECT_EQ(info, assigned);
+    EXPECT_EQ(CastlingState::WHITE_KINGSIDE | CastlingState::BLACK_QUEENSIDE, assigned.asFlag());
+}
+
+////////////////////////////////////////////////////////////////
+// En passant state: one byte holding the square, and the proxy that edits it through a position.
+class EnPassantStateFixture : public ::testing::Test {
+public:
+    Position m_position;
+};
+
+TEST_F(EnPassantStateFixture, EnPassant_ValueInitialized_NoneSet)
+{
+    const EnPassantStateInfo state{};
+    EXPECT_FALSE(state);
+    EXPECT_EQ(NullSQ, state.readSquare());
+    EXPECT_TRUE(state.readBitboard().empty());
+    EXPECT_EQ("-", state.toString());
+    EXPECT_EQ(0, state.read());
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_WriteEverySquare_ReadsBackTheSameSquare)
+{
+    // the square shares a byte with the flag, a1 is index zero and h8 the highest index that has to fit.
+    for (u8 index = 0; index < 64; ++index) {
+        EnPassantStateInfo state{};
+        state.writeSquare(static_cast<Square>(index));
+        ASSERT_TRUE(state) << int(index);
+        EXPECT_EQ(static_cast<Square>(index), state.readSquare());
+        EXPECT_EQ(squares({ static_cast<Square>(index) }), state.readBitboard());
+    }
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_ThirdRankSquares_TargetIsThePawnOnTheFourth)
+{
+    const Square thirdRank[8] = { A3, B3, C3, D3, E3, F3, G3, H3 };
+    const Square fourthRank[8] = { A4, B4, C4, D4, E4, F4, G4, H4 };
+    for (int file = 0; file < 8; ++file) {
+        EnPassantStateInfo state{};
+        state.writeSquare(thirdRank[file]);
+        EXPECT_EQ(fourthRank[file], state.readTarget()) << to_string(thirdRank[file]);
+    }
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_SixthRankSquares_TargetIsThePawnOnTheFifth)
+{
+    const Square sixthRank[8] = { A6, B6, C6, D6, E6, F6, G6, H6 };
+    const Square fifthRank[8] = { A5, B5, C5, D5, E5, F5, G5, H5 };
+    for (int file = 0; file < 8; ++file) {
+        EnPassantStateInfo state{};
+        state.writeSquare(sixthRank[file]);
+        EXPECT_EQ(fifthRank[file], state.readTarget()) << to_string(sixthRank[file]);
+    }
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_ToString_TheSquareInAlgebraic)
+{
+    EnPassantStateInfo state{};
+    state.writeSquare(E3);
+    EXPECT_EQ("e3", state.toString());
+    state.writeSquare(H6);
+    EXPECT_EQ("h6", state.toString());
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_Clear_NoneSet)
+{
+    EnPassantStateInfo state{};
+    state.writeSquare(B6);
+
+    state.clear();
+
+    EXPECT_FALSE(state);
+    EXPECT_EQ(NullSQ, state.readSquare());
+    EXPECT_TRUE(state.readBitboard().empty());
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_RawReadThenWrite_RoundTripsTheSquare)
+{
+    // make/unmake keep the raw byte in the undo and write it back.
+    EnPassantStateInfo state{};
+    state.writeSquare(G3);
+    EnPassantStateInfo restored{};
+
+    restored.write(state.read());
+
+    EXPECT_EQ(G3, restored.readSquare());
+    EXPECT_EQ(state.read(), restored.read());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ P ][ p ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(EnPassantStateFixture, EnPassant_Proxy_ReadsWhatTheStateHolds)
+{
+    // setup
+    auto editor = m_position.edit();
+    editor.placePieces(K, E1, P, D5, p, E5, k, E8);
+
+    // do
+    auto enPassant = editor.enPassant();
+    enPassant.writeSquare(E6);
+
+    // validate
+    EXPECT_TRUE(enPassant);
+    EXPECT_EQ(E6, enPassant.readSquare());
+    EXPECT_EQ(E5, enPassant.readTarget());
+    EXPECT_EQ(squares({ E6 }), enPassant.readBitboard());
+    EXPECT_EQ("e6", enPassant.toString());
+    EXPECT_EQ(m_position.read().enPassant().read(), enPassant.read());
+    EXPECT_EQ(computedHash(editor), editor.hash());
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_CapturePossible_OnlyWithAPawnBesideThePushedOne)
+{
+    // a pawn that double pushed to e4 can be taken by one on d4 or f4, not by one behind it or two files away.
+    const u64 besideOnD4 = squares({ D4 }).read();
+    const u64 besideOnF4 = squares({ F4 }).read();
+    const u64 behindOnE5 = squares({ E5 }).read();
+    const u64 twoFilesAway = squares({ C4 }).read();
+
+    EXPECT_TRUE(en_passant::capture_possible(besideOnD4, E4));
+    EXPECT_TRUE(en_passant::capture_possible(besideOnF4, E4));
+    EXPECT_FALSE(en_passant::capture_possible(behindOnE5, E4));
+    EXPECT_FALSE(en_passant::capture_possible(twoFilesAway, E4));
+}
+
+TEST_F(EnPassantStateFixture, EnPassant_CapturePossible_NoWrapAroundTheBoardEdge)
+{
+    // a pawn on the a file isn't beside one on the h file of the rank below or above.
+    EXPECT_FALSE(en_passant::capture_possible(squares({ H4 }).read(), A4));
+    EXPECT_FALSE(en_passant::capture_possible(squares({ A4 }).read(), H4));
+    EXPECT_FALSE(en_passant::capture_possible(squares({ H3 }).read(), A4));
+    EXPECT_FALSE(en_passant::capture_possible(squares({ A5 }).read(), H4));
+    EXPECT_TRUE(en_passant::capture_possible(squares({ B4 }).read(), A4));
+    EXPECT_TRUE(en_passant::capture_possible(squares({ G5 }).read(), H5));
+}
+
+////////////////////////////////////////////////////////////////
+// FEN round trips: a position built piece by piece is written as FEN, read back, and is the same position with the
+// same hash.
+class FenRoundTripFixture : public ::testing::Test {
+public:
+    Chessboard m_board;
+
+    // writes the board as FEN, expects it to be expected, reads it into a new board and expects the same position.
+    void expectRoundTrip(const std::string& expected)
+    {
+        std::string fen;
+        ASSERT_TRUE(io::fen_parser::serialize(m_board, fen));
+        EXPECT_EQ(expected, fen);
+
+        Chessboard read;
+        ASSERT_TRUE(io::fen_parser::deserialize(fen, read)) << fen;
+        EXPECT_TRUE(read.readPosition().copy() == m_board.readPosition().copy()) << fen;
+        EXPECT_EQ(m_board.readToPlay(), read.readToPlay()) << fen;
+        EXPECT_EQ(zobrist::computeBoardHash(read), read.readPosition().hash()) << fen;
+
+        std::string again;
+        ASSERT_TRUE(io::fen_parser::serialize(read, again));
+        EXPECT_EQ(fen, again);
+    }
+};
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_KingsOnly_RoundTrips)
+{
+    m_board.editPosition().placePieces(K, E1, k, E8);
+    expectRoundTrip("4k3/8/8/8/8/8/8/4K3 w - - 0 1");
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ k ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ K ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_KingsInOppositeCorners_EmptyRanksAreEights)
+{
+    m_board.editPosition().placePieces(K, A1, k, H8);
+    expectRoundTrip("7k/8/8/8/8/8/8/K7 w - - 0 1");
+}
+
+// 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+// 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
+// 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_StartingPositionBuiltPieceByPiece_TheStandardFen)
+{
+    m_board.editPosition().placePieces(r, A8, n, B8, b, C8, q, D8, k, E8, b, F8, n, G8, r, H8);
+    m_board.editPosition().placePieces(p, A7, p, B7, p, C7, p, D7, p, E7, p, F7, p, G7, p, H7);
+    m_board.editPosition().placePieces(P, A2, P, B2, P, C2, P, D2, P, E2, P, F2, P, G2, P, H2);
+    m_board.editPosition().placePieces(R, A1, N, B1, B, C1, Q, D1, K, E1, B, F1, N, G1, R, H1);
+    m_board.editPosition().castling().grantAll();
+    expectRoundTrip("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+}
+
+// 8 [ r ][ . ][ . ][ . ][ k ][ . ][ . ][ r ]
+// 7 [ p ][ . ][ p ][ p ][ q ][ p ][ b ][ . ]
+// 6 [ b ][ n ][ . ][ . ][ p ][ n ][ p ][ . ]
+// 5 [ . ][ . ][ . ][ P ][ N ][ . ][ . ][ . ]
+// 4 [ . ][ p ][ . ][ . ][ P ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ N ][ . ][ . ][ Q ][ . ][ p ]
+// 2 [ P ][ P ][ P ][ B ][ B ][ P ][ P ][ P ]
+// 1 [ R ][ . ][ . ][ . ][ K ][ . ][ . ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_KiwipeteBuiltPieceByPiece_RoundTrips)
+{
+    m_board.editPosition().placePieces(r, A8, k, E8, r, H8, p, A7, p, C7, p, D7, q, E7, p, F7, b, G7);
+    m_board.editPosition().placePieces(b, A6, n, B6, p, E6, n, F6, p, G6, P, D5, N, E5, p, B4, P, E4);
+    m_board.editPosition().placePieces(N, C3, Q, F3, p, H3, P, A2, P, B2, P, C2, B, D2, B, E2, P, F2);
+    m_board.editPosition().placePieces(P, G2, P, H2, R, A1, K, E1, R, H1);
+    m_board.editPosition().castling().grantAll();
+    expectRoundTrip("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+}
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ p ][ P ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_BlackToMoveWithEnPassant_KeepsTheSquareAndTheSide)
+{
+    // x: e3, black's d4 pawn can take on it.
+    m_board.editPosition().placePieces(K, E1, P, E4, p, D4, k, E8);
+    m_board.editPosition().enPassant().writeSquare(E3);
+    m_board.editState().whiteToMove = false;
+    m_board.editPosition().hash() = zobrist::updateBlackToMoveHash(m_board.readPosition().hash());
+    expectRoundTrip("4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1");
+}
+
+// 8 [ r ][ . ][ . ][ . ][ k ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ . ][ . ][ . ][ K ][ . ][ . ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_SomeCastlingRights_WrittenInKQkqOrder)
+{
+    m_board.editPosition().placePieces(R, A1, K, E1, R, H1, r, A8, k, E8, r, H8);
+    m_board.editPosition().castling().grantBlackQueenSide();
+    m_board.editPosition().castling().grantWhiteKingSide();
+    expectRoundTrip("r3k2r/8/8/8/8/8/8/R3K2R w Kq - 0 1");
+}
+
+// 8 [ Q ][ Q ][ Q ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ n ][ n ][ n ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_PromotedMaterial_ThreeQueensAndThreeKnights)
+{
+    m_board.editPosition().placePieces(Q, A8, Q, B8, Q, C8, k, E8, n, A1, n, B1, n, C1, K, E1);
+    expectRoundTrip("QQQ1k3/8/8/8/8/8/8/nnn1K3 w - - 0 1");
+}
+
+// 8 [ k ][ B ][ b ][ B ][ b ][ B ][ b ][ B ]
+// 7 [ B ][ b ][ B ][ b ][ B ][ b ][ B ][ b ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ K ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_FullRanksWithoutGaps_NoDigitsInThem)
+{
+    auto editor = m_board.editPosition();
+    editor.placePieces(k, A8, B, B8, b, C8, B, D8, b, E8, B, F8, b, G8, B, H8);
+    editor.placePieces(B, A7, b, B7, B, C7, b, D7, B, E7, b, F7, B, G7, b, H7);
+    editor.placePieces(K, H1);
+    expectRoundTrip("kBbBbBbB/BbBbBbBb/8/8/8/8/8/7K w - - 0 1");
+}
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_MoveCounters_WrittenAndReadBack)
+{
+    m_board.editPosition().placePieces(K, E1, k, E8);
+    m_board.editState().plyCount = 37;
+    m_board.editState().moveCount = 112;
+    expectRoundTrip("4k3/8/8/8/8/8/8/4K3 w - - 37 112");
+
+    Chessboard read;
+    ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/4K3 w - - 37 112", read));
+    EXPECT_EQ(37, read.readPlyCount());
+    EXPECT_EQ(112, read.readMoveCount());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(FenRoundTripFixture, Fen_BoardOnlyIntoAPositionEditor_SamePositionAsPlacing)
+{
+    // setup
+    Position placed;
+    placed.edit().placePieces(K, E1, k, E8);
+    Position read;
+
+    // do, the board part alone, no side to move, castling or en passant.
+    ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/4K3", read.edit()));
+
+    // validate
+    EXPECT_EQ(placed, read);
+}
+
 } // namespace ElephantTest
