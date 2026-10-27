@@ -36,7 +36,8 @@
  * the units are hand-set, which keeps the term linear for the tuner.
  *
  * Counted every evaluation, the king moves more often than the pawns: a few bit scans per file. The pieces' part of
- * king attack is counted by mobility's pass (KingZoneAttacks, mobility.hpp), which looks up their attacks anyway. The trace sees every term, the tuner fits the tables on them, the evaluation passes NoKingTrace.  */
+ * king attack is counted by mobility's pass (KingZoneAttacks, mobility.hpp), which looks up their attacks anyway. 
+ * The trace sees every term, the tuner fits the tables on them, the evaluation passes NoKingTrace.  */
 
 #pragma once
 
@@ -65,7 +66,6 @@ struct NoKingTrace {
 };
 
 namespace king_internals {
-
 // the relative rank, from us, of the pawn in pawns nearest our back rank, 0 when there's none. pawns are on one file.
 template<Set us>
 constexpr u32 nearestRelRank(u64 pawns) {

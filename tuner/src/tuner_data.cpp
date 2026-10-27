@@ -15,6 +15,7 @@
 #include <eval/passed_pawns.hpp>
 #include <eval/pawn_structure.hpp>
 #include <eval/pesto_accumulator.hpp>
+#include <eval/pieces.hpp>
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
 #include <search/search.hpp>
@@ -159,7 +160,8 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         }
 
         // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
-        // left behind, mobility's, pawn structure's, the passed pawn extras, king shelter & storm and king attack.
+        // left behind, mobility's, pawn structure's, the passed pawn extras, king shelter & storm, king attack and the
+        // piece terms.
         trace.clear();
         const PestoAccumulator traced = PestoAccumulator::computeFromScratch(context.position.read().material(), trace);
         if (!(traced == context.accumulator))
@@ -170,6 +172,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
         (void)passerScore(context.position.read().material(), pawns, trace);
         (void)kingSafetyScore(context.position.read().material(), trace);
         (void)kingAttackScore(context.position.read().material(), onKing, trace);
+        (void)pieceScore(context.position.read().material(), trace);
 
         // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
         Evaluator evaluator(context.position.read(), traced);

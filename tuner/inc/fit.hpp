@@ -74,6 +74,16 @@
  * (it lowered every piece's midgame value by ~60 that way, the kind of shift that cost Elo in the tables' retune).
  * Centred, mobility only says how much a free piece is worth over a hemmed in one. --free-mobility turns this off.
  *
+ * The piece square tables being tuned are kept centred the same way, each on the usage weighted average it started
+ * with rather than on 0: a table's average is part of what the piece is worth (PeSTO's knight table averages below 0,
+ * its material carries the rest). Fitted free, with material fixed, the tables moved their averages instead, by up to
+ * 175 centipawns in the endgame, re-pricing the pieces as a material fit would. Centred, a table keeps the piece's
+ * value and only learns where on the board the piece stands better or worse. --free-psqt turns this off.
+ *
+ * Values few positions use are fitted on noise: a connected pawn on the seventh rank, seen in 16k of 10M positions,
+ * went to 145 centipawns. --min-usage N keeps every value fewer than N positions use as it is. Centring then moves only
+ * the values that aren't kept, so a kept value stays exactly where it was.
+ *
  * Material is never tuned together with the piece square tables by default: adding the same amount to every square of
  * a piece's table is the same as adding it to the piece's material, the two can trade values forever without the
  * error changing. Squares no position uses (pawns on the first & last rank, a knight with 9 safe squares) get no
@@ -110,12 +120,19 @@ struct FitSettings {
 
     // mobility tables kept centred, their usage weighted average at 0, see "What's kept fixed" above.
     bool centreMobility = true;
+    // the tuned piece square tables kept centred on the usage weighted average they started with, see above.
+    bool centrePsqt = true;
+    // values fewer positions than this use are kept as they are, see above. 0 tunes every value.
+    std::size_t minUsage = 0;
 
     [[nodiscard]] bool tunes(params::Group group) const {
         return (tuned & bit(group)) != 0;
     }
     std::size_t threads = 1;
 };
+
+// how many of data's positions use each value, by params:: index.
+[[nodiscard]] std::vector<std::size_t> positionsUsing(const TunerData& data);
 
 // the error of the entries with these values at this K, phase 1's error with values instead of the static eval.
 [[nodiscard]] double fitError(const TunerData& data, const Values& values, double k, std::size_t threads);
