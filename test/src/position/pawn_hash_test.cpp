@@ -60,4 +60,19 @@ TEST(PawnHash, NoPawns_ScoresNothing) {
     EXPECT_EQ(S(0, 0), hashed(table, "4k3/8/8/8/8/8/8/R3K3 w - - 0 1"));
 }
 
+// without pawns nothing can drive a piece off, every 4th to 6th rank square is an outpost; the entry a position without
+// pawns finds before anything is written there says so too, as counted.
+TEST(PawnHash, NoPawns_UnwrittenEntryHasTheCountedOutposts) {
+    PawnHashTable table;
+    GameContext context;
+    io::fen_parser::deserialize("4k3/8/8/8/8/8/8/R3K3 w - - 0 1", context.editChessboard());
+    const auto& material = context.readChessPosition().material();
+    const PawnInfo& info = table.probe(material);
+    EXPECT_EQ(1u, table.hits());
+    EXPECT_EQ(pawnInfo(material).outpostsOf(Set::WHITE), info.outpostsOf(Set::WHITE));
+    EXPECT_EQ(pawnInfo(material).outpostsOf(Set::BLACK), info.outpostsOf(Set::BLACK));
+    EXPECT_EQ(UINT64_C(0x0000FFFFFF000000), info.outpostsOf(Set::WHITE));
+    EXPECT_EQ(UINT64_C(0x000000FFFFFF0000), info.outpostsOf(Set::BLACK));
+}
+
 }  // namespace ElephantTest

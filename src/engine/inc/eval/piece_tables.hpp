@@ -31,7 +31,11 @@
  *
  * Then fine-tuned on Elephant's own games, the same groups, kept values and centring as the rebalance (--min-usage
  * 6000 on elephant-positions-0.1, 1.2M positions from nyayo, K 1.2633): its held back error 1.23% lower, but
- * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.    */
+ * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.
+ *
+ * Outposts: then --tune pieces_outposts on E12.52-1M-D12-Resolved, K 1.1570, error 0.085239 -> 0.085194, held back
+ * 0.05% lower. On elephant-positions-0.1 the defended values came out close (knight 23/10, bishop 27/-4), held
+ * back 0.01% lower: the piece square tables already pay for most outpost squares.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -43,6 +47,14 @@ namespace evaluator_data
 // a side with two or more knights, bishops on both colours, two or more rooks; knight, bishop & rook.
 constexpr TaperedScore piecePair[3] = {
     S(   8,  13), S(  13,  56), S(  22,  -7),
+};
+
+// a knight or bishop on an outpost: undefended, defended by one of its own pawns.
+constexpr TaperedScore knightOutpost[2] = {
+    S(   6,  -7), S(  23,  16),
+};
+constexpr TaperedScore bishopOutpost[2] = {
+    S(   0,  -7), S(  27,  -9),
 };
 
 } // namespace evaluator_data

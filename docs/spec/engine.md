@@ -108,6 +108,7 @@ promotions.
 | king shelter & pawn storm: on the king's file and the two beside it, its own nearest pawn (shelter) and the enemy's (storm, blocked or not) | `eval/king_safety.hpp` | `eval/king_tables.hpp`, tuned | every evaluation |
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
 | piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
+| outposts: a knight or bishop on its 4th to 6th rank where no enemy pawn attacks or can attack after advancing, undefended or defended by its own pawn | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation, the squares cached by the pawns |
 | mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, hand-set | every evaluation, outside the taper |
 | tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
@@ -116,9 +117,10 @@ kings are on the board (search never evaluates without one), search adds tempo. 
 one a piece attacks that holds none of its own pieces and isn't attacked by an enemy pawn. Pawn terms are per pawn,
 from its own side: passed and connected by relative rank 2–7, isolated, doubled and backward by file folded onto a–d
 (a & h share a value), the extras by king distance 0–7 or relative rank. The structure depends on the pawns alone:
-`pawnInfo` returns its score and each side's passed pawns, and each search thread keeps a pawn hash
-(`eval/pawn_hash.hpp`, 2^14 entries) caching that by both pawn bitboards, an exact match. The extras depend on the
-pieces and read the cached passed pawns. The tuner and one off evaluations go without the cache; it changes no node
+`pawnInfo` returns its score, each side's passed pawns and each side's outpost squares, and each search thread keeps a
+pawn hash (`eval/pawn_hash.hpp`, 2^14 entries of 56 bytes) caching that by both pawn bitboards, an exact match; an
+entry not yet written holds the info of a position without pawns. The extras depend on the pieces and read the cached
+passed pawns, the outposts read the cached squares. The tuner and one off evaluations go without the cache; it changes no node
 count.
 
 King shelter & storm look at the king's file and the two beside it, moved in from the edge, and only at pawns on the
@@ -136,13 +138,16 @@ The tables are plain `constexpr` arrays of `S(mg, eg)` in `src/engine/inc/eval/*
 reads weights at runtime: there is no weights file, no tuning build and no option that changes them. A new value
 reaches the engine as a changed header in a commit, which moves the bench.
 
-| File | Tables | Values | Status (1.4 rebalance on the branch) |
+| File | Tables | Values | Status (1.4 cycle, on the branch) |
 |:--|:--|--:|:--|
 | `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's material and king table; the pawn to queen tables rebalanced with every term, each kept centred on its own average |
 | `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | rebalanced with every term, each table centred at 0 |
 | `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | rebalanced with every term |
 | `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm rebalanced with every term; the danger tuned in 1.3, its sparse tail made monotonic, kept since |
-| `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | rebalanced with every term |
+| `piece_tables.hpp` | `piecePair` (knight, bishop, rook); `knightOutpost`, `bishopOutpost` (undefended, defended) | 3 + 4 | the pairs rebalanced with every term; the outposts tuned with the rest kept |
+
+Every table rebalanced with every term was then fine-tuned on Elephant's own games (1.2M positions from nyayo), the
+same groups, kept values and centring, in 1.4.0-pieces.3.
 
 **ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
@@ -154,7 +159,7 @@ numbers replaced, written as `*.tuned.hpp`; copying one over the original is the
 values back untouched and checks the files come out byte for byte the same.
 
 The values are tuned in groups, `--tune` naming the ones that move while the rest stay as they are: `material`,
-`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`.
+`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`, `pieces_outposts`.
 The practice so far is to tune only the new group with everything else kept, then SPRT it, and at the end of a cycle
 the piece square table the new terms overlap together with them. Fitted together, the tables re-price the pieces: with
 material free its midgame values fell by a fifth, with material fixed the piece square tables moved their averages

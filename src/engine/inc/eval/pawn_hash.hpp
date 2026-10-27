@@ -17,11 +17,11 @@
 /**
  * @file pawn_hash.hpp
  * @brief A cache of pawnInfo by pawn structure. The pawns change on few moves, most positions a search evaluates
- * share their pawns with many others, so their score and passed pawns are looked up instead of counted again.
+ * share their pawns with many others, so their score, passed pawns and outposts are looked up instead of counted again.
  *
  * Each entry keeps both sides' pawn bitboards, a hit is an exact match and never someone else's info. An entry never
- * written holds no pawns, a score of 0 and no passed pawns, which is right for a position without pawns, there's no
- * empty marker.
+ * written holds no pawns and the info of a position without them, there's no empty marker: a position without pawns
+ * that finds it reads the same info it would count.
  * One table per search thread, nothing is shared or locked.    */
 
 #pragma once
@@ -36,10 +36,10 @@
 
 class PawnHashTable {
 public:
-    // 2^14 entries of 40 bytes, 640 KB.
+    // 2^14 entries of 56 bytes, 896 KB.
     static constexpr u32 c_indexBits = 14;
 
-    PawnHashTable() : m_entries(std::size_t{ 1 } << c_indexBits) {}
+    PawnHashTable() : m_entries(std::size_t{ 1 } << c_indexBits, unwritten()) {}
 
     // pawnInfo of material, from the table when its pawns are there, counted and stored when not.
     [[nodiscard]] const PawnInfo& probe(const MaterialPositionMask& material) {
@@ -56,7 +56,7 @@ public:
     }
 
     void clear() {
-        std::fill(m_entries.begin(), m_entries.end(), Entry{});
+        std::fill(m_entries.begin(), m_entries.end(), unwritten());
         m_hits = 0;
         m_misses = 0;
     }
@@ -70,6 +70,10 @@ private:
         u64 black = 0;
         PawnInfo info;
     };
+    static_assert(sizeof(Entry) == 56, "An entry grew, the table's size above is out of date.");
+
+    // an entry before anything is written to it: no pawns, and their info, every 4th to 6th rank square an outpost.
+    static Entry unwritten() { return { 0, 0, pawnInfo(MaterialPositionMask{}) }; }
 
     // both bitboards multiplied and the top bits of their mix taken, every pawn moves them. Pawns sit in the middle
     // ranks, a plain mask of the bitboards would put most structures in few entries.

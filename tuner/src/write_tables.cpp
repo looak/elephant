@@ -143,6 +143,17 @@ std::string rewritePieceTables(const std::string& header, const std::vector<Tape
     }
     std::string result = header;
     replaceBody(result, "constexpr TaperedScore piecePair[3]", body + newline, newline);
+
+    // one line each, undefended then defended.
+    const char* names[2] = { "knightOutpost", "bishopOutpost" };
+    for (u32 pieceId = 1; pieceId <= 2; ++pieceId) {
+        std::string line = "    ";
+        for (u32 defended = 0; defended < 2; ++defended) {
+            const TaperedScore score = values[params::outpost(pieceId, defended)];
+            line += std::format("{}S({:4},{:4}),", defended == 0 ? "" : " ", mg_score(score), eg_score(score));
+        }
+        replaceBody(result, std::format("constexpr TaperedScore {}[2]", names[pieceId - 1]), line + newline, newline);
+    }
     return result;
 }
 

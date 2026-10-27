@@ -104,24 +104,56 @@ TaperedScore sideScore(const MaterialPositionMask& material, u64& passed, Trace&
     return score;
 }
 
+// every square of bits and the squares in front of them on their files, seen from us.
+template<Set us>
+constexpr u64 fillAhead(u64 bits) {
+    if constexpr (us == Set::WHITE) {
+        bits |= bits << 8;
+        bits |= bits << 16;
+        bits |= bits << 32;
+    }
+    else {
+        bits |= bits >> 8;
+        bits |= bits >> 16;
+        bits |= bits >> 32;
+    }
+    return bits;
+}
+
+// our outposts: squares on our 4th to 6th ranks no enemy pawn attacks or can attack after advancing, a piece there can
+// only be driven off by pieces.
+template<Set us>
+constexpr u64 outpostSquares(const MaterialPositionMask& material) {
+    constexpr Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
+    constexpr u64 ranks = us == Set::WHITE
+                        ? board_constants::rankMasks[3] | board_constants::rankMasks[4] | board_constants::rankMasks[5]
+                        : board_constants::rankMasks[2] | board_constants::rankMasks[3] | board_constants::rankMasks[4];
+    return ranks & ~fillAhead<them>(attacks::pawnAttacks<them>(material.pawns<them>().read()));
+}
+
 } // namespace pawn_internals
 
 // What a pawn structure gives the evaluation, all of it from the pawns alone, so it can be cached by them (see
-// pawn_hash.hpp): the score, and each side's passed pawns for passerScore (see passed_pawns.hpp).
+// pawn_hash.hpp): the score, each side's passed pawns for passerScore (see passed_pawns.hpp) and each side's outposts
+// for pieceScore (see pieces.hpp).
 struct PawnInfo {
     TaperedScore score = S(0, 0);
-    u64 passed[2] = { 0, 0 };  // by Set, white 0 & black 1
+    u64 passed[2] = { 0, 0 };    // by Set, white 0 & black 1
+    u64 outposts[2] = { 0, 0 };  // by Set, see pawn_internals::outpostSquares
 
     [[nodiscard]] constexpr u64 passedOf(Set set) const { return passed[static_cast<size_t>(set)]; }
+    [[nodiscard]] constexpr u64 outpostsOf(Set set) const { return outposts[static_cast<size_t>(set)]; }
 };
 
 /**
- * Pawn structure of both sides, white's minus black's, midgame & endgame packed, and the passed pawns.    */
+ * Pawn structure of both sides, white's minus black's, midgame & endgame packed, passed pawns and outposts.    */
 template<typename Trace>
 [[nodiscard]] PawnInfo pawnInfo(const MaterialPositionMask& material, Trace& trace) {
     PawnInfo info;
     info.score = pawn_internals::sideScore<Set::WHITE>(material, info.passed[0], trace)
                - pawn_internals::sideScore<Set::BLACK>(material, info.passed[1], trace);
+    info.outposts[0] = pawn_internals::outpostSquares<Set::WHITE>(material);
+    info.outposts[1] = pawn_internals::outpostSquares<Set::BLACK>(material);
     return info;
 }
 

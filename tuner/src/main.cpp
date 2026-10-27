@@ -400,13 +400,22 @@ void printPawns(const std::vector<TaperedScore>& after, const std::vector<std::s
     }
 }
 
-// the piece pairs as tuned, with how many positions use each.
+// the piece pairs and outposts as tuned, with how many positions use each.
 void printPieces(const std::vector<TaperedScore>& after, const std::vector<std::size_t>& used) {
     std::cout << "  pairs        midgame / endgame centipawns (positions using it)\n";
     for (u32 pieceId = 1; pieceId <= 3; ++pieceId) {
         const u32 index = tuner::params::piecePair(pieceId);
         std::cout << std::format("    {:7} {}/{} ({})\n", c_pieceNames[pieceId], mg_score(after[index]),
                                  eg_score(after[index]), used[index]);
+    }
+    std::cout << "  outposts     undefended, defended: midgame / endgame centipawns (positions using it)\n";
+    for (u32 pieceId = 1; pieceId <= 2; ++pieceId) {
+        std::cout << std::format("    {:7}", c_pieceNames[pieceId]);
+        for (u32 defended = 0; defended < 2; ++defended) {
+            const u32 index = tuner::params::outpost(pieceId, defended);
+            std::cout << std::format(" {}/{} ({})", mg_score(after[index]), eg_score(after[index]), used[index]);
+        }
+        std::cout << '\n';
     }
 }
 
@@ -463,7 +472,7 @@ int run(Options& options) {
     if (settings.tunes(tuner::params::Group::Pawns_Passed) || settings.tunes(tuner::params::Group::Pawns_Structure)
         || settings.tunes(tuner::params::Group::Pawns_PassedExtras))
         printPawns(after, used);
-    if (settings.tunes(tuner::params::Group::Pieces_Pairs))
+    if (settings.tunes(tuner::params::Group::Pieces_Pairs) || settings.tunes(tuner::params::Group::Pieces_Outposts))
         printPieces(after, used);
     const bool unchanged = writeTables(options.outDir, after);
 

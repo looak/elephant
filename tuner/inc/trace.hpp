@@ -47,7 +47,7 @@ enum class Group : u8 {
     Material,
     Psqt_Pawn, Psqt_Knight, Psqt_Bishop, Psqt_Rook, Psqt_Queen, Psqt_King,
     Mobility, Pawns_Passed, Pawns_Structure, Pawns_PassedExtras, King_Shelter, King_Attack, Pieces_Pairs,
-    Count
+    Pieces_Outposts, Count
 };
 struct GroupInfo { Group group; std::string_view name; };
 inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupInfos = {{
@@ -64,7 +64,8 @@ inline constexpr std::array<GroupInfo, static_cast<size_t>(Group::Count)> groupI
     { Group::Pawns_PassedExtras, "pawns_passed_extras" },
     { Group::King_Shelter, "king_shelter" },
     { Group::King_Attack, "king_attack" },
-    { Group::Pieces_Pairs, "pieces_pairs" }
+    { Group::Pieces_Pairs, "pieces_pairs" },
+    { Group::Pieces_Outposts, "pieces_outposts" }
 }};
 
 constexpr u32 bit(Group group) { return 1u << static_cast<u32>(group); }
@@ -110,7 +111,10 @@ constexpr u32 kingDangerOffset = kingStormBlockedOffset + 8;
 
 // piece pairs: knight, bishop & rook.
 constexpr u32 piecePairOffset = kingDangerOffset + 64;
-constexpr u32 count = piecePairOffset + 3;
+
+// a knight, then a bishop, on an outpost, undefended & defended by a pawn.
+constexpr u32 outpostOffset = piecePairOffset + 3;
+constexpr u32 count = outpostOffset + 4;
 
 // where each group's values start, in Group order, and count where the last one ends.
 constexpr u32 groupCount = static_cast<u32>(Group::Count);
@@ -118,7 +122,7 @@ constexpr std::array<u32, groupCount + 1> groupStarts = {
     materialOffset,
     psqtOffset, psqtOffset + 64, psqtOffset + 2 * 64, psqtOffset + 3 * 64, psqtOffset + 4 * 64, psqtOffset + 5 * 64,
     mobilityOffset, pawnsPassedOffset, pawnsStructureOffset, pawnsPassedExtrasOffset, kingShelterOffset, kingDangerOffset,
-    piecePairOffset, count
+    piecePairOffset, outpostOffset, count
 };
 
 constexpr u32 material(u32 pieceId) { return materialOffset + pieceId; }
@@ -143,6 +147,8 @@ constexpr u32 kingStormBlocked(u32 rank) { return kingStormBlockedOffset + rank;
 constexpr u32 kingDanger(u32 units) { return kingDangerOffset + units; }
 // piece index knight 1 to rook 3.
 constexpr u32 piecePair(u32 pieceId) { return piecePairOffset + pieceId - 1; }
+// piece index knight 1 or bishop 2, defended 0 or 1.
+constexpr u32 outpost(u32 pieceId, u32 defended) { return outpostOffset + (pieceId - 1) * 2 + defended; }
 
 constexpr Group groupOf(u32 index) {
     u32 group = 0;
@@ -160,7 +166,8 @@ static_assert(groupOf(connected(6)) == Group::Pawns_Structure && groupOf(passedO
 static_assert(groupOf(passedRookBehind(1)) == Group::Pawns_PassedExtras && groupOf(kingShelter(0, 0)) == Group::King_Shelter);
 static_assert(groupOf(kingStormBlocked(7)) == Group::King_Shelter && groupOf(kingDanger(0)) == Group::King_Attack);
 static_assert(groupOf(kingDanger(63)) == Group::King_Attack && groupOf(piecePair(1)) == Group::Pieces_Pairs);
-static_assert(groupOf(count - 1) == Group::Pieces_Pairs && piecePair(3) == count - 1);
+static_assert(groupOf(piecePair(3)) == Group::Pieces_Pairs && groupOf(outpost(1, 0)) == Group::Pieces_Outposts);
+static_assert(groupOf(count - 1) == Group::Pieces_Outposts && outpost(2, 1) == count - 1);
 
 // the engine's current values in this layout, what tuning starts from.
 inline std::vector<TaperedScore> current() {
@@ -201,6 +208,10 @@ inline std::vector<TaperedScore> current() {
         values[kingDanger(units)] = evaluator_data::kingDanger[units];
     for (u32 pieceId = 1; pieceId <= 3; ++pieceId)
         values[piecePair(pieceId)] = evaluator_data::piecePair[pieceId - 1];
+    for (u32 defended = 0; defended < 2; ++defended) {
+        values[outpost(1, defended)] = evaluator_data::knightOutpost[defended];
+        values[outpost(2, defended)] = evaluator_data::bishopOutpost[defended];
+    }
     return values;
 }
 
@@ -269,6 +280,7 @@ public:
 
     // see NoPieceTrace in pieces.hpp.
     void piecePair(u32 pieceId, i32 sign) { add(params::piecePair(pieceId), sign); }
+    void outpost(u32 pieceId, u32 defended, i32 sign) { add(params::outpost(pieceId, defended), sign); }
 
     void clear() {
         for (u32 index : m_touched) {
