@@ -1815,4 +1815,356 @@ TEST_F(MaterialMaskFixture, CaptureScore_EmptyOrOwnPieceOnTheTarget_NoCapture)
     EXPECT_FALSE(m_material.computeCaptureScore<Set::BLACK>(squares({ C2 }), knightId).has_value());
 }
 
+////////////////////////////////////////////////////////////////
+// Material topology: the squares a side's material threatens, by piece and all together. Kings are tested in
+// material_topology_test.cpp.
+class MaterialThreatsFixture : public ::testing::Test {
+public:
+    Position m_position;
+
+    template<Set us>
+    MaterialTopology<us> topology() const { return m_position.read().material().topology<us>(); }
+    Bitboard occupancy() const { return m_position.read().material().combine(); }
+};
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ x ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 2 [ P ][ . ][ . ][ . ][ . ][ . ][ . ][ P ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Pawn_WhiteOnTheAAndHFiles_ThreatenInwardsWithoutWrappingAround)
+{
+    m_position.edit().placePieces(P, A2, P, H2);
+    EXPECT_EQ(squares({ B3, G3 }), topology<Set::WHITE>().computeThreatenedSquaresPawnBulk());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ p ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ p ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ x ][ . ][ x ][ . ][ p ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Pawn_Black_ThreatenTheRankBelowWithoutWrappingAround)
+{
+    m_position.edit().placePieces(p, A7, p, E5, p, H4);
+    EXPECT_EQ(squares({ B6, D4, F4, G3 }), topology<Set::BLACK>().computeThreatenedSquaresPawnBulk());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ x ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ P ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Pawn_WhiteOnTheSeventhRank_ThreatensTheEighth)
+{
+    m_position.edit().placePieces(P, G7);
+    EXPECT_EQ(squares({ F8, H8 }), topology<Set::WHITE>().computeThreatenedSquaresPawnBulk());
+    EXPECT_TRUE(topology<Set::BLACK>().computeThreatenedSquaresPawnBulk().empty());
+}
+
+TEST_F(MaterialThreatsFixture, Pawn_NoPawns_NoThreats)
+{
+    EXPECT_TRUE(topology<Set::WHITE>().computeThreatenedSquaresPawnBulk().empty());
+    EXPECT_TRUE(topology<Set::BLACK>().computeThreatenedSquaresPawnBulk().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ n ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ N ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Knight_InTheCorners_TwoSquaresEach)
+{
+    m_position.edit().placePieces(N, A1, n, H8);
+    EXPECT_EQ(squares({ B3, C2 }), topology<Set::WHITE>().computeThreatenedSquaresKnightBulk());
+    EXPECT_EQ(squares({ F7, G6 }), topology<Set::BLACK>().computeThreatenedSquaresKnightBulk());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ x ][ . ][ x ][ . ][ x ][ . ]
+// 5 [ . ][ x ][ . ][ x ][ . ][ x ][ . ][ x ]
+// 4 [ . ][ . ][ . ][ N ][ . ][ N ][ . ][ . ]
+// 3 [ . ][ x ][ . ][ x ][ . ][ x ][ . ][ x ]
+// 2 [ . ][ . ][ x ][ . ][ x ][ . ][ x ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Knight_TwoKnights_TheUnionOfTheirJumps)
+{
+    // the two knights share e2 & e6.
+    m_position.edit().placePieces(N, D4, N, F4);
+    const Bitboard expected = squares({ C2, E2, G2, B3, D3, F3, H3, B5, D5, F5, H5, C6, E6, G6 });
+    EXPECT_EQ(expected, topology<Set::WHITE>().computeThreatenedSquaresKnightBulk());
+}
+
+TEST_F(MaterialThreatsFixture, Knight_NoKnights_NoThreats)
+{
+    EXPECT_TRUE(topology<Set::BLACK>().computeThreatenedSquaresKnightBulk().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ x ][ . ][ . ][ . ][ P ][ . ][ . ]
+// 5 [ . ][ . ][ x ][ . ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ B ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ x ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ p ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Bishop_BlockedByAnOwnAndAnEnemyPiece_StopsOnEachBlocker)
+{
+    // x: the squares the bishop threatens, f6 & b2 too, the pieces it runs into.
+    m_position.edit().placePieces(B, D4, P, F6, p, B2);
+    const Bitboard expected = squares({ E5, F6, C5, B6, A7, E3, F2, G1, C3, B2 });
+    EXPECT_EQ(expected, topology<Set::WHITE>().computeThreatenedSquaresBishopBulk(occupancy()));
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ N ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 4 [ x ][ x ][ x ][ R ][ x ][ x ][ p ][ . ]
+// 3 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Rook_BlockedByAnOwnAndAnEnemyPiece_StopsOnEachBlocker)
+{
+    // x: the squares the rook threatens, d6 & g4 too, the pieces it runs into.
+    m_position.edit().placePieces(R, D4, N, D6, p, G4);
+    const Bitboard expected = squares({ D5, D6, D3, D2, D1, E4, F4, G4, C4, B4, A4 });
+    EXPECT_EQ(expected, topology<Set::WHITE>().computeThreatenedSquaresRookBulk(occupancy()));
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Rook_EmptyBoardCorner_FourteenSquares)
+{
+    m_position.edit().placePieces(r, H8);
+    const Bitboard threats = topology<Set::BLACK>().computeThreatenedSquaresRookBulk(occupancy());
+    EXPECT_EQ(14, threats.count());
+    EXPECT_FALSE(threats[H8]);
+    EXPECT_TRUE(threats[A8]);
+    EXPECT_TRUE(threats[H1]);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ p ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ Q ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ P ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Queen_ThreatsEqualARookAndABishopOnTheSameSquare)
+{
+    // setup, the same pieces with a rook and then a bishop in place of the queen.
+    m_position.edit().placePieces(Q, E4, p, B7, P, G2);
+    Position asRookAndBishop;
+    asRookAndBishop.edit().placePieces(R, E4, p, B7, P, G2);
+    Position bishopOnly;
+    bishopOnly.edit().placePieces(B, E4, p, B7, P, G2);
+
+    // do
+    const Bitboard queen = topology<Set::WHITE>().computeThreatenedSquaresQueenBulk(occupancy());
+    const Bitboard rook = asRookAndBishop.read().material().topology<Set::WHITE>().computeThreatenedSquaresRookBulk(occupancy());
+    const Bitboard bishop = bishopOnly.read().material().topology<Set::WHITE>().computeThreatenedSquaresBishopBulk(occupancy());
+
+    // validate
+    EXPECT_EQ(rook | bishop, queen);
+    EXPECT_TRUE(queen[B7]);
+    EXPECT_TRUE(queen[G2]);
+    EXPECT_FALSE(queen[A8]);
+    EXPECT_FALSE(queen[H1]);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ b ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Queen_NoQueens_NoThreatsEvenWithBishopsAndRooks)
+{
+    m_position.edit().placePieces(b, C1, r, H8);
+    EXPECT_TRUE(topology<Set::BLACK>().computeThreatenedSquaresQueenBulk(occupancy()).empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ x ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 3 [ x ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ . ][ x ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ B ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Diagonals_LoneBishop_ItsTwoDiagonals)
+{
+    m_position.edit().placePieces(B, C1);
+    EXPECT_EQ(squares({ B2, A3, D2, E3, F4, G5, H6 }), topology<Set::WHITE>().computeThreatenedDiagonals());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Diagonals_LoneRook_None)
+{
+    m_position.edit().placePieces(R, A1);
+    EXPECT_TRUE(topology<Set::WHITE>().computeThreatenedDiagonals().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ q ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Diagonals_Queen_SameAsABishopOnHerSquare)
+{
+    // a black bishop on d4 in place of the queen.
+    m_position.edit().placePieces(q, D4);
+    Position bishop;
+    bishop.edit().placePieces(b, D4);
+    EXPECT_EQ(bishop.read().material().topology<Set::BLACK>().computeThreatenedSquaresBishopBulk(occupancy()),
+        topology<Set::BLACK>().computeThreatenedDiagonals());
+}
+
+// 8 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ x ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ x ][ x ][ x ][ K ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Orthogonals_RookBehindItsOwnKing_StopsOnTheKing)
+{
+    // x: the rook's squares, e1 too, the king it runs into.
+    m_position.edit().placePieces(R, A1, K, E1);
+    EXPECT_EQ(squares({ A2, A3, A4, A5, A6, A7, A8, B1, C1, D1, E1 }), topology<Set::WHITE>().computeThreatenedOrthogonals());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ B ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, Orthogonals_LoneBishop_None)
+{
+    m_position.edit().placePieces(B, C1);
+    EXPECT_TRUE(topology<Set::WHITE>().computeThreatenedOrthogonals().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ x ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ x ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ x ][ . ][ . ]
+// 3 [ x ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 2 [ x ][ x ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 1 [ K ][ x ][ B ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, ThreatenedSquares_IncludeMaterial_AddsTheSidesOwnSquares)
+{
+    // x: the king's & bishop's squares; with material a1 & c1 too.
+    m_position.edit().placePieces(K, A1, B, C1);
+    const Bitboard threats = squares({ A2, B2, B1, A3, D2, E3, F4, G5, H6 });
+    EXPECT_EQ(threats, (topology<Set::WHITE>().computeThreatenedSquares<false, true>()));
+    EXPECT_EQ(threats | squares({ A1, C1 }), (topology<Set::WHITE>().computeThreatenedSquares<true, false>()));
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ . ][ . ][ k ][ x ][ x ][ x ][ x ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, ThreatenedSquares_PierceKing_TheRookSeesThroughTheEnemyKing)
+{
+    // x: the squares behind the black king, threatened only when the rook pierces it.
+    m_position.edit().placePieces(R, A1, k, D1);
+    const Bitboard blocked = topology<Set::WHITE>().computeThreatenedSquares<true, false>();
+    const Bitboard pierced = topology<Set::WHITE>().computeThreatenedSquares<true, true>();
+    EXPECT_TRUE(blocked[D1]);
+    EXPECT_EQ(squares({ E1, F1, G1, H1 }), pierced & ~blocked);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ q ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ K ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, ThreatenedSquares_PierceKing_BlackQueenSeesThroughTheWhiteKing)
+{
+    m_position.edit().placePieces(q, H8, K, E5);
+    const Bitboard blocked = topology<Set::BLACK>().computeThreatenedSquares<true, false>();
+    const Bitboard pierced = topology<Set::BLACK>().computeThreatenedSquares<true, true>();
+    EXPECT_FALSE(blocked[D4]);
+    EXPECT_TRUE(pierced[D4]);
+    EXPECT_TRUE(pierced[A1]);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ K ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialThreatsFixture, ThreatenedSquares_EnemyPieces_NotCountedForUs)
+{
+    m_position.edit().placePieces(K, A1, r, H8);
+    EXPECT_EQ(squares({ A2, B1, B2 }), (topology<Set::WHITE>().computeThreatenedSquares<false, true>()));
+}
+
 } // namespace ElephantTest
