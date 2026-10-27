@@ -1434,4 +1434,385 @@ TEST_F(PositionHashFixture, Hash_BlackPromotions_MakeAndUnmakeMatchComputed)
     }
 }
 
+////////////////////////////////////////////////////////////////
+// The material mask: two set bitboards and six piece bitboards, read and written together.
+class MaterialMaskFixture : public ::testing::Test {
+public:
+    MaterialPositionMask m_material{};
+};
+
+TEST_F(MaterialMaskFixture, Mask_Default_EmptyAndNoPieceAnywhere)
+{
+    EXPECT_TRUE(m_material.empty());
+    EXPECT_TRUE(m_material.combine().empty());
+    for (u8 index = 0; index < 64; ++index)
+        EXPECT_FALSE(m_material.pieceAt(static_cast<Square>(index)).isValid());
+}
+
+TEST_F(MaterialMaskFixture, Mask_EveryPieceOnEverySquare_PieceAtReadsItBack)
+{
+    for (ChessPiece piece : c_allPieces) {
+        for (u8 index = 0; index < 64; ++index) {
+            const Square sqr = static_cast<Square>(index);
+            const Bitboard mask = squares({ sqr });
+            m_material.write(mask, piece.getSet(), piece.index());
+            ASSERT_EQ(piece, m_material.pieceAt(sqr)) << piece.toString() << to_string(sqr);
+            m_material.clear(mask, piece.getSet(), piece.index());
+            ASSERT_TRUE(m_material.empty()) << piece.toString() << to_string(sqr);
+        }
+    }
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ N ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_WriteWhiteKnight_EveryAccessorAgrees)
+{
+    // do
+    m_material.write<Set::WHITE, knightId>(squares({ C3 }));
+
+    // validate
+    const Bitboard expected = squares({ C3 });
+    EXPECT_EQ(expected, (m_material.read<Set::WHITE, knightId>()));
+    EXPECT_EQ(expected, m_material.read(Set::WHITE, knightId));
+    EXPECT_EQ(expected, m_material.read<Set::WHITE>(knightId));
+    EXPECT_EQ(expected, m_material.read(knightId));
+    EXPECT_EQ(expected, m_material.knights<Set::WHITE>());
+    EXPECT_EQ(expected, m_material.whiteKnights());
+    EXPECT_EQ(expected, m_material.knights());
+    EXPECT_EQ(expected, m_material.white());
+    EXPECT_EQ(expected, m_material.set(0));
+    EXPECT_EQ(expected, m_material.combine(Set::WHITE));
+    EXPECT_EQ(expected, m_material.combine<Set::WHITE>());
+    EXPECT_EQ(expected, m_material.combine());
+    EXPECT_TRUE(m_material.blackKnights().empty());
+    EXPECT_TRUE(m_material.black().empty());
+    EXPECT_TRUE(m_material.read(Set::BLACK, knightId).empty());
+}
+
+// 8 [ r ][ . ][ . ][ . ][ . ][ . ][ . ][ r ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ R ][ . ][ . ][ . ][ . ][ . ][ . ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_RooksOfBothColours_EachColourReadsOnlyItsOwn)
+{
+    // setup
+    m_material.write<Set::WHITE>(squares({ A1, H1 }), rookId);
+    m_material.write<Set::BLACK, rookId>(squares({ A8, H8 }));
+
+    // validate
+    EXPECT_EQ(squares({ A1, H1 }), m_material.whiteRooks());
+    EXPECT_EQ(squares({ A8, H8 }), m_material.blackRooks());
+    EXPECT_EQ(squares({ A8, H8 }), m_material.rooks<Set::BLACK>());
+    EXPECT_EQ(squares({ A1, H1, A8, H8 }), m_material.rooks());
+    EXPECT_EQ(squares({ A8, H8 }), m_material.set(1));
+    EXPECT_EQ(squares({ A8, H8 }), m_material.combine(Set::BLACK));
+    EXPECT_EQ(squares({ A1, H1, A8, H8 }), m_material.combine());
+}
+
+// 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+// 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
+// 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_StartingPosition_EveryPieceAccessorPerColour)
+{
+    // setup
+    Position position;
+    chess_positions::defaultStartingPosition(position.edit());
+    const MaterialPositionMask& material = position.read().material();
+
+    // validate
+    EXPECT_EQ(squares({ E1 }), material.king<Set::WHITE>());
+    EXPECT_EQ(squares({ E8 }), material.king<Set::BLACK>());
+    EXPECT_EQ(squares({ E1, E8 }), material.kings());
+    EXPECT_EQ(squares({ D1 }), material.queens<Set::WHITE>());
+    EXPECT_EQ(squares({ D1, D8 }), material.queens());
+    EXPECT_EQ(squares({ C8, F8 }), material.bishops<Set::BLACK>());
+    EXPECT_EQ(squares({ C1, F1, C8, F8 }), material.bishops());
+    EXPECT_EQ(squares({ B1, G1 }), material.knights<Set::WHITE>());
+    EXPECT_EQ(squares({ A8, H8 }), material.rooks<Set::BLACK>());
+    EXPECT_EQ(Bitboard(0x000000000000ff00ull), material.pawns<Set::WHITE>());
+    EXPECT_EQ(Bitboard(0x00ff000000000000ull), material.pawns<Set::BLACK>());
+    EXPECT_EQ(Bitboard(0x00ff00000000ff00ull), material.pawns());
+    EXPECT_EQ(Bitboard(0x000000000000ffffull), material.white());
+    EXPECT_EQ(Bitboard(0xffff000000000000ull), material.black());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ P ][ P ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_ClearOnePawnOfTwo_TheOtherStays)
+{
+    // setup
+    m_material.write<Set::WHITE, pawnId>(squares({ D4, E4 }));
+
+    // do
+    m_material.clear<Set::WHITE, pawnId>(squares({ D4 }));
+
+    // validate
+    EXPECT_EQ(squares({ E4 }), m_material.whitePawns());
+    EXPECT_EQ(squares({ E4 }), m_material.white());
+    EXPECT_FALSE(m_material.pieceAt(D4).isValid());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ q ][ n ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_ClearASquareWhateverStandsThere_ClearsEveryPieceBoard)
+{
+    // setup
+    m_material.write<Set::BLACK, queenId>(squares({ F6 }));
+    m_material.write<Set::BLACK, knightId>(squares({ G6 }));
+
+    // do, the black-only clear without a piece type takes f6 off every piece board.
+    m_material.clear<Set::BLACK>(squares({ F6 }));
+
+    // validate
+    EXPECT_TRUE(m_material.queens().empty());
+    EXPECT_EQ(squares({ G6 }), m_material.blackKnights());
+    EXPECT_EQ(squares({ G6 }), m_material.black());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ b ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ b ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ B ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ B ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_ClearWithASetAndPieceType_OnlyThatColourAndType)
+{
+    // setup, white & black bishops on the long diagonal.
+    m_material.write<Set::WHITE, bishopId>(squares({ A1, B2 }));
+    m_material.write<Set::BLACK, bishopId>(squares({ G7, H8 }));
+
+    // do
+    m_material.clear<Set::BLACK>(squares({ G7 }), bishopId);
+
+    // validate
+    EXPECT_EQ(squares({ A1, B2 }), m_material.whiteBishops());
+    EXPECT_EQ(squares({ H8 }), m_material.blackBishops());
+}
+
+// 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
+// 7 [ p ][ p ][ p ][ p ][ p ][ p ][ p ][ p ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ P ][ P ][ P ][ P ][ P ][ P ][ P ][ P ]
+// 1 [ R ][ N ][ B ][ Q ][ K ][ B ][ N ][ R ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_ClearAll_EmptyAgain)
+{
+    Position position;
+    chess_positions::defaultStartingPosition(position.edit());
+    m_material = position.read().material();
+    ASSERT_FALSE(m_material.empty());
+
+    m_material.clear();
+
+    EXPECT_TRUE(m_material.empty());
+    EXPECT_EQ(MaterialPositionMask{}, m_material);
+    for (u8 pieceId = 0; pieceId < 6; ++pieceId)
+        EXPECT_TRUE(m_material.read(pieceId).empty()) << int(pieceId);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ x ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_Equality_ADifferenceInAnyOfTheEightBoardsMakesThemUnequal)
+{
+    // x: d4, where each piece in turn is written into one mask while the other stays empty.
+    MaterialPositionMask other{};
+    EXPECT_EQ(m_material, other);
+
+    for (ChessPiece piece : c_allPieces) {
+        other.clear();
+        other.write(squares({ D4 }), piece.getSet(), piece.index());
+        EXPECT_FALSE(m_material == other) << piece.toString();
+    }
+
+    // same set board, other piece board.
+    m_material.write<Set::WHITE, rookId>(squares({ D4 }));
+    other.clear();
+    other.write<Set::WHITE, queenId>(squares({ D4 }));
+    EXPECT_FALSE(m_material == other);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ x ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_EditProxy_WritesAndClearsBothBoards)
+{
+    // do
+    auto editor = m_material.edit<Set::BLACK, pawnId>();
+    editor[B5] = true;
+
+    // validate
+    EXPECT_EQ(p, m_material.pieceAt(B5));
+    EXPECT_TRUE(std::as_const(editor)[B5]);
+
+    // do, unset through the runtime overload.
+    auto runtimeEditor = m_material.edit(Set::BLACK, PieceType::PAWN);
+    runtimeEditor[B5] = false;
+
+    // validate
+    EXPECT_TRUE(m_material.empty());
+    EXPECT_TRUE(m_material.pawns().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ x ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, Mask_EditProxyAssignment_SwapsWhichBoardsItEdits)
+{
+    // setup
+    MutableMaterialProxy knights = m_material.edit<Set::WHITE, knightId>();
+    MutableMaterialProxy bishops = m_material.edit<Set::BLACK, bishopId>();
+
+    // do
+    knights = bishops;
+    knights[E5] = true;
+
+    // validate
+    EXPECT_EQ(b, m_material.pieceAt(E5));
+    EXPECT_TRUE(m_material.knights().empty());
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ q ][ . ][ r ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ P ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, CaptureScore_PawnTakesQueenOrRook_TheQueenScoresHigher)
+{
+    // setup
+    m_material.write<Set::WHITE, pawnId>(squares({ E4 }));
+    m_material.write<Set::BLACK, queenId>(squares({ D5 }));
+    m_material.write<Set::BLACK, rookId>(squares({ F5 }));
+
+    // do
+    const std::optional<i16> takesQueen = m_material.computeCaptureScore<Set::WHITE>(squares({ D5 }), pawnId);
+    const std::optional<i16> takesRook = m_material.computeCaptureScore<Set::WHITE>(squares({ F5 }), pawnId);
+
+    // validate, most valuable victim, least valuable attacker.
+    ASSERT_TRUE(takesQueen.has_value());
+    ASSERT_TRUE(takesRook.has_value());
+    EXPECT_GT(*takesQueen, *takesRook);
+    EXPECT_GT(*takesRook, 0);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ p ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ . ][ Q ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, CaptureScore_QueenTakesPawn_NegativeScore)
+{
+    m_material.write<Set::WHITE, queenId>(squares({ E4 }));
+    m_material.write<Set::BLACK, pawnId>(squares({ D5 }));
+
+    const std::optional<i16> score = m_material.computeCaptureScore<Set::WHITE>(squares({ D5 }), queenId);
+
+    ASSERT_TRUE(score.has_value());
+    EXPECT_LT(*score, 0);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ n ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ B ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, CaptureScore_BlackKnightTakesBishop_EqualValuesScoreZero)
+{
+    m_material.write<Set::BLACK, knightId>(squares({ D4 }));
+    m_material.write<Set::WHITE, bishopId>(squares({ C2 }));
+
+    const std::optional<i16> score = m_material.computeCaptureScore<Set::BLACK>(squares({ C2 }), knightId);
+
+    ASSERT_TRUE(score.has_value());
+    EXPECT_EQ(0, *score);
+}
+
+// 8 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 7 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 6 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 5 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 4 [ . ][ . ][ . ][ n ][ . ][ . ][ . ][ . ]
+// 3 [ . ][ . ][ . ][ . ][ . ][ . ][ . ][ . ]
+// 2 [ . ][ . ][ b ][ . ][ . ][ . ][ . ][ . ]
+// 1 [ . ][ . ][ x ][ . ][ . ][ . ][ . ][ . ]
+//     A    B    C    D    E    F    G    H
+TEST_F(MaterialMaskFixture, CaptureScore_EmptyOrOwnPieceOnTheTarget_NoCapture)
+{
+    // setup, a black knight on d4 and a black bishop on c2.
+    m_material.write<Set::BLACK, knightId>(squares({ D4 }));
+    m_material.write<Set::BLACK, bishopId>(squares({ C2 }));
+
+    // validate, c1 is empty and c2 holds black's own bishop.
+    EXPECT_FALSE(m_material.computeCaptureScore<Set::BLACK>(squares({ C1 }), knightId).has_value());
+    EXPECT_FALSE(m_material.computeCaptureScore<Set::BLACK>(squares({ C2 }), knightId).has_value());
+}
+
 } // namespace ElephantTest
