@@ -43,7 +43,7 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 | `ucinewgame` | clears the transposition table and the game's history |
 | `position startpos\|fen <fen> [moves ...]` | |
 | `go ...` | `depth`, `nodes`, `mate`, `movetime`, `wtime`, `btime`, `winc`, `binc`, `movestogo`, `infinite`, `ponder`, `searchmoves` |
-| `stop`, `ponderhit`, `quit`, `debug on\|off`, `register` | `register` is accepted and ignored |
+| `stop`, `ponderhit`, `quit` (or `exit`), `debug on\|off`, `register` | `register` is accepted and ignored |
 | `bench` | runs the bench, see below |
 | `buildinfo` | non standard, see below |
 | `print` | non standard, prints the board |
