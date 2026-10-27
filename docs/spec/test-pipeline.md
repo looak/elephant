@@ -20,13 +20,16 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `hooks/prepare-commit-msg` | the `bench N nodes` line in commit messages |
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
+| `test/coverage.ps1` (`coverage.sh` with gcc) | the unit tests' coverage, an HTML report in `build-cov/coverage/`, nothing recorded ([tests.md](tests.md#coverage)) |
 
 ## Scope
 
 **Does:** deterministic, repeatable checks run on the developer's machine, with history along the commit graph.
 
 **Doesn't:** Elo or speed (OpenBench), live games (nyayo shows them, uwanja plays them), CI results. CI (`ci.yml`)
-runs only the unit tests and perft, correctness checks whose results are thrown away; no EPD tier runs in CI.
+runs only the unit tests and perft, correctness checks whose results are thrown away; the unit tests' coverage is
+`coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it keeps one number, the line
+coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
 
 ## Current
 

@@ -1,7 +1,8 @@
 name: CI
 
 # Correctness only, minutes not hours: the unit tests and perft. Strength (EPD tiers, SPRT, gauntlets) is measured
-# locally & on OpenBench, see test/smoke.sh. Nothing here is recorded, results are thrown away.
+# locally & on OpenBench, see test/smoke.sh. Coverage is coverage.yml, run by hand. Nothing here is recorded, results
+# are thrown away.
 on:
   push:
     branches: [ main ]

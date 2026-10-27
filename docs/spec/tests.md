@@ -12,13 +12,14 @@ reader, is tested here too, and checked against python-chess by a script in the 
 
 | Binary | ctest label | Holds | Takes | Runs in | Why there |
 |:--|:--|:--|:--|:--|:--|
-| `ElephantTest` | `unit` | ~410 unit tests (~435 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
+| `ElephantTest` | `unit` | ~530 unit tests (~580 with the indexer's), shallow perft of every perft position, search expectations to depth 12 | ~6 s | CI `unit` on every push & PR to main; smoke step 1; the edit loop | function-level correctness, fast enough to run after every change |
 | `ElephantSuite` | `suite` | `PerftFixture.ReferencePositions` (~0.8 billion nodes), `PerftFixture.DeepPositions` (~22 billion), `SearchDepthFixture.*` (moves found only deep in a search) | ~15 s on 24 threads, perft on every core | CI `perft` (perft only); smoke step 3 (all of it) | perft is the authority on move generation and deterministic, so CI gates on it; the deep searches move with the evaluation, so only smoke runs them |
 
 Both come from `elephant_add_test_executable()` in `test/CMakeLists.txt`, which registers every test with ctest under
 its label (`ctest -L unit`). `ELEPHANT_BUILD_TEST_SUITE=OFF` leaves `ElephantSuite` out. `ElephantTest` includes
 the indexer's tests only when `ELEPHANT_BUILD_INDEXER` is on (off by default, phant-indexer needs it) and exceptions
-are enabled; the engine's tests are the same either way.
+are enabled; the engine's tests are the same either way. `ELEPHANT_COVERAGE` instruments `ElephantTest` and what it
+tests for a coverage report, below.
 
 ## Scope
 
@@ -26,8 +27,8 @@ are enabled; the engine's tests are the same either way.
 PGN, evaluation symmetry, SEE, the transposition table, time management, UCI command handling, and a few search
 expectations (mate in N, the zugzwang positions); and prove phant-indexer's entries, input and position hashes.
 
-**Doesn't:** measure strength or speed, or keep history. Results go to the console and ctest only; history of EPD
-positions is the test pipeline's and nyayo's job ([test-pipeline.md](test-pipeline.md)).
+**Doesn't:** measure strength or speed, or keep history, coverage included. Results go to the console and ctest
+only; history of EPD positions is the test pipeline's and nyayo's job ([test-pipeline.md](test-pipeline.md)).
 
 ## Current
 
@@ -49,6 +50,13 @@ nodes, `ElephantSuite`'s reference positions up to 250 million, the deep positio
   generator. Only the staged "tusk" generator is left since the legacy one was removed in 1.0; the harness stays for
   the next one. `PerftShallow` runs every perft position in milliseconds, and checks that `divide`'s per move counts
   add up to the perft count.
+- **The position** (`position/position_test.cpp`), a fixture per area: the basics (empty, one of each piece, the
+  starting position, copies & equality), edit access (validated & unvalidated placing and clearing, the square
+  operator, the material editor, `restoreState`, readers), board iteration, hashing (the kept hash equals one
+  computed from scratch after every kind of edit, and through make & unmake of castling, en passant and promotions),
+  the material mask, the squares the material threatens, castling & en passant state, and FEN round trips of
+  positions built piece by piece. Each test that sets up a position draws the board above it, white uppercase, black
+  lowercase, `x` on the squares the test is about.
 - **Evaluation symmetry**: `evaluation_test.cpp` flips each position (ranks mirrored, colours swapped) and expects the
   same score from the other side.
 - **Search expectations** (`search_test.cpp`) search to a fixed depth, 12 by default, and expect a move.
@@ -109,6 +117,27 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
   depth 22 (searched to 23, ~5 s); its comment records the depth history. Raise the depth when new pruning or
   evaluation pushes it out of reach.
 
+### Coverage
+
+`ELEPHANT_COVERAGE=ON` (`cmake/options.cmake`, off by default) links `coverage_flags` (`cmake/coverage.cmake`) into
+`engine`, `cli`, `PhantIndexerLib` and `ElephantTest`, never googletest, the compression libraries or `third_party`:
+`--coverage` with gcc, `-fprofile-instr-generate -fcoverage-mapping` with clang and clang-cl (clang-cl's link gets
+the profile runtime's directory), both with atomic counters (`-fprofile-update=atomic`), the search's threads race on
+them otherwise. It turns link time optimization off; the scripts build Debug so lines map one to one.
+`ElephantSuite` is never measured, too slow instrumented. `cli` is instrumented but `ElephantTest` doesn't link it,
+so it isn't in the report.
+
+- `test/coverage.ps1 [build dir]` (Windows, clang-cl, loads Visual Studio's developer environment when needed):
+  configures `build-cov` (ignored by git) with coverage, Debug, `ELEPHANT_BUILD_INDEXER=ON`, the suite & tuner off,
+  builds `ElephantTest`, runs `ctest -L unit` with `LLVM_PROFILE_FILE` set (a pool of profiles the test processes
+  merge into), merges them with `llvm-profdata` and writes `llvm-cov show`'s HTML to `build-cov/coverage/index.html`,
+  then prints `llvm-cov report`. Exit code: the tests'.
+- `test/coverage.sh [build dir]` (Linux, gcc, needs gcovr): the same with gcovr, throw branches left out, HTML to
+  `<build dir>/coverage/index.html` and the text summary to the console.
+
+Both leave out sources under `test/`, `third_party/` and `_deps/`. Nothing is recorded or uploaded, and no number
+gates anything.
+
 ### Where they run
 
 | Where | How | Kept |
@@ -117,6 +146,8 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 | `test/smoke.sh`, locally before a merge | `ElephantTest --gtest_brief=1`, then all of `ElephantSuite`, then phant-indexer against python-chess | pass/fail in the smoke summary, logs in `logs/` |
 | CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off, warnings as errors | thrown away |
 | CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."`, warnings as errors | thrown away |
+| CI `coverage.yml`, run by hand on any branch, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away; on `main` the line coverage replaces `coverage.json` on the `badges` branch, the README's badge |
+| `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `build-cov/coverage/` |
 
 ## Interfaces
 
@@ -124,4 +155,5 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 |:--|:--|
 | in | the engine library (`engine` target), `res/` for test data |
 | out | gtest console output & exit code, ctest labels `unit` & `suite` |
+| out | coverage: an HTML report in `build-cov/coverage/`, a text summary on CI's summary page, `coverage.json` (shields.io endpoint format: `schemaVersion`, `label`, `message` the line percent, `color`) on the `badges` branch for the README |
 

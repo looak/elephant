@@ -74,6 +74,7 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/pawn_structure_test.cpp
     ${TEST_SRC_DIR}/position/piece_test.cpp
     ${TEST_SRC_DIR}/position/pieces_test.cpp
+    ${TEST_SRC_DIR}/position/position_test.cpp
     ${TEST_SRC_DIR}/position/position_proxy_test.cpp
     ${TEST_SRC_DIR}/position/tapered_score_test.cpp
     ${TEST_SRC_DIR}/position/square_notation_test.cpp
