@@ -27,8 +27,8 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 **Does:** deterministic, repeatable checks run on the developer's machine, with history along the commit graph.
 
 **Doesn't:** Elo or speed (OpenBench), live games (nyayo shows them, uwanja plays them), CI results. CI (`ci.yml`)
-runs only the unit tests and perft, correctness checks whose results are thrown away, and the unit tests' coverage
-(job `coverage`, gcc & gcovr, a summary on the job's page, no upload); no EPD tier runs in CI.
+runs only the unit tests and perft, correctness checks whose results are thrown away; the unit tests' coverage is
+`coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page, no upload); no EPD tier runs in CI.
 
 ## Current
 
