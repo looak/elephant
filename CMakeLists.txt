@@ -21,7 +21,8 @@ include(cmake/version.cmake)
 project(ElephantGambit VERSION ${VAR_ELEPHANT_VERSION} LANGUAGES CXX)
 set(ElephantGambit_VERSION_PRERELEASE "${VAR_ELEPHANT_VERSION_PRERELEASE}")
 set(ElephantGambit_VERSION_SUFFIX "")
-message(STATUS "## Elephant Gambit version: ${VAR_ELEPHANT_VERSION_FULL}")
+set(ElephantGambit_CODENAME "${VAR_ELEPHANT_CODENAME}")
+message(STATUS "## Elephant Gambit version: ${VAR_ELEPHANT_VERSION_FULL} \"${VAR_ELEPHANT_CODENAME}\"")
 
 include(GNUInstallDirs)
 include(cmake/options.cmake)
@@ -43,12 +44,16 @@ add_compile_definitions(SPDLOG_ACTIVE_LEVEL=${SPDLOG_ACTIVE_LEVEL})
 message(STATUS "## Precompile log level: ${LOG_LEVEL}")
 
 include(cmake/warnings.cmake)
+include(cmake/coverage.cmake)
 
 # Link time optimization for optimized builds. Attack table & ray lookups live in .cpp files and are only inlined
-# across translation units with LTO, without it every slider lookup is a function call.
+# across translation units with LTO, without it every slider lookup is a function call. Off for coverage, inlining
+# across files blurs which line ran.
 include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_OUTPUT LANGUAGES CXX)
-if(IPO_SUPPORTED)
+if(ELEPHANT_COVERAGE)
+    message(STATUS "## Link time optimization: OFF (ELEPHANT_COVERAGE)")
+elseif(IPO_SUPPORTED)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
     message(STATUS "## Link time optimization: ON (Release, RelWithDebInfo)")

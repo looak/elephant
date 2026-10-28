@@ -20,6 +20,15 @@ std::string shortCommit()
     return commit().substr(0, 7) + (ELEPHANT_GAMBIT_GIT_DIRTY ? "-dirty" : "");
 }
 
+std::string formatVersion(std::string_view version, std::string_view codename)
+{
+    if (codename.empty())
+        return std::string(version);
+    return std::format("{} \"{}\"", version, codename);
+}
+
+std::string versionWithCodename() { return formatVersion(ELEPHANT_GAMBIT_VERSION_FULL, ELEPHANT_GAMBIT_CODENAME); }
+
 std::vector<std::pair<std::string, std::string>> entries()
 {
 #if defined(__clang__)
@@ -44,6 +53,7 @@ std::vector<std::pair<std::string, std::string>> entries()
 
     return {
         { "version", ELEPHANT_GAMBIT_VERSION_FULL },
+        { "codename", ELEPHANT_GAMBIT_CODENAME },
         { "commit", commit() },
         { "dirty", ELEPHANT_GAMBIT_GIT_DIRTY ? "true" : "false" },
         { "branch", ELEPHANT_GAMBIT_GIT_BRANCH },

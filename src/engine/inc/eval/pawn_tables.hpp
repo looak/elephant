@@ -24,7 +24,18 @@
  * and mobility kept (--tune psqt_pawn,pawns_passed,pawns_structure,pawns_passed_extras on E12.52-1M-D12-Resolved,
  * K 1.1324, 1000 passes at rate 1, error 0.086746 -> 0.086180, held back positions 0.65% lower). First fitted against
  * PeSTO's own pawn table: the structure terms (K 1.1537, held back 1.56% lower), then the passed pawn extras with the
- * passed table (K 1.1269, 0.72% lower).    */
+ * passed table (K 1.1269, 0.72% lower).
+ *
+ * Rebalanced in 1.4, every term fitted together but material, the king's table and kingDanger (--tune psqt_pawn,
+ * psqt_knight, psqt_bishop, psqt_rook, psqt_queen, mobility, pawns_passed, pawns_structure, pawns_passed_extras,
+ * king_shelter, pieces_pairs --min-usage 50000 on E12.52-1M-D12-Resolved, K 1.1889, 1000 passes at rate 1, error
+ * 0.085192 -> 0.084398, held back 0.87% lower). Each tuned piece square table kept centred on its own average, so
+ * the pieces keep their values and only the shapes moved; the 120 values fewer than 50k positions use kept as they
+ * were.
+ *
+ * Then fine-tuned on Elephant's own games, the same groups, kept values and centring as the rebalance (--min-usage
+ * 6000 on elephant-positions-0.1, 1.2M positions from nyayo, K 1.2633): its held back error 1.23% lower, but
+ * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -35,54 +46,54 @@ namespace evaluator_data
 
 // a passed pawn, relative rank 2 to 7.
 constexpr TaperedScore passedPawn[6] = {
-    S( -12, -31), S( -12, -20), S(   1,  11), S(  33,  41), S(  67,  74), S(  49, -12),
+    S( -25, -23), S( -27, -10), S(   4,  11), S(  50,  32), S(  84,  78), S(  91,  -7),
 };
 
 // an isolated pawn, file a & h to d & e.
 constexpr TaperedScore isolatedPawn[4] = {
-    S(  10,  -2), S(  -6, -10), S(  -9, -12), S( -10, -16),
+    S(  -9,   4), S(  -5, -12), S(  -9,  -5), S( -12, -16),
 };
 
 // a doubled pawn, one for each pawn with one of its own in front of it, file a & h to d & e.
 constexpr TaperedScore doubledPawn[4] = {
-    S( -33, -34), S( -13, -19), S(  -4,  -9), S( -10,  -7),
+    S( -13, -39), S(  13, -38), S(  -4, -17), S( -13, -11),
 };
 
 // a backward pawn, file a & h to d & e.
 constexpr TaperedScore backwardPawn[4] = {
-    S(   2, -14), S(  -2, -17), S(  -4, -18), S(  -4, -22),
+    S(   2, -16), S(  -6, -19), S( -16, -12), S( -15, -22),
 };
 
 // a connected pawn, beside or defended by one of its own, relative rank 2 to 7.
 constexpr TaperedScore connectedPawn[6] = {
-    S(   1,  -1), S(  14,   4), S(  13,   4), S(  15,  12), S(  34,  42), S( 200,  16),
+    S(  -2,  -2), S(  12,   9), S(  17,   8), S(  20,  19), S(  35,  62), S( 200,  16),
 };
 
 // passed pawn extras, see passed_pawns.hpp.
 
 // a passed pawn, by how far its own king is from it, 0 to 7 squares (0 can't happen).
 constexpr TaperedScore passedOwnKing[8] = {
-    S(   0,   0), S(  24,  17), S(  -3,  10), S( -11,  -4), S(  -6, -15), S(  -1, -19), S(  24, -29), S(  21, -44),
+    S(   0,   0), S(  21,  18), S(   8,   7), S(  -6,  -8), S(  -8, -20), S(   6, -26), S(  22, -27), S(  17, -39),
 };
 
 // a passed pawn, by how far the enemy king is from it, 0 to 7 squares (0 can't happen).
 constexpr TaperedScore passedEnemyKing[8] = {
-    S(   0,   0), S( -13, -48), S(  13,   4), S(   6,  25), S(  10,  34), S(  10,  42), S(  -8,  54), S( -21,  64),
+    S(   0,   0), S( -72, -19), S( -12,   1), S( -11,  25), S(  13,  30), S(  24,  33), S(  15,  40), S(  16,  34),
 };
 
 // a passed pawn with a piece on the square in front of it, relative rank 2 to 7.
 constexpr TaperedScore passedBlocked[6] = {
-    S( -18,  -9), S( -20,   7), S( -20,  -7), S( -16, -13), S(  -9, -38), S(  -7, -35),
+    S(   4,  -5), S(  -3,  -1), S( -28,  -1), S( -26,  -4), S( -25, -10), S( -14, -35),
 };
 
 // a passed pawn with nothing in front of it up to the promotion square, relative rank 2 to 7.
 constexpr TaperedScore passedFreePath[6] = {
-    S( -10,   4), S( -16,   2), S( -18,   6), S( -19,  12), S( -26,  32), S(   0,  31),
+    S( -12,   5), S(  -6,   1), S( -15,  13), S( -14,  23), S( -15,  46), S(  45,  41),
 };
 
 // a rook behind a passed pawn on its file, nothing between them: its own side's rook, the enemy's.
 constexpr TaperedScore passedRookBehind[2] = {
-    S( -11,   0), S( -20, -15),
+    S(  -5,  20), S( -12, -30),
 };
 
 } // namespace evaluator_data

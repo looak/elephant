@@ -3,7 +3,8 @@ name: Release
 # Builds the UCI engine (the OpenBench makefile's binary) for Windows & Linux at three x86-64 levels and attaches it to
 # a GitHub release when one is published. By hand it builds any branch or tag into workflow artifacts, attaches them
 # to the release of that tag when asked, and builds phant-indexer (nyayo's game reader, CMake's PhantIndexer) too when
-# asked; a release doesn't carry it.
+# asked; a release doesn't carry it. When version.txt has a codename (line 2) the release is titled
+# <version> "<codename>".
 on:
   release:
     types: [published]
@@ -166,3 +167,32 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: gh release upload "$REF" "$BINARY" --clobber
+
+  # a release with a codename is titled <version> "<codename>", both from version.txt at the tag: line 1 and line 2.
+  # A release without one keeps the title it was published with.
+  title:
+    runs-on: ubuntu-24.04
+    env:
+      REF: ${{ github.event.release.tag_name || inputs.ref }}
+      ATTACH: ${{ github.event_name == 'release' || inputs.attach }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ env.REF }}
+
+    - name: Title the release
+      if: env.ATTACH == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        version="$(head -n 1 version.txt | tr -d '\r[:space:]')"
+        codename="$(sed -n 2p version.txt | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+        if [ -z "$codename" ]; then
+          echo "no codename in version.txt, the title stays"
+          exit 0
+        fi
+        title="$version \"$codename\""
+        echo "titling the release of $REF: $title"
+        gh release edit "$REF" --title "$title"

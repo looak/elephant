@@ -101,7 +101,7 @@ TEST(EvaluationPesto, PawnAdvancementIsRewarded)
     EXPECT_EQ(evaluate(blackA2) - evaluate(blackA7), -(a7 - a2) + pawnsEndgame(blackA2) - pawnsEndgame(blackA7));
 }
 
-// At full phase only the midgame tables count, knight g1 is -19 and f3 is 17. The move also changes the knight's
+// At full phase only the midgame tables count, the knight's table at g1 & f3. The move also changes the knight's
 // mobility, its midgame part is added on.
 TEST(EvaluationPesto, MidgameTablesAtFullPhase)
 {
@@ -110,8 +110,11 @@ TEST(EvaluationPesto, MidgameTablesAtFullPhase)
     const i32 start = evaluate(startFen);
     const i32 knightF3 = evaluate(knightF3Fen);
     EXPECT_EQ(start, 0);
+    // the tables have A8 at index 0, a white piece reads them flipped; g1 is square 6, f3 square 21.
+    const i32 g1 = mg_score(evaluator_data::pestoTables[knightId][evaluator_data::flip(6)]);
+    const i32 f3 = mg_score(evaluator_data::pestoTables[knightId][evaluator_data::flip(21)]);
     const i32 mobilityChange = mobilityMidgame(knightF3Fen) - mobilityMidgame(startFen);
-    EXPECT_EQ(knightF3 - start, 17 - (-19) + mobilityChange);
+    EXPECT_EQ(knightF3 - start, f3 - g1 + mobilityChange);
 }
 
 TEST(EvaluationPesto, GamePhase)

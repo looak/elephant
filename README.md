@@ -16,7 +16,8 @@
 <div align="center">
 
 # 
-[![CI][ci-badge]][ci-link] </br>
+[![CI][ci-badge]][ci-link]
+[![coverage][coverage-badge]][coverage-link] </br>
 [![latest][release-badge]][release-link]
 [![commits][commits-badge]][commits-link] 
 ![commit-activity-badge]</br>
@@ -187,6 +188,8 @@ Either run the output binary `ElephantTest` after build or browse to `.\build\` 
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. The runner's `--nodes`, `--depth`, `--movetime`, `--threads` and `--hash` override the settings for experiments. Every position searched is recorded, `test/smoke.sh` compares the run with the nearest ancestor commit's position by position, see [test/RESULTS.md](test/RESULTS.md).
 
+`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `build-cov` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `build-cov/coverage/index.html`. The Coverage workflow (`coverage.yml`, Actions > Coverage > Run workflow) prints the same summary on its page, it runs only by hand. Run on `main` it also updates the coverage badge above: line coverage, in `coverage.json` on the `badges` branch, which holds only the latest.
+
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 
 ### Bench
@@ -218,6 +221,7 @@ For the versions available, see the [tags on this repository](https://github.com
 * **Alexander Loodin Ek** - *Initial work* - [looak](https://github.com/looak)
 
 [ci-link]:              https://github.com/looak/elephant/actions/workflows/ci.yml
+[coverage-link]:        https://github.com/looak/elephant/actions/workflows/coverage.yml
 [license-link]:         https://github.com/looak/elephant/blob/main/LICENSE
 [release-link]:         https://github.com/looak/elephant/releases/latest
 [commits-link]:         https://github.com/looak/elephant/commits/main
@@ -238,6 +242,7 @@ For the versions available, see the [tags on this repository](https://github.com
 
 
 [ci-badge]:             https://img.shields.io/github/actions/workflow/status/looak/elephant/ci.yml?label=ci&logo=github&style=for-the-badge
+[coverage-badge]:       https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Flooak%2Felephant%2Fbadges%2Fcoverage.json&logo=github&style=for-the-badge
 [license-badge]:        https://img.shields.io/github/license/looak/elephant?style=flat-square
 [release-badge]:        https://img.shields.io/github/v/release/looak/elephant?style=flat-square
 [commits-badge]:        https://img.shields.io/github/commits-since/looak/elephant/latest?style=flat-square

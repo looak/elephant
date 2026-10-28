@@ -47,7 +47,7 @@ void position(std::ostream& output, PositionReader reader) {
     byte prevRank = 0xFF;
     do {
         if (prevRank != posItr.rank()) {
-            ranks[posItr.rank()] << "\n " << (int)(posItr.rank() + 1) << "  ";
+            ranks[posItr.rank()] << "\n " << (posItr.rank() + 1) << "  ";
         }
 
         ChessPiece cp = posItr.get();

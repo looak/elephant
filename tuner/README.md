@@ -2,7 +2,7 @@
 
 The offline tuner for Elephant's evaluation. It takes positions from real games, each labelled with the game's
 result, and adjusts the evaluation's numbers until the evaluation predicts those results as well as it can. The output
-is new copies of `pesto_tables.hpp`, `mobility_tables.hpp`, `pawn_tables.hpp` and `king_tables.hpp`, ready to drop
+is new copies of `pesto_tables.hpp`, `mobility_tables.hpp`, `pawn_tables.hpp`, `king_tables.hpp` and `piece_tables.hpp`, ready to drop
 into the engine.
 
 - [How evaluation tuning works](#how-evaluation-tuning-works), the idea in general
@@ -119,7 +119,7 @@ flowchart TD
     end
 
     P2 --> W["Rewrite the engine's headers<br/>with the new numbers (write_tables.cpp)"]
-    W --> O[/"pesto_tables.tuned.hpp<br/>mobility_tables.tuned.hpp<br/>pawn_tables.tuned.hpp<br/>king_tables.tuned.hpp"/]
+    W --> O[/"pesto_tables.tuned.hpp<br/>mobility_tables.tuned.hpp<br/>pawn_tables.tuned.hpp<br/>king_tables.tuned.hpp<br/>piece_tables.tuned.hpp"/]
 ```
 
 ### Phase 0: preparing the data
@@ -140,7 +140,7 @@ flowchart LR
     C & PH & OFF --> ENT["TunerEntry"]
 ```
 
-The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 646 in all, each with a
+The values are laid out at fixed indexes (`params::` in [`trace.hpp`](inc/trace.hpp)), 649 in all, each with a
 midgame and an endgame number:
 
 | Group                 | Indexes   | What                                                                       |
@@ -153,6 +153,7 @@ midgame and an endgame number:
 | `pawns_passed_extras` | 480–509   | passed pawns by own & enemy king distance 0–7, blocked & free path by rank 2–7, own & enemy rook behind |
 | `king_shelter`        | 510–581   | king shelter & unblocked storm by file folded onto a–d × no pawn & rank 2–7 (8 each), blocked storm by rank |
 | `king_attack`         | 582–645   | king danger by attack units 0–63 (unit weights hand-set in `king_tables.hpp`) |
+| `pieces_pairs`        | 646–648   | knight pair, bishop pair & rook pair                                       |
 
 A group is the unit `--tune` switches on or off, its parts are only where each term's values sit inside it. A new
 group is an entry in `params::Group`, a name in `groupInfos` and a start in `groupStarts`; the `static_assert`s on
@@ -218,6 +219,12 @@ flowchart TD
 - **Mobility is kept centred.** After every step, each piece's mobility table is shifted so its usage-weighted average
   is 0. Otherwise the table's average acts as a second material value, and the fit uses it to re-price the pieces (it
   lowered every piece's midgame value by about 60 that way). `--free-mobility` turns centring off.
+- **The tuned piece square tables are kept centred** on the usage-weighted average each starts with. A table's
+  average is part of what its piece is worth, and fitted together with everything else the tables moved their
+  averages by up to 175 centipawns in the endgame, re-pricing the pieces. Centred, a table only learns where its piece
+  stands better or worse. `--free-psqt` turns this off.
+- **Rarely used values can be kept.** `--min-usage N` leaves every value fewer than N positions use as it is; a value
+  fitted on a few thousand positions is fitted on noise. Centring then moves only the values that aren't kept.
 - **Material and PSQT don't tune together by default.** Adding the same amount to every square of a table is the same
   as adding it to the piece's value. The two would trade back and forth without changing the error.
 
@@ -228,7 +235,7 @@ thread count.
 
 The tuned values are rounded to whole centipawns, the form the engine stores them in. The tuner prints the rounded
 error too, so you can see what rounding costs. Then it rewrites the engine's own `pesto_tables.hpp`,
-`mobility_tables.hpp`, `pawn_tables.hpp` and `king_tables.hpp`, replacing only the numbers inside the tables and keeping comments and
+`mobility_tables.hpp`, `pawn_tables.hpp`, `king_tables.hpp` and `piece_tables.hpp`, replacing only the numbers inside the tables and keeping comments and
 layout, and saves them as `*.tuned.hpp` in `--out`. Copying one over the engine's file is the change; the comment at
 the top of the table file is where to note the run (dataset, K, passes, error before and after).
 
@@ -241,21 +248,23 @@ the writer itself (exit code 4 if they don't).
 
 ```
 ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]
-              [--tune LIST] [--out DIR] [--held-back N] [--free-mobility]
+              [--tune LIST] [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]
 ```
 
 | Option            | Default         | Meaning                                                      |
 |-------------------|-----------------|--------------------------------------------------------------|
-| `dataset`         | (required)      | one position per line: FEN and result (`[1.0]`, `c9 "1-0";`, or bare `1-0`) |
+| `dataset`         | (required)      | one position per line: FEN and result (`[1.0]`, `c9 "1-0";`, or bare `1-0`; a number from 0 to 1 is a result too, `[0.75]` for an average) |
 | `--limit`         | all             | only the first N positions                                   |
 | `--threads`       | all cores       | threads to use                                               |
 | `--leave`         | 0               | cores to keep free, taken off `--threads`                    |
 | `--epochs`        | 1000            | passes of the fit; 0 only checks the writer                  |
 | `--rate`          | 1.0             | Adam's step, roughly centipawns moved per pass               |
-| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt` (or `psqt_pawn` … `psqt_king`), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack` |
+| `--tune`          | `psqt,mobility` | groups the fit moves, comma separated, any of `material`, `psqt` (or `psqt_pawn` … `psqt_king`), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs` |
 | `--out`           | `.`             | folder for the `*.tuned.hpp` files                           |
 | `--held-back`     | 20              | every Nth position is kept out of the fit, 0 for none        |
 | `--free-mobility` | off             | don't keep mobility's tables centred                         |
+| `--free-psqt`     | off             | don't keep the tuned piece square tables centred             |
+| `--min-usage`     | 0               | keep the values fewer than N positions use as they are       |
 
 | Exit code | Meaning                                          |
 |-----------|--------------------------------------------------|

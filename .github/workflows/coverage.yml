@@ -1,0 +1,49 @@
+name: Coverage
+
+# What the unit tests reach, run by hand (Actions > Coverage > Run workflow) on any branch: ElephantTest built with
+# gcc's --coverage (ELEPHANT_COVERAGE, Debug, phant-indexer in), gcovr's line, function & branch summary of src/ &
+# indexer/ on the run's summary page. Not on pushes, it builds the indexer's dependencies in Debug for a number nothing
+# gates on. test/coverage.ps1 & test/coverage.sh write the full HTML report locally.
+#
+# Run on main, the line coverage also goes to the README's badge: coverage.json in shields.io's endpoint format, the
+# only file on the badges branch, force pushed as a single commit, so only the latest number is kept.
+on:
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Debug -DELEPHANT_COVERAGE=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TUNER=OFF
+
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --parallel --target ElephantTest
+
+    - name: Unit tests
+      working-directory: ${{github.workspace}}/build
+      run: ctest -L unit -j 4 --output-on-failure
+
+    - name: Coverage summary
+      run: |
+        pipx install gcovr
+        { echo '```'; gcovr --root ${{github.workspace}} --object-directory ${{github.workspace}}/build --exclude '(.*/)?(test|third_party|_deps)/' --exclude-throw-branches --txt --print-summary --json-summary ${{github.workspace}}/summary.json; echo '```'; } >> $GITHUB_STEP_SUMMARY
+
+    - name: Badge
+      if: github.ref == 'refs/heads/main'
+      run: |
+        python3 - <<'EOF'
+        import json
+        percent = json.load(open("summary.json"))["line_percent"]
+        color = next(c for floor, c in ((90, "brightgreen"), (80, "green"), (70, "yellowgreen"), (60, "yellow"), (0, "red")) if percent >= floor)
+        json.dump({"schemaVersion": 1, "label": "coverage", "message": f"{percent:.1f}%", "color": color}, open("coverage.json", "w"))
+        EOF
+        mkdir badge && mv coverage.json badge/ && cd badge
+        git init -q -b badges && git add coverage.json
+        git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "coverage $(python3 -c 'import json;print(json.load(open("coverage.json"))["message"])') at ${GITHUB_SHA::10}"
+        git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" badges

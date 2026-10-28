@@ -29,7 +29,10 @@
 #include <vector>
 
 #include <io/pgn_parser.hpp>
+#include <move/move.hpp>
 #include <system/platform.hpp>
+
+class Chessboard;
 
 namespace indexer {
 
@@ -38,6 +41,11 @@ inline constexpr u32 c_formatVersion = 2;
 
 // the ply after which the opening's position is hashed.
 inline constexpr u32 c_openingPly = 16;
+
+// the version of the --positions records, which have no header to carry it: 1 was 12 bytes (hash, game, ply), 2 adds
+// the move played from the position, 14 bytes.
+inline constexpr u32 c_positionsVersion = 2;
+inline constexpr size_t c_positionRecordSize = 14;
 
 // the plies after which the material balance is taken, besides at the end.
 inline constexpr std::array<u32, 2> c_materialPlies = { 20, 40 };
@@ -82,13 +90,32 @@ struct GameIndex {
     // with positions on: every position's Polyglot hash, the start position's first, then the one after each move, up
     // to an error.
     std::vector<u64> positions;
+
+    // with moves on: the position the game started from as a FEN, and the moves played from it, a null move as
+    // PackedMove::NullMove(), up to an error. What --draw replays to reach the positions it looks at.
+    std::string startFen;
+    std::vector<PackedMove> played;
 };
+
+// Appends a --positions record: the hash, the game's place in its input, the ply and the move played from the position
+// as the engine packs it (source square in bits 0-5, target in 6-11, the move type in 12-15), 0 when there is none,
+// at a game's last position, and for a null move too; all little-endian.
+void appendPositionRecord(std::string& out, u64 hash, u32 game, u32 ply, PackedMove move);
+
+// whether the side to move is in check and has a legal move; no legal move is checkmate or stalemate.
+struct PositionFacts {
+    bool inCheck = false;
+    bool canMove = false;
+};
+PositionFacts positionFacts(const Chessboard& board);
 
 // Replays a game, from its FEN tag when it has one, and reports what it finds. A Variant tag that isn't standard
 // chess is an error before the moves.
 // With positions on, every position's Polyglot hash is kept too, the start position's first, then the one after each
 // move: what --positions writes and --position scans.
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false);
+// With moves on, the start position and the moves are kept too.
+GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false,
+    bool moves = false);
 
 // The entry as one line of JSON, without its newline. The moves and the FEN are written when verbose.
 std::string toJson(const GameIndex& entry, bool verbose = false);

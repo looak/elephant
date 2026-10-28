@@ -30,7 +30,9 @@ FetchContent_MakeAvailable(googletest)
 # Silence compiler warnings in third-party googletest sources
 foreach(gtest_target gtest gtest_main gmock gmock_main)
     if(TARGET ${gtest_target})
-        target_compile_options(${gtest_target} PRIVATE $<IF:$<BOOL:${MSVC}>,/w,-w>)
+        # /W0 rather than /w: the Visual Studio generator turns /W0 into the project's warning level, /w would clash
+        # with googletest's own /W4 (D9025).
+        target_compile_options(${gtest_target} PRIVATE $<IF:$<BOOL:${MSVC}>,/W0,-w>)
     endif()
 endforeach()
 
@@ -57,12 +59,13 @@ function(elephant_add_test_executable target)
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
 
-    target_include_directories(${target}
+    target_include_directories(${target} PRIVATE ${TEST_INC_DIR})
+    # This tells the compiler to ignore warnings from Google Test's headers. SYSTEM goes first and covers the whole
+    # call, after PRIVATE it's read as a directory named SYSTEM.
+    target_include_directories(${target} SYSTEM
       PRIVATE
-        ${TEST_INC_DIR}
-        # This tells the compiler to ignore warnings from Google Test's headers
-        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
-        SYSTEM "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
+        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
+        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
 
     target_link_libraries(${target} common_warnings gtest_main engine spdlog)
 
@@ -74,10 +77,14 @@ elephant_add_test_executable(${PROJECT_NAME} LABEL unit SOURCES ${TEST_SOURCE_AL
 # the PGN fixtures, OpenBench's & fastchess's games.
 target_compile_definitions(${PROJECT_NAME} PRIVATE ELEPHANT_TEST_PGN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/pgn")
 
+# instrumented with ELEPHANT_COVERAGE, ElephantSuite isn't: too slow instrumented, and the report is the unit tests'.
+target_link_libraries(${PROJECT_NAME} coverage_flags)
+
 # phant-indexer's entries & input, when it's built: ELEPHANT_BUILD_INDEXER on, and EXCEPTIONS_ENABLED, which it needs.
 if(ELEPHANT_BUILD_INDEXER AND TARGET PhantIndexerLib)
     target_sources(${PROJECT_NAME} PRIVATE ${TEST_SRC_DIR}/indexer/game_index_test.cpp
-        ${TEST_SRC_DIR}/indexer/input_test.cpp ${TEST_SRC_DIR}/indexer/polyglot_test.cpp)
+        ${TEST_SRC_DIR}/indexer/input_test.cpp ${TEST_SRC_DIR}/indexer/polyglot_test.cpp
+        ${TEST_SRC_DIR}/indexer/draw_test.cpp)
     target_link_libraries(${PROJECT_NAME} PhantIndexerLib)
 endif()
 

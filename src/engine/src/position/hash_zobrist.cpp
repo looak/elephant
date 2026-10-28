@@ -79,7 +79,7 @@ u64 computePositionHash(PositionReader reader, bool whiteToMove) {
 }
 
 u64 updatePieceHash(const u64& oldHash, ChessPiece piece, Square position) {
-    u8 pieceIndx = piece.index() + (piece.set() * 6);
+    u32 pieceIndx = piece.index() + (piece.set() * 6u);
     return oldHash ^ internals::table[*position][pieceIndx];
 }
 
