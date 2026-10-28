@@ -132,6 +132,20 @@ std::string rewriteKingTables(const std::string& header, const std::vector<Taper
     return result;
 }
 
+std::string rewritePieceTables(const std::string& header, const std::vector<TaperedScore>& values) {
+    const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";
+
+    // one line: "    S(   0,   0), S(  30,  50), S(   0,   0),".
+    std::string body = "    ";
+    for (u32 pieceId = 1; pieceId <= 3; ++pieceId) {
+        const TaperedScore score = values[params::piecePair(pieceId)];
+        body += std::format("{}S({:4},{:4}),", pieceId == 1 ? "" : " ", mg_score(score), eg_score(score));
+    }
+    std::string result = header;
+    replaceBody(result, "constexpr TaperedScore piecePair[3]", body + newline, newline);
+    return result;
+}
+
 std::string rewritePestoTables(const std::string& header, const std::vector<TaperedScore>& values) {
     // whatever line ending the file has, the rewritten lines get the same.
     const std::string newline = header.find("\r\n") != std::string::npos ? "\r\n" : "\n";

@@ -19,13 +19,13 @@ namespace ElephantTest {
 class GameIndexFixture : public ::testing::Test {
 public:
     // the stream's first game, indexed.
-    indexer::GameIndex index(const std::string& pgn, bool verbose = false, bool positions = false)
+    indexer::GameIndex index(const std::string& pgn, bool verbose = false, bool positions = false, bool moves = false)
     {
         m_stream = pgn;
         io::pgn_parser::GameReader reader(m_stream);
         std::optional<io::pgn_parser::Game> game = reader.next();
         EXPECT_TRUE(game);
-        return game ? indexer::index(*game, 1, verbose, positions) : indexer::GameIndex{};
+        return game ? indexer::index(*game, 1, verbose, positions, moves) : indexer::GameIndex{};
     }
 
     std::string m_stream;
@@ -134,6 +134,53 @@ TEST_F(GameIndexFixture, NullMoves_PassTheMove)
     EXPECT_EQ(5u, entry.plies);
     EXPECT_EQ((std::vector<std::string>{ "e2e4", "0000", "d2d4", "0000", "g1f3" }), entry.moves);
     EXPECT_EQ("rnbqkbnr/pppppppp/8/8/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 2 3", entry.fen);
+}
+
+// a --positions record is the hash, the game, the ply and the move played from the position as the engine packs it, 14
+// bytes little-endian; the last position of a game has no move.
+TEST_F(GameIndexFixture, PositionRecords_HoldTheMovePlayed)
+{
+    indexer::GameIndex entry = index("1. e4 d5 2. exd5 *", false, true, true);
+    ASSERT_EQ(4u, entry.positions.size());
+    ASSERT_EQ(3u, entry.played.size());
+
+    std::string records;
+    for (size_t ply = 0; ply < entry.positions.size(); ++ply) {
+        const PackedMove move = ply < entry.played.size() ? entry.played[ply] : PackedMove::NullMove();
+        indexer::appendPositionRecord(records, entry.positions[ply], 7, static_cast<u32>(ply), move);
+    }
+    ASSERT_EQ(4 * indexer::c_positionRecordSize, records.size());
+
+    auto field = [&](size_t record, size_t offset, size_t size) {
+        u64 value = 0;
+        for (size_t i = 0; i < size; ++i)
+            value |= u64(static_cast<unsigned char>(records[record * 14 + offset + i])) << (8 * i);
+        return value;
+    };
+    EXPECT_EQ(0x463b96181691fc9cull, field(0, 0, 8));   // the start position
+    EXPECT_EQ(7u, field(0, 8, 2));
+    EXPECT_EQ(0u, field(0, 10, 2));
+    EXPECT_EQ(12u | 28u << 6, field(0, 12, 2));         // e2e4, a double push has no flag of its own
+    EXPECT_EQ(1u, field(1, 10, 2));
+    EXPECT_EQ(51u | 35u << 6, field(1, 12, 2));         // d7d5
+    EXPECT_EQ(28u | 35u << 6 | 4u << 12, field(2, 12, 2));   // exd5, a capture
+    EXPECT_EQ(3u, field(3, 10, 2));
+    EXPECT_EQ(0u, field(3, 12, 2));                     // none from the last
+    EXPECT_EQ(entry.positions[3], field(3, 0, 8));
+}
+
+// the packed move's type: a promotion with a capture, castling, an en passant capture, and a null move as none.
+TEST_F(GameIndexFixture, PackedMoves_PromotionCastlingEnPassantNull)
+{
+    EXPECT_EQ(52u | 59u << 6 | 12u << 12,
+        index("[FEN \"3r3k/2P1P3/8/8/8/8/8/K7 w - - 0 1\"]\n\n1. exd8=N *", false, true, true).played.at(0).read());
+    EXPECT_EQ(4u | 6u << 6 | 2u << 12,
+        index("[FEN \"4k3/8/8/8/8/8/8/4K2R w K - 0 1\"]\n\n1. O-O *", false, true, true).played.at(0).read());
+    EXPECT_EQ(4u | 2u << 6 | 3u << 12,
+        index("[FEN \"4k3/8/8/8/8/8/8/R3K3 w Q - 0 1\"]\n\n1. O-O-O *", false, true, true).played.at(0).read());
+    EXPECT_EQ(27u | 20u << 6 | 5u << 12,
+        index("[FEN \"4k3/8/8/8/3p4/8/4P3/4K3 w - - 0 1\"]\n\n1. e4 dxe3 *", false, true, true).played.at(1).read());
+    EXPECT_EQ(0u, index("1. e4 -- 2. d4 *", false, true, true).played.at(1).read());
 }
 
 TEST_F(GameIndexFixture, Variant_OnlyStandardChess)

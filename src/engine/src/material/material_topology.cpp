@@ -137,7 +137,7 @@ template Bitboard MaterialTopology<Set::BLACK>::computeThreatenedSquaresKing() c
 template<Set us>
 Bitboard MaterialTopology<us>::computeThreatenedDiagonals() const {
     Bitboard occupancy = m_material.combine();
-    Bitboard pieces = m_material.queens<us>() | m_material.rooks<us>();
+    Bitboard pieces = m_material.queens<us>() | m_material.bishops<us>();
     Bitboard result{};
 
     while (pieces.empty() == false) {

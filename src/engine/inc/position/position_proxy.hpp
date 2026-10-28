@@ -139,7 +139,7 @@ public:
     class PositionIterator {
     public:
         PositionIterator(AccessType::position_t& position, byte index = 0)
-            : m_position(position), m_index(index) {}
+            : m_position(&position), m_index(index) {}
         PositionIterator(const PositionIterator& other)
             : m_position(other.m_position), m_index(other.m_index) {}
         PositionIterator& operator=(const PositionIterator& other) {
@@ -150,7 +150,7 @@ public:
             return *this;
         }
         bool operator==(const PositionIterator& other) const {
-            return m_index == other.m_index && &m_position == &other.m_position;
+            return m_index == other.m_index && m_position == other.m_position;
         }
         bool operator!=(const PositionIterator& other) const {
             return !(*this == other);
@@ -168,7 +168,7 @@ public:
             ++(*this);
             return temp;
         }
-        PositionIterator& operator+=(int incre) {
+        PositionIterator& operator+=(byte incre) {
             m_index += incre;
             return *this;
         }
@@ -179,7 +179,7 @@ public:
         byte rank() const { return to_rank(square()); }
 
         ChessPiece get() const {
-            return m_position.read().pieceAt(static_cast<Square>(m_index));
+            return m_position->read().pieceAt(static_cast<Square>(m_index));
         }
 
         void set(ChessPiece piece) 
@@ -187,11 +187,16 @@ public:
             if constexpr (std::is_same_v<AccessType, PositionEditPolicy>) {
                 auto currentPiece = get();
                 if (currentPiece.isValid()) {                    
-                    auto materialEditor = m_position.m_materialMask.edit(currentPiece.getSet(), currentPiece.getType());
+                    auto materialEditor = m_position->m_materialMask.edit(currentPiece.getSet(), currentPiece.getType());
                     materialEditor[square()] = false;  // remove the current piece
+                    m_position->m_hash = zobrist::updatePieceHash(m_position->m_hash, currentPiece, square());
                 }
-                auto materialEditor = m_position.m_materialMask.edit(piece.getSet(), piece.getType());
-                materialEditor[square()] = true;
+                // no piece leaves the square empty.
+                if (piece.isValid()) {
+                    auto materialEditor = m_position->m_materialMask.edit(piece.getSet(), piece.getType());
+                    materialEditor[square()] = true;
+                    m_position->m_hash = zobrist::updatePieceHash(m_position->m_hash, piece, square());
+                }
             }
             else {
                 static_assert(false, "Cannot call set() on a position with a read-only policy.");
@@ -199,7 +204,8 @@ public:
         }
 
     private:
-        AccessType::position_t& m_position;
+        // a pointer, not a reference, so assigning an iterator moves it instead of copying one position over another.
+        std::remove_reference_t<typename AccessType::position_t>* m_position;
         byte m_index;            
     };
 

@@ -127,7 +127,9 @@ public:
         if (m_state)
             m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
         m_state.write(state);
-        m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
+        // no square, nothing to hash in.
+        if (m_state)
+            m_hash = zobrist::updateEnPassantHash(m_hash, m_state.readSquare());
     }
 
     void clear() { 

@@ -1,7 +1,7 @@
 # Elephant engine
 
-Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.3.1
-on `main`, with a bench of 520775
+Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.4.0
+"Matriarch" on `main`, with a bench of 504347
 
 ## Purpose
 
@@ -37,13 +37,13 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 
 | Command | Notes |
 |:--|:--|
-| `uci` | `id name Elephant Gambit <version>`, `id author Alexander Loodin Ek`, the options, `uciok` |
+| `uci` | `id name Elephant Gambit <version>` (the version alone, no codename: uwanja and nyayo take the engine's name from it), `id author Alexander Loodin Ek`, the options, `uciok` |
 | `isready` | `readyok`, straight away |
 | `setoption name <name> value <v>` | names may contain spaces (`Move Overhead`) |
 | `ucinewgame` | clears the transposition table and the game's history |
 | `position startpos\|fen <fen> [moves ...]` | |
 | `go ...` | `depth`, `nodes`, `mate`, `movetime`, `wtime`, `btime`, `winc`, `binc`, `movestogo`, `infinite`, `ponder`, `searchmoves` |
-| `stop`, `ponderhit`, `quit`, `debug on\|off`, `register` | `register` is accepted and ignored |
+| `stop`, `ponderhit`, `quit` (or `exit`), `debug on\|off`, `register` | `register` is accepted and ignored |
 | `bench` | runs the bench, see below |
 | `buildinfo` | non standard, see below |
 | `print` | non standard, prints the board |
@@ -65,8 +65,8 @@ without exactly one king a side.
 
 **buildinfo.** `buildinfo` answers one `buildinfo <key> <value>` line per key, then nothing; callers send `isready`
 right after and take whatever arrives before `readyok`. Engines that don't know the command ignore it, as UCI says,
-so the pattern works with any engine. Keys: `version`, `commit` (full hash), `dirty`, `branch` (left out on a detached
-HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
+so the pattern works with any engine. Keys: `version`, `codename` (left out when the release has none), `commit` (full hash), `dirty`, `branch` (left out
+on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written on every build
 (`cmake/build_info.cmake`, the makefile's rule), so a binary can't claim a commit it wasn't built from. `compiler`,
 `config`, `assertions`, `exceptions` and `bits` decide which results are comparable, in nyayo's terms.
 
@@ -76,7 +76,7 @@ HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. They're written
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
-520775 on `main` at 1.3.1, a version that was node identical to 1.3.0. Every commit
+504347 on `main` at 1.4.0. Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
 (`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
@@ -107,7 +107,8 @@ promotions.
 | passed pawn extras: own & enemy king distance, a piece on the stop square, a free path to promotion, a rook behind | `eval/passed_pawns.hpp` | `eval/pawn_tables.hpp`, tuned | every evaluation |
 | king shelter & pawn storm: on the king's file and the two beside it, its own nearest pawn (shelter) and the enemy's (storm, blocked or not) | `eval/king_safety.hpp` | `eval/king_tables.hpp`, tuned | every evaluation |
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
-| mop-up: more than two pawns ahead in an endgame (the old end game coefficient above 0.5), the winning king closes in on the enemy's and to the centre | `eval/evaluator.cpp` | in code | every evaluation, outside the taper |
+| piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
+| mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, hand-set | every evaluation, outside the taper |
 | tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
 `Evaluator::EvaluateTapered` is the tapered sum, the part the tuner fits; `Evaluate` adds mop-up and asserts both
@@ -135,12 +136,16 @@ The tables are plain `constexpr` arrays of `S(mg, eg)` in `src/engine/inc/eval/*
 reads weights at runtime: there is no weights file, no tuning build and no option that changes them. A new value
 reaches the engine as a changed header in a commit, which moves the bench.
 
-| File | Tables | Values | 1.3.0 status |
+| File | Tables | Values | Status (1.4.0) |
 |:--|:--|--:|:--|
-| `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's published values, but `pestoPawn`: retuned with the pawn terms, which pay for passed and connected pawns now |
-| `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | tuned with PeSTO kept, each table centred |
-| `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | tuned with `pestoPawn`, the rest kept |
-| `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm tuned with the rest kept, then the danger with them kept; the danger's sparse tail made monotonic |
+| `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's material and king table; the pawn to queen tables rebalanced with every term, each kept centred on its own average |
+| `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | rebalanced with every term, each table centred at 0 |
+| `pawn_tables.hpp` | `passedPawn`, `connectedPawn` (by rank), `isolatedPawn`, `doubledPawn`, `backwardPawn` (by folded file); `passedOwnKing`, `passedEnemyKing` (by distance), `passedBlocked`, `passedFreePath` (by rank), `passedRookBehind` (own, enemy) | 24 + 30 | rebalanced with every term |
+| `king_tables.hpp` | `kingShelter`, `kingStorm` (by folded file × no pawn & rank), `kingStormBlocked` (by rank); `kingDanger` (by attack units 0–63); the hand-set `kingAttackUnits`, `kingOpenFileUnits`, `kingHalfOpenFileUnits` | 72 + 64 | shelter & storm rebalanced with every term; the danger tuned in 1.3, its sparse tail made monotonic, kept since |
+| `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | rebalanced with every term |
+
+Every table rebalanced with every term was then fine-tuned on Elephant's own games, the same groups, kept values and
+centring (1.4.0-pieces.3).
 
 **ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
@@ -152,15 +157,21 @@ numbers replaced, written as `*.tuned.hpp`; copying one over the original is the
 values back untouched and checks the files come out byte for byte the same.
 
 The values are tuned in groups, `--tune` naming the ones that move while the rest stay as they are: `material`,
-`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`.
+`psqt_pawn` … `psqt_king` (`psqt` for all six), `mobility`, `pawns_passed`, `pawns_structure`, `pawns_passed_extras`, `king_shelter`, `king_attack`, `pieces_pairs`.
 The practice so far is to tune only the new group with everything else kept, then SPRT it, and at the end of a cycle
-the piece square table the new terms overlap together with them. Tables that are rare in the data mislead: fitted with
+the piece square table the new terms overlap together with them. Fitted together, the tables re-price the pieces: with
+material free its midgame values fell by a fifth, with material fixed the piece square tables moved their averages
+instead, by up to 175 centipawns in the endgame. So the tuned piece square tables are kept centred on the average each
+starts with, as mobility's are at 0 (`--free-psqt` turns it off), and `--min-usage N` keeps the values fewer than N
+positions use as they are. Tables that are rare in the data mislead: fitted with
 the pawn terms, the king table learned large midgame bonuses for an advanced king, a king that far up with the queens
 on being mostly a game already won, and was left out; the danger table's tail past 48 units, where few positions are,
 rose back towards 0 and was made monotonic by hand. The fit's held back error is a weak guide to Elo: king attack's
 0.61% gave less at short time control than shelter's 0.38%, both passed at long time control. The datasets are in `res/tuning_positions/`; every table above was fitted on
-`E12.52-1M-D12-Resolved`, the one to keep using while groups are added one at a time, since the kept values are only
-best for the data they were fitted on.
+`E12.52-1M-D12-Resolved` (10M positions), the one to keep using while groups are added one at a time, since the kept
+values are only best for the data they were fitted on. `elephant-positions-0.1` holds 1.2M positions from Elephant's
+own games in nyayo (FEN and result, no duplicates); the 1.4 fine-tune fitted on it lowered its held back error 1.23%
+and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and the positions Elephant reaches won.
 
 ### ElephantGambit, the development binary
 
@@ -184,10 +195,22 @@ whoever plays the games writes the players and tags.
   one difference: a `Variant` that isn't standard chess is an error, Elephant doesn't play Chess960.
 - **Positions.** A position is its Polyglot hash, the standard one (the 781 numbers of Polyglot's book format, not the
   engine's own Zobrist keys), which python-chess computes as `chess.polyglot.zobrist_hash`. `--positions FILE` writes
-  12 byte little-endian records, the hash, the game's place in the input and the ply, for every position of every game
+  14 byte little-endian records, the hash, the game's place in the input, the ply and the move played from the
+  position (the engine's packed 16 bit move, 0 at a game's last position), for every position of every game
   that read, in the same pass as the cards; it takes one input and stops at 65 535 games or plies, the 2 byte fields'
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.
+- **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
+  lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
+  has a result, past the game's first P plies, counted from the position the game starts at (`--min-ply`, 0 by
+  default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
+  carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
+  With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
+  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
+  ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
+  duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
+  `--stats OUT` writes the run's statistics as versioned JSON (`indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
@@ -205,10 +228,15 @@ whoever plays the games writes the players and tags.
   `x86-64-v2` and `x86-64-v3`, linked static, named `elephant-gambit-<version>-<os>-<arch>`; and, in a job of its own
   with CMake and `ELEPHANT_BUILD_INDEXER=ON`, phant-indexer for Windows & Linux at `x86-64`, linked static (the C
   runtime too), named `phant-indexer-<version>-<os>-x86-64` and smoke tested on OpenBench's workload, bz2 compressed,
-  before it is attached.
-- `version.txt` is the only place the version is written. major = engine generation or a UCI option change, minor =
-  a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions. Pre-releases are
-  `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight.
+  before it is attached. A third job titles the GitHub release `<version> "<codename>"` from `version.txt` at the tag
+  when it has a codename, and leaves the title as published when it hasn't.
+- `version.txt` is the only place the version is written. Line 1 is the version: major = engine generation or a UCI
+  option change, minor = a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions.
+  Pre-releases are `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight. Line 2, optional, is the
+  release's **codename** (1.0.0 was "Herd", 1.3.2 is "Matriarch"): letters, digits, spaces, `.`, `_` and `-`, empty when
+  absent. CMake and `ob_build/makefile` read it into `ELEPHANT_GAMBIT_CODENAME` next to `ELEPHANT_GAMBIT_VERSION_FULL`;
+  a malformed one fails the configure or the make. It shows as `v: 1.3.2 "Matriarch"` in the CLI banner and the
+  `about` command's engine version, and as `buildinfo codename`; not in `id name`.
 - A cycle has its own branch off `main` (`eval-pawns` for 1.2), each change a branch `<cycle>-<change>` off it, SPRT'd
   against the cycle's tip and merged on a pass; `version.txt` on the cycle branch counts the merges
   (`1.2.0-pawns.1`). `main` takes a cycle when it is released, and work that doesn't move the bench (cleanups, the
@@ -224,4 +252,5 @@ whoever plays the games writes the players and tags.
 | out | release binaries | `release.yml` |
 | in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
 | out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
 

@@ -50,5 +50,6 @@ add_dependencies(${ENGINE_LIB} elephant_build_info)
 target_link_libraries(${ENGINE_LIB}
     PRIVATE
         common_warnings
+        coverage_flags
         spdlog
 )

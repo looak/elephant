@@ -14,6 +14,11 @@ option(OUTPUT_LOG_TO_FILE "Also write the log and std::cout to files in logs/" O
 # binaries are built by ob_build/makefile with an explicit ARCH.
 option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
 
+# Instrument engine, cli, phant-indexer & ElephantTest for line, function & branch coverage, gcc's --coverage or
+# clang's source based coverage, see cmake/coverage.cmake. Turns link time optimization off. test/coverage.ps1 and
+# test/coverage.sh configure a build-cov directory with it, run the unit tests and write the report.
+option(ELEPHANT_COVERAGE "Instrument our targets for test coverage, no link time optimization" OFF)
+
 # The log's level, spdlog compiles out everything below it. A level's position in the list is spdlog's
 # SPDLOG_LEVEL_* value.
 set(LOG_LEVELS trace debug info warn error critical off)

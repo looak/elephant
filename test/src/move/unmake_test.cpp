@@ -180,7 +180,7 @@ TEST_P(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(1, material.blackPawns().count());
 
     // move white pawn to e4
-    PackedMove move;
+    PackedMove move{}; // zeroed, a default PackedMove is uninitialized and its flags are garbage
     move.setSource(Square::E2);
     move.setTarget(Square::E4);
     m_game.MakeMove<true>(move);

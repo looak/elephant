@@ -188,14 +188,15 @@ struct MutableImplicitPieceSquare {
     {
     }
 
+    // replaces what stands on the square, no piece leaves it empty.
     void operator=(ChessPiece piece)
     {
+        ChessPiece oldPiece = m_material.pieceAt(m_sqr);
+        if (oldPiece.isValid()) {
+            m_material.clear(squareMaskTable[static_cast<u8>(m_sqr)], oldPiece.getSet(), oldPiece.index());
+            m_hash = zobrist::updatePieceHash(m_hash, oldPiece, m_sqr);
+        }
         if (piece.isValid()) {
-            ChessPiece oldPiece = m_material.pieceAt(m_sqr);
-            if (oldPiece.isValid()) {
-                m_material.clear(squareMaskTable[static_cast<u8>(m_sqr)], oldPiece.getSet(), oldPiece.index());
-                m_hash = zobrist::updatePieceHash(m_hash, oldPiece, m_sqr);
-            }        
             m_material.write(squareMaskTable[static_cast<u8>(m_sqr)], piece.getSet(), piece.index());
             m_hash = zobrist::updatePieceHash(m_hash, piece, m_sqr);
         }

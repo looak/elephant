@@ -19,7 +19,7 @@ public:
     {
         prnt::out << " Elephant Gambit Open Source Chess Engine 2021-2025";
         prnt::out << " versions:\n   cli:    " << ELEPHANT_CLI_VERSION_STR << ELEPHANT_CLI_VERSION_PRERELEASE
-                    << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << ELEPHANT_GAMBIT_VERSION_FULL;
+                    << ELEPHANT_CLI_VERSION_SUFFIX << "\n   engine: " << build_info::versionWithCodename();
         prnt::out << " Source: https://github.com/looak/elephant current git hash: " << build_info::shortCommit();
         prnt::out << " Author: Alexander Loodin Ek";
         prnt::out << " Contact: alexander.loodin.ek(at)gmail.com";
@@ -53,7 +53,6 @@ class ExitCommand : public CommandNoArgs<> {
     {
         prnt::out << "Exiting Elephant Gambit CLI...";
         std::exit(0);
-        return true;
     }
     // Outputs help information for the command.
     void help(bool extended) override 

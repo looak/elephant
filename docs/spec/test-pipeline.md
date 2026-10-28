@@ -21,13 +21,16 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `hooks/prepare-commit-msg` | the `bench N nodes` line in commit messages |
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
+| `test/coverage.ps1` (`coverage.sh` with gcc) | the unit tests' coverage, an HTML report in `build-cov/coverage/`, nothing recorded ([tests.md](tests.md#coverage)) |
 
 ## Scope
 
 **Does:** deterministic, repeatable checks run on the developer's machine, with history along the commit graph.
 
-**Doesn't:** Elo or speed (OpenBench; `ob_sprt.py` only queues its tests), live games (nyayo shows them, uwanja plays them), CI results. CI (`ci.yml`)
-runs only the unit tests and perft, correctness checks whose results are thrown away; no EPD tier runs in CI.
+**Doesn't:** Elo or speed (OpenBench; `ob_sprt.py` only queues its tests), live games (nyayo shows them, uwanja plays
+them), CI results. CI (`ci.yml`) runs only the unit tests and perft, correctness checks whose results are thrown away;
+the unit tests' coverage is `coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it
+keeps one number, the line coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
 
 ## Current
 
@@ -61,8 +64,14 @@ the `*.pgn` files under a directory, real games. For each game it compares what 
 phant-indexer's `--verbose` entry: whether it read and where it stopped, the moves in UCI notation, the final
 position, and every fact in the entry. It also compares:
 
-- every record `--positions` writes with python-chess's `chess.polyglot.zobrist_hash` of that position, for exactly
+- every record `--positions` writes with python-chess's `chess.polyglot.zobrist_hash` of that position and the move
+  played from it, packed the way the engine packs it (the test rebuilds that from python-chess's move), for exactly
   the games that read;
+- `--draw 10 --quiet --min-ply 16`: every line a position of a game that read, past ply 16, not in check, labelled
+  with the result of a game that reached it, none twice, at most 10 a game, and the same output run twice; with
+  `--merge`, each once with a result between the lowest and the highest of the games that reached it, and the same
+  twice; with `FILE:P`, positions the games had that many plies in; and `--stats`, whose game counts are
+  python-chess's and whose numbers add up;
 - `--position` for the first game's start position and six positions picked from each file with the games and plies
   python-chess finds;
 - the entries from each file read bz2, gzip and zstd compressed on standard input, zstd both in one frame and in a

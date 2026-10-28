@@ -40,7 +40,7 @@ Chessboard::toString() const
     do  // build each row
     {
         if (prevRank != boardItr.rank()) {
-            ranks[boardItr.rank()] << "\n" << (int)(boardItr.rank() + 1) << "  ";
+            ranks[boardItr.rank()] << "\n" << (boardItr.rank() + 1) << "  ";
         }
 
         ranks[boardItr.rank()] << '[' << boardItr.get().toString() << ']';

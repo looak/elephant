@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <io/fen_parser.hpp>
+#include <core/build_info.hpp>
 #include <core/uci.hpp>
 #include <elephant_gambit_config.h>
 #include <core/game_context.hpp>
@@ -106,10 +107,48 @@ TEST_F(UciFixture, buildinfo_Outputs_KeyValueLines)
     }
 
     EXPECT_EQ(ELEPHANT_GAMBIT_VERSION_FULL, entries["version"]);
+    // the codename (version.txt line 2) is there when the release has one, and only then.
+    if (std::string_view(ELEPHANT_GAMBIT_CODENAME).empty())
+        EXPECT_FALSE(entries.contains("codename"));
+    else
+        EXPECT_EQ(ELEPHANT_GAMBIT_CODENAME, entries["codename"]);
     for (const char* key : { "compiler", "config", "assertions", "exceptions", "bits" })
         EXPECT_FALSE(entries[key].empty()) << key;
-    if (entries.contains("commit"))
+    if (entries.contains("commit")) {
         EXPECT_EQ(40u, entries["commit"].size());
+    }
+}
+
+// uwanja and nyayo take the engine's name from here, a codename in it would split an engine's history.
+TEST(UciIdentity, IdName_IsTheVersionAlone)
+{
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+        UCI uci;
+    }
+
+    std::string line;
+    bool found = false;
+    while (std::getline(testOutput, line)) {
+        if (line.starts_with("id name ")) {
+            found = true;
+            EXPECT_EQ(std::string("id name Elephant Gambit ") + ELEPHANT_GAMBIT_VERSION_FULL, line);
+        }
+    }
+    EXPECT_TRUE(found);
+}
+
+// the CLI banner & about show 1.3.2 "Matriarch", or the version alone for a release without a codename.
+TEST(BuildInfo, FormatVersion_WithAndWithoutCodename)
+{
+    EXPECT_EQ("1.3.2 \"Matriarch\"", build_info::formatVersion("1.3.2", "Matriarch"));
+    EXPECT_EQ("1.4.0-pieces.1 \"Big Herd\"", build_info::formatVersion("1.4.0-pieces.1", "Big Herd"));
+    EXPECT_EQ("1.3.2", build_info::formatVersion("1.3.2", ""));
+
+    const std::string expected = build_info::formatVersion(ELEPHANT_GAMBIT_VERSION_FULL, ELEPHANT_GAMBIT_CODENAME);
+    EXPECT_EQ(expected, build_info::versionWithCodename());
+    EXPECT_TRUE(build_info::versionWithCodename().starts_with(ELEPHANT_GAMBIT_VERSION_FULL));
 }
 
 TEST_F(UciFixture, Enabled_Outputs_uciok)
@@ -479,11 +518,11 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
     auto search = [](u64 nodeLimit) {
         GameContext context;
         context.NewGame();
-        Search search(context);
+        Search searcher(context);
         SearchParameters params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
-        return search.go<Set::WHITE>(params, clock);
+        return searcher.go<Set::WHITE>(params, clock);
     };
 
     // do
