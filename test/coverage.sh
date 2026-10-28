@@ -22,10 +22,11 @@ rm -rf "$report" && mkdir -p "$report"
 tests=0
 ctest --test-dir "$build" -L unit -j "$(nproc)" --output-on-failure || tests=$?
 
-# throw branches are the exception paths every call that can throw grows, gcc counts them as branches.
+# throw branches are the exception paths every call that can throw grows, gcc counts them as branches. The hot board
+# accessors pass 2^32 hits in the unit tests, gcovr's default threshold for a gcov bug, so it's off.
 cd "$root"
 gcovr --root "$root" --object-directory "$build" --exclude '(.*/)?(test|third_party|_deps)/' --exclude-throw-branches \
-    --html-details "$report/index.html" --txt --print-summary
+    --gcov-suspicious-hits-threshold 0 --html-details "$report/index.html" --txt --print-summary
 
 echo "coverage: report in $report/index.html"
 [ "$tests" -eq 0 ] || echo "coverage: unit tests failed, the report covers the tests that ran" >&2
