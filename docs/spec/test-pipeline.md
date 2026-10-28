@@ -17,6 +17,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `test/epd_tiers.json` | the tiers: which EPD files, limits, threads, baselines & minimums |
 | `test/indexer_smoke.py` | checks phant-indexer against python-chess over fixtures, random games and real games |
 | `test/results.py` | records checks as a run, keeps history, compares, uploads to nyayo |
+| `test/ob_sprt.py` | queues an SPRT on OpenBench with Elephant's presets |
 | `hooks/prepare-commit-msg` | the `bench N nodes` line in commit messages |
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
@@ -26,10 +27,10 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 
 **Does:** deterministic, repeatable checks run on the developer's machine, with history along the commit graph.
 
-**Doesn't:** Elo or speed (OpenBench), live games (nyayo shows them, uwanja plays them), CI results. CI (`ci.yml`)
-runs only the unit tests and perft, correctness checks whose results are thrown away; the unit tests' coverage is
-`coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it keeps one number, the line
-coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
+**Doesn't:** Elo or speed (OpenBench; `ob_sprt.py` only queues its tests), live games (nyayo shows them, uwanja plays
+them), CI results. CI (`ci.yml`) runs only the unit tests and perft, correctness checks whose results are thrown away;
+the unit tests' coverage is `coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it
+keeps one number, the line coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
 
 ## Current
 
@@ -124,6 +125,26 @@ played, score, nodes, `time_ms` and PV.
 - **Upload**: `PUT {nyayo.url}/api/runs/{id}`, gzipped, `Authorization: Bearer {nyayo.token}`, from git config
   `nyayo.url` & `nyayo.token` or `NYAYO_URL` & `NYAYO_TOKEN`. Without them runs stay local.
 
+### ob_sprt.py
+
+`python test/ob_sprt.py <dev> <base> [--ltc] [--nonreg | --bounds L,U] [--tc TC] [--options OPTS] [--book BOOK]
+[--win-adj ADJ] [--draw-adj ADJ] [--priority N] [--dry-run]`
+queues an SPRT on OpenBench: the create test page's form, filled in and sent to the fork's `/scripts/` endpoint
+(`action=CREATE_TEST`) with the user's login. dev and base are branches or commits on GitHub, where OpenBench reads
+them; the script checks they're pushed and prints each side's bench from its commit message, which is where OpenBench
+takes it from.
+
+| Preset | Time control | Options | Workload |
+|:--|:--|:--|--:|
+| STC (default) | 8+0 | `Threads=1 Hash=8` | 32 |
+| `--ltc` | 40+0 | `Threads=1 Hash=64` | 8 |
+
+Bounds [0, 5], or [-3, 1] with `--nonreg`; confidence [0.05, 0.05], book `8moves_v3.epd`, adjudication and expected
+nps as OpenBench's `Engines/elephant.json` has them. Its presets say `8.00.08` and `40.00.4`, which OpenBench parses as
+8+0 and 40+0, what every test so far ran at; the script spells the time control out. Prints the new test's link, or
+the error OpenBench gave. Login: git config `openbench.url`, `openbench.username` & `openbench.password`, or
+`OPENBENCH_URL`, `OPENBENCH_USERNAME` & `OPENBENCH_PASSWORD`; the url defaults to `http://172.16.100.11:8000`.
+
 ### Extended runs
 
 There's no script for the extended tier yet: run `epd_runner.py --tier extended` with `--out`, then
@@ -138,5 +159,6 @@ There's no script for the extended tier yet: run `epd_runner.py --tier extended`
 | in | EPD files in `res/` | `bm`, `am`, `id`, `c0` (STS points); `c1` free text |
 | in | the tiers | [`test/epd_tiers.json`](../../test/epd_tiers.json), which is the contract |
 | out | runs to nyayo | nyayo `docs/results-schema.md`, schema v1 |
+| out | a new test to OpenBench | the create test form posted to `/scripts/`, [openbench_eg](https://github.com/looak/openbench_eg) `OpenBench/workloads/verify_workload.py` |
 | out | bench line in commit messages | [engine.md](engine.md#bench) |
 
