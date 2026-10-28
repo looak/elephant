@@ -116,12 +116,12 @@ These instructions will get you a copy of the project up and running on your loc
 
 ### Downloads
 
-Every [release][release-link] has Windows and Linux binaries of the UCI engine, built for three x86-64 levels. Pick the newest your CPU supports:
+Every [release][release-link] has Windows and Linux binaries of the UCI engine, built for three x86-64 levels and named by the instructions they need. Pick the newest your CPU supports:
 
 | Binary | Needs | CPUs |
 |:-------|:------|:-----|
-| `x86-64-v3` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
-| `x86-64-v2` | POPCNT, SSE4.2 | most from ~2009 on |
+| `x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
+| `x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
 | `x86-64` | any 64-bit CPU | anything else |
 
 The binaries are statically linked and need nothing else installed. They start in UCI mode, `bench` as an argument runs the OpenBench bench.
