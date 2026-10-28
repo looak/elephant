@@ -32,7 +32,7 @@ jobs:
     - name: Coverage summary
       run: |
         pipx install gcovr
-        { echo '```'; gcovr --root ${{github.workspace}} --object-directory ${{github.workspace}}/build --exclude '(.*/)?(test|third_party|_deps)/' --exclude-throw-branches --txt --print-summary --json-summary ${{github.workspace}}/summary.json; echo '```'; } >> $GITHUB_STEP_SUMMARY
+        { echo '```'; gcovr --root ${{github.workspace}} --object-directory ${{github.workspace}}/build --exclude '(.*/)?(test|third_party|_deps)/' --exclude-throw-branches --gcov-suspicious-hits-threshold 0 --txt --print-summary --json-summary ${{github.workspace}}/summary.json; echo '```'; } >> $GITHUB_STEP_SUMMARY
 
     - name: Badge
       if: github.ref == 'refs/heads/main'
