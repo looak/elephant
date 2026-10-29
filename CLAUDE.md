@@ -18,6 +18,14 @@ settles one of ramani's open decisions, say so in the final report. Contracts th
 `buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `indexer/README.md`) are
 changed only here, by agreement with the owner.
 
+## Workflow
+
+How work is tracked here (issues per repo on a release milestone, plans for cross-repo work, at most three
+issues in progress, an SPRT before a strength change merges) is in ramani's `WORKFLOW.md`. Read it before
+starting work; don't copy it. It is at `../ramani/WORKFLOW.md` in a sibling checkout; from a worktree, or if
+that is missing, read it with `gh api repos/looak/ramani/contents/WORKFLOW.md -q .content | base64 -d`. If
+neither works, say so in your report and don't guess the rules.
+
 ## Code conventions
 
 New and changed code follows these; `.clang-tidy` (`readability-identifier-naming`) and `.clang-format` encode them.
