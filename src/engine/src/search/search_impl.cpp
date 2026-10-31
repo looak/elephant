@@ -23,6 +23,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
 
     // go searchmoves, keep the moves that are legal here. With none left the root isn't restricted, the search must
     // still return a move.
+    // todo: move specific search move out of generic go
     std::vector<PackedMove> rootMoves;
     if (params.SearchMoves.empty() == false) {
         MoveOrderingView ordering;
@@ -61,7 +62,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             searchContext.shared = &m_shared;
             searchContext.nodeLimit = params.NodeLimit;
             searchContext.rootMoves = rootMoves;
-            searchContext.begin(threadId, params);
+            searchContext.debug_print_begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
                 searchContext.history.push(undoUnit.hash);
@@ -76,7 +77,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             // the main thread is done, the helpers' work is only useful to it.
             if (searchContext.isMainThread())
                 m_shared.stop.store(true, std::memory_order_relaxed);
-            searchContext.end(threadId);
+            searchContext.debug_print_end(threadId);
             return result;
 
         }));
@@ -123,8 +124,6 @@ template<Set us>
 SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {
     SearchResult result;
 
-    // iterative deepening loop -- might make this optional.
-
     // the hard ply limit in alphaBeta makes deeper iterations pointless.
     const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
     const u8 depthLimit = params.SearchDepth == 0 ? maxDepth : std::min(params.SearchDepth, maxDepth);
@@ -134,6 +133,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
             continue;
 
         // the first iteration always completes so there is a move to return, deeper ones may be aborted.
+        // TODO: rename and move out of iterartive deepening to allow context to be const.
         context.stopEnabled = itrDepth > 1;
 
         // --- Aspiration Window ---

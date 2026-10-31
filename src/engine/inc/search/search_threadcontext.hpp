@@ -192,7 +192,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void tt_probe_score(i16 score, u8 depth, u16 ply, u64 hash) const {
+    void debug_print_tt_probe_score(i16 score, u8 depth, u16 ply, u64 hash) const {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] TT | P:{} | D:{} | Hash:{:016X} | Score:{:05}",
@@ -201,7 +201,7 @@ struct ThreadSearchContext {
         }
     }
     
-    void scout_search() {
+    void debug_print_scout_search() {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] Scout Search triggered.",
@@ -209,7 +209,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void scout_re_search() {
+    void debug_print_scout_re_search() {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] Scout Re-Search triggered.",
@@ -217,7 +217,7 @@ struct ThreadSearchContext {
         }
     } 
 
-    void begin(int threadId, const SearchParameters& params) {
+    void debug_print_begin(int threadId, const SearchParameters& params) {
         auto logger = logging::debug_search_logger();
         if (logger) {
         logger->debug("[TID:{:X}] Starting search with {} threads, time control: {}",
@@ -225,7 +225,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void end(int threadId) {
+    void debug_print_end(int threadId) {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}]Ending search thread.", threadId);
@@ -234,11 +234,11 @@ struct ThreadSearchContext {
 #else
     void debug_print_alphabeta_entry(u8, u16, i16, i16, u64) const {}
     void debug_print_eval(PackedMove, i16, i16, i16, u8, u16, u64) const {}
-    void tt_probe_score(i16, u8, u16, u64) const {}
-    void scout_search() {}
-    void scout_re_search() {}
-    void begin(int, const SearchParameters&) {}
-    void end(int) {}
+    void debug_print_tt_probe_score(i16, u8, u16, u64) const {}
+    void debug_print_scout_search() {}
+    void debug_print_scout_re_search() {}
+    void debug_print_begin(int, const SearchParameters&) {}
+    void debug_print_end(int) {}
 #endif
 
 

@@ -266,9 +266,8 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         } 
         else {
             // --- Scout Search (Subsequent Moves) ---
-            // Zero window: Try to prove move is <= alpha
-            this->scout_search_count++;
-            context.scout_search();
+            // Zero window: Try to prove move is <= alpha            
+            context.debug_print_scout_search();
 
             // --- Late Move Reduction ---
             // Quiet moves late in the ordering rarely matter, scout them shallower first.
@@ -291,8 +290,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // We must re-search with the full window to get the exact score.
             // (Only if it's also < beta, otherwise we just take the beta cutoff)            
             if (eval > alpha && eval < beta) {
-                context.scout_re_search();
-                this->scout_re_search_count++;
+                context.debug_print_scout_re_search();
                 eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, adjustedDepth, static_cast<i16>(-beta),
                     static_cast<i16>(-alpha), ply + 1, &childPv));
                 
@@ -321,18 +319,18 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
                     search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
                         std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
 
-                    // the moves are unmade, their pieces are back on the source squares.
                     if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
                         using search_policies::ContinuationHistoryPolicy;
                         const i32 bonus = search_policies::MoveOrdering::quietBonus(depth);
                         ContinuationHistoryPolicy::update(context.continuationStack, ply, pos.pieceAt(move.sourceSqr()),
                             move.targetSqr(), bonus);
+
                         for (u16 i = 0; i < quietCount; ++i)
                             ContinuationHistoryPolicy::update(context.continuationStack, ply,
                                 pos.pieceAt(quietsTried[i].sourceSqr()), quietsTried[i].targetSqr(), -bonus);
                     }
                 }
-                        
+
                 outMove = intermmediateMove;
                 return bestEval;
             }

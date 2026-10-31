@@ -83,10 +83,7 @@ public:
     // which fits the evaluation on the quiet position at its end. context's moves are made & unmade, it's left as it was.
     template<Set us>
     static i16 quiescenceLine(ThreadSearchContext& context, PVLine& line);
-
-    // debugging parameters -- maybe we wrap these in the development_build define
-    std::atomic<u64> scout_search_count = 0;
-    std::atomic<u64> scout_re_search_count = 0;
+    
 private:
     // start of actual search
     template<Set us>
