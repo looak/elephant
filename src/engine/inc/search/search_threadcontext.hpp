@@ -35,11 +35,12 @@
 
 // One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
 // holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the inputs by go, the
-// heuristics & pawn hash by the SearchContext, the shared stop & node count by Search.
+// heuristics & pawn hash by the SearchContext, the TT by the GameContext, the shared stop & node count by Search.
 struct ThreadSearchContext {
-    ThreadSearchContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, ThreadHeuristics& _heuristics,
-                        PawnHashTable& _pawnHash)
+    ThreadSearchContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, TranspositionTable& _tt,
+                        ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
         : inputs(_inputs),
+          tt(_tt),
           heuristics(_heuristics),
           pawnHash(_pawnHash),
           position(_position),
@@ -51,6 +52,9 @@ struct ThreadSearchContext {
 
     // what this go was asked for: the clock, the node limit & the root moves. Shared by every thread, read only.
     const SearchInputs& inputs;
+    // the transposition table, the same one for every thread of the search. Its entries are single atomic words, so
+    // the threads read & write it without locks.
+    TranspositionTable& tt;
     // this thread's killers, butterfly & continuation history, from the SearchContext. Never shared between threads.
     ThreadHeuristics& heuristics;
     // this thread's pawn structure scores, from the SearchContext, see pawn_hash.hpp.

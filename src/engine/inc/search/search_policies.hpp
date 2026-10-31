@@ -66,16 +66,15 @@ class TT {
 public:
     static constexpr bool enabled = enabled_policies::TT;
     
-    static void assign(TranspositionTable& tt);
+    // every function takes the table it works on, the search hands each thread a reference to the shared one.
     // ply converts mate scores between root relative (search) and node relative (stored).
-    static std::optional<i16> probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
-    static bool probeMove(u64 hash, PackedMove& outMove);
-    static void prefetch(u64 hash);
-    static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag);
-    static void printStats();
-
-private:
-    static inline TranspositionTable* m_table;
+    static std::optional<i16> probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta,
+                                    TranspositionFlag& flag, PackedMove& outMove);
+    static bool probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove);
+    static void prefetch(TranspositionTable& tt, u64 hash);
+    static void update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply,
+                       const TranspositionFlag& flag);
+    static void printStats(TranspositionTable& tt);
 };
 
 // --- Late Move Reduction (LMR) Policies ---

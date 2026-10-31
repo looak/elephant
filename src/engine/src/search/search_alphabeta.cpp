@@ -69,7 +69,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if constexpr (search_policies::TT::enabled) {
         // probe only returns a score when the entry is deep enough and its bound allows a cutoff with this window.
         // bestMove is set on any hit, also when the entry is too shallow to cut.
-        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, ply, alpha, beta, flag, bestMove);
+        std::optional<i16> ttProbeResult = search_policies::TT::probe(context.tt, pos.hash(), depth, ply, alpha, beta, flag, bestMove);
 
         // No cutoffs at PV nodes, the stored score may come from an earlier search or another path with different
         // repetitions. At the root it would also play the stored move without searching it. The TT move still
@@ -158,7 +158,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- Store to TT ---
     if constexpr (search_policies::TT::enabled) {
         // All moves searched, no cutoff.
-        search_policies::TT::update(
+        search_policies::TT::update(context.tt,
             pos.hash(),
             bestMove, // Store the best move found
             eval, // Store the best score (which is alpha if it was a PV node)
@@ -241,7 +241,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         executor.makeMove(move, undoState, halfmoveClock);
         context.halfmoveClock[ply + 1] = halfmoveClock;
         if constexpr (search_policies::TT::enabled)
-            search_policies::TT::prefetch(pos.hash());
+            search_policies::TT::prefetch(context.tt, pos.hash());
         context.history.push(pos.hash());
 
         if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {

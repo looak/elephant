@@ -62,6 +62,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
                 this->m_originPosition.copy(),
                 us == Set::WHITE,
                 inputs,
+                m_transpositionTable,
                 *m_searchContext.threadHeuristics[threadId],
                 *m_searchContext.pawnHashes[threadId]);
             searchContext.threadId = threadId;
@@ -210,7 +211,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     
     if constexpr (search_policies::TT::enabled) {
         if (context.isMainThread())
-            search_policies::TT::printStats();
+            search_policies::TT::printStats(context.tt);
     }
     return result;
 }

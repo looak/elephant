@@ -20,6 +20,7 @@
 #include <quiet.hpp>
 #include <search/search.hpp>
 #include <search/search_threadcontext.hpp>
+#include <search/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 namespace tuner {
@@ -117,9 +118,11 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     const SearchParameters noLimits{};
     const TimeManager clock(noLimits, Set::WHITE);
     const SearchInputs inputs{ clock, 0, {}, 0 };
+    // quiescence never touches the TT, the smallest table satisfies the context.
+    TranspositionTable tt(1);
     auto heuristics = std::make_unique<ThreadHeuristics>();
     PawnHashTable pawnHash;
-    ThreadSearchContext context(Position{}, true, inputs, *heuristics, pawnHash);
+    ThreadSearchContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
 
     context.stopEnabled = false;
 

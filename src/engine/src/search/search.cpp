@@ -10,9 +10,6 @@ Search::Search(SearchContext& searchContext, GameContext& context)
     , m_gameContext(context)
     , m_originPosition(context.readChessPosition())
 {
-    if constexpr (search_policies::TT::enabled) {
-        search_policies::TT::assign(m_transpositionTable);
-    }
 }
 
 void Search::reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const {

@@ -37,14 +37,10 @@ i16 scoreFromTT(i16 score, u16 ply) {
 } // namespace
 
 // --- Transposition Table Policies ---
-void TT::assign(TranspositionTable& tt) {
-    m_table = &tt;
-}
-
-std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
+std::optional<i16> TT::probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
     i16 score;
     u8 depth;
-    if (m_table->probe(hash, outMove, score, depth, flag) == false)
+    if (tt.probe(hash, outMove, score, depth, flag) == false)
         return std::nullopt;
 
     if (depth < requiredDepth)
@@ -70,26 +66,26 @@ std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i1
     return std::nullopt;
 }
 
-void TT::prefetch(u64 hash) {
-    m_table->prefetch(hash);
+void TT::prefetch(TranspositionTable& tt, u64 hash) {
+    tt.prefetch(hash);
 }
 
-bool TT::probeMove(u64 hash, PackedMove& outMove) {
+bool TT::probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove) {
     i16 dummyScore;
     u8 dummyDepth;
     TranspositionFlag dummyFlag;
-    return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
+    return tt.probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
 }
 
-void TT::update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
+void TT::update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
 {
-    m_table->store(hash, move, scoreToTT(score, ply), depth, flag);
+    tt.store(hash, move, scoreToTT(score, ply), depth, flag);
 }
 
-void TT::printStats() 
+void TT::printStats([[maybe_unused]] TranspositionTable& tt)
 {
 #ifdef DEBUG_TRANSITION_TABLE
-    m_table->print_stats();
+    tt.print_stats();
 #endif
 }
 
