@@ -44,24 +44,26 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
     m_shared.stop.store(false, std::memory_order_relaxed);
     m_shared.nodes.store(0, std::memory_order_relaxed);
 
+    // what every thread reads, alive until all of them are joined below.
+    const SearchInputs inputs{ clock, params.NodeLimit, std::move(rootMoves), m_gameContext.readPly() };
+
     std::vector<std::future<SearchResult>> searchResults;
 
-    std::vector<std::unique_ptr<ThreadHeuristics>> threadHeuristics;
-    for (u16 threadId = 0; threadId < params.ThreadCount; ++threadId)
-        threadHeuristics.emplace_back(std::make_unique<ThreadHeuristics>());
+    // for now, we clear the search context to reinitialize the thread heuristics and pawn hashes on every go, to keep parity with previous behavior.
+    m_searchContext.clear(); // todo: remove, see above comment.
+    m_searchContext.initialize(params.ThreadCount);
 
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
-            [this, &params, &clock, &rootMoves, &threadHeuristics, threadId]() {
+            [this, &params, &inputs, threadId]() {
             ThreadSearchContext searchContext(
                 this->m_originPosition.copy(),
                 us == Set::WHITE,
-                *threadHeuristics[threadId],
-                clock);
+                inputs,
+                *m_searchContext.threadHeuristics[threadId],
+                *m_searchContext.pawnHashes[threadId]);
             searchContext.threadId = threadId;
             searchContext.shared = &m_shared;
-            searchContext.nodeLimit = params.NodeLimit;
-            searchContext.rootMoves = rootMoves;
             searchContext.debug_print_begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
@@ -70,7 +72,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             // the game history holds the positions before each move, the root is the first occurrence the search
             // can repeat.
             searchContext.history.push(searchContext.position.read().hash());
-            searchContext.halfmoveClock[1] = m_gameContext.readPly();
+            searchContext.halfmoveClock[1] = inputs.rootHalfmoveClock;
             auto result = iterativeDeepening<us>(searchContext, params);
             searchContext.publishNodes();
             result.mainThreadCount = searchContext.nodeCount + searchContext.qNodeCount;
@@ -177,7 +179,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         // the time this iteration finished, reported with the nodes of all threads so nodes / time is the real nps.
         // Only the main thread reports, the helpers are silent.
         if (context.isMainThread())
-            reportResult(itrResult, itrDepth, context.totalNodes(), context.clock.now());
+            reportResult(itrResult, itrDepth, context.totalNodes(), context.inputs.clock.now());
         else if (params.ThreadInfo)
             io::printer::uci("info string thread {} depth {} score {} nodes {} pv {}", context.threadId, itrDepth,
                 itrResult.score, context.nodeCount + context.qNodeCount, itrResult.pvLine.toString());
@@ -196,11 +198,11 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
 
-        if (context.clock.shouldStop() || context.nodeLimitReached() || context.searchStopped())
+        if (context.inputs.clock.shouldStop() || context.nodeLimitReached() || context.searchStopped())
             break;
 
         // whether another iteration fits the time is the main thread's call, the helpers search until it's done.
-        if (context.isMainThread() && context.clock.continueIterativeDeepening() == false)
+        if (context.isMainThread() && context.inputs.clock.continueIterativeDeepening() == false)
             break;
     }
     

@@ -16,6 +16,7 @@
 #pragma once
 #include <material/chess_piece_defines.hpp>
 #include <position/position_accessors.hpp>
+#include <search/search_context.hpp>
 #include <search/search_policies.hpp>
 #include <search/search_results.hpp>
 
@@ -63,6 +64,20 @@ struct SearchParameters {
     bool ThreadInfo = false;
 };
 
+// Everything one go's search is given to read, built by go from its SearchParameters and the game before the threads
+// start. One instance, every thread holds a const reference to it, nothing in it changes while they search.
+struct SearchInputs {
+    // the time limits for this go, every thread asks it whether to stop.
+    const TimeManager& clock;
+    // go nodes, 0 = no limit. Checked against the nodes of all threads, with one thread the search is deterministic.
+    u64 nodeLimit = 0;
+    // todo: remove root moves, probably solved by replacing the mov generator or something.
+    // go searchmoves filtered to the moves legal at the root, the only ones searched there. Empty = all moves.
+    std::vector<PackedMove> rootMoves;
+    // the game's fifty move rule counter at the root, every thread starts its halfmoveClock[1] from it.
+    u16 rootHalfmoveClock = 0;
+};
+
 // What the threads of one search share. The main thread (id 0) sets stop once it's done so the helpers unwind, every
 // thread adds its node count to nodes as it searches.
 struct SharedSearchState {
@@ -73,7 +88,7 @@ struct SharedSearchState {
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(GameContext& context);
+    Search(SearchContext& searchContext, GameContext& context);
 
     // entry point
     template<Set us>
@@ -83,7 +98,7 @@ public:
     // which fits the evaluation on the quiet position at its end. context's moves are made & unmade, it's left as it was.
     template<Set us>
     static i16 quiescenceLine(ThreadSearchContext& context, PVLine& line);
-    
+
 private:
     // start of actual search
     template<Set us>
@@ -109,6 +124,7 @@ private:
     void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
     
     TranspositionTable& m_transpositionTable;
+    SearchContext& m_searchContext;
     GameContext& m_gameContext;
 
     PositionReader m_originPosition;

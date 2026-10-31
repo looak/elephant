@@ -203,7 +203,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
     // go searchmoves, only the given moves are searched at the root.
-    const bool restrictRoot = ply == 1 && context.rootMoves.empty() == false;
+    const bool restrictRoot = ply == 1 && context.inputs.rootMoves.empty() == false;
 
     do {
         if (context.shouldStop()) break;

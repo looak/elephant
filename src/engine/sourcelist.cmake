@@ -103,6 +103,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /search/...
     ${ENGINE_INC_DIR}/search/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
+    ${ENGINE_INC_DIR}/search/search_context.hpp
     ${ENGINE_INC_DIR}/search/search_constants.hpp
     ${ENGINE_INC_DIR}/search/search_heuristic_structures.hpp
     ${ENGINE_INC_DIR}/search/search_move_source.hpp

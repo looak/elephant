@@ -4,8 +4,9 @@
 #include <io/printer.hpp>
 #include <search/transposition_table.hpp>
 
-Search::Search(GameContext& context)
+Search::Search(SearchContext& searchContext, GameContext& context)
     : m_transpositionTable(context.editTranspositionTable())
+    , m_searchContext(searchContext)
     , m_gameContext(context)
     , m_originPosition(context.readChessPosition())
 {

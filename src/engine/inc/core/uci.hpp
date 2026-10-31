@@ -30,6 +30,7 @@
 #include <future>
 
 #include <core/game_context.hpp>
+#include <search/search_context.hpp>
 #include <system/time_manager.hpp>
 
 class UCI
@@ -124,6 +125,7 @@ private:
     bool m_debug = false;
     TimeManager m_timeManager;
     GameContext m_context;
+    SearchContext m_searchContext;
     std::atomic<bool> m_isSearching;
     std::future<void> m_searchFuture;
     std::unordered_map<std::string, std::string> m_options;

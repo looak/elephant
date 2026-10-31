@@ -78,6 +78,7 @@ void bench() {
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
     context.editTranspositionTable().resize(16);
+    SearchContext searchContext;
 
     Clock timer;
     timer.Start();
@@ -88,7 +89,7 @@ void bench() {
         context.editTranspositionTable().clear();
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-        Search search(context);
+        Search search(searchContext, context);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
 

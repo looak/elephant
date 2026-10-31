@@ -30,7 +30,8 @@ TEST_F(SearchDepthFixture, NullMovePruning_DeepLine) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
 
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17

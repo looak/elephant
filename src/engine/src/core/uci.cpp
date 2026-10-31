@@ -411,7 +411,7 @@ UCI::Go(std::list<std::string> args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    Search searcher(m_context);
+    Search searcher(m_searchContext, m_context);
     searchParams.ThreadCount = m_threadCount;
     searchParams.ThreadInfo = m_debug;
 
@@ -460,6 +460,7 @@ bool UCI::Bench(std::list<std::string>)
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
     context.editTranspositionTable().resize(16);
+    SearchContext searchContext;
 
     Clock timer;
     timer.Start();
@@ -470,7 +471,7 @@ bool UCI::Bench(std::list<std::string>)
         context.editTranspositionTable().clear();
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-        Search search(context);
+        Search search(searchContext, context);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
         

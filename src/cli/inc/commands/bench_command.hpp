@@ -84,7 +84,8 @@ public:
                 GameContext context;
                 io::fen_parser::deserialize(testCase.fen.c_str(), context.editChessboard());
 
-                Search search(context);
+                SearchContext searchContext;
+                Search search(searchContext, context);
                 SearchParameters params;
                 TimeManager tm(params, context.readToPlay());
                 
@@ -111,10 +112,11 @@ public:
             GameContext context;
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-            Search search(context);
+            SearchContext searchContext;
+            Search search(searchContext, context);
             SearchParameters params;
             TimeManager tm(params, context.readToPlay());
-            
+
             params.SearchDepth = bench::depth;
             if (context.readToPlay() == Set::WHITE) {
                 auto result = search.go<Set::WHITE>(params, tm);

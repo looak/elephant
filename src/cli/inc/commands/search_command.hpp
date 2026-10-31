@@ -79,7 +79,8 @@ public:
         TimeManager timeManager(params, m_context->readToPlay());
         timeManager.applyTimeSettings(params, m_context->readToPlay());
 
-        Search search(*m_context);
+        SearchContext searchContext;
+        Search search(searchContext, *m_context);
         SearchResult result;
 
         if (m_context->readToPlay() == Set::WHITE) {
