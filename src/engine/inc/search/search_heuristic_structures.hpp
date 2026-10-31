@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 #include <diagnostics/assert.hpp>
@@ -93,6 +94,10 @@ struct KillerMoves {
 struct HistoryTable {
     std::array<i32, 2 * 64 * 64> table{};
 
+    void clear() {
+        table.fill(0);
+    }
+
     const i32* data() const { return table.data(); }
 
     // Gravity update, the bonus shrinks as the entry nears the bound so scores stay within [-max, max] and recent
@@ -117,6 +122,12 @@ struct ThreadHeuristics {
     KillerMoves killers{};
     HistoryTable history{};    
     ContinuationHistory continuationHistory{};
+
+    void reset() {
+        killers.clear();
+        history.clear();
+        std::memset(&continuationHistory, 0, sizeof(continuationHistory));
+    }
 };
 
 struct ContinuationStack {

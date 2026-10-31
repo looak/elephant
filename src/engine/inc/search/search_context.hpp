@@ -38,7 +38,7 @@ struct SearchContext {
         if (m_threadCount == threadCount)
             return;
 
-        clear();
+        release();
         for (u16 i = 0; i < threadCount; ++i) {
             threadHeuristics.emplace_back(std::make_unique<ThreadHeuristics>());
             pawnHashes.emplace_back(std::make_unique<PawnHashTable>());
@@ -47,13 +47,20 @@ struct SearchContext {
     }
 
     // frees every thread's tables, the next initialize allocates them again.
-    void clear() {
+    void release() {
         threadHeuristics.clear();
         pawnHashes.clear();
         m_threadCount = 0;
     }
 
+    void reset() {
+        for (auto& heuristics : threadHeuristics)
+            heuristics->reset();
+        for (auto& pawnHash : pawnHashes)
+            pawnHash->clear();
+    }
+
 private:
-    // the thread count the tables were allocated for, 0 when cleared.
+    // the thread count the tables were allocated for, 0 when released.
     u16 m_threadCount = 0;
 };

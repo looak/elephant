@@ -69,6 +69,21 @@ static const std::vector<std::string> fens = {
 
 void bench() {
 
+    struct BenchScope{
+        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+            context.Reset();
+            context.editTranspositionTable().clear();
+            searchContext.reset();
+        }
+
+        void loadFen(const std::string& fen) {
+            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        }
+
+        GameContext& context;
+        SearchContext& searchContext;
+    };
+
     io::printer::uciPrinterInit();
 
     // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
@@ -85,9 +100,8 @@ void bench() {
     u64 nodes = 0;
 
     for (const auto& fen : fens) {
-        context.Reset();
-        context.editTranspositionTable().clear();
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        BenchScope scope(context, searchContext);
+        scope.loadFen(fen);
 
         Search search(searchContext, context);
         SearchParameters params;

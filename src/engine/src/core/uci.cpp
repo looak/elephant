@@ -229,7 +229,7 @@ UCI::NewGame()
     // pawn hashes in the SearchContext, which outlive a go. Not part of GameContext::NewGame, "position startpos" calls
     // that every move.
     m_context.editTranspositionTable().clear(m_threadCount);
-    m_searchContext.clear();
+    m_searchContext.reset();
     return true;
 }
 
@@ -452,6 +452,22 @@ UCI::Go(std::list<std::string> args)
 
 bool UCI::Bench(std::list<std::string>)
 {
+    // todo consolidate with the benchscope in openbench.cpp
+    // every bench position is a new game: the TT & the search context are zeroed in place, never reallocated, so the
+    // clock below only measures search.
+    struct BenchScope{
+        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+            context.Reset();
+            context.editTranspositionTable().clear();
+            searchContext.reset();
+        }
+        void loadFen(const std::string& fen) {
+            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        }
+        GameContext& context;
+        SearchContext& searchContext;
+    };
+
     spdlog::info("Starting benchmark...");
 
     // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
@@ -462,15 +478,12 @@ bool UCI::Bench(std::list<std::string>)
     GameContext context;
     context.editTranspositionTable().resize(16);
     SearchContext searchContext;
-
     Clock timer;
     timer.Start();
     u64 nodes = 0;
-
     for (const auto& fen : bench::fens) {
-        context.Reset();
-        context.editTranspositionTable().clear();
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        BenchScope scope(context, searchContext);
+        scope.loadFen(fen);
 
         Search search(searchContext, context);
         SearchParameters params;
@@ -486,12 +499,13 @@ bool UCI::Bench(std::list<std::string>)
             nodes += result.count;
         }
     }
-
     timer.Stop();
+
     float elapsedSeconds = timer.getElapsedSeconds();
     i64 elapsedMilliseconds = timer.getElapsedTime();    
     io::printer::uci("info string {} seconds", elapsedSeconds);
     io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
+    io::printer::uci_flush();
     return true;
 }
 
