@@ -49,9 +49,11 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
 
     std::vector<std::future<SearchResult>> searchResults;
 
-    // for now, we clear the search context to reinitialize the thread heuristics and pawn hashes on every go, to keep parity with previous behavior.
-    m_searchContext.clear(); // todo: remove, see above comment.
+    // the history tables & pawn hashes carry over from the last go, ucinewgame clears them. Killers are indexed by ply
+    // and the root moves on two plies every turn, so they start empty every go.
     m_searchContext.initialize(params.ThreadCount);
+    for (auto& heuristics : m_searchContext.threadHeuristics)
+        heuristics->killers.clear();
 
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
