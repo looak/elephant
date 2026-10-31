@@ -34,9 +34,10 @@
 #include <move/move_executor.hpp>
 
 struct ThreadSearchContext {
-    ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
+    ThreadSearchContext(Position _position, bool whiteToMove, ThreadHeuristics& _heuristics, const TimeManager& _clock)
         : position(_position),
           accumulator(PestoAccumulator::computeFromScratch(position.read().material())),
+          heuristics(_heuristics),
           clock(_clock) {
             gameState.whiteToMove = whiteToMove;
 
@@ -48,7 +49,8 @@ struct ThreadSearchContext {
     PawnHashTable pawnHash;
     GameState gameState;
     MoveHistory history;
-    MoveOrderingHeuristic moveOrdering;
+    ThreadHeuristics& heuristics;
+
     // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
     // straight back.
     std::array<bool, c_maxSearchDepth> nullMoveAt{};

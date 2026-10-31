@@ -116,7 +116,9 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     // one context for every position in range, reset to each in turn. Never stopped, quiescence runs to its own end.
     const SearchParameters noLimits{};
     const TimeManager clock(noLimits, Set::WHITE);
-    ThreadSearchContext context(Position{}, true, clock);
+    auto heuristics = std::make_unique<ThreadHeuristics>();
+    ThreadSearchContext context(Position{}, true, *heuristics, clock);
+    
     context.stopEnabled = false;
 
     TunerData& data = part.data;

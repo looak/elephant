@@ -22,8 +22,10 @@
 #include <optional>
 #include <span>
 
+#include <core/square.hpp>
 #include <search/transposition_table_fwd.hpp>
 #include <material/chess_piece_defines.hpp>
+#include <material/chess_piece.hpp>
 #include <search/search_constants.hpp>
 #include <system/clock.hpp>
 
@@ -32,7 +34,7 @@ class Search;
 
 struct KillerMoves;
 struct MaterialPositionMask;
-struct MoveOrderingHeuristic;
+struct ThreadHeuristics;
 struct MoveOrderingView;
 struct PackedMove;
 
@@ -55,6 +57,7 @@ namespace enabled_policies {
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
     inline constexpr bool IIR = true;
+    inline constexpr bool ContinuationHistory = true;
 }
 
 // --- Transposition Table Policies ---
@@ -91,8 +94,8 @@ public:
     static bool isQuiet(PackedMove move);
 
     // Killer & history update when a quiet move fails high, quietsTried are the quiets searched before it at this node.
-    static void updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
-    static void prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply);
+    static void updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
+    static void prime(const ThreadHeuristics& heuristic, MoveOrderingView& view, u16 ply);
 };
 
 // --- Null Move Pruning (NMP) Policies ---
@@ -161,6 +164,14 @@ public:
     static bool deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha);
     // Move: this capture (or promotion) alone isn't enough, skip it.
     static bool deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha);
+};
+
+// --- Continuation History Policies ---
+class ContinuationHistoryPolicy {
+public:
+    static constexpr bool enabled = enabled_policies::ContinuationHistory;
+
+    static std::array<std::array<i16, 64>, 12>* slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
 };
 
 } // namespace search_policies
