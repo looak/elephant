@@ -106,8 +106,31 @@ struct HistoryTable {
 // i16 entries: 12*64*12*64*2 ≈ 1.2 MB
 using PieceToHistory = std::array<std::array<i16, 64>, 12>;          // [piece][to]
 using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 12>; // [prevPiece][prevTo]
+
+static_assert(sizeof(PieceToHistory) == 12 * 64 * sizeof(i16));
+namespace heuristic_defaults {    
+// Lookbacks past the root or across a null move point here. Read only, never updated.
+inline PieceToHistory noPreviousMove{};
+}
+
 struct ThreadHeuristics {
-    KillerMoves killers;
-    HistoryTable history;    
-    ContinuationHistory continuationHistory;
+    KillerMoves killers{};
+    HistoryTable history{};    
+    ContinuationHistory continuationHistory{};
+};
+
+struct ContinuationStack {
+    ContinuationStack() {
+        m_entries.fill(&heuristic_defaults::noPreviousMove);
+    }
+    void recordReplies(u16 ply, PieceToHistory* replies) {
+        m_entries[ply+continuation_params::pliesBack] = replies;
+    }
+    PieceToHistory* repliesTo(u16 ply, u16 distance) const {
+        ASSERT_MSG(distance <= continuation_params::pliesBack, "Invalid continuation stack access");
+        return m_entries[static_cast<size_t>(ply - distance + continuation_params::pliesBack)];
+    }
+    
+private:    
+    std::array<PieceToHistory*, c_maxSearchDepth + continuation_params::pliesBack> m_entries{};
 };

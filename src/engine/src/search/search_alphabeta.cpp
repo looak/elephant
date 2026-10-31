@@ -107,7 +107,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.heuristics, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.heuristics, context.continuationStack, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -244,8 +244,10 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             search_policies::TT::prefetch(pos.hash());
         context.history.push(pos.hash());
 
-        if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
-            auto ptr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
+        if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
+            auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
+            context.continuationStack.recordReplies(ply, historyPtr);
+        }
         
         i16 eval;
 
@@ -315,9 +317,22 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // --- Beta Cutoff (Fail-High) ---
             if (bestEval >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA;
-                if (search_policies::MoveOrdering::isQuiet(move))
+                if (search_policies::MoveOrdering::isQuiet(move)) {
                     search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
                         std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
+
+                    // the moves are unmade, their pieces are back on the source squares.
+                    if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
+                        using search_policies::ContinuationHistoryPolicy;
+                        const i32 bonus = search_policies::MoveOrdering::quietBonus(depth);
+                        ContinuationHistoryPolicy::update(context.continuationStack, ply, pos.pieceAt(move.sourceSqr()),
+                            move.targetSqr(), bonus);
+                        for (u16 i = 0; i < quietCount; ++i)
+                            ContinuationHistoryPolicy::update(context.continuationStack, ply,
+                                pos.pieceAt(quietsTried[i].sourceSqr()), quietsTried[i].targetSqr(), -bonus);
+                    }
+                }
+                        
                 outMove = intermmediateMove;
                 return bestEval;
             }

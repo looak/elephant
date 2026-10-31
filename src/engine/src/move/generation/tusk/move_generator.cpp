@@ -112,9 +112,12 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
     else {
         if (check)
             score += priority::givesCheck;
-        if (ordering != nullptr)
-            score += (std::clamp(ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr()), -priority::historyMax, priority::historyMax)
-                      + priority::historyMax) / 2;
+        if (ordering != nullptr) {
+            const i32 histAndContSum = ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr())
+                + ordering->getContinuationScore(us, pieceId, move.targetSqr());
+            static constexpr i32 historyTerms = 3;
+            score += (histAndContSum + historyTerms * priority::historyMax) / (2 * historyTerms);
+        }
     }
 
     return ScoredMove::make(move, static_cast<u16>(std::max(score, 0)), check);

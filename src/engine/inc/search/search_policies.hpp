@@ -35,6 +35,7 @@ class Search;
 struct KillerMoves;
 struct MaterialPositionMask;
 struct ThreadHeuristics;
+struct ContinuationStack;
 struct MoveOrderingView;
 struct PackedMove;
 
@@ -95,7 +96,9 @@ public:
 
     // Killer & history update when a quiet move fails high, quietsTried are the quiets searched before it at this node.
     static void updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
-    static void prime(const ThreadHeuristics& heuristic, MoveOrderingView& view, u16 ply);
+    static void prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply);
+    // bonus for a quiet cutoff at depth, the quiets tried before it get it as a malus.
+    static i32 quietBonus(u8 depth);
 };
 
 // --- Null Move Pruning (NMP) Policies ---
@@ -172,6 +175,13 @@ public:
     static constexpr bool enabled = enabled_policies::ContinuationHistory;
 
     static std::array<std::array<i16, 64>, 12>* slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
+    // Gravity update of piece to toSquare as a reply to each of the moves 1 to pliesBack plies before ply, a negative
+    // bonus is a malus. Lookbacks onto the shared no previous move table are skipped, it stays zero.
+    static void update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus);
+
+private:
+    // 0 to 11, white's pieces then black's.
+    static u32 pieceIndex(ChessPiece piece) { return static_cast<u32>(piece.set() * 6 + piece.index()); }
 };
 
 } // namespace search_policies
