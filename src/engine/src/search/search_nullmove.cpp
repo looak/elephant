@@ -42,6 +42,10 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
     ctx.history.push(pos.hash());
     ctx.nullMoveAt[ply] = true;
+
+    if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
+        ctx.continuationStack.recordReplies(ply, &heuristic_defaults::noPreviousMove);
+
     // passing counts as a quiet move for the fifty move rule.
     ctx.halfmoveClock[ply + 1] = static_cast<u16>(ctx.halfmoveClock[ply] + 1);
 

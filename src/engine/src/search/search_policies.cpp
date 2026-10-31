@@ -127,15 +127,21 @@ void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, Packed
     if (move.isQuiet())
         heuristic.killers.push(move, ply);
 
-    const i32 bonus = std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
+    const i32 bonus = quietBonus(depth);
     heuristic.history.update(us, move, bonus);
     for (PackedMove tried : quietsTried)
         heuristic.history.update(us, tried, -bonus);
 }
 
-void MoveOrdering::prime(const ThreadHeuristics& heuristic, MoveOrderingView& view, u16 ply) {
+void MoveOrdering::prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply) {
     heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
     view.history = heuristic.history.data();
+    view.negativeOnePly = continuationStack.repliesTo(ply, 1)->front().data();
+    view.negativeTwoPly = continuationStack.repliesTo(ply, 2)->front().data();
+}
+
+i32 MoveOrdering::quietBonus(u8 depth) {
+    return std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
 }
 
 // --- Reverse Futility Pruning (RFP) Policies ---
@@ -217,9 +223,21 @@ bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, Pack
 }
 
 // Continuation History Policy
-PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {    
-    const u32 pieceIndex = piece.set() * 6 + piece.index();
-    return &heuristics.continuationHistory[pieceIndex][*toSquare];
+PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {
+    return &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
+}
+
+void ContinuationHistoryPolicy::update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {
+    for (u16 distance = 1; distance <= continuation_params::pliesBack; ++distance) {
+        PieceToHistory* replies = stack.repliesTo(ply, distance);
+        if (replies == &heuristic_defaults::noPreviousMove)
+            continue;
+
+        // same gravity as HistoryTable::update, in 32 bits. |bonus| <= maxBonus < historyMax keeps it within i16.
+        i16& entry = (*replies)[pieceIndex(piece)][*toSquare];
+        const i32 current = entry;
+        entry = static_cast<i16>(current + bonus - current * std::abs(bonus) / MoveOrderingView::historyMax);
+    }
 }
 
 

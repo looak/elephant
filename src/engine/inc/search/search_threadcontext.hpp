@@ -40,7 +40,6 @@ struct ThreadSearchContext {
           heuristics(_heuristics),
           clock(_clock) {
             gameState.whiteToMove = whiteToMove;
-
         }
     Position position;
     // PeSTO sums for position, kept in step by the executors from executor() & read by evaluate().
@@ -50,6 +49,7 @@ struct ThreadSearchContext {
     GameState gameState;
     MoveHistory history;
     ThreadHeuristics& heuristics;
+    ContinuationStack continuationStack{};
 
     // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
     // straight back.
