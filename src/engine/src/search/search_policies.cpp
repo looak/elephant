@@ -122,7 +122,7 @@ bool MoveOrdering::isQuiet(PackedMove move) {
     return !move.isCapture() && !move.isPromotion();
 }
 
-void MoveOrdering::updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
+void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
     // killers keep their original rule, castling isn't one.
     if (move.isQuiet())
         heuristic.killers.push(move, ply);
@@ -133,7 +133,7 @@ void MoveOrdering::updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, P
         heuristic.history.update(us, tried, -bonus);
 }
 
-void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply) {
+void MoveOrdering::prime(const ThreadHeuristics& heuristic, MoveOrderingView& view, u16 ply) {
     heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
     view.history = heuristic.history.data();
 }
@@ -214,6 +214,12 @@ bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, Pack
         gain += c_promotionGain;
 
     return deltaPrune(standPat, gain, alpha);
+}
+
+// Continuation History Policy
+PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {    
+    const u32 pieceIndex = piece.set() * 6 + piece.index();
+    return &heuristics.continuationHistory[pieceIndex][*toSquare];
 }
 
 

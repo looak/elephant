@@ -103,7 +103,11 @@ struct HistoryTable {
     }
 };
 
-struct MoveOrderingHeuristic {
+// i16 entries: 12*64*12*64*2 ≈ 1.2 MB
+using PieceToHistory = std::array<std::array<i16, 64>, 12>;          // [piece][to]
+using ContinuationHistory = std::array<std::array<PieceToHistory, 64>, 12>; // [prevPiece][prevTo]
+struct ThreadHeuristics {
     KillerMoves killers;
-    HistoryTable history;
+    HistoryTable history;    
+    ContinuationHistory continuationHistory;
 };

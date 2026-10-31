@@ -45,10 +45,18 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
 
     std::vector<std::future<SearchResult>> searchResults;
 
+    std::vector<std::unique_ptr<ThreadHeuristics>> threadHeuristics;
+    for (u16 threadId = 0; threadId < params.ThreadCount; ++threadId)
+        threadHeuristics.emplace_back(std::make_unique<ThreadHeuristics>());
+
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
-            [this, &params, &clock, &rootMoves, threadId]() {
-            ThreadSearchContext searchContext(this->m_originPosition.copy(), us == Set::WHITE, clock);
+            [this, &params, &clock, &rootMoves, &threadHeuristics, threadId]() {
+            ThreadSearchContext searchContext(
+                this->m_originPosition.copy(),
+                us == Set::WHITE,
+                *threadHeuristics[threadId],
+                clock);
             searchContext.threadId = threadId;
             searchContext.shared = &m_shared;
             searchContext.nodeLimit = params.NodeLimit;

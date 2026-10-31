@@ -107,7 +107,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.moveOrdering, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.heuristics, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -243,6 +243,9 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         if constexpr (search_policies::TT::enabled)
             search_policies::TT::prefetch(pos.hash());
         context.history.push(pos.hash());
+
+        if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
+            auto ptr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
         
         i16 eval;
 
@@ -313,7 +316,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             if (bestEval >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA;
                 if (search_policies::MoveOrdering::isQuiet(move))
-                    search_policies::MoveOrdering::updateQuietCutoff(context.moveOrdering, us, move,
+                    search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
                         std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
                 outMove = intermmediateMove;
                 return bestEval;
