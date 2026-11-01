@@ -29,6 +29,43 @@ public:
 
 ////////////////////////////////////////////////////////////////
 
+// One thread, so nothing here needs a lock.
+class RecordingListener final : public SearchListener {
+public:
+    void onIteration(const IterationInfo& info) override {
+        depths.push_back(info.depth);
+        threadIds.push_back(info.threadId);
+        lastNodes = info.nodes;
+        lastMove = info.pv.moves[0];
+    }
+
+    std::vector<u32> depths;
+    std::vector<u16> threadIds;
+    u64 lastNodes = 0;
+    PackedMove lastMove = PackedMove::NullMove();
+};
+
+TEST_F(SearchFixture, Listener_HearsEveryIterationOfTheSearch)
+{
+    // setup
+    GameContext context;
+    context.NewGame();
+    SearchContext searchContext;
+    RecordingListener listener;
+    Search searcher(searchContext, context, listener);
+    testingParams.SearchDepth = 4;
+
+    // execute
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    // verify
+    EXPECT_EQ((std::vector<u32>{ 1, 2, 3, 4 }), listener.depths);
+    EXPECT_EQ((std::vector<u16>{ 0, 0, 0, 0 }), listener.threadIds);
+    EXPECT_GT(listener.lastNodes, 0u);
+    EXPECT_EQ(result.move(), listener.lastMove);
+}
+
 TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 {
     // setup

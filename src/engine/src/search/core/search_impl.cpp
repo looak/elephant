@@ -3,7 +3,6 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 #include <diagnostics/logger.hpp>
-#include <io/printer.hpp>
 
 #include <search/core/search_move_source.hpp>
 #include <search/state/thread_context.hpp>
@@ -179,13 +178,12 @@ SearchResult Search::iterativeDeepening(ThreadContext& context, SearchParameters
         if (context.stopped)
             break;
 
-        // the time this iteration finished, reported with the nodes of all threads so nodes / time is the real nps.
-        // Only the main thread reports, the helpers are silent.
-        if (context.isMainThread())
-            reportResult(itrResult, itrDepth, context.totalNodes(), context.inputs.clock.now());
-        else if (params.ThreadInfo)
-            io::printer::uci("info string thread {} depth {} score {} nodes {} pv {}", context.threadId, itrDepth,
-                itrResult.score, context.nodeCount + context.qNodeCount, itrResult.pvLine.toString());
+        // the time this iteration finished. hashfull walks a thousand entries and nothing reads it from a helper.
+        const bool isMain = context.isMainThread();
+        m_listener.onIteration({ .threadId = context.threadId, .depth = itrDepth, .score = itrResult.score,
+            .nodes = isMain ? context.totalNodes() : context.nodeCount + context.qNodeCount,
+            .timeMs = context.inputs.clock.now(), .hashfull = isMain ? m_transpositionTable.hashfull() : 0u,
+            .pv = itrResult.pvLine });
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);

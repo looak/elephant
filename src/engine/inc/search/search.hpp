@@ -18,6 +18,7 @@
 #include <position/position_accessors.hpp>
 #include <search/state/search_context.hpp>
 #include <search/core/search_policies.hpp>
+#include <search/search_listener.hpp>
 #include <search/search_results.hpp>
 
 #include <optional>
@@ -60,8 +61,6 @@ struct SearchParameters {
     // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
     // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
     std::vector<PackedMove> SearchMoves;
-    // uci debug on, the helper threads also report their completed iterations as info strings.
-    bool ThreadInfo = false;
 };
 
 // Everything one go's search is given to read, built by go from its SearchParameters and the game before the threads
@@ -88,7 +87,7 @@ struct SharedSearchState {
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(SearchContext& searchContext, GameContext& context);
+    Search(SearchContext& searchContext, GameContext& context, SearchListener& listener = noSearchListener());
 
     // entry point
     template<Set us>
@@ -121,11 +120,11 @@ private:
     template<Set us>
     std::optional<i16> tryNullMovePrune(ThreadContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
 
-    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
     
     TranspositionTable& m_transpositionTable;
     SearchContext& m_searchContext;
     GameContext& m_gameContext;
+    SearchListener& m_listener;
 
     PositionReader m_originPosition;
     SharedSearchState m_shared;

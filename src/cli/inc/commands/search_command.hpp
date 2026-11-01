@@ -3,6 +3,7 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
+#include <core/uci_search_listener.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
 
@@ -80,7 +81,8 @@ public:
         timeManager.applyTimeSettings(params, m_context->readToPlay());
 
         SearchContext searchContext;
-        Search search(searchContext, *m_context);
+        UciSearchListener listener;
+        Search search(searchContext, *m_context, listener);
         SearchResult result;
 
         if (m_context->readToPlay() == Set::WHITE) {

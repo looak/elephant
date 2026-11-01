@@ -1,4 +1,5 @@
 #include <core/uci.hpp>
+#include <core/uci_search_listener.hpp>
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>
@@ -427,9 +428,9 @@ UCI::runSearch(std::list<std::string> args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    Search searcher(m_searchContext, m_context);
+    UciSearchListener listener(m_debug);
+    Search searcher(m_searchContext, m_context, listener);
     searchParams.ThreadCount = m_threadCount;
-    searchParams.ThreadInfo = m_debug;
 
     SearchResult result;
     const auto searchStart = std::chrono::steady_clock::now();
@@ -493,6 +494,7 @@ bool UCI::Bench(std::list<std::string>)
     GameContext context;
     context.editTranspositionTable().resize(16);
     SearchContext searchContext;
+    UciSearchListener listener;
     Clock timer;
     timer.Start();
     u64 nodes = 0;
@@ -500,7 +502,7 @@ bool UCI::Bench(std::list<std::string>)
         BenchScope scope(context, searchContext);
         scope.loadFen(fen);
 
-        Search search(searchContext, context);
+        Search search(searchContext, context, listener);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
         
