@@ -4,6 +4,7 @@
 #include <charconv>
 #include <cstdlib>
 #include <format>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -15,6 +16,7 @@
 #include <search/search.hpp>
 #include <search/core/search_constants.hpp>
 #include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 namespace indexer {
@@ -79,7 +81,10 @@ struct Drawer::Impl {
     explicit Impl(DrawOptions o)
         : options(o)
         , clock(SearchParameters{}, Set::WHITE)
-        , context(Position{}, true, clock)
+        , inputs{ clock, 0, {}, 0 }
+        , tt(1)
+        , heuristics(std::make_unique<ThreadHeuristics>())
+        , context(Position{}, true, inputs, tt, *heuristics, pawnHash)
     {
         context.stopEnabled = false;  // quiescence runs to its own end
     }
@@ -109,6 +114,11 @@ struct Drawer::Impl {
     std::vector<Merged> merged;                       // in the order the positions were first drawn
     std::unordered_map<u64, size_t> mergedIndex;      // Polyglot hash to its place in merged
     TimeManager clock;
+    SearchInputs inputs;
+    // quiescence never touches the TT, the smallest table satisfies the context.
+    TranspositionTable tt;
+    std::unique_ptr<ThreadHeuristics> heuristics;
+    PawnHashTable pawnHash;
     ThreadContext context;
     std::unordered_set<u64> seen;   // the Polyglot hashes written so far
     u64 gamesSeen = 0;
