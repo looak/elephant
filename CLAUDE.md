@@ -28,7 +28,7 @@ New and changed code follows these; `.clang-tidy` (`readability-identifier-namin
   `GameContext`) and a few snake_case functions: don't copy them, and don't rename them inside an unrelated change.
 - **Members**: `m_` is a choice, not a rule. A class that keeps its state behind methods and invariants uses `m_` for
   that private state (`GameContext::m_history`). A struct that is its data, read and written directly, has plain
-  camelBack public members and no prefix (`ThreadSearchContext`, `PawnInfo`). Within one type, one or the other.
+  camelBack public members and no prefix (`ThreadContext`, `PawnInfo`). Within one type, one or the other.
 - **Formatting**: the tree isn't formatted by clang-format yet and mixes styles. Format only the lines a change
   touches (`git clang-format origin/main`), never reformat a whole file in passing. 120 columns.
 - **Comments** say why, in prose, wrapped by hand at 120: what the code can't say (why a pruning is safe here, what a

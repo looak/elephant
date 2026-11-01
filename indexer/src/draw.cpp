@@ -109,7 +109,7 @@ struct Drawer::Impl {
     std::vector<Merged> merged;                       // in the order the positions were first drawn
     std::unordered_map<u64, size_t> mergedIndex;      // Polyglot hash to its place in merged
     TimeManager clock;
-    ThreadSearchContext context;
+    ThreadContext context;
     std::unordered_set<u64> seen;   // the Polyglot hashes written so far
     u64 gamesSeen = 0;
 };

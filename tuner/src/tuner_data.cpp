@@ -122,7 +122,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     TranspositionTable tt(1);
     auto heuristics = std::make_unique<ThreadHeuristics>();
     PawnHashTable pawnHash;
-    ThreadSearchContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
+    ThreadContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
 
     context.stopEnabled = false;
 

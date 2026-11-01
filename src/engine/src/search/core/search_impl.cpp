@@ -31,7 +31,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
         legalMoves.start(&ordering, MoveTypes::ALL);
         for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
             for (PackedMove requested : params.SearchMoves) {
-                if (ThreadSearchContext::sameUciMove(requested, legal.move)) {
+                if (ThreadContext::sameUciMove(requested, legal.move)) {
                     rootMoves.push_back(legal.move);
                     break;
                 }
@@ -58,7 +58,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
             [this, &params, &inputs, threadId]() {
-            ThreadSearchContext searchContext(
+            ThreadContext searchContext(
                 this->m_originPosition.copy(),
                 us == Set::WHITE,
                 inputs,
@@ -126,7 +126,7 @@ bool helperSkipsDepth(u16 threadId, u8 depth) {
 } // namespace
 
 template<Set us>
-SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {
+SearchResult Search::iterativeDeepening(ThreadContext& context, SearchParameters params) {
     SearchResult result;
 
     // the hard ply limit in alphaBeta makes deeper iterations pointless.
@@ -216,5 +216,5 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     return result;
 }
 
-template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadSearchContext&, SearchParameters);
-template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadSearchContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadContext&, SearchParameters);
