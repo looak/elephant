@@ -23,10 +23,10 @@
 #include <span>
 
 #include <core/square.hpp>
-#include <search/transposition_table_fwd.hpp>
+#include <search/state/transposition_table_fwd.hpp>
 #include <material/chess_piece_defines.hpp>
 #include <material/chess_piece.hpp>
-#include <search/search_constants.hpp>
+#include <search/core/search_constants.hpp>
 #include <system/clock.hpp>
 
 // Forward-declare Search class for policy callbacks

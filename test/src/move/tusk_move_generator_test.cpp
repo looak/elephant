@@ -6,7 +6,7 @@
 #include <move/generation/move_gen_policy.hpp>
 #include <move/generation/tusk/check_info.hpp>
 #include <move/generation/tusk/move_generator.hpp>
-#include <search/perft_search.hpp>
+#include <search/perft/perft_search.hpp>
 
 #include <algorithm>
 #include <string>

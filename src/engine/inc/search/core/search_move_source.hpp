@@ -36,7 +36,7 @@
 #include <move/generation/move_ordering_view.hpp>
 #include <move/generation/tusk/move_generator.hpp>
 #include <position/position_accessors.hpp>
-#include <search/search_policies.hpp>
+#include <search/core/search_policies.hpp>
 
 // tusk::MoveGenerator, staged & lazy. The generator and result are created in start() once the filter is known.
 template<Set us>

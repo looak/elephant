@@ -5,9 +5,9 @@
 #include <diagnostics/logger.hpp>
 #include <io/printer.hpp>
 
-#include <search/search_move_source.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 #include <algorithm>

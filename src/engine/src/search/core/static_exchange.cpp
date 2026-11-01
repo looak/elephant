@@ -1,4 +1,4 @@
-#include <search/static_exchange.hpp>
+#include <search/core/static_exchange.hpp>
 
 #include <bitboard/attacks/attacks.hpp>
 #include <bitboard/intrinsics.hpp>

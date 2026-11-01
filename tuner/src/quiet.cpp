@@ -4,7 +4,7 @@
 
 #include <move/move_executor.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
+#include <search/core/search_constants.hpp>
 
 namespace tuner {
 

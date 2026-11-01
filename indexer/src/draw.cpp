@@ -13,8 +13,8 @@
 #include <io/fen_parser.hpp>
 #include <move/move_executor.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_threadcontext.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/thread_context.hpp>
 #include <system/time_manager.hpp>
 
 namespace indexer {

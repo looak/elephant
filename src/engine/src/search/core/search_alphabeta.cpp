@@ -8,11 +8,11 @@
 
 #include <move/move_executor.hpp>
 
-#include <search/search_constants.hpp>
-#include <search/search_move_source.hpp>
-#include <search/search_policies.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 
 #include <system/time_manager.hpp>
 

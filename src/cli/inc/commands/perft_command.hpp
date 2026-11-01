@@ -3,7 +3,7 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <search/perft_search.hpp>
+#include <search/perft/perft_search.hpp>
 #include <system/clock.hpp>
 #include <algorithm>
 

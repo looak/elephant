@@ -1,4 +1,4 @@
-#include <search/transposition_table.hpp>
+#include <search/state/transposition_table.hpp>
 #include <diagnostics/logger.hpp>
 
 namespace transposition_table {

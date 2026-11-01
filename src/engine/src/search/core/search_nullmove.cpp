@@ -2,7 +2,7 @@
 
 #include <position/hash_zobrist.hpp>
 
-#include <search/search_threadcontext.hpp>
+#include <search/state/thread_context.hpp>
 
 // Null Move Pruning: pass the move and search the opponent's reply with a reduced, null window search. If we still
 // fail high after giving the opponent a free move, the position is good enough that a full search would too.

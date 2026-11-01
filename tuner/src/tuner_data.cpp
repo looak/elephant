@@ -19,8 +19,8 @@
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
 #include <search/search.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 namespace tuner {

@@ -7,7 +7,7 @@
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 
 #include <algorithm>
 #include <chrono>

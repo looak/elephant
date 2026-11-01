@@ -23,7 +23,7 @@
 #pragma once
 
 #include <search/search_results.hpp>
-#include <search/search_threadcontext.hpp>
+#include <search/state/thread_context.hpp>
 
 namespace tuner {
 

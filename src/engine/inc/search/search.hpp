@@ -16,8 +16,8 @@
 #pragma once
 #include <material/chess_piece_defines.hpp>
 #include <position/position_accessors.hpp>
-#include <search/search_context.hpp>
-#include <search/search_policies.hpp>
+#include <search/state/search_context.hpp>
+#include <search/core/search_policies.hpp>
 #include <search/search_results.hpp>
 
 #include <optional>

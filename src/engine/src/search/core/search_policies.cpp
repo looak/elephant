@@ -1,7 +1,7 @@
-#include <search/search_policies.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_heuristic_structures.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/search_heuristic_structures.hpp>
+#include <search/state/transposition_table.hpp>
 
 #include <bitboard/bitboard_constants.hpp>
 #include <material/chess_piece.hpp>

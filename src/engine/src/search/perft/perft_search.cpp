@@ -1,4 +1,4 @@
-#include <search/perft_search.hpp>
+#include <search/perft/perft_search.hpp>
 
 PerftSearch::PerftSearch(GameContext& context)
     : m_context(context)

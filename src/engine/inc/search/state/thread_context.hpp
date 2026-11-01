@@ -22,8 +22,8 @@
 
 #include <core/chessboard.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>

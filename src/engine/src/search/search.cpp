@@ -2,7 +2,7 @@
 #include <core/chessboard.hpp>
 #include <core/game_context.hpp>
 #include <io/printer.hpp>
-#include <search/transposition_table.hpp>
+#include <search/state/transposition_table.hpp>
 
 Search::Search(SearchContext& searchContext, GameContext& context)
     : m_transpositionTable(context.editTranspositionTable())

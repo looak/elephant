@@ -5,10 +5,10 @@
 
 #include <move/move_executor.hpp>
 
-#include <search/search_move_source.hpp>
-#include <search/search_policies.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/static_exchange.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/core/static_exchange.hpp>
 #include <system/time_manager.hpp>
 
 #include <optional>

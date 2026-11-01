@@ -17,7 +17,7 @@
 #include <system/platform.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_ordering_view.hpp>
-#include <search/search_constants.hpp>
+#include <search/core/search_constants.hpp>
 
 #include <algorithm>
 #include <array>

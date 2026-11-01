@@ -30,7 +30,7 @@
 #include <future>
 
 #include <core/game_context.hpp>
-#include <search/search_context.hpp>
+#include <search/state/search_context.hpp>
 #include <system/time_manager.hpp>
 
 class UCI

@@ -4,7 +4,7 @@
 #include <io/fen_parser.hpp>
 #include <core/game_context.hpp>
 #include <move/generation/move_gen_policy.hpp>
-#include <search/perft_search.hpp>
+#include <search/perft/perft_search.hpp>
 #include <system/clock.hpp>
 #include <perft_cases.hpp>
 
