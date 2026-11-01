@@ -114,18 +114,23 @@ UCI::SetOption(const std::list<std::string> args)
             }
         };
 
+        // A running search reads these and Hash frees the table it's using, so a valid option ends the search first. GUIs
+        // only set options while idle, a bad one is reported above without touching the search.
         if (name == "Threads") {
             u16 threadCount = static_cast<u16>(std::clamp(toInt(), 1, 64));
+            SyncGo();
             m_options["Threads"] = value;
             m_threadCount = threadCount;
         }
         else if (name == "Hash") {
             size_t newSize = static_cast<size_t>(std::max(1, toInt()));
+            SyncGo();
             m_options["Hash"] = value;
             m_context.editTranspositionTable().resize(newSize, m_threadCount);
         }
         else if (name == "Move Overhead") {
             u32 overhead = static_cast<u32>(std::max(0, toInt()));
+            SyncGo();
             m_options["Move Overhead"] = value;
             m_timeManager.setMoveOverhead(overhead);
         }
@@ -258,9 +263,13 @@ UCI::AsyncGo(std::list<std::string> args)
     }
     m_isSearching.store(true);
 
+    // before the search thread starts, on the thread that reads stop. Done on the search thread, a stop sent right after
+    // go could arrive first and be thrown away with the old source, and an infinite search would then never end.
+    m_timeManager.reset();
+
     m_searchFuture = std::async(std::launch::async, [this, args]() {
         try {
-            this->Go(args);
+            this->runSearch(args);
         }
         catch (const std::exception& e) {
             // the GUI waits for a bestmove whatever happened.
@@ -291,8 +300,14 @@ UCI::SyncGo()
 bool
 UCI::Go(std::list<std::string> args)
 {
-    SearchParameters searchParams;
     m_timeManager.reset();
+    return runSearch(std::move(args));
+}
+
+bool
+UCI::runSearch(std::list<std::string> args)
+{
+    SearchParameters searchParams;
 
     // Typedef for sanity
     using ArgIterator = std::list<std::string>::const_iterator;

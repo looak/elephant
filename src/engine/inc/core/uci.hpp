@@ -120,6 +120,10 @@ private:
     // Position's parser, throws on a malformed command which Position reports.
     bool ParsePosition(std::list<std::string> args);
 
+    // Parses the go arguments, searches and sends bestmove. The caller has reset the time manager, Go on its own thread
+    // and AsyncGo before it starts the search thread.
+    bool runSearch(std::list<std::string> args);
+
     bool m_enabled;
     u16 m_threadCount = 1;
     bool m_debug = false;

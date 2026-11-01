@@ -12,7 +12,10 @@
 #include <algorithm>
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <sstream>
+#include <streambuf>
+#include <string>
 #include <thread>
 
 namespace ElephantTest {
@@ -64,6 +67,36 @@ public:
 private:
     std::ostream& m_originalStream;
     std::streambuf* m_originalBuffer;
+};
+////////////////////////////////////////////////////////////////
+/**
+ * @class ConcurrentOutput
+ * @brief A stream buffer the test can read while the search thread writes to it, no put area so every write locks. */
+class ConcurrentOutput : public std::streambuf {
+public:
+    std::string read() const {
+        std::lock_guard lock(m_mutex);
+        return m_text;
+    }
+
+protected:
+    int_type overflow(int_type character) override {
+        if (traits_type::eq_int_type(character, traits_type::eof()))
+            return traits_type::not_eof(character);
+        std::lock_guard lock(m_mutex);
+        m_text.push_back(traits_type::to_char_type(character));
+        return character;
+    }
+
+    std::streamsize xsputn(const char* text, std::streamsize count) override {
+        std::lock_guard lock(m_mutex);
+        m_text.append(text, static_cast<size_t>(count));
+        return count;
+    }
+
+private:
+    mutable std::mutex m_mutex;
+    std::string m_text;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -394,6 +427,93 @@ TEST_F(UciFixture, go_ponder_StopEndsThePonderSearch)
 
     // verify
     EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
+}
+
+// A stop sent right after go, before the search thread has started, used to be thrown away and the search never ended.
+// Not ended with SyncGo, which stops the search itself and would hide a lost stop.
+TEST_F(UciFixture, go_infinite_StopRightAfterGoEndsTheSearch)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        ConcurrentOutput output;
+        std::ostream outputStream(&output);
+        bool answered = false;
+        {
+            ScopedRedirect coutRedirect(std::cout, outputStream);
+
+            // do
+            m_uci.AsyncGo({ "infinite" });
+            m_uci.Stop();
+
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (!answered && std::chrono::steady_clock::now() < deadline) {
+                answered = output.read().find("bestmove") != std::string::npos;
+                if (!answered)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            m_uci.SyncGo();
+        }
+
+        // verify
+        ASSERT_TRUE(answered) << "stop was lost on attempt " << attempt;
+    }
+}
+
+TEST_F(UciFixture, setoption_Hash_DuringASearchEndsItBeforeResizing)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    ConcurrentOutput output;
+    std::ostream outputStream(&output);
+    bool result = false;
+    std::string afterSetOption;
+    {
+        ScopedRedirect coutRedirect(std::cout, outputStream);
+
+        // do
+        m_uci.AsyncGo({ "infinite" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        result = m_uci.SetOption({ "name", "Hash", "value", "2" });
+        afterSetOption = output.read();
+    }
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_NE(std::string::npos, afterSetOption.find("bestmove"));
+}
+
+// A bad value is reported without touching the search, it keeps running until it's stopped.
+TEST_F(UciFixture, setoption_BadValue_DuringASearchLeavesItRunning)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    ConcurrentOutput output;
+    std::ostream outputStream(&output);
+    bool result = true;
+    std::string afterSetOption;
+    {
+        ScopedRedirect coutRedirect(std::cout, outputStream);
+
+        // do
+        m_uci.AsyncGo({ "infinite" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        result = m_uci.SetOption({ "name", "Hash", "value", "lots" });
+        afterSetOption = output.read();
+        m_uci.Stop();
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_FALSE(result);
+    EXPECT_EQ(std::string::npos, afterSetOption.find("bestmove"));
+    EXPECT_NE(std::string::npos, output.read().find("bestmove"));
 }
 
 TEST_F(UciFixture, setoption_MultiWordName_MoveOverheadIsAccepted)
