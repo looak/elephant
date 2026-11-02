@@ -22,6 +22,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
 | `test/coverage.ps1` (`coverage.sh` with gcc) | the unit tests' coverage, an HTML report in `.build/coverage/coverage/`, nothing recorded ([tests.md](tests.md#coverage)) |
+| `test/perf.sh <A> <B>` | two builds' speed on the same tree, taking turns on one pinned core, on Linux or in WSL: nps per workload, and nodes that have to match. A build against itself gives the machine's noise floor, about 2% on the total on the 9900X |
 
 ## Scope
 

@@ -15,7 +15,8 @@ main
   search-time
     refactor-thread-context    PR #51 into search-time, open
       search-request           pushed, no PR yet
-        refactor-monad         this branch, not pushed
+        refactor-monad         the refactor up to the per-ply work, not pushed
+          refactor-worker      this branch, the per-ply struct & Worker, not pushed
 ```
 
 `search-request` should get a PR into `refactor-thread-context`. CI only runs by itself on pull requests into `main`, on these
@@ -118,6 +119,23 @@ Decided:
 - **`Game` replaces `GameContext`,** which is a board and an undo stack once the TT has left.
 - **`Chessboard` stays.** The indexer and tuner use it without a history.
 - **`SearchHandle`** is left out: one `Monad` runs one search at a time, and #53 closed the race it was meant to prevent.
+
+## The speed to compare with
+
+The rest changes how search state is laid out, so bench can stay the same while nps drops. `2b09d62` on `refactor-monad` is the
+baseline, built with `ob_build/makefile` and g++ 13.3 in WSL:
+
+```bash
+git worktree add /tmp/baseline 2b09d62 && make -C /tmp/baseline/ob_build -j8 EXE=$HOME/baseline
+test/perf.sh $HOME/baseline <new build> 7
+```
+
+Don't compare with numbers written down earlier, the same binary measured 3.20M and 3.65M nps on bench in one sitting, and 12.2M
+and 13.1M on four threads. Run both builds side by side. What does hold from run to run are the nodes, which a refactor has to
+keep: bench 467534, and on `test/perf.sh`'s workload startpos 16209631, kiwipete 7338230, middlegame 24791979, endgame 11331693.
+
+The baseline against a copy of itself, 7 rounds, gave +2.09% and +0.27% on the total and up to 5.5% on one workload, so a
+difference under about 2% on the total isn't one. Roughly 3.6M nps on that workload on a Ryzen 9 9900X, for scale.
 
 ## What's left, in order
 
