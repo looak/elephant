@@ -27,7 +27,6 @@ ${INC_DIR}/commands/perft_command.hpp
 ${INC_DIR}/commands/print_command.hpp
 ${INC_DIR}/commands/search_command.hpp
 ${INC_DIR}/commands/simple_commands.hpp
-${INC_DIR}/commands/uci_commands.hpp
 ${INC_DIR}/commands/evaluate_command.hpp
 
 ${INC_DIR}/printer/printer.hpp
@@ -38,7 +37,6 @@ ${INC_DIR}/static_initializer.hpp
 set(CLI_SOURCE ${CLI_SOURCE}
 ${SRC_DIR}/elephant_cli.cpp
 ${SRC_DIR}/commands/command_processor.cpp
-${SRC_DIR}/commands/uci_commands.cpp
 
 ${SRC_DIR}/static_initializer.cpp
 )

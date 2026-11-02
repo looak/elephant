@@ -67,7 +67,7 @@ function(elephant_add_test_executable target)
         "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
         "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
 
-    target_link_libraries(${target} common_warnings gtest_main engine spdlog)
+    target_link_libraries(${target} common_warnings gtest_main uci engine spdlog)
 
     gtest_discover_tests(${target} PROPERTIES LABELS ${ARG_LABEL} TIMEOUT ${ARG_TIMEOUT})
 endfunction()

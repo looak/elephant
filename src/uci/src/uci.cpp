@@ -1,4 +1,5 @@
-#include <core/uci.hpp>
+#include <uci/uci.hpp>
+#include <uci/uci_printer.hpp>
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>

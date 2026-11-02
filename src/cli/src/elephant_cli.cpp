@@ -80,8 +80,10 @@ Application::Run(char* argv[]) {
 
     while (1) {
 
-        if (context.handlesInput())
-            context.processInput("");
+        if (context.handlesInput()) {
+            if (!context.processInput(""))
+                break;
+        }
         else {
             std::cout << " > ";
             std::string buffer = "";

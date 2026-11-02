@@ -32,8 +32,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/core/game.hpp
     ${ENGINE_INC_DIR}/core/square.hpp
     ${ENGINE_INC_DIR}/core/square_notation.hpp
-    ${ENGINE_INC_DIR}/core/uci.hpp
-    ${ENGINE_INC_DIR}/core/uci_search_listener.hpp
 
 ## /diagnostics/...
     ${ENGINE_INC_DIR}/diagnostics/assert.hpp
@@ -140,8 +138,6 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/core/build_info.cpp
     ${ENGINE_SRC_DIR}/core/chessboard.cpp
     ${ENGINE_SRC_DIR}/core/game.cpp
-    ${ENGINE_SRC_DIR}/core/uci.cpp
-    ${ENGINE_SRC_DIR}/core/uci_search_listener.cpp
 
 ## /diagnostics/...
     ${ENGINE_SRC_DIR}/diagnostics/assert.cpp

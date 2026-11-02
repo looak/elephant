@@ -26,10 +26,12 @@ set_target_properties(${MAIN_EXE} PROPERTIES
 
 set(ENGINE_LIB engine)
 set(CLI_LIB cli)
+set(UCI_LIB uci)
 
 # Include sub-projects.
 add_subdirectory("cli")
 add_subdirectory("engine")
+add_subdirectory("uci")
 
 target_link_libraries(${MAIN_EXE}
   PUBLIC

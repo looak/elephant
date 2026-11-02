@@ -1,4 +1,5 @@
-#include <core/uci_search_listener.hpp>
+#include <uci/uci_search_listener.hpp>
+#include <uci/uci_printer.hpp>
 
 #include <diagnostics/logger.hpp>
 #include <io/printer.hpp>

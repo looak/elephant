@@ -1,5 +1,5 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
-EXE ?= elephant_ob
+EXE ?= eg-uci
 
 # Versioning, read from ../version.txt (major.minor.patch[-label] on line 1, the release's codename on line 2 when
 # there is one), the only place the version is written.
@@ -21,7 +21,7 @@ BUILD_TIMESTAMP := $(shell date '+%b %d %Y at %H:%M:%S')
 
 # Directories
 BUILD_DIR := ./build
-CSRC_DIR := ../src/cli/src
+USRC_DIR := ../src/uci/src
 ESRC_DIR := ../src/engine/src
 
 # Versioning header and template. The header goes in the build directory, the CMake build writes its own next to the
@@ -33,7 +33,7 @@ VERSION_HEADER_TEMPLATE := ../src/engine/inc/elephant_gambit_config.h.in
 # when it changed so an unchanged commit recompiles nothing.
 BUILD_INFO_HEADER := $(VERSION_HEADER_DIR)/elephant_gambit_build.h
 
-INCLUDE_PATHS := $(VERSION_HEADER_DIR) ../src/engine/inc ../src/cli/inc ../third_party/spdlog/include
+INCLUDE_PATHS := $(VERSION_HEADER_DIR) ../src/engine/inc ../src/uci/inc ../third_party/spdlog/include
 INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 
 # Compiler and flags
@@ -48,8 +48,8 @@ CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -
 
 # Source files
 ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
-COMMAND_SRC := $(CSRC_DIR)/commands/uci_commands.cpp $(CSRC_DIR)/commands/command_processor.cpp
-SRC := $(CSRC_DIR)/openbench.cpp $(COMMAND_SRC) $(ENGINE_SRC)
+UCI_SRC := $(shell find $(USRC_DIR) -name "*.cpp")
+SRC := $(UCI_SRC) $(ENGINE_SRC)
 
 # Object files mirror the source tree (../src/a/b.cpp -> build/src/a/b.o), sources with the same file name in
 # different directories (move_generator.cpp and tusk/move_generator.cpp) must not share an object file.

@@ -28,7 +28,7 @@
 #include <list>
 
 #include <core/game.hpp>
-#include <core/uci_search_listener.hpp>
+#include <uci/uci_search_listener.hpp>
 #include <search/monad.hpp>
 #include <search/search_request.hpp>
 

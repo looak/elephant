@@ -45,4 +45,6 @@ target_link_libraries(${CLI_LIB}
         common_warnings
         coverage_flags
         spdlog
+    PUBLIC
+        ${UCI_LIB}
 )

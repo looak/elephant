@@ -3,7 +3,7 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <core/uci_search_listener.hpp>
+#include <uci/uci_search_listener.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
 

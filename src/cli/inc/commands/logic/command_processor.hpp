@@ -1,7 +1,6 @@
 // ICommandProcessor.hpp
 #pragma once
 #include <string>
-#include <core/uci.hpp>
 #include <memory>
 
 #include <core/game.hpp>
@@ -28,11 +27,6 @@ public:
 class UciModeProcessor : public ICommandProcessor {
 public:
     bool handlesInput() override { return true; }
-    UciModeProcessor();
     bool processInput(AppContext* context, const std::string& line) override;
 
-private:
-    void options();
-    void tokenize(const std::string& buffer, std::list<std::string>& tokens);   
-    
 };

@@ -2,8 +2,9 @@
 
 #include <io/fen_parser.hpp>
 #include <core/build_info.hpp>
-#include <core/uci.hpp>
-#include <core/uci_search_listener.hpp>
+#include <uci/uci.hpp>
+#include <uci/uci_loop.hpp>
+#include <uci/uci_search_listener.hpp>
 #include <elephant_gambit_config.h>
 #include <core/game.hpp>
 #include <search/search.hpp>
@@ -13,6 +14,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 #include <map>
 #include <mutex>
 #include <sstream>
@@ -1425,6 +1427,27 @@ TEST_F(UciPositionFenFixture, position_fen_ThatDoesNotRead_KeepsTheGame)
 
     EXPECT_EQ(before, m_uci.readGame().readPosition().hash());
     EXPECT_EQ(6u, m_uci.readGame().moves().size());
+}
+
+// A GUI that dies closes our standard input without a quit. The loop used to spin on it forever at full CPU, a test
+// that never ends is that bug back.
+TEST(UciLoopTest, StandardInputClosing_EndsTheLoop)
+{
+    std::istringstream input("isready\nnot a command\n\nposition startpos\ngo depth 2\n");
+    std::ostringstream output;
+    std::streambuf* cinBuffer = std::cin.rdbuf(input.rdbuf());
+    std::streambuf* coutBuffer = std::cout.rdbuf(output.rdbuf());
+
+    runUciLoop();
+
+    std::cin.rdbuf(cinBuffer);
+    std::cout.rdbuf(coutBuffer);
+    std::cin.clear();
+
+    const std::string text = output.str();
+    EXPECT_NE(std::string::npos, text.find("uciok"));
+    EXPECT_NE(std::string::npos, text.find("readyok"));
+    EXPECT_NE(std::string::npos, text.find("bestmove"));
 }
 
 }  // namespace ElephantTest

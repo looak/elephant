@@ -65,7 +65,7 @@ fi
 
 # --- 2. bench ---
 echo "== bench"
-build_bench='cd ob_build && make -j"$(nproc)" EXE=build/elephant_ob >/dev/null 2>&1 && ./build/elephant_ob bench | tail -n 1'
+build_bench='cd ob_build && make -j"$(nproc)" EXE=build/eg-uci >/dev/null 2>&1 && ./build/eg-uci bench | tail -n 1'
 if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
     bench_line="$(cd "$root" && sh -c "$build_bench")"
 elif command -v wsl.exe >/dev/null 2>&1; then

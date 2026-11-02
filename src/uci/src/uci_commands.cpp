@@ -1,8 +1,8 @@
-#include "commands/uci_commands.hpp"
+#include <uci/uci_commands.hpp>
 
 #include <io/printer.hpp>
 #include <move/move.hpp>
-#include <core/uci.hpp>
+#include <uci/uci.hpp>
 
 bool UCICommands::DebugCommand(std::list<std::string> args, UCI& interface)
 {

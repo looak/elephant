@@ -1,11 +1,13 @@
+#include <cassert>
 #include <iostream>
+#include <string>
 
 #include <diagnostics/logger.hpp>
 #include <system/static_initializer.hpp>
-#include <commands/logic/command_processor.hpp>
-#include <core/uci_search_listener.hpp>
-#include <io/printer.hpp>
 #include <search/bench.hpp>
+#include <uci/uci_loop.hpp>
+#include <uci/uci_printer.hpp>
+#include <uci/uci_search_listener.hpp>
 
 bool g_initialized = static_initializer::initialize();
 
@@ -32,8 +34,7 @@ int main(int argc, char* argv[]) {
     spdlog::info("Starting independent UCI mode...");
     spdlog::set_level(spdlog::level::err);
 
-    UciModeProcessor processor;
-    processor.processInput(nullptr, "");
+    runUciLoop();
 
     return 0;
 }
