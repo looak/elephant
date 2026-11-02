@@ -30,7 +30,6 @@ template<bool validation>
 void GameContext::MakeMove(const PackedMove move)
 {
     m_board.makeMove<validation>(move, m_history.moveUndoUnits.emplace_back());
-    m_history.age++;
 }
 
 template void GameContext::MakeMove<false>(const PackedMove move);
@@ -42,23 +41,6 @@ bool GameContext::UnmakeMove()
 
     const bool result = m_board.unmakeMove(m_history.moveUndoUnits.back());
     m_history.moveUndoUnits.pop_back();
-    m_history.age--;
 
     return result;
-}
-
-bool GameHistory::IsRepetition(u64 hashKey) const {
-
-    if (moveUndoUnits.size() < 4)
-        return false;
-
-    int count = 0;
-
-    auto itr = moveUndoUnits.rbegin() + 1;
-    while (itr != moveUndoUnits.rend()) {
-        if (itr->hash == hashKey)
-            count++;
-        itr++;
-    }
-    return count >= 2;
 }

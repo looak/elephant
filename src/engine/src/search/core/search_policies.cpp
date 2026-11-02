@@ -124,14 +124,14 @@ void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, Packed
         heuristic.killers.push(move, ply);
 
     const i32 bonus = quietBonus(depth);
-    heuristic.history.update(us, move, bonus);
+    heuristic.butterfly.update(us, move, bonus);
     for (PackedMove tried : quietsTried)
-        heuristic.history.update(us, tried, -bonus);
+        heuristic.butterfly.update(us, tried, -bonus);
 }
 
 void MoveOrdering::prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply) {
     heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
-    view.history = heuristic.history.data();
+    view.history = heuristic.butterfly.data();
     view.negativeOnePly = continuationStack.repliesTo(ply, 1)->front().data();
     view.negativeTwoPly = continuationStack.repliesTo(ply, 2)->front().data();
 }

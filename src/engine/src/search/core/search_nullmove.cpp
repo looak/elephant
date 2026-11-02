@@ -40,7 +40,7 @@ std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     const byte originalEnPassant = editor.enPassant().read();
     editor.enPassant().clear();
     editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
-    ctx.history.push(pos.hash());
+    ctx.repetitions.push(pos.hash());
     ctx.nullMoveAt[ply] = true;
 
     if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
@@ -57,7 +57,7 @@ std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
 
     // --- unmake null move ---
     ctx.nullMoveAt[ply] = false;
-    ctx.history.pop();
+    ctx.repetitions.pop();
     if (originalEnPassant)
         editor.enPassant().write(originalEnPassant);
     editor.hash() = originalHash;

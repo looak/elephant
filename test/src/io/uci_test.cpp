@@ -8,6 +8,7 @@
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
+#include <search/state/repetition_history.hpp>
 #include <search/state/search_heuristic_structures.hpp>
 
 #include <algorithm>
@@ -1221,14 +1222,14 @@ static bool isThreefold(const GameContext& context)
     for (const auto& undoUnit : context.readGameHistory().moveUndoUnits)
         gameHashes.push_back(undoUnit.hash);
 
-    MoveHistory history;
+    RepetitionHistory history;
     history.setGameHashes(gameHashes);
     const u64 hash = context.readChessPosition().hash();
     history.push(hash);
     return history.isRepetition(hash, context.readHalfmoveClock());
 }
 
-TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
+TEST(RepetitionHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
 {
     constexpr u64 a = 1;
     constexpr u64 b = 2;
@@ -1237,7 +1238,7 @@ TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
     // the third occurrence is the root, both earlier ones are in the game.
     {
         const std::vector<u64> game{ a, b, a, b };
-        MoveHistory history;
+        RepetitionHistory history;
         history.setGameHashes(game);
         history.push(a);
         EXPECT_TRUE(history.isRepetition(a, 4));
@@ -1247,7 +1248,7 @@ TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
     // one occurrence in the game, one in the search's line.
     {
         const std::vector<u64> game{ a, b };
-        MoveHistory history;
+        RepetitionHistory history;
         history.setGameHashes(game);
         history.push(a);
         history.push(b);
@@ -1257,7 +1258,7 @@ TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
     // positions with the other side to move don't count, the first a here is an odd number of plies back.
     {
         const std::vector<u64> game{ a, b, c, a };
-        MoveHistory history;
+        RepetitionHistory history;
         history.setGameHashes(game);
         history.push(b);
         history.push(a);

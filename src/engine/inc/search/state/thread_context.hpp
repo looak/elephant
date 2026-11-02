@@ -23,6 +23,7 @@
 #include <position/position.hpp>
 #include <search/search.hpp>
 #include <search/core/search_constants.hpp>
+#include <search/state/repetition_history.hpp>
 #include <search/state/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
@@ -76,7 +77,7 @@ struct ThreadContext {
     // --- The current line, indexed by ply ---
 
     // hashes of the game's positions and of the line searched to here, for threefold repetition.
-    MoveHistory history;
+    RepetitionHistory repetitions;
     // halfmoveClock[ply] is the fifty move rule counter of the position at ply, the root (ply 1) gets the game's.
     std::array<u16, c_maxSearchDepth + 1> halfmoveClock{};
     // the continuation history reply table of the move made at each ply.

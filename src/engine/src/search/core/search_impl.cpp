@@ -43,10 +43,10 @@ SearchResult Search::run(const SearchRequest& request, TimeManager& clock) {
             searchContext.shared = &m_shared;
             searchContext.debug_print_begin(threadId, threadCount);
             // proper 3-fold repetition avoidance needs the game's earlier positions.
-            searchContext.history.setGameHashes(request.gameHashes);
+            searchContext.repetitions.setGameHashes(request.gameHashes);
             // the game's hashes are the positions before each move, the root is the first occurrence the search
             // can repeat.
-            searchContext.history.push(searchContext.position.read().hash());
+            searchContext.repetitions.push(searchContext.position.read().hash());
             searchContext.halfmoveClock[1] = request.rootHalfmoveClock;
             auto result = iterativeDeepening<us>(searchContext);
             searchContext.publishNodes();

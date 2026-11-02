@@ -24,11 +24,9 @@ struct SearchLimits;
 struct GameHistory {
     GameHistory() = default;    
 
-    u32 age = 0;
     // needs to be a vector to allow validation of move repetition.
     std::vector<MoveUndoUnit> moveUndoUnits;
 
-    bool IsRepetition(u64 hashKey) const;
 
     private:
     GameHistory(const GameHistory& rhs) = delete;

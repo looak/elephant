@@ -45,7 +45,7 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // root, a search started in a drawn position still has to return a move. A mate given on the hundredth half move
     // would win but is scored a draw, rare enough not to generate moves for.
     if constexpr (kind == NodeKind::NORMAL) {
-        if (context.history.isRepetition(pos.hash(), context.halfmoveClock[ply]) || context.halfmoveClock[ply] >= 100)
+        if (context.repetitions.isRepetition(pos.hash(), context.halfmoveClock[ply]) || context.halfmoveClock[ply] >= 100)
             return -c_drawConstant;
     }
 
@@ -252,7 +252,7 @@ i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
         context.halfmoveClock[ply + 1] = halfmoveClock;
         if constexpr (search_policies::TT::enabled)
             search_policies::TT::prefetch(context.tt, pos.hash());
-        context.history.push(pos.hash());
+        context.repetitions.push(pos.hash());
 
         if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
             auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
@@ -307,7 +307,7 @@ i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
             }
         }
 
-        context.history.pop();
+        context.repetitions.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
