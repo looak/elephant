@@ -1,5 +1,6 @@
 #include <search/core/search_policies.hpp>
 #include <search/core/search_constants.hpp>
+#include <search/state/ply_frame.hpp>
 #include <search/state/search_heuristic_structures.hpp>
 #include <search/state/transposition_table.hpp>
 
@@ -118,10 +119,10 @@ bool MoveOrdering::isQuiet(PackedMove move) {
     return !move.isCapture() && !move.isPromotion();
 }
 
-void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
+void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, PlyFrame& frame) {
     // killers keep their original rule, castling isn't one.
     if (move.isQuiet())
-        heuristic.killers.push(move, ply);
+        frame.pushKiller(move);
 
     const i32 bonus = quietBonus(depth);
     heuristic.butterfly.update(us, move, bonus);
@@ -129,11 +130,12 @@ void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, Packed
         heuristic.butterfly.update(us, tried, -bonus);
 }
 
-void MoveOrdering::prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply) {
-    heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
+void MoveOrdering::prime(const ThreadHeuristics& heuristic, const PlyFrames& frames, MoveOrderingView& view, u16 ply) {
+    view.killers[0] = frames[ply].killers[0];
+    view.killers[1] = frames[ply].killers[1];
     view.history = heuristic.butterfly.data();
-    view.negativeOnePly = continuationStack.repliesTo(ply, 1)->front().data();
-    view.negativeTwoPly = continuationStack.repliesTo(ply, 2)->front().data();
+    view.negativeOnePly = frames[ply - 1].continuation->front().data();
+    view.negativeTwoPly = frames[ply - 2].continuation->front().data();
 }
 
 i32 MoveOrdering::quietBonus(u8 depth) {
@@ -223,9 +225,9 @@ PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, Ch
     return &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
 }
 
-void ContinuationHistoryPolicy::update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {
+void ContinuationHistoryPolicy::update(const PlyFrames& frames, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {
     for (u16 distance = 1; distance <= continuation_params::pliesBack; ++distance) {
-        PieceToHistory* replies = stack.repliesTo(ply, distance);
+        PieceToHistory* replies = frames[ply - distance].continuation;
         if (replies == &heuristic_defaults::noPreviousMove)
             continue;
 

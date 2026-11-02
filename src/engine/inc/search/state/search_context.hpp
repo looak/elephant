@@ -29,7 +29,7 @@
 struct SearchContext {
     explicit SearchContext(u16 threadCount = 1) { initialize(threadCount); }
 
-    // killers, butterfly & continuation history, indexed by thread id. Heap allocated, ~1.2 MB each is too much for a
+    // butterfly & continuation history, indexed by thread id. Heap allocated, ~1.2 MB each is too much for a
     // thread's stack.
     std::vector<std::unique_ptr<ThreadHeuristics>> threadHeuristics;
     // pawn structure scores, indexed by thread id.

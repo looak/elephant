@@ -32,10 +32,10 @@
 // Forward-declare Search class for policy callbacks
 class Search;
 
-struct KillerMoves;
 struct MaterialPositionMask;
 struct ThreadHeuristics;
-struct ContinuationStack;
+struct PlyFrame;
+class PlyFrames;
 struct MoveOrderingView;
 struct PackedMove;
 
@@ -94,8 +94,8 @@ public:
     static bool isQuiet(PackedMove move);
 
     // Killer & history update when a quiet move fails high, quietsTried are the quiets searched before it at this node.
-    static void updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
-    static void prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply);
+    static void updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, PlyFrame& frame);
+    static void prime(const ThreadHeuristics& heuristic, const PlyFrames& frames, MoveOrderingView& view, u16 ply);
     // bonus for a quiet cutoff at depth, the quiets tried before it get it as a malus.
     static i32 quietBonus(u8 depth);
 };
@@ -176,7 +176,7 @@ public:
     static std::array<std::array<i16, 64>, 12>* slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
     // Gravity update of piece to toSquare as a reply to each of the moves 1 to pliesBack plies before ply, a negative
     // bonus is a malus. Lookbacks onto the shared no previous move table are skipped, it stays zero.
-    static void update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus);
+    static void update(const PlyFrames& frames, u16 ply, ChessPiece piece, Square toSquare, i32 bonus);
 
 private:
     // 0 to 11, white's pieces then black's.

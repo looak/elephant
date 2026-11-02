@@ -45,11 +45,11 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // root, a search started in a drawn position still has to return a move. A mate given on the hundredth half move
     // would win but is scored a draw, rare enough not to generate moves for.
     if constexpr (kind == NodeKind::NORMAL) {
-        if (context.repetitions.isRepetition(pos.hash(), context.halfmoveClock[ply]) || context.halfmoveClock[ply] >= 100)
+        if (context.repetitions.isRepetition(pos.hash(), context.frame(ply).halfmoveClock) || context.frame(ply).halfmoveClock >= 100)
             return -c_drawConstant;
     }
 
-    // hard ply limit, killers & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
+    // hard ply limit, frames & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
     // depth from ever reaching 0 along a chain of checks.
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
@@ -119,7 +119,7 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.heuristics, context.continuationStack, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.heuristics, context.frames, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -246,17 +246,17 @@ i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
         u8 adjustedDepth = depth;
 
         // makeMove advances the fifty move counter, reset by pawn moves & captures.
-        u16 halfmoveClock = context.halfmoveClock[ply];
+        u16 halfmoveClock = context.frame(ply).halfmoveClock;
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, halfmoveClock);
-        context.halfmoveClock[ply + 1] = halfmoveClock;
+        context.frame(ply + 1).halfmoveClock = halfmoveClock;
         if constexpr (search_policies::TT::enabled)
             search_policies::TT::prefetch(context.tt, pos.hash());
         context.repetitions.push(pos.hash());
 
         if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
             auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
-            context.continuationStack.recordReplies(ply, historyPtr);
+            context.frame(ply).continuation = historyPtr;
         }
         
         i16 eval;
@@ -327,16 +327,16 @@ i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
                 flag = TranspositionFlag::TTF_CUT_BETA;
                 if (search_policies::MoveOrdering::isQuiet(move)) {
                     search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
-                        std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
+                        std::span<const PackedMove>(quietsTried.data(), quietCount), depth, context.frame(ply));
 
                     if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
                         using search_policies::ContinuationHistoryPolicy;
                         const i32 bonus = search_policies::MoveOrdering::quietBonus(depth);
-                        ContinuationHistoryPolicy::update(context.continuationStack, ply, pos.pieceAt(move.sourceSqr()),
+                        ContinuationHistoryPolicy::update(context.frames, ply, pos.pieceAt(move.sourceSqr()),
                             move.targetSqr(), bonus);
 
                         for (u16 i = 0; i < quietCount; ++i)
-                            ContinuationHistoryPolicy::update(context.continuationStack, ply,
+                            ContinuationHistoryPolicy::update(context.frames, ply,
                                 pos.pieceAt(quietsTried[i].sourceSqr()), quietsTried[i].targetSqr(), -bonus);
                     }
                 }

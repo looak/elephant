@@ -23,6 +23,7 @@
 #include <position/position.hpp>
 #include <search/search.hpp>
 #include <search/core/search_constants.hpp>
+#include <search/state/ply_frame.hpp>
 #include <search/state/repetition_history.hpp>
 #include <search/state/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
@@ -57,7 +58,7 @@ struct ThreadContext {
     // the transposition table, the same one for every thread of the search. Its entries are single atomic words, so
     // the threads read & write it without locks.
     TranspositionTable& tt;
-    // this thread's killers, butterfly & continuation history, from the SearchContext. Never shared between threads.
+    // this thread's butterfly & continuation history, from the SearchContext. Never shared between threads.
     ThreadHeuristics& heuristics;
     // this thread's pawn structure scores, from the SearchContext, see pawn_hash.hpp.
     PawnHashTable& pawnHash;
@@ -78,13 +79,8 @@ struct ThreadContext {
 
     // hashes of the game's positions and of the line searched to here, for threefold repetition.
     RepetitionHistory repetitions;
-    // halfmoveClock[ply] is the fifty move rule counter of the position at ply, the root (ply 1) gets the game's.
-    std::array<u16, c_maxSearchDepth + 1> halfmoveClock{};
-    // the continuation history reply table of the move made at each ply.
-    ContinuationStack continuationStack{};
-    // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
-    // straight back.
-    std::array<bool, c_maxSearchDepth> nullMoveAt{};
+    // what each ply of the line knows, see PlyFrame.
+    PlyFrames frames;
     // While a null move fail high is verified, nmpColor doesn't null move before nmpMinPly.
     u16 nmpMinPly = 0;
     bool nmpColorWhite = false;
@@ -108,6 +104,8 @@ struct ThreadContext {
     u32 stopCheckCounter = 0;
 
     [[nodiscard]] bool isMainThread() const { return threadId == 0; }
+
+    [[nodiscard]] PlyFrame& frame(i32 ply) { return frames[ply]; }
 
     // adds the nodes searched since the last call to the shared total, every 1024 stop checks & when the thread ends.
     void publishNodes() {

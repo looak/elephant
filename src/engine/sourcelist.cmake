@@ -107,6 +107,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/monad.hpp
     ${ENGINE_INC_DIR}/search/quiescence_probe.hpp
     ${ENGINE_INC_DIR}/search/search_request.hpp
+    ${ENGINE_INC_DIR}/search/state/ply_frame.hpp
     ${ENGINE_INC_DIR}/search/state/repetition_history.hpp
     ${ENGINE_INC_DIR}/search/state/search_context.hpp
     ${ENGINE_INC_DIR}/search/core/search_constants.hpp

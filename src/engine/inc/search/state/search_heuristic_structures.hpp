@@ -28,33 +28,6 @@
 
 #include <diagnostics/assert.hpp>
 
-struct KillerMoves {
-    private:
-    PackedMove m_killers[c_maxSearchDepth][2];
-
-    public:
-    KillerMoves() {
-        clear();
-    }
-    void clear() {
-        for (u32 i = 0; i < c_maxSearchDepth; ++i) {
-            m_killers[i][0] = PackedMove::NullMove();
-            m_killers[i][1] = PackedMove::NullMove();
-        }
-    }
-    void push(PackedMove move, u16 ply) {
-        if (m_killers[ply][0] != move) {
-            m_killers[ply][1] = m_killers[ply][0];
-            m_killers[ply][0] = move;
-        }
-    }
-
-    void retrieve(u16 ply, PackedMove& outFirst, PackedMove& outSecond) const {
-        outFirst = m_killers[ply][0];
-        outSecond = m_killers[ply][1];
-    }
-};
-
 // History heuristic: quiet moves that caused beta cutoffs, indexed [side][from][to] the way MoveOrderingView reads it.
 struct HistoryTable {
     std::array<i32, 2 * 64 * 64> table{};
@@ -84,29 +57,11 @@ inline PieceToHistory noPreviousMove{};
 }
 
 struct ThreadHeuristics {
-    KillerMoves killers{};
     HistoryTable butterfly{};    
     ContinuationHistory continuationHistory{};
 
     void reset() {
-        killers.clear();
         butterfly.clear();
         std::memset(&continuationHistory, 0, sizeof(continuationHistory));
     }
-};
-
-struct ContinuationStack {
-    ContinuationStack() {
-        m_entries.fill(&heuristic_defaults::noPreviousMove);
-    }
-    void recordReplies(u16 ply, PieceToHistory* replies) {
-        m_entries[ply+continuation_params::pliesBack] = replies;
-    }
-    PieceToHistory* repliesTo(u16 ply, u16 distance) const {
-        ASSERT_MSG(distance <= continuation_params::pliesBack, "Invalid continuation stack access");
-        return m_entries[static_cast<size_t>(ply - distance + continuation_params::pliesBack)];
-    }
-    
-private:    
-    std::array<PieceToHistory*, c_maxSearchDepth + continuation_params::pliesBack> m_entries{};
 };

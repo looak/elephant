@@ -25,9 +25,7 @@ SearchResult Search::run(const SearchRequest& request, TimeManager& clock) {
     std::vector<std::future<SearchResult>> searchResults;
 
     // the history tables & pawn hashes carry over from the last go, ucinewgame clears them. Killers are indexed by ply
-    // and the root moves on two plies every turn, so they start empty every go.
-    for (auto& heuristics : m_searchContext.threadHeuristics)
-        heuristics->killers.clear();
+    // and the root moves on two plies every turn, so they're in the frames, which start empty every go.
 
     const u16 threadCount = m_searchContext.threadCount();
     for(u16 threadId = 0; threadId < threadCount; ++threadId) {
@@ -47,7 +45,7 @@ SearchResult Search::run(const SearchRequest& request, TimeManager& clock) {
             // the game's hashes are the positions before each move, the root is the first occurrence the search
             // can repeat.
             searchContext.repetitions.push(searchContext.position.read().hash());
-            searchContext.halfmoveClock[1] = request.rootHalfmoveClock;
+            searchContext.frame(1).halfmoveClock = request.rootHalfmoveClock;
             auto result = iterativeDeepening<us>(searchContext);
             searchContext.publishNodes();
             result.mainThreadCount = searchContext.nodeCount + searchContext.qNodeCount;
