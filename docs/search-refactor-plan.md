@@ -87,6 +87,11 @@ On `refactor-monad`:
 - `CommandContext`: the CLI's commands share a `Game` & a `Monad`, so `search` keeps its table & history tables between
   commands until `new`. `UCI`'s `readGame` & `editGame` stay, for `print` and the tests.
 
+On `refactor-worker`:
+
+- `PlyFrame`: `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers in one struct per ply, #47's. Same nodes
+  as the baseline on every workload, +0.32% nps against a noise floor of about 2%.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 
@@ -139,11 +144,10 @@ difference under about 2% on the total isn't one. Roughly 3.6M nps on that workl
 
 ## What's left, in order
 
-8. **The per-ply struct, then `Worker`.** Gather `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers
-   into one struct per ply, #47's. Then `Search` splits: starting & joining threads, the shared stop & node count and the
-   listener go to `Monad`, `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become
-   `std::vector<Worker>`. A `Worker` is a thread's tables, not a thread: threads still start per `go`. Layout changes in the
-   hot path can move nps with bench unchanged, so check nps as well. Compare `Worker` with the other engines first.
+8. **`Worker`.** `Search` splits: starting & joining threads, the shared stop & node count and the listener go to `Monad`,
+   `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become `std::vector<Worker>`. A `Worker` holds a
+   thread's tables and builds its `ThreadContext` on its stack for each `go`. It isn't a thread: threads still start per `go`.
+   Compare with the baseline above as well as bench.
 
 Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request as each step they describe.
 
@@ -158,6 +162,13 @@ Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request
 - **Shorter mates on `go infinite`:** iterative deepening breaks out at the first mate (`search_impl.cpp`), so the
   search stops looking while it holds for `stop`. MultiPV isn't needed, a shorter mate scores higher on the normal
   line: limit the break to searches that aren't infinite. Only `go infinite` & `go ponder` change, bench doesn't.
+- **`c_maxSearchDepth` is 64,** with the root at ply 1. Ethereal & Triumviratus have 128, Pawnocchio 256. Search returns the
+  static eval silently at the limit, Triumviratus raised 64 after measuring seldepth 42-54 at 10 s on 16-40 threads. Changes
+  play at long time controls, needs an SPRT.
+- **A thread pool:** threads start per `go`, like Ethereal, the others keep a pool. In WSL on the 9900X that costs 0.18 ms for
+  one thread, 0.4 ms for 4, 1.2 ms for 16, 4.7 ms for 64, and Triumviratus measured 1-2 ms on 4-8 before it moved to a pool.
+  Not worth it at one or a few threads. `Monad` hides it, so it can change later without touching search. Binding threads
+  & their tables to NUMA nodes, Stockfish's reason, needs one too.
 - **Pluggable move ordering:** scoring sits inside the generator, `move_generator.cpp`'s `scoreMove`. A separate ordering
   type that scores and learns, with the generator only knowing the rules, was discussed but not started.
 - **SPSA:** a params registry as the one place a search constant is written, generating the release `constexpr`s, the
@@ -168,10 +179,10 @@ Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request
 
 ## Things to remember
 
-- **Other engines:** when a design choice draws on precedent, look at Ethereal, Triumviratus & Pawnocchio first and ask
-  why they differ. Stockfish is one reference and a check for correctness, not the model. `NodeKind`, `Worker` &
-  the root move list were described from memory of Stockfish, and haven't been compared with the others. `Worker` is
-  worth checking before it's built.
+- **Other engines:** when a design choice draws on precedent, look at Ethereal, Triumviratus, Pawnocchio & Stockfish and ask why
+  they differ. Differing is fine if the reason holds. All four keep a thread's state in one object and reset its per-go part
+  by hand, or in Stockfish's case keep the stack local. We keep `Worker` and a per-go `ThreadContext` apart on purpose: state that
+  can't carry over by construction, the same reason `Game` is replaced and not cleared.
 - **Commits:** renames & cleanups are their own commits with the bench line unchanged, see `CLAUDE.md`.
 - **Bench can't see everything:** its positions have no game history, so it doesn't reach the game side of
   `isRepetition`, and it doesn't use `searchmoves`. Those rely on unit tests.
