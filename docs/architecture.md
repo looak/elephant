@@ -11,7 +11,7 @@ flowchart TD
 
     subgraph core["core"]
         uci["UCI<br/>position, go, stop, setoption,<br/>bench, buildinfo"]
-        game["GameContext"]
+        game["Game"]
         history["GameHistory<br/>undo units, repetition"]
         board["Chessboard<br/>Position + GameState"]
     end

@@ -6,7 +6,7 @@
 #include <diagnostics/logger.hpp>
 #include <system/static_initializer.hpp>
 #include <commands/logic/command_processor.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <core/uci_search_listener.hpp>
 #include <io/fen_parser.hpp>
 #include <io/printer.hpp>
@@ -71,7 +71,7 @@ static const std::vector<std::string> fens = {
 void bench() {
 
     struct BenchScope{
-        BenchScope(GameContext& ctx, TranspositionTable& table, SearchContext& sc)
+        BenchScope(Game& ctx, TranspositionTable& table, SearchContext& sc)
             : context(ctx), tt(table), searchContext(sc) {
             context.Reset();
             tt.clear();
@@ -82,7 +82,7 @@ void bench() {
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
         }
 
-        GameContext& context;
+        Game& context;
         TranspositionTable& tt;
         SearchContext& searchContext;
     };
@@ -94,7 +94,7 @@ void bench() {
     // the same as a new one, the node count doesn't change. 16 MB rather than the default 64: each position clears the
     // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
-    GameContext context;
+    Game context;
     TranspositionTable tt(16);
     SearchContext searchContext;
     UciSearchListener listener;

@@ -1,6 +1,6 @@
 #include <io/pgn_parser.hpp>
 #include <io/san_parser.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <diagnostics/exceptions.hpp>
 
 #include <io/fen_parser.hpp>
@@ -154,7 +154,7 @@ namespace {
         }
     }
 
-    const std::string* Game::tag(std::string_view name) const {
+    const std::string* PgnGame::tag(std::string_view name) const {
         for (const Tag& tag : tags) {
             if (tag.name == name)
                 return &tag.value;
@@ -179,7 +179,7 @@ namespace {
 
     // A tag is a line, [Name "value"], read as python-chess reads it: the value runs from the first quote to the last
     // "] on the line and is kept as written, a \" in it stays a \". A line that isn't a tag is skipped.
-    bool GameReader::readTag(Game& game) {
+    bool GameReader::readTag(PgnGame& game) {
         const size_t eol = endOfLine(m_stream, m_pos);
         std::string_view line = m_stream.substr(m_pos, eol - m_pos);
         m_pos = eol;
@@ -206,12 +206,12 @@ namespace {
         return true;
     }
 
-    std::optional<Game> GameReader::next() {
+    std::optional<PgnGame> GameReader::next() {
         skipWhitespace();
         if (m_pos >= m_stream.size())
             return std::nullopt;
 
-        Game game;
+        PgnGame game;
         game.offset = m_pos;
         // the tags, a line at a time: one blank line between them is skipped, a second ends the game without moves.
         bool blank = false;
@@ -253,9 +253,9 @@ namespace {
         });
     }
 
-    void deserialize(GameContext& game, std::string_view pgn) {
+    void deserialize(::Game& game, std::string_view pgn) {
         GameReader reader(pgn);
-        std::optional<Game> parsed = reader.next();
+        std::optional<PgnGame> parsed = reader.next();
         if (!parsed)
             return;
 
@@ -272,14 +272,14 @@ namespace {
         while (std::optional<Token> token = tokenizer.next()) {
             if (token->kind == Token::Kind::NullMove) {
                 THROW_EXPR(false, ephant::io_error,
-                    std::format("pgn_parser :: A null move ({}) can't be played on a GameContext", token->text));
+                    std::format("pgn_parser :: A null move ({}) can't be played on a Game", token->text));
                 continue;
             }
             if (token->kind != Token::Kind::Move)
                 continue;
             const bool whiteToMove = game.readToPlay() == Set::WHITE;
-            PackedMove move = san_parser::deserialize(game.readChessPosition(), whiteToMove, token->text);
-            game.MakeMove<true>(move);
+            PackedMove move = san_parser::deserialize(game.readPosition(), whiteToMove, token->text);
+            game.makeMove<true>(move);
         }
     }
 

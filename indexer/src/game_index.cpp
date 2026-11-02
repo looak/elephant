@@ -169,7 +169,7 @@ PositionFacts positionFacts(const Chessboard& board)
     return { checked, canMove };
 }
 
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool positions, bool moves)
+GameIndex index(const io::pgn_parser::PgnGame& game, u32 number, bool verbose, bool positions, bool moves)
 {
     static const std::string c_reader = readerVersion();
     GameIndex entry;

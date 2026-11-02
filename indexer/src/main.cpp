@@ -290,7 +290,7 @@ int main(int argc, char** argv)
 
         io::pgn_parser::GameReader reader(input);
         u32 number = 0;
-        while (std::optional<io::pgn_parser::Game> game = reader.next()) {
+        while (std::optional<io::pgn_parser::PgnGame> game = reader.next()) {
             indexer::GameIndex entry = indexer::index(*game, ++number, verbose, positions, draw.has_value() || positionsFile.is_open());
             if (fromFiles)
                 entry.source = path;

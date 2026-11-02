@@ -3,7 +3,7 @@
 
 #include <system/clock.hpp>
 #include <io/fen_parser.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <search/search.hpp>
 #include <search_cases.hpp>
 #include <system/time_manager.hpp>
@@ -47,7 +47,7 @@ public:
 TEST_F(SearchFixture, Listener_HearsEveryIterationOfTheSearch)
 {
     // setup
-    GameContext context;
+    Game context;
     context.NewGame();
     SearchContext searchContext;
     RecordingListener listener;
@@ -70,7 +70,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 {
     // setup
     std::string fen("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
-    GameContext context;
+    Game context;
 
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
@@ -93,7 +93,7 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 {
     // setup
-    GameContext context;
+    Game context;
 
     std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
@@ -117,7 +117,7 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
 TEST_F(SearchFixture, WhiteForcedMate)
 {
     std::string fen("5k2/8/3N4/1p1p4/2qP4/2PKP3/5r2/8 w - - 1 2");
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
@@ -131,7 +131,7 @@ TEST_F(SearchFixture, WhiteForcedMate)
 TEST_F(SearchFixture, MateAgainstSelf)
 {
     std::string fen("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34");
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
@@ -144,7 +144,7 @@ TEST_F(SearchFixture, MateAgainstSelf)
 
 TEST_F(SearchFixture, ExpectedMoveSearchCases) {
     for (const auto& searchCase : s_searchCases) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
@@ -159,7 +159,7 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
 
 TEST_F(SearchFixture, ExpectedMoveMateInThree) {
     for (const auto& searchCase : s_mateInThree) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
@@ -180,7 +180,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
 // were disabled as too slow, both run in well under a second since 0.15.
 TEST_F(SearchFixture, ExpectedMoveMateInFive) {
     for (const auto& searchCase : s_mateInFive) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
@@ -201,7 +201,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
 
 TEST_F(SearchFixture, ExpectedMoveMateInEight) {
     for (const auto& searchCase : s_mateInEight) {
-        GameContext context;
+        Game context;
         testingParams.SearchDepth = 16; // increase depth for harder mates
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
@@ -223,7 +223,7 @@ TEST_F(SearchFixture, ExpectedMoveMateInEight) {
 
 TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
     for (const auto& searchCase : s_nullMovePruning) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
@@ -245,7 +245,7 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
 }
 
 TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {   
-    GameContext context;
+    Game context;
     std::string fen("r4rk1/2pb1p1p/p1n1p1p1/1p6/3Pn3/2P2N2/PP1BRPPP/5RK1 w - - 0 19");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
@@ -272,7 +272,7 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
 
 // A rook up, but every move makes the hundredth half move without a capture or pawn move and there's no mate in one.
 TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 99 120", context.editChessboard());
 
     SearchContext searchContext;
@@ -288,7 +288,7 @@ TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
 
 // One move short of the fifty move rule the rook still counts.
 TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 0 120", context.editChessboard());
 
     SearchContext searchContext;
@@ -306,9 +306,9 @@ TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
 {
     // setup, the mate in three from WhiteMateInThree_ExpectQg6AsFirstMove.
     std::string fen("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
-    GameContext single;
+    Game single;
     io::fen_parser::deserialize(fen.c_str(), single.editChessboard());
-    GameContext threaded;
+    Game threaded;
     io::fen_parser::deserialize(fen.c_str(), threaded.editChessboard());
 
     // do
@@ -336,7 +336,7 @@ TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
 TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)
 {
     // setup, without a time limit the helpers would search to the ply limit if the main thread didn't stop them.
-    GameContext context;
+    Game context;
     context.NewGame();
     testingParams.SearchDepth = 6;
 
@@ -358,7 +358,7 @@ TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)
 TEST_F(SearchFixture, LazySmp_NodeLimit_CountsAllThreads)
 {
     // setup
-    GameContext context;
+    Game context;
     context.NewGame();
     testingParams.SearchDepth = 0;
     testingParams.NodeLimit = 200000;

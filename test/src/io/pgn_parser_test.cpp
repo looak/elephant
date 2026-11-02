@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <io/pgn_parser.hpp>
 #include <diagnostics/exceptions.hpp>
@@ -36,7 +36,7 @@ public:
 
     size_t plies() const { return m_game.readGameHistory().moveUndoUnits.size(); }
 
-    GameContext m_game;
+    Game m_game;
 };
 
 // 1.e4 e5 2.Nf3 Nc6, the position most of these tests end in.
@@ -344,7 +344,7 @@ TEST(PgnTokenizer, CastlingWithZerosIsNotAMoveNumber)
     EXPECT_FALSE(tokenizer.next());
 }
 
-TEST(PgnGameReader, SplitsAStreamIntoGames)
+TEST(GameReader, SplitsAStreamIntoGames)
 {
     const std::string stream =
         "\xEF\xBB\xBF[Event \"one\"]\n"
@@ -387,7 +387,7 @@ TEST(PgnGameReader, SplitsAStreamIntoGames)
 
 // python-chess's reading: a value runs to the last "] of its line, quotes in it unescaped or not, and a line that
 // isn't a tag is skipped.
-TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
+TEST(GameReader, TagLines_AsPythonChessReadsThem)
 {
     const std::string stream =
         "[Event \"one\"]\n[White unquoted]\n[Black \"Elephant \"herd\" dev\"]\n[_Bad \"x\"]\n[Site\"x\"]\n"
@@ -410,7 +410,7 @@ TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
 
 // where python-chess splits games: ; and % lines skipped among the tags, one blank line skipped, a second one ends the
 // game without moves, and a blank line in the movetext ends the game there, what follows is the next one.
-TEST(PgnGameReader, SplitsWherePythonChessDoes)
+TEST(GameReader, SplitsWherePythonChessDoes)
 {
     const std::string stream =
         "; a comment line\n[Event \"one\"]\n% an escape line\n\n[Site \"x\"]\n\n1. e4 *\n\n"
@@ -457,7 +457,7 @@ TEST(PgnFixtures, EveryGameIsPlayed)
     const std::vector<Fixture> fixtures = { { "openbench_workload.pgn", 34 }, { "openbench_unstripped_1.pgn", 1 },
         { "openbench_unstripped_2.pgn", 1 }, { "fastchess_gauntlet.pgn", 8 }, { "edge_cases.pgn", 11 } };
 
-    GameContext game;
+    Game game;
     for (const Fixture& fixture : fixtures) {
         std::ifstream file(std::filesystem::path(ELEPHANT_TEST_PGN_DIR) / fixture.file, std::ios::binary);
         ASSERT_TRUE(file) << fixture.file;
@@ -467,7 +467,7 @@ TEST(PgnFixtures, EveryGameIsPlayed)
 
         io::pgn_parser::GameReader reader(stream);
         size_t games = 0;
-        while (std::optional<io::pgn_parser::Game> parsed = reader.next()) {
+        while (std::optional<io::pgn_parser::PgnGame> parsed = reader.next()) {
             ++games;
             const std::string_view text = std::string_view(stream).substr(parsed->offset, parsed->length);
             const std::string* event = parsed->tag("Event");

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/pesto_accumulator.hpp>
 #include <io/fen_parser.hpp>
 #include <move/generation/move_gen_policy.hpp>
@@ -11,20 +11,20 @@
 namespace ElephantTest {
 
 namespace {
-bool matchesScratch(const GameContext& context, const PestoAccumulator& accumulator) {
-    return accumulator == PestoAccumulator::computeFromScratch(context.readChessPosition().material());
+bool matchesScratch(const Game& context, const PestoAccumulator& accumulator) {
+    return accumulator == PestoAccumulator::computeFromScratch(context.readPosition().material());
 }
 
 // Walks every legal line to the given depth making & unmaking through a MoveExecutor that carries the accumulator,
 // checking it against a full recompute after every make and against its earlier value after every unmake. Records
 // the first line that diverges.
 template<Set us>
-void verifyPestoThroughTree(GameContext& context, PestoAccumulator& accumulator, int depth, std::vector<std::string>& line,
+void verifyPestoThroughTree(Game& context, PestoAccumulator& accumulator, int depth, std::vector<std::string>& line,
                             std::string& firstFailure) {
     if (depth == 0 || !firstFailure.empty())
         return;
 
-    move_gen_policy::Tusk::forEachMove<us>(context.readChessPosition(), [&](PackedMove move) {
+    move_gen_policy::Tusk::forEachMove<us>(context.readPosition(), [&](PackedMove move) {
         if (!firstFailure.empty())
             return;
 
@@ -64,9 +64,9 @@ TEST(PestoAccumulator, IncrementalMatchesComputedThroughTree)
     };
 
     for (const auto& [fen, depth] : positions) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
-        PestoAccumulator accumulator = PestoAccumulator::computeFromScratch(context.readChessPosition().material());
+        PestoAccumulator accumulator = PestoAccumulator::computeFromScratch(context.readPosition().material());
 
         std::vector<std::string> line;
         std::string firstFailure;

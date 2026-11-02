@@ -1,6 +1,6 @@
 #include <search/search_request.hpp>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <diagnostics/logger.hpp>
 #include <move/generation/move_ordering_view.hpp>
 #include <search/core/search_move_source.hpp>
@@ -31,9 +31,9 @@ std::vector<PackedMove> legalRootMoves(PositionReader position, const std::vecto
 }
 } // namespace
 
-SearchRequest makeSearchRequest(const GameContext& game, SearchLimits limits) {
+SearchRequest makeSearchRequest(const Game& game, SearchLimits limits) {
     SearchRequest request;
-    request.root = game.readChessPosition().copy();
+    request.root = game.readPosition().copy();
     request.toPlay = game.readToPlay();
     request.rootHalfmoveClock = game.readHalfmoveClock();
 

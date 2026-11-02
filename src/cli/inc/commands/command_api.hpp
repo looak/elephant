@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <position/position_accessors.hpp>
 #include <printer/printer.hpp>
 
@@ -14,7 +14,7 @@ public:
 
     // The new entry point. It takes the remaining arguments and returns an exit code.
     virtual int run(const std::vector<std::string>& args) = 0;
-    virtual void setContext(GameContext* context) { (void)context; }  // Default implementation does nothing.
+    virtual void setContext(Game* context) { (void)context; }  // Default implementation does nothing.
     virtual void help(bool extended = false) = 0;
 };
 
@@ -49,7 +49,7 @@ public:
     }
 
     // This override only exists if TNeedsContext is true!
-    void setContext(GameContext* context) final
+    void setContext(Game* context) final
     {
         if constexpr (TNeedsContext) {
             m_context = context;
@@ -59,7 +59,7 @@ public:
 protected:
     // This member variable is compiled out if TNeedsContext is false.
     // It has zero memory cost for commands that don't need it.
-    GameContext* m_context = nullptr;
+    Game* m_context = nullptr;
 };
 
 template<typename TArgs>
@@ -93,17 +93,17 @@ public:
         return 0;  // Success
     }
 
-    void setContext(GameContext* context) final
+    void setContext(Game* context) final
     {
         m_context = context;
     }
 
 protected:
-    PositionReader readPosition() const { return m_context->readChessPosition(); }
-    const GameContext& readContext() const { return *m_context; }
+    PositionReader readPosition() const { return m_context->readPosition(); }
+    const Game& readContext() const { return *m_context; }
 
 private:
-    GameContext* m_context = nullptr;
+    Game* m_context = nullptr;
 };
 
 template<bool TNeedsContext = false>
@@ -129,10 +129,10 @@ public:
             return 1;  // Failure
         }
     }
-    void setContext(GameContext* context) final
+    void setContext(Game* context) final
     {
         m_context = context;
     }
 protected:
-    GameContext* m_context = nullptr;    
+    Game* m_context = nullptr;    
 };

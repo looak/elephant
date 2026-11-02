@@ -2,7 +2,7 @@
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <diagnostics/logger.hpp>
 #include <search/perft/perft_search.hpp>
 

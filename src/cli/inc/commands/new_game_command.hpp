@@ -3,7 +3,7 @@
 #include "commands/logic/command_registry.hpp"
 #include "commands/command_api.hpp"
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <printer/printer.hpp>
 
 class NewGameCommand : public CommandNoArgs<true> {

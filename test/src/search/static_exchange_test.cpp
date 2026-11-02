@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <search/core/static_exchange.hpp>
 
@@ -19,7 +19,7 @@ public:
     }
 
     bool ge(PackedMove move, i32 threshold) {
-        return see::ge(m_context.readChessPosition().material(), move, threshold);
+        return see::ge(m_context.readPosition().material(), move, threshold);
     }
 
     static PackedMove capture(Square from, Square to) {
@@ -28,7 +28,7 @@ public:
         return move;
     }
 
-    GameContext m_context;
+    Game m_context;
 };
 ////////////////////////////////////////////////////////////////
 

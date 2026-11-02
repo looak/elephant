@@ -1,6 +1,6 @@
 #include <search/perft/perft_search.hpp>
 
-PerftSearch::PerftSearch(GameContext& context)
+PerftSearch::PerftSearch(Game& context)
     : m_context(context)
 {
 
@@ -31,9 +31,9 @@ std::vector<DivideResult> PerftSearch::Divide(int depth)
 
     auto forEachMoveLambda = [&results, depth, this] (PackedMove move) {
         // at depth 1 the move itself is the one node. Deeper, a move into mate or stalemate has none.
-        m_context.MakeMove(move);
+        m_context.makeMove(move);
         const u64 nodes = depth == 1 ? 1 : internalRunEntryPoint<TMoveGen>(depth - 1);
-        m_context.UnmakeMove();
+        m_context.unmakeMove();
 
         results.push_back({ move, nodes });
     };

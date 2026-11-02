@@ -28,7 +28,7 @@
 #pragma once
 #include <system/platform.hpp>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <material/chess_piece_defines.hpp>
 #include <move/move.hpp>
 #include <move/generation/move_gen_policy.hpp>
@@ -37,7 +37,7 @@
 
 #include <vector>
 
-class GameContext;
+class Game;
 struct PackedMove;
 
 struct PerftResult {
@@ -58,7 +58,7 @@ struct DivideResult {
  * Run & Divide are explicitly instantiated for move_gen_policy::Tusk.   */
 class PerftSearch {
 public:
-    PerftSearch(GameContext& context);
+    PerftSearch(Game& context);
 
     /**
      * @brief Runs the perft search to the specified depth.
@@ -87,7 +87,7 @@ private:
     template<typename TMoveGen>
     u64 internalRunEntryPoint(int depth);
 
-    GameContext& m_context;
+    Game& m_context;
 };
 
 // counts in bulk at depth 1, the last ply's moves are counted by the generator and never made.
@@ -103,9 +103,9 @@ u64 PerftSearch::internalRun(int depth)
 
     u64 nodes = 0;
     TMoveGen::template forEachMove<us>(position, [&](PackedMove move) {
-        m_context.MakeMove(move);
+        m_context.makeMove(move);
         nodes += internalRun<opposing_set<us>(), TMoveGen>(depth - 1);
-        m_context.UnmakeMove();
+        m_context.unmakeMove();
     });
 
     return nodes;

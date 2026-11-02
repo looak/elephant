@@ -23,7 +23,7 @@ public:
     {
         m_stream = pgn;
         io::pgn_parser::GameReader reader(m_stream);
-        std::optional<io::pgn_parser::Game> game = reader.next();
+        std::optional<io::pgn_parser::PgnGame> game = reader.next();
         EXPECT_TRUE(game);
         return game ? indexer::index(*game, 1, verbose, positions, moves) : indexer::GameIndex{};
     }

@@ -3,7 +3,7 @@
 #include <string_view>
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move.hpp>
 #include <move_gen_ab.hpp>
@@ -44,10 +44,10 @@ public:
     Outcome outcome()
     {
         bool anyMove = false;
-        forEachLegalMove<set>(GetParam(), m_context.readChessPosition(), [&](PackedMove) { anyMove = true; });
+        forEachLegalMove<set>(GetParam(), m_context.readPosition(), [&](PackedMove) { anyMove = true; });
         if (anyMove)
             return Outcome::Playing;
-        return isChecked<set>(GetParam(), m_context.readChessPosition()) ? Outcome::Checkmate : Outcome::Stalemate;
+        return isChecked<set>(GetParam(), m_context.readPosition()) ? Outcome::Checkmate : Outcome::Stalemate;
     }
 
     std::vector<PackedMove> legalMoves()
@@ -55,20 +55,20 @@ public:
         std::vector<PackedMove> moves;
         auto add = [&](PackedMove mv) { moves.push_back(mv); };
         if (m_context.readToPlay() == Set::WHITE)
-            forEachLegalMove<Set::WHITE>(GetParam(), m_context.readChessPosition(), add);
+            forEachLegalMove<Set::WHITE>(GetParam(), m_context.readPosition(), add);
         else
-            forEachLegalMove<Set::BLACK>(GetParam(), m_context.readChessPosition(), add);
+            forEachLegalMove<Set::BLACK>(GetParam(), m_context.readPosition(), add);
         return moves;
     }
 
     bool sideToMoveIsChecked()
     {
         if (m_context.readToPlay() == Set::WHITE)
-            return isChecked<Set::WHITE>(GetParam(), m_context.readChessPosition());
-        return isChecked<Set::BLACK>(GetParam(), m_context.readChessPosition());
+            return isChecked<Set::WHITE>(GetParam(), m_context.readPosition());
+        return isChecked<Set::BLACK>(GetParam(), m_context.readPosition());
     }
 
-    GameContext m_context;
+    Game m_context;
 };
 
 ////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ TEST_P(CheckmateFixture, BackRankCheckmate_Black_Checkmate)
     }
     ASSERT_FALSE(Qxd1.isNull());
     EXPECT_TRUE(Qxd1.isCapture());
-    m_context.MakeMove(Qxd1);
+    m_context.makeMove(Qxd1);
 
     EXPECT_EQ(Set::WHITE, m_context.readToPlay());
     EXPECT_EQ(Outcome::Checkmate, outcome(Set::WHITE));
@@ -154,13 +154,13 @@ TEST_P(CheckmateFixture, ScholarsMateQueenMovesIntoMate_White_OneCheckmate)
         queenMoves++;
         captures += mv.isCapture() ? 1 : 0;
 
-        m_context.MakeMove(mv);
+        m_context.makeMove(mv);
         checks += sideToMoveIsChecked() ? 1 : 0;
         if (outcome(Set::BLACK) == Outcome::Checkmate) {
             checkmates++;
             EXPECT_EQ(Square::F7, mv.targetSqr());
         }
-        EXPECT_TRUE(m_context.UnmakeMove());
+        EXPECT_TRUE(m_context.unmakeMove());
     }
 
     EXPECT_EQ(13, queenMoves);

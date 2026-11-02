@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <move/generation/move_gen_policy.hpp>
 #include <move/move_executor.hpp>
@@ -17,19 +17,19 @@ namespace {
 // Walks every legal line to the given depth and checks the incrementally updated hash against a full recompute after
 // every make and unmake. Records the first line that diverges.
 template<Set us>
-void verifyHashThroughTree(GameContext& context, int depth, std::vector<std::string>& line, std::string& firstFailure) {
+void verifyHashThroughTree(Game& context, int depth, std::vector<std::string>& line, std::string& firstFailure) {
     if (depth == 0 || !firstFailure.empty())
         return;
 
-    move_gen_policy::Tusk::forEachMove<us>(context.readChessPosition(), [&](PackedMove move) {
+    move_gen_policy::Tusk::forEachMove<us>(context.readPosition(), [&](PackedMove move) {
         if (!firstFailure.empty())
             return;
 
-        const u64 before = context.readChessPosition().hash();
+        const u64 before = context.readPosition().hash();
         line.push_back(move.toString());
-        context.MakeMove(move);
+        context.makeMove(move);
 
-        const u64 incremental = context.readChessPosition().hash();
+        const u64 incremental = context.readPosition().hash();
         const u64 computed = zobrist::computeBoardHash(context.readChessboard());
         if (incremental != computed) {
             for (const auto& m : line) firstFailure += m + " ";
@@ -38,8 +38,8 @@ void verifyHashThroughTree(GameContext& context, int depth, std::vector<std::str
 
         verifyHashThroughTree<opposing_set<us>()>(context, depth - 1, line, firstFailure);
 
-        context.UnmakeMove();
-        if (firstFailure.empty() && context.readChessPosition().hash() != before) {
+        context.unmakeMove();
+        if (firstFailure.empty() && context.readPosition().hash() != before) {
             for (const auto& m : line) firstFailure += m + " ";
             firstFailure += "(after unmake)";
         }
@@ -62,9 +62,9 @@ TEST(ZobristHashing, IncrementalMatchesComputedThroughTree)
     };
 
     for (const auto& [fen, depth] : positions) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
-        ASSERT_EQ(zobrist::computeBoardHash(context.readChessboard()), context.readChessPosition().hash()) << "initial hash, " << fen;
+        ASSERT_EQ(zobrist::computeBoardHash(context.readChessboard()), context.readPosition().hash()) << "initial hash, " << fen;
 
         std::vector<std::string> line;
         std::string firstFailure;
@@ -183,19 +183,19 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
 {
     zobrist::internals::initialize();
 
-    GameContext game;
+    Game game;
     game.NewGame();    
 
-    PositionReader positionReader = game.readChessPosition();
+    PositionReader positionReader = game.readPosition();
     u64 initialHash = positionReader.hash();
 
     // 1. e4 d5 2. e5 f5, the en passant square f6 is only recorded because the e5 pawn could capture on it.
-    game.MakeMove<true>(PackedMove(Square::E2, Square::E4));
-    game.MakeMove<true>(PackedMove(Square::D7, Square::D5));
-    game.MakeMove<true>(PackedMove(Square::E4, Square::E5));
+    game.makeMove<true>(PackedMove(Square::E2, Square::E4));
+    game.makeMove<true>(PackedMove(Square::D7, Square::D5));
+    game.makeMove<true>(PackedMove(Square::E4, Square::E5));
     initialHash = positionReader.hash();
     PackedMove move(Square::F7, Square::F5);
-    game.MakeMove<true>(move);
+    game.makeMove<true>(move);
     
     u64 afterMoveHash = positionReader.hash();
 
@@ -213,7 +213,7 @@ TEST(ZobristHashing, MakeAndUnmakeMove_ShouldRestoreHash)
     editor.enPassant().writeSquare(epSqr);
     EXPECT_EQ(hashWithEnPassant, positionReader.hash()) << "Hash should match after resetting en passant.";
 
-    game.UnmakeMove();
+    game.unmakeMove();
 
     EXPECT_EQ(initialHash, positionReader.hash()) << "Hash should be restored to initial value after unmaking the move.";
 
@@ -223,10 +223,10 @@ TEST(ZobristHashing, HashToMove_Unmake_Rehash)
 {
     zobrist::internals::initialize();
 
-    GameContext game;
+    Game game;
     game.NewGame();    
 
-    PositionReader positionReader = game.readChessPosition();
+    PositionReader positionReader = game.readPosition();
     u64 initialHash = positionReader.hash();
     
     u64 newHash = zobrist::updateBlackToMoveHash(initialHash);
@@ -244,34 +244,34 @@ TEST(ZobristHashing, BlackToMoveFen_HashMatchesComputedAndPositionReachedByMoves
     zobrist::internals::initialize();
 
     const std::string blackToMove = "r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 3 2";
-    GameContext loaded;
+    Game loaded;
     ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
     ASSERT_EQ(Set::BLACK, loaded.readToPlay());
-    EXPECT_EQ(zobrist::computeBoardHash(loaded.readChessboard()), loaded.readChessPosition().hash());
+    EXPECT_EQ(zobrist::computeBoardHash(loaded.readChessboard()), loaded.readPosition().hash());
 
     // 1. Nf3 Nc6 2. Nc3, no pawn moves so neither an en passant square nor the halfmove clock tells the two apart.
-    GameContext played;
+    Game played;
     ASSERT_TRUE(io::fen_parser::deserialize(std::string(c_startPositionFen), played.editChessboard()));
-    played.MakeMove(PackedMove(Square::G1, Square::F3));
-    played.MakeMove(PackedMove(Square::B8, Square::C6));
-    played.MakeMove(PackedMove(Square::B1, Square::C3));
+    played.makeMove(PackedMove(Square::G1, Square::F3));
+    played.makeMove(PackedMove(Square::B8, Square::C6));
+    played.makeMove(PackedMove(Square::B1, Square::C3));
     ASSERT_EQ(Set::BLACK, played.readToPlay());
 
     std::string playedFen;
     io::fen_parser::serialize(played.readChessboard(), playedFen);
     ASSERT_EQ(blackToMove, playedFen);
 
-    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
-    EXPECT_EQ(zobrist::computeBoardHash(played.readChessboard()), played.readChessPosition().hash());
+    EXPECT_EQ(played.readPosition().hash(), loaded.readPosition().hash());
+    EXPECT_EQ(zobrist::computeBoardHash(played.readChessboard()), played.readPosition().hash());
 
     // the same position with white to move differs only by the black to move key.
-    GameContext whiteToMove;
+    Game whiteToMove;
     ASSERT_TRUE(io::fen_parser::deserialize("r1bqkbnr/pppppppp/2n5/8/8/2N2N2/PPPPPPPP/R1BQKB1R w KQkq - 3 2", whiteToMove.editChessboard()));
-    EXPECT_EQ(zobrist::updateBlackToMoveHash(whiteToMove.readChessPosition().hash()), loaded.readChessPosition().hash());
+    EXPECT_EQ(zobrist::updateBlackToMoveHash(whiteToMove.readPosition().hash()), loaded.readPosition().hash());
 
     // reloading a black to move FEN into a board that already has black to move keeps the key exactly once.
     ASSERT_TRUE(io::fen_parser::deserialize(blackToMove, loaded.editChessboard()));
-    EXPECT_EQ(played.readChessPosition().hash(), loaded.readChessPosition().hash());
+    EXPECT_EQ(played.readPosition().hash(), loaded.readPosition().hash());
 }
 
 
@@ -281,13 +281,13 @@ TEST(ZobristHashing, BlackToMoveFen_HashMatchesComputedAndPositionReachedByMoves
 
 static u64 hashAfterMoves(const char* fen, std::initializer_list<PackedMove> moves, bool* hasEnPassant = nullptr)
 {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen, context.editChessboard());
     for (const auto& move : moves)
-        context.MakeMove<true>(move);
+        context.makeMove<true>(move);
     if (hasEnPassant)
-        *hasEnPassant = context.readChessPosition().enPassant();
-    return context.readChessPosition().hash();
+        *hasEnPassant = context.readPosition().enPassant();
+    return context.readPosition().hash();
 }
 
 TEST(ZobristHashing, DoublePush_NoAdjacentEnemyPawn_NoEnPassantAndSameHashAsQuietMove)
@@ -327,13 +327,13 @@ TEST(ZobristHashing, DoublePush_AdjacentEnemyPawn_EnPassantSetAndCapturable)
     zobrist::internals::initialize();
 
     for (const Square capturer : { Square::D4, Square::F4 }) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 0 1", context.editChessboard());
         context.editChessPosition().placePiece(BLACKPAWN, capturer);
-        const u64 beforePush = context.readChessPosition().hash();
+        const u64 beforePush = context.readPosition().hash();
 
-        context.MakeMove<true>(PackedMove(Square::E2, Square::E4));
-        PositionReader position = context.readChessPosition();
+        context.makeMove<true>(PackedMove(Square::E2, Square::E4));
+        PositionReader position = context.readPosition();
         ASSERT_TRUE(position.enPassant());
         EXPECT_EQ(Square::E3, position.enPassant().readSquare());
         EXPECT_EQ(zobrist::computeBoardHash(context.readChessboard()), position.hash());
@@ -349,18 +349,18 @@ TEST(ZobristHashing, DoublePush_AdjacentEnemyPawn_EnPassantSetAndCapturable)
         EXPECT_EQ(capturer, epCapture.sourceSqr());
         EXPECT_EQ(Square::E3, epCapture.targetSqr());
 
-        context.MakeMove<true>(epCapture);
+        context.makeMove<true>(epCapture);
         // position reads the live board.
         EXPECT_EQ(ChessPiece::None(), position.pieceAt(Square::E4));
         EXPECT_EQ(BLACKPAWN, position.pieceAt(Square::E3));
         EXPECT_FALSE(position.enPassant());
         EXPECT_EQ(zobrist::computeBoardHash(context.readChessboard()), position.hash());
 
-        EXPECT_TRUE(context.UnmakeMove());
-        EXPECT_EQ(afterPush, context.readChessPosition().hash());
-        EXPECT_EQ(Square::E3, context.readChessPosition().enPassant().readSquare());
-        EXPECT_TRUE(context.UnmakeMove());
-        EXPECT_EQ(beforePush, context.readChessPosition().hash());
+        EXPECT_TRUE(context.unmakeMove());
+        EXPECT_EQ(afterPush, context.readPosition().hash());
+        EXPECT_EQ(Square::E3, context.readPosition().enPassant().readSquare());
+        EXPECT_TRUE(context.unmakeMove());
+        EXPECT_EQ(beforePush, context.readPosition().hash());
     }
 }
 
@@ -379,16 +379,16 @@ TEST(ZobristHashing, Fen_EnPassantWithoutCapturer_DroppedAndHashesAsNone)
     };
 
     for (const auto& c : cases) {
-        GameContext withSquare;
-        GameContext withoutSquare;
+        Game withSquare;
+        Game withoutSquare;
         ASSERT_TRUE(io::fen_parser::deserialize(c.withSquare, withSquare.editChessboard()));
         ASSERT_TRUE(io::fen_parser::deserialize(c.withoutSquare, withoutSquare.editChessboard()));
 
-        EXPECT_EQ(c.kept, static_cast<bool>(withSquare.readChessPosition().enPassant())) << c.withSquare;
+        EXPECT_EQ(c.kept, static_cast<bool>(withSquare.readPosition().enPassant())) << c.withSquare;
         if (c.kept)
-            EXPECT_NE(withoutSquare.readChessPosition().hash(), withSquare.readChessPosition().hash()) << c.withSquare;
+            EXPECT_NE(withoutSquare.readPosition().hash(), withSquare.readPosition().hash()) << c.withSquare;
         else
-            EXPECT_EQ(withoutSquare.readChessPosition().hash(), withSquare.readChessPosition().hash()) << c.withSquare;
+            EXPECT_EQ(withoutSquare.readPosition().hash(), withSquare.readPosition().hash()) << c.withSquare;
 
         // serializing writes the square only when it was kept.
         std::string fen;

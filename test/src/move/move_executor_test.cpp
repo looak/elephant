@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move/move_executor.hpp>
 #include <position/position.hpp>
 #include <io/fen_parser.hpp>
@@ -38,7 +38,7 @@ public:
         return output.substr(0, halfmoveClock) + output.substr(moveNumber);
     }
 
-    GameContext m_game;
+    Game m_game;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -49,7 +49,7 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     chess_positions::defaultStartingPosition(m_game.editChessPosition());
     u16 ply = 0;
     MoveExecutor executor(m_game.editChessPosition());
-    PositionReader positionReader(m_game.readChessPosition());
+    PositionReader positionReader(m_game.readPosition());
 
     PackedMove move(Square::E2, Square::E4);
 
@@ -95,7 +95,7 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
     std::vector<u16> before;
     for (const auto& step : steps) {
         before.push_back(m_game.readHalfmoveClock());
-        m_game.MakeMove(step.move);
+        m_game.makeMove(step.move);
         EXPECT_EQ(step.expected, m_game.readHalfmoveClock()) << step.name << ", " << step.move.toString();
 
         std::string fen;
@@ -108,7 +108,7 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
     }
 
     for (size_t i = std::size(steps); i-- > 0;) {
-        m_game.UnmakeMove();
+        m_game.unmakeMove();
         EXPECT_EQ(before[i], m_game.readHalfmoveClock()) << "unmake " << steps[i].move.toString();
     }
     EXPECT_EQ(7, m_game.readHalfmoveClock());
@@ -123,7 +123,7 @@ TEST_F(MoveExecutorFixture, PawnPush_ResetsHalfmoveClock)
     io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 7 20", m_game.editChessboard());
     EXPECT_EQ(7, m_game.readChessboard().readHalfmoveClock());
 
-    m_game.MakeMove<true>(PackedMove(Square::E2, Square::E4));
+    m_game.makeMove<true>(PackedMove(Square::E2, Square::E4));
 
     EXPECT_EQ(0, m_game.readChessboard().readHalfmoveClock());
 }

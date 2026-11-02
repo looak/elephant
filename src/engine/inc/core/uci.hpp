@@ -27,7 +27,7 @@
 #include <syncstream>
 #include <list>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <core/uci_search_listener.hpp>
 #include <search/monad.hpp>
 #include <search/search_request.hpp>
@@ -109,8 +109,8 @@ public:
      * "buildinfo" then "isready" and reads whatever arrives before "readyok".     */
     bool BuildInfo() const;
 
-    const GameContext& readGameContext() { return m_context; }
-    GameContext& editGameContext() { return m_context; }
+    const Game& readGame() { return m_game; }
+    Game& editGame() { return m_game; }
     Monad& editMonad() { return m_monad; }
 private:
     // Position's parser, throws on a malformed command which Position reports.
@@ -121,7 +121,7 @@ private:
     SearchRequest prepareSearch(const std::list<std::string>& args);
 
     bool m_enabled;
-    GameContext m_context;
+    Game m_game;
     // before the Monad, a search it ends on its way out still reports here.
     UciSearchListener m_listener;
     Monad m_monad;

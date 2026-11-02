@@ -8,7 +8,7 @@
 
 #include <bitboard/attacks/attacks.hpp>
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <material/chess_piece.hpp>
 #include <material/material_mask.hpp>
@@ -984,7 +984,7 @@ constexpr ChessPiece c_allPieces[12] = { K, Q, R, B, N, P, k, q, r, b, n, p };
 class PositionHashFixture : public ::testing::Test {
 public:
     Position m_position;
-    GameContext m_game;
+    Game m_game;
 
     void setup(std::string_view fen) { ASSERT_TRUE(io::fen_parser::deserialize(fen, m_game.editChessboard())) << fen; }
 
@@ -1001,9 +1001,9 @@ public:
                 found = move;
         };
         if (m_game.readToPlay() == Set::WHITE)
-            move_gen_policy::Tusk::forEachMove<Set::WHITE>(m_game.readChessPosition(), match);
+            move_gen_policy::Tusk::forEachMove<Set::WHITE>(m_game.readPosition(), match);
         else
-            move_gen_policy::Tusk::forEachMove<Set::BLACK>(m_game.readChessPosition(), match);
+            move_gen_policy::Tusk::forEachMove<Set::BLACK>(m_game.readPosition(), match);
         EXPECT_NE(PackedMove::NullMove(), found) << "no legal move from " << to_string(source) << " to " << to_string(target);
         return found;
     }
@@ -1011,13 +1011,13 @@ public:
     // makes the move, expects the kept hash to equal a recompute, unmakes it and expects the hash from before.
     void expectHashThroughMakeUnmake(PackedMove move)
     {
-        const u64 before = m_game.readChessPosition().hash();
+        const u64 before = m_game.readPosition().hash();
         ASSERT_EQ(boardHash(), before);
-        m_game.MakeMove(move);
-        EXPECT_EQ(boardHash(), m_game.readChessPosition().hash()) << move.toString() << " made";
-        EXPECT_NE(before, m_game.readChessPosition().hash()) << move.toString() << " made";
-        m_game.UnmakeMove();
-        EXPECT_EQ(before, m_game.readChessPosition().hash()) << move.toString() << " unmade";
+        m_game.makeMove(move);
+        EXPECT_EQ(boardHash(), m_game.readPosition().hash()) << move.toString() << " made";
+        EXPECT_NE(before, m_game.readPosition().hash()) << move.toString() << " made";
+        m_game.unmakeMove();
+        EXPECT_EQ(before, m_game.readPosition().hash()) << move.toString() << " unmade";
     }
 };
 
@@ -1324,7 +1324,7 @@ TEST_F(PositionHashFixture, Hash_RookAndKingMovesLosingRights_MakeAndUnmakeMatch
 TEST_F(PositionHashFixture, Hash_EnPassantCaptureByWhite_MakeAndUnmakeMatchComputed)
 {
     setup("4k3/8/8/2pP4/8/8/8/4K3 w - c6 0 1");
-    ASSERT_TRUE(m_game.readChessPosition().enPassant());
+    ASSERT_TRUE(m_game.readPosition().enPassant());
     const PackedMove capture = findMove(D5, C6);
     ASSERT_TRUE(capture.isEnPassant());
     expectHashThroughMakeUnmake(capture);
@@ -1361,13 +1361,13 @@ TEST_F(PositionHashFixture, Hash_DoublePushNextToAnEnemyPawn_MakeAndUnmakeMatchC
     // the push records a3 for black's b4 pawn, which goes into the hash.
     setup("4k3/8/8/8/1p6/8/P7/4K3 w - - 0 1");
     const PackedMove push = findMove(A2, A4);
-    const u64 before = m_game.readChessPosition().hash();
-    m_game.MakeMove(push);
-    EXPECT_EQ(A3, m_game.readChessPosition().enPassant().readSquare());
-    EXPECT_EQ(boardHash(), m_game.readChessPosition().hash());
-    m_game.UnmakeMove();
-    EXPECT_FALSE(m_game.readChessPosition().enPassant());
-    EXPECT_EQ(before, m_game.readChessPosition().hash());
+    const u64 before = m_game.readPosition().hash();
+    m_game.makeMove(push);
+    EXPECT_EQ(A3, m_game.readPosition().enPassant().readSquare());
+    EXPECT_EQ(boardHash(), m_game.readPosition().hash());
+    m_game.unmakeMove();
+    EXPECT_FALSE(m_game.readPosition().enPassant());
+    EXPECT_EQ(before, m_game.readPosition().hash());
 }
 
 // 8 [ x ][ r ][ . ][ . ][ k ][ . ][ . ][ . ]
@@ -1405,14 +1405,14 @@ TEST_F(PositionHashFixture, Hash_PromotionTakingARookOnItsHomeSquare_RemovesTheR
     const PackedMove promotion = findMove(G7, H8, PieceType::QUEEN);
 
     // do
-    m_game.MakeMove(promotion);
+    m_game.makeMove(promotion);
 
     // validate
-    EXPECT_FALSE(m_game.readChessPosition().castling().hasBlackKingSide());
-    EXPECT_EQ(boardHash(), m_game.readChessPosition().hash());
-    m_game.UnmakeMove();
-    EXPECT_TRUE(m_game.readChessPosition().castling().hasBlackKingSide());
-    EXPECT_EQ(boardHash(), m_game.readChessPosition().hash());
+    EXPECT_FALSE(m_game.readPosition().castling().hasBlackKingSide());
+    EXPECT_EQ(boardHash(), m_game.readPosition().hash());
+    m_game.unmakeMove();
+    EXPECT_TRUE(m_game.readPosition().castling().hasBlackKingSide());
+    EXPECT_EQ(boardHash(), m_game.readPosition().hash());
 }
 
 // 8 [ . ][ . ][ . ][ . ][ k ][ . ][ . ][ . ]

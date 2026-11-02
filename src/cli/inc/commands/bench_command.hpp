@@ -2,7 +2,7 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <core/uci_search_listener.hpp>
 #include <diagnostics/logger.hpp>
 #include <io/fen_parser.hpp>
@@ -82,7 +82,7 @@ public:
         if (args.testCases.size() > 0) {
         // this bench is evaluating if the engine can solve some tricky positions
             for (const auto& testCase : args.testCases) {
-                GameContext context;
+                Game context;
                 io::fen_parser::deserialize(testCase.fen.c_str(), context.editChessboard());
 
                 SearchContext searchContext;
@@ -105,7 +105,7 @@ public:
         else {
         // this bench is all about nps.
         for (const auto& fen : bench::fens) {
-            GameContext context;
+            Game context;
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
             SearchContext searchContext;

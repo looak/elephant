@@ -4,7 +4,7 @@
 #include <tuple>
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/pawn_structure.hpp>
 #include <io/fen_parser.hpp>
 
@@ -47,10 +47,10 @@ struct RecordingTrace {
 };
 
 RecordingTrace traceOf(const char* fen) {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen, context.editChessboard());
     RecordingTrace trace;
-    (void)pawnScore(context.readChessPosition().material(), trace);
+    (void)pawnScore(context.readPosition().material(), trace);
     return trace;
 }
 
@@ -141,9 +141,9 @@ TEST(PawnStructure, MirroredPositionsCancel) {
         for (const auto& [key, total] : sum)
             EXPECT_EQ(0, total) << fen;
 
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(fen, context.editChessboard());
-        EXPECT_EQ(S(0, 0), pawnScore(context.readChessPosition().material())) << fen;
+        EXPECT_EQ(S(0, 0), pawnScore(context.readPosition().material())) << fen;
     }
 }
 

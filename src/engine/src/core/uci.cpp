@@ -7,7 +7,7 @@
 #include <io/fen_parser.hpp>
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <math/bench_positions.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
@@ -154,7 +154,7 @@ UCI::ParsePosition(std::list<std::string> args)
 
     if (arg == "startpos") {
         args.pop_front();
-        m_context.NewGame();
+        m_game.NewGame();
     }
     else if (arg == "fen") {
         args.pop_front();
@@ -164,7 +164,7 @@ UCI::ParsePosition(std::list<std::string> args)
             args.pop_front();
         }
 
-        if (!io::fen_parser::deserialize(fen.c_str(), m_context.editChessboard()))
+        if (!io::fen_parser::deserialize(fen.c_str(), m_game.editChessboard()))
             throw ephant::uci_command_exception("position", "Invalid fen: " + fen);
     }
     else {
@@ -175,7 +175,7 @@ UCI::ParsePosition(std::list<std::string> args)
         return true;
 
     if (args.front() == "moves") {
-        PositionReader position = m_context.readChessboard().readPosition();
+        PositionReader position = m_game.readChessboard().readPosition();
 
         args.pop_front();
         while (args.size() > 0) {
@@ -202,7 +202,7 @@ UCI::ParsePosition(std::list<std::string> args)
                 move.setEnPassant(true);  // sets both capture & en passant
             }
 
-            m_context.MakeMove(move);
+            m_game.makeMove(move);
         }
     }
 
@@ -212,9 +212,9 @@ UCI::ParsePosition(std::list<std::string> args)
 bool
 UCI::NewGame()
 {
-    // Not part of GameContext::NewGame, "position startpos" calls that every move and must keep the tables.
+    // Not part of Game::NewGame, "position startpos" calls that every move and must keep the tables.
     m_monad.newGame();
-    m_context.NewGame();
+    m_game.NewGame();
     return true;
 }
 
@@ -389,7 +389,7 @@ UCI::prepareSearch(const std::list<std::string>& args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    return makeSearchRequest(m_context, std::move(searchParams));
+    return makeSearchRequest(m_game, std::move(searchParams));
 }
 
 bool UCI::Bench(std::list<std::string>)
@@ -398,7 +398,7 @@ bool UCI::Bench(std::list<std::string>)
     // every bench position is a new game: the TT & the search context are zeroed in place, never reallocated, so the
     // clock below only measures search.
     struct BenchScope{
-        BenchScope(GameContext& ctx, TranspositionTable& table, SearchContext& sc)
+        BenchScope(Game& ctx, TranspositionTable& table, SearchContext& sc)
             : context(ctx), tt(table), searchContext(sc) {
             context.Reset();
             tt.clear();
@@ -407,7 +407,7 @@ bool UCI::Bench(std::list<std::string>)
         void loadFen(const std::string& fen) {
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
         }
-        GameContext& context;
+        Game& context;
         TranspositionTable& tt;
         SearchContext& searchContext;
     };
@@ -419,7 +419,7 @@ bool UCI::Bench(std::list<std::string>)
     // the same as a new one, the node count doesn't change. 16 MB rather than the default 64: each position clears the
     // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
-    GameContext context;
+    Game context;
     TranspositionTable tt(16);
     SearchContext searchContext;
     UciSearchListener listener;

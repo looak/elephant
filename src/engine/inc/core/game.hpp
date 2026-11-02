@@ -33,9 +33,9 @@ struct GameHistory {
     GameHistory& operator=(const GameHistory& rhs) = delete;
 };
 
-class GameContext {
+class Game {
 public:
-    GameContext()
+    Game()
     {
         Reset();
     }
@@ -44,14 +44,14 @@ public:
     void NewGame();
         
     template<bool validation = false>
-    void MakeMove(const PackedMove move);
-    bool UnmakeMove();
+    void makeMove(const PackedMove move);
+    bool unmakeMove();
 
     const Chessboard& readChessboard() const { return m_board; }
     Chessboard& editChessboard() { return m_board; }
     Chessboard copyChessboard() const { return m_board; }
 
-    PositionReader readChessPosition() const { return m_board.readPosition(); }
+    PositionReader readPosition() const { return m_board.readPosition(); }
     PositionEditor editChessPosition() { return m_board.editPosition(); }
 
     u16 readHalfmoveClock() const { return m_board.readHalfmoveClock(); }
@@ -63,8 +63,8 @@ public:
     const GameHistory& readGameHistory() const { return m_history; }
 
 private:
-    GameContext(const GameContext& rhs) = delete;
-    GameContext& operator=(const GameContext& rhs) = delete;
+    Game(const Game& rhs) = delete;
+    Game& operator=(const Game& rhs) = delete;
 
     Chessboard m_board;
     GameHistory m_history;

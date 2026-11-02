@@ -2,7 +2,7 @@
 #include "elephant_test_logger.hpp"
 
 #include <io/fen_parser.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move/generation/move_gen_policy.hpp>
 #include <search/perft/perft_search.hpp>
 #include <system/clock.hpp>
@@ -16,7 +16,7 @@
 #include <vector>
 
 // Perft on every core: each position is split two plies deep and the subtrees are shared out between the threads,
-// each thread with a GameContext of its own. EG_PERFT_THREADS=1 runs it on one thread. The positions & their node
+// each thread with a Game of its own. EG_PERFT_THREADS=1 runs it on one thread. The positions & their node
 // counts are in perft_cases.hpp, the unit tests run them shallow.
 
 namespace ElephantTest {
@@ -47,7 +47,7 @@ unsigned perftThreads()
 }
 
 template<typename TMoveGen>
-std::vector<PackedMove> legalMoves(GameContext& context)
+std::vector<PackedMove> legalMoves(Game& context)
 {
     std::vector<PackedMove> moves;
     auto collect = [&moves](PackedMove move) { moves.push_back(move); };
@@ -61,7 +61,7 @@ std::vector<PackedMove> legalMoves(GameContext& context)
 
 // a node with no moves adds no jobs, it has no nodes below it.
 template<typename TMoveGen>
-void splitJobs(GameContext& context, size_t caseIndex, std::vector<PackedMove>& path, int depth, int plies,
+void splitJobs(Game& context, size_t caseIndex, std::vector<PackedMove>& path, int depth, int plies,
     std::vector<PerftJob>& jobs)
 {
     if (plies == 0 || depth <= 1) {
@@ -69,11 +69,11 @@ void splitJobs(GameContext& context, size_t caseIndex, std::vector<PackedMove>& 
         return;
     }
     for (PackedMove move : legalMoves<TMoveGen>(context)) {
-        context.MakeMove<true>(move);
+        context.makeMove<true>(move);
         path.push_back(move);
         splitJobs<TMoveGen>(context, caseIndex, path, depth - 1, plies - 1, jobs);
         path.pop_back();
-        context.UnmakeMove();
+        context.unmakeMove();
     }
 }
 
@@ -91,7 +91,7 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
 
     std::vector<PerftJob> jobs;
     {
-        auto context = std::make_unique<GameContext>();
+        auto context = std::make_unique<Game>();
         for (size_t caseIndex : order) {
             context->Reset();
             io::fen_parser::deserialize(cases[caseIndex].position->fen.c_str(), context->editChessboard());
@@ -102,21 +102,21 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
 
     std::vector<std::atomic<u64>> nodes(cases.size());
     std::atomic<size_t> next = 0;
-    auto work = [&](GameContext& context) {
+    auto work = [&](Game& context) {
         for (size_t i = next++; i < jobs.size(); i = next++) {
             const PerftJob& job = jobs[i];
             context.Reset();
             io::fen_parser::deserialize(cases[job.caseIndex].position->fen.c_str(), context.editChessboard());
             for (PackedMove move : job.path)
-                context.MakeMove<true>(move);
+                context.makeMove<true>(move);
             PerftSearch perft(context);
             nodes[job.caseIndex] += perft.Run<TMoveGen>(job.depth).Nodes;
         }
     };
 
-    std::vector<std::unique_ptr<GameContext>> contexts;
+    std::vector<std::unique_ptr<Game>> contexts;
     for (unsigned t = 0; t < threads; ++t)
-        contexts.push_back(std::make_unique<GameContext>());
+        contexts.push_back(std::make_unique<Game>());
     {
         std::vector<std::jthread> workers;
         for (auto& context : contexts)

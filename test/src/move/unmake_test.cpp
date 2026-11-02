@@ -5,7 +5,7 @@
 
 #include <material/chess_piece.hpp>
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move/move.hpp>
 #include <move_gen_ab.hpp>
 #include <move/move_executor.hpp>
@@ -33,9 +33,9 @@ public:
         std::vector<PackedMove> moves;
         auto add = [&](PackedMove mv) { moves.push_back(mv); };
         if (m_game.readToPlay() == Set::WHITE)
-            forEachLegalMove<Set::WHITE>(GetParam(), m_game.readChessPosition(), add);
+            forEachLegalMove<Set::WHITE>(GetParam(), m_game.readPosition(), add);
         else
-            forEachLegalMove<Set::BLACK>(GetParam(), m_game.readChessPosition(), add);
+            forEachLegalMove<Set::BLACK>(GetParam(), m_game.readPosition(), add);
         return moves;
     }
 
@@ -56,7 +56,7 @@ public:
     Chessboard makeMove(PackedMove move)
     {
         Chessboard before = m_game.copyChessboard();
-        m_game.MakeMove<true>(move);
+        m_game.makeMove<true>(move);
         return before;
     }
 
@@ -80,7 +80,7 @@ public:
         EXPECT_TRUE(board.compare(expected)) << context;
     }
 
-    GameContext m_game;
+    Game m_game;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -105,7 +105,7 @@ TEST_P(UnmakeFixture, Pawn_SimpleMoves)
     PackedMove move(Square::E2, Square::E3);
 
     // do e3 move
-    m_game.MakeMove<true>(move);
+    m_game.makeMove<true>(move);
 
     // verify
     EXPECT_NE(orgHash, editor.hash()); 
@@ -114,7 +114,7 @@ TEST_P(UnmakeFixture, Pawn_SimpleMoves)
     EXPECT_EQ(ChessPiece::None(), editor.pieceAt(Square::E2));
 
     // unmake move
-    bool unmakeResult = m_game.UnmakeMove();
+    bool unmakeResult = m_game.unmakeMove();
 
     // verify state of board
     EXPECT_TRUE(unmakeResult);
@@ -126,15 +126,15 @@ TEST_P(UnmakeFixture, Pawn_SimpleMoves)
     PackedMove moveE4(Square::E2, Square::E4);
 
     // do e4 move, no black pawn stands beside e4 so no en passant square is recorded (or hashed).
-    m_game.MakeMove<true>(moveE4);
+    m_game.makeMove<true>(moveE4);
     EXPECT_FALSE(editor.enPassant());
-    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_TRUE(m_game.unmakeMove());
     EXPECT_EQ(orgHash, editor.hash());
 
     // with a black pawn on d4 able to capture en passant, e4 records e3.
     editor.placePiece(piece_constants::black_pawn, Square::D4);
     orgHash = editor.hash();
-    m_game.MakeMove<true>(moveE4);
+    m_game.makeMove<true>(moveE4);
 
     // verify
     EXPECT_EQ(Square::E3, editor.enPassant().readSquare());
@@ -143,7 +143,7 @@ TEST_P(UnmakeFixture, Pawn_SimpleMoves)
     EXPECT_NE(orgHash, editor.hash());
 
     // unmake move
-    unmakeResult = m_game.UnmakeMove();
+    unmakeResult = m_game.unmakeMove();
 
     // verify state of board
     EXPECT_TRUE(unmakeResult);
@@ -183,7 +183,7 @@ TEST_P(UnmakeFixture, EnPassant_Captured_Unmake)
     PackedMove move{}; // zeroed, a default PackedMove is uninitialized and its flags are garbage
     move.setSource(Square::E2);
     move.setTarget(Square::E4);
-    m_game.MakeMove<true>(move);
+    m_game.makeMove<true>(move);
   
     /**
      * En passant is a special pawn capture move in chess where a pawn captures an opposing pawn
@@ -203,7 +203,7 @@ TEST_P(UnmakeFixture, EnPassant_Captured_Unmake)
     epCapture.setEnPassant(true);
 
     // do
-    m_game.MakeMove<true>(epCapture);
+    m_game.makeMove<true>(epCapture);
 
     // validate
     EXPECT_EQ(Square::NullSQ, editor.enPassant().readSquare());
@@ -218,7 +218,7 @@ TEST_P(UnmakeFixture, EnPassant_Captured_Unmake)
     EXPECT_EQ(1, material.blackPawns().count());
 
     // do
-    bool result = m_game.UnmakeMove();
+    bool result = m_game.unmakeMove();
 
     // validate
     EXPECT_TRUE(result);
@@ -256,18 +256,18 @@ TEST_P(UnmakeFixture, UnmakeEnPassantMoves_VariousPositions_CorrectUndo)
         for (PackedMove blackMove : legalMoves()) {
             enPassantCaptures += blackMove.isEnPassant() ? 1 : 0;
             makeMove(blackMove);
-            EXPECT_TRUE(m_game.UnmakeMove());
+            EXPECT_TRUE(m_game.unmakeMove());
             expectState(afterWhite, blackMove);
         }
 
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(start, whiteMove);
     }
 
     // validate
     EXPECT_EQ(2, enPassantCaptures);
 
-    const auto& material = m_game.readChessPosition().material();
+    const auto& material = m_game.readPosition().material();
     EXPECT_EQ(2, material.whitePawns().count());
     EXPECT_TRUE(material.whitePawns()[Square::C2]);
     EXPECT_TRUE(material.whitePawns()[Square::F2]);
@@ -293,7 +293,7 @@ TEST_P(UnmakeFixture, Pawn_Promotion_Unmake)
     auto n = BLACKKNIGHT;
     setup("3n3k/4P3/8/8/8/8/8/4K3 w - - 0 1");
     const Chessboard start = m_game.copyChessboard();
-    const auto& material = m_game.readChessPosition().material();
+    const auto& material = m_game.readPosition().material();
 
     // e8=Q
     PackedMove promote = findMove(Square::E7, Square::E8, PieceType::QUEEN);
@@ -301,15 +301,15 @@ TEST_P(UnmakeFixture, Pawn_Promotion_Unmake)
     EXPECT_FALSE(promote.isCapture());
     makeMove(promote);
 
-    EXPECT_NE(start.readPosition().hash(), m_game.readChessPosition().hash());
-    EXPECT_EQ(WHITEQUEEN, m_game.readChessPosition().pieceAt(Square::E8));
-    EXPECT_EQ(ChessPiece::None(), m_game.readChessPosition().pieceAt(Square::E7));
+    EXPECT_NE(start.readPosition().hash(), m_game.readPosition().hash());
+    EXPECT_EQ(WHITEQUEEN, m_game.readPosition().pieceAt(Square::E8));
+    EXPECT_EQ(ChessPiece::None(), m_game.readPosition().pieceAt(Square::E7));
     EXPECT_EQ(0, material.whitePawns().count());
     EXPECT_EQ(1, material.whiteQueens().count());
 
-    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_TRUE(m_game.unmakeMove());
     expectState(start, promote);
-    EXPECT_EQ(P, m_game.readChessPosition().pieceAt(Square::E7));
+    EXPECT_EQ(P, m_game.readPosition().pieceAt(Square::E7));
     EXPECT_EQ(1, material.whitePawns().count());
     EXPECT_EQ(0, material.whiteQueens().count());
 
@@ -320,15 +320,15 @@ TEST_P(UnmakeFixture, Pawn_Promotion_Unmake)
         EXPECT_TRUE(capturePromote.isCapture());
         makeMove(capturePromote);
 
-        EXPECT_EQ(ChessPiece(Set::WHITE, promoteTo), m_game.readChessPosition().pieceAt(Square::D8));
-        EXPECT_EQ(ChessPiece::None(), m_game.readChessPosition().pieceAt(Square::E7));
+        EXPECT_EQ(ChessPiece(Set::WHITE, promoteTo), m_game.readPosition().pieceAt(Square::D8));
+        EXPECT_EQ(ChessPiece::None(), m_game.readPosition().pieceAt(Square::E7));
         EXPECT_EQ(0, material.blackKnights().count());
         EXPECT_EQ(0, material.whitePawns().count());
 
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(start, capturePromote);
-        EXPECT_EQ(n, m_game.readChessPosition().pieceAt(Square::D8));
-        EXPECT_EQ(P, m_game.readChessPosition().pieceAt(Square::E7));
+        EXPECT_EQ(n, m_game.readPosition().pieceAt(Square::D8));
+        EXPECT_EQ(P, m_game.readPosition().pieceAt(Square::E7));
         EXPECT_EQ(1, material.blackKnights().count());
         EXPECT_EQ(1, material.whitePawns().count());
         EXPECT_EQ(0, material.whiteKnights().count());
@@ -389,16 +389,16 @@ TEST_P(UnmakeFixture, Castling)
         EXPECT_TRUE(castle.isCastling());
         makeMove(castle);
 
-        PositionReader position = m_game.readChessPosition();
+        PositionReader position = m_game.readPosition();
         EXPECT_EQ(c.king, position.pieceAt(c.kingTo));
         EXPECT_EQ(c.rook, position.pieceAt(c.rookTo));
         EXPECT_EQ(empty, position.pieceAt(c.kingFrom));
         EXPECT_EQ(empty, position.pieceAt(c.rookFrom));
         EXPECT_EQ(static_cast<int>(c.castlingAfter), static_cast<int>(position.castling().read()));
 
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(start, castle);
-        EXPECT_TRUE(m_game.readChessPosition().castling().hasAll());
+        EXPECT_TRUE(m_game.readPosition().castling().hasAll());
     }
 
     // 1. O-O-O Ra6 2. Rh3 O-O
@@ -412,7 +412,7 @@ TEST_P(UnmakeFixture, Castling)
     }
 
     {
-        PositionReader position = m_game.readChessPosition();
+        PositionReader position = m_game.readPosition();
         EXPECT_EQ(k, position.pieceAt(Square::G8));
         EXPECT_EQ(r, position.pieceAt(Square::F8));
         EXPECT_EQ(r, position.pieceAt(Square::A6));
@@ -424,11 +424,11 @@ TEST_P(UnmakeFixture, Castling)
 
     // undo
     for (auto itr = history.rbegin(); itr != history.rend(); ++itr) {
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(itr->first, itr->second);
     }
 
-    PositionReader position = m_game.readChessPosition();
+    PositionReader position = m_game.readPosition();
     EXPECT_TRUE(position.castling().hasAll());
     EXPECT_EQ(k, position.pieceAt(Square::E8));
     EXPECT_EQ(K, position.pieceAt(Square::E1));
@@ -479,17 +479,17 @@ TEST_P(UnmakeFixture, Castling_Captures)
         EXPECT_TRUE(capture.isCapture());
         makeMove(capture);
 
-        PositionReader position = m_game.readChessPosition();
+        PositionReader position = m_game.readPosition();
         EXPECT_NE(start.readPosition().hash(), position.hash());
         EXPECT_EQ(static_cast<int>(c.castlingAfter), static_cast<int>(position.castling().read())) << capture.toString();
         EXPECT_EQ(c.capturer, position.pieceAt(c.target));
         EXPECT_EQ(ChessPiece::None(), position.pieceAt(c.source));
 
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(start, capture);
-        EXPECT_TRUE(m_game.readChessPosition().castling().hasAll());
-        EXPECT_EQ(c.capturer, m_game.readChessPosition().pieceAt(c.source));
-        EXPECT_EQ(c.captured, m_game.readChessPosition().pieceAt(c.target));
+        EXPECT_TRUE(m_game.readPosition().castling().hasAll());
+        EXPECT_EQ(c.capturer, m_game.readPosition().pieceAt(c.source));
+        EXPECT_EQ(c.captured, m_game.readPosition().pieceAt(c.target));
     }
 }
 
@@ -510,36 +510,36 @@ TEST_P(UnmakeFixture, Unmake_KingMoves)
     auto K = WHITEKING;
     setup("4k3/8/8/8/8/8/8/R3K3 b Q - 0 1");
     const Chessboard start = m_game.copyChessboard();
-    EXPECT_EQ(static_cast<int>(CastlingState::WHITE_QUEENSIDE), static_cast<int>(m_game.readChessPosition().castling().read()));
+    EXPECT_EQ(static_cast<int>(CastlingState::WHITE_QUEENSIDE), static_cast<int>(m_game.readPosition().castling().read()));
 
     // Ke7
     PackedMove Ke7 = findMove(Square::E8, Square::E7);
     makeMove(Ke7);
     const Chessboard afterKe7 = m_game.copyChessboard();
-    EXPECT_NE(start.readPosition().hash(), m_game.readChessPosition().hash());
-    EXPECT_EQ(k, m_game.readChessPosition().pieceAt(Square::E7));
-    EXPECT_TRUE(m_game.readChessPosition().castling().hasWhiteQueenSide());
+    EXPECT_NE(start.readPosition().hash(), m_game.readPosition().hash());
+    EXPECT_EQ(k, m_game.readPosition().pieceAt(Square::E7));
+    EXPECT_TRUE(m_game.readPosition().castling().hasWhiteQueenSide());
 
     // Ke2
     PackedMove Ke2 = findMove(Square::E1, Square::E2);
     makeMove(Ke2);
-    EXPECT_NE(afterKe7.readPosition().hash(), m_game.readChessPosition().hash());
-    EXPECT_EQ(K, m_game.readChessPosition().pieceAt(Square::E2));
-    EXPECT_FALSE(m_game.readChessPosition().castling().hasAny());
+    EXPECT_NE(afterKe7.readPosition().hash(), m_game.readPosition().hash());
+    EXPECT_EQ(K, m_game.readPosition().pieceAt(Square::E2));
+    EXPECT_FALSE(m_game.readPosition().castling().hasAny());
 
     // undo
-    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_TRUE(m_game.unmakeMove());
     expectState(afterKe7, Ke2);
-    EXPECT_EQ(K, m_game.readChessPosition().pieceAt(Square::E1));
-    EXPECT_TRUE(m_game.readChessPosition().castling().hasWhiteQueenSide());
+    EXPECT_EQ(K, m_game.readPosition().pieceAt(Square::E1));
+    EXPECT_TRUE(m_game.readPosition().castling().hasWhiteQueenSide());
 
-    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_TRUE(m_game.unmakeMove());
     expectState(start, Ke7);
-    EXPECT_EQ(k, m_game.readChessPosition().pieceAt(Square::E8));
-    EXPECT_EQ(K, m_game.readChessPosition().pieceAt(Square::E1));
+    EXPECT_EQ(k, m_game.readPosition().pieceAt(Square::E8));
+    EXPECT_EQ(K, m_game.readPosition().pieceAt(Square::E1));
 
     // nothing left to unmake
-    EXPECT_FALSE(m_game.UnmakeMove());
+    EXPECT_FALSE(m_game.unmakeMove());
 }
 
 // 8 [ r ][   ][   ][   ][ k ][   ][   ][   ]
@@ -555,7 +555,7 @@ TEST_P(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
 {
     setup("r3k3/8/8/3B4/8/8/8/4K3 w q - 0 1");
     const Chessboard start = m_game.copyChessboard();
-    const auto& material = m_game.readChessPosition().material();
+    const auto& material = m_game.readPosition().material();
 
     EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(1, material.blackRooks().count());
@@ -565,19 +565,19 @@ TEST_P(UnmakeFixture, BishopCaptureRookRemovesCastlingOption)
     EXPECT_TRUE(Bxa8.isCapture());
     makeMove(Bxa8);
 
-    EXPECT_TRUE(m_game.readChessPosition().castling().hasNone());
-    EXPECT_EQ(WHITEBISHOP, m_game.readChessPosition().pieceAt(Square::A8));
-    EXPECT_NE(start.readPosition().hash(), m_game.readChessPosition().hash());
+    EXPECT_TRUE(m_game.readPosition().castling().hasNone());
+    EXPECT_EQ(WHITEBISHOP, m_game.readPosition().pieceAt(Square::A8));
+    EXPECT_NE(start.readPosition().hash(), m_game.readPosition().hash());
     EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(0, material.blackRooks().count());
     EXPECT_EQ(1, material.whiteBishops().count());
 
-    EXPECT_TRUE(m_game.UnmakeMove());
+    EXPECT_TRUE(m_game.unmakeMove());
     expectState(start, Bxa8);
-    EXPECT_EQ(static_cast<int>(CastlingState::BLACK_QUEENSIDE), static_cast<int>(m_game.readChessPosition().castling().read()));
-    EXPECT_EQ(WHITEBISHOP, m_game.readChessPosition().pieceAt(Square::D5));
-    EXPECT_EQ(BLACKKING, m_game.readChessPosition().pieceAt(Square::E8));
-    EXPECT_EQ(BLACKROOK, m_game.readChessPosition().pieceAt(Square::A8));
+    EXPECT_EQ(static_cast<int>(CastlingState::BLACK_QUEENSIDE), static_cast<int>(m_game.readPosition().castling().read()));
+    EXPECT_EQ(WHITEBISHOP, m_game.readPosition().pieceAt(Square::D5));
+    EXPECT_EQ(BLACKKING, m_game.readPosition().pieceAt(Square::E8));
+    EXPECT_EQ(BLACKROOK, m_game.readPosition().pieceAt(Square::A8));
     EXPECT_EQ(1, material.blackKing().count());
     EXPECT_EQ(1, material.blackRooks().count());
     EXPECT_EQ(1, material.whiteBishops().count());
@@ -596,11 +596,11 @@ TEST_P(UnmakeFixture, Unmake_EveryMoveTwoPliesDeep_RestoresState)
         const Chessboard afterFirst = m_game.copyChessboard();
         for (PackedMove second : legalMoves()) {
             makeMove(second);
-            EXPECT_TRUE(m_game.UnmakeMove());
+            EXPECT_TRUE(m_game.unmakeMove());
             expectState(afterFirst, second);
             ++replies;
         }
-        EXPECT_TRUE(m_game.UnmakeMove());
+        EXPECT_TRUE(m_game.unmakeMove());
         expectState(start, first);
     }
 

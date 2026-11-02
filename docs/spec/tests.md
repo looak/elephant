@@ -110,7 +110,7 @@ part of the pipeline: [test-pipeline.md](test-pipeline.md#phant-indexer-against-
 
 - `perft_test.cpp`, `PerftFixture.ReferencePositions` & `PerftFixture.DeepPositions`: perft node counts with the
   tusk generator, the authority on move generation. Each position is split two plies deep and the subtrees are
-  shared out between threads, a GameContext per thread; `EG_PERFT_THREADS=N` sets the thread count (default every
+  shared out between threads, a Game per thread; `EG_PERFT_THREADS=N` sets the thread count (default every
   core). The last ply is counted in bulk, the generator's popcount of each piece's legal targets, never made. ~5
   billion nodes per second on 24 threads, ~530 million on one.
 - `search_depth_test.cpp`, `SearchDepthFixture.NullMovePruning_DeepLine`: d4e3, a null move pruning line found only at

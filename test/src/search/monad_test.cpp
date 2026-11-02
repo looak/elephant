@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <thread>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <search/monad.hpp>
 
@@ -39,14 +39,14 @@ public:
 
 SearchRequest requestFor(const char* fen, SearchLimits limits)
 {
-    GameContext game;
+    Game game;
     io::fen_parser::deserialize(fen, game.editChessboard());
     return makeSearchRequest(game, std::move(limits));
 }
 
 SearchRequest startposRequest(SearchLimits limits)
 {
-    GameContext game;
+    Game game;
     game.NewGame();
     return makeSearchRequest(game, std::move(limits));
 }

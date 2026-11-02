@@ -2,7 +2,7 @@
 #include "elephant_test_logger.hpp"
 
 #include <io/fen_parser.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <search/search.hpp>
 #include <search_cases.hpp>
 #include <system/time_manager.hpp>
@@ -25,7 +25,7 @@ public:
 // depth 30), so the position no longer tests whether pruning hides the d4e3 line.
 TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
     for (const auto& searchCase : s_nullMovePruningDeep) {
-        GameContext context;
+        Game context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;

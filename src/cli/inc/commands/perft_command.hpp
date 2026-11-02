@@ -44,7 +44,7 @@ public:
 
     bool execute(const PerftCommandArgs& args) override
     {
-        const auto material = m_context->readChessPosition().material();
+        const auto material = m_context->readPosition().material();
         if (material.whiteKing().count() == 0 || material.blackKing().count() == 0) {
             prnt::err << " Error: Position is not initialized. Use 'new' or 'fen' before running perft.";
             return false;

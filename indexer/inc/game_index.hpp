@@ -114,7 +114,7 @@ PositionFacts positionFacts(const Chessboard& board);
 // With positions on, every position's Polyglot hash is kept too, the start position's first, then the one after each
 // move: what --positions writes and --position scans.
 // With moves on, the start position and the moves are kept too.
-GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose = false, bool positions = false,
+GameIndex index(const io::pgn_parser::PgnGame& game, u32 number, bool verbose = false, bool positions = false,
     bool moves = false);
 
 // The entry as one line of JSON, without its newline. The moves and the FEN are written when verbose.

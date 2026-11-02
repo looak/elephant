@@ -2,7 +2,7 @@
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move/move_executor.hpp>
 #include <io/san_parser.hpp>
 #include <move/move.hpp>
@@ -44,7 +44,7 @@ public:
         }
         PackedMove move;
         try {
-            move = io::san_parser::deserialize(m_context->readChessPosition(), m_context->readToPlay() == Set::WHITE ? true : false, args[0]); 
+            move = io::san_parser::deserialize(m_context->readPosition(), m_context->readToPlay() == Set::WHITE ? true : false, args[0]); 
         } catch (const std::exception& e) {
             prnt::err << e.what();
             return std::nullopt;        
@@ -58,7 +58,7 @@ public:
     {   
         try {
             MoveExecutor exec(m_context->editChessPosition());            
-            m_context->MakeMove<true>(args.move);
+            m_context->makeMove<true>(args.move);
         } catch (const std::exception& e) {
             prnt::err << e.what();
             return false;

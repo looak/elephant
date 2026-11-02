@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class GameContext;
+class Game;
 
 // What a search is allowed to spend and where it may look, the go command's arguments.
 struct SearchLimits {
@@ -52,4 +52,4 @@ struct SearchRequest {
 };
 
 // A request for the game's current position.
-[[nodiscard]] SearchRequest makeSearchRequest(const GameContext& game, SearchLimits limits);
+[[nodiscard]] SearchRequest makeSearchRequest(const Game& game, SearchLimits limits);

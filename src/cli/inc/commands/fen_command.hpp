@@ -2,7 +2,7 @@
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <printer/printer.hpp>
 

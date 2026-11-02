@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/pawn_hash.hpp>
 #include <io/fen_parser.hpp>
 
@@ -9,15 +9,15 @@ namespace ElephantTest {
 namespace {
 
 TaperedScore hashed(PawnHashTable& table, const char* fen) {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen, context.editChessboard());
-    return table.probe(context.readChessPosition().material()).score;
+    return table.probe(context.readPosition().material()).score;
 }
 
 TaperedScore counted(const char* fen) {
-    GameContext context;
+    Game context;
     io::fen_parser::deserialize(fen, context.editChessboard());
-    return pawnScore(context.readChessPosition().material());
+    return pawnScore(context.readPosition().material());
 }
 
 } // namespace

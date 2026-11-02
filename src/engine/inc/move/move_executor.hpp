@@ -29,8 +29,6 @@
 #include <move/move.hpp>
 #include <move/move_undo.hpp>
 
-class GameContext;
-struct GameHistory;
 struct GameState;
 
 class MoveExecutor {
