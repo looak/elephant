@@ -888,6 +888,74 @@ TEST_F(UciFixture, go_searchmoves_NoLegalMoveGivenSearchesAllMoves)
     EXPECT_EQ(std::string::npos, testOutput.str().find("bestmove e2e5"));
 }
 
+// UCI sends a move as squares and a promotion piece, the generated move also carries capture, en passant & castling
+// flags. A move that fails to match them would leave the root with nothing to search. The promotion to a knight also has
+// to beat the queen the search would rather play.
+TEST_F(UciFixture, go_searchmoves_MovesWithFlagsAreFound)
+{
+    struct Case {
+        const char* name;
+        const char* fen;
+        const char* move;
+    };
+    const Case cases[] = {
+        { "capture", "6k1/8/8/3p4/4P3/8/8/6K1 w - - 0 1", "e4d5" },
+        { "en passant", "6k1/8/8/3pP3/8/8/8/6K1 w - d6 0 1", "e5d6" },
+        { "castling", "6k1/8/8/8/8/8/8/4K2R w K - 0 1", "e1g1" },
+        { "under promotion", "6k1/P7/8/8/8/8/8/6K1 w - - 0 1", "a7a8n" },
+        { "capture promotion", "1n4k1/P7/8/8/8/8/8/6K1 w - - 0 1", "a7b8r" },
+    };
+
+    m_uci.Enable();
+    for (const Case& testCase : cases) {
+        SCOPED_TRACE(testCase.name);
+
+        // setup
+        std::list<std::string> position;
+        extractArgsFromCommand(std::string("fen ") + testCase.fen, position);
+        ASSERT_TRUE(m_uci.Position(position));
+
+        std::stringstream testOutput;
+        {
+            ScopedRedirect coutRedirect(std::cout, testOutput);
+
+            // do
+            m_uci.Go({ "searchmoves", testCase.move, "depth", "3" });
+        }
+
+        // verify
+        EXPECT_NE(std::string::npos, testOutput.str().find(std::string("bestmove ") + testCase.move)) << testOutput.str();
+    }
+}
+
+// The transposition table knows the best move from the search before, and it's the first move the root is handed. It
+// isn't among the moves to search now.
+TEST_F(UciFixture, go_searchmoves_BestMoveInTheTableIsLeftOutToo)
+{
+    // setup, a1a8 mates.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::stringstream testOutput;
+    std::string afterPlainSearch;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.Go({ "depth", "3" });
+        afterPlainSearch = testOutput.str();
+        m_uci.Go({ "depth", "3", "searchmoves", "a1a2", "g1f1" });
+    }
+
+    // verify
+    ASSERT_NE(std::string::npos, afterPlainSearch.find("bestmove a1a8"));
+    const std::string restricted = testOutput.str().substr(afterPlainSearch.size());
+    EXPECT_TRUE(restricted.find("bestmove a1a2") != std::string::npos || restricted.find("bestmove g1f1") != std::string::npos)
+        << restricted;
+}
+
 TEST_F(UciFixture, go_InvalidValue_IsReportedAndSearchStillReturnsAMove)
 {
     // setup
