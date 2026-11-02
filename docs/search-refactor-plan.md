@@ -59,6 +59,12 @@ On `refactor-monad`:
   Its destructor stops and joins, `go infinite` then `normal` no longer hangs. Until step 6 the CLI's `search` has its
   own table per command, it had the `GameContext`'s.
 
+- `Game`: `GameContext` shrunk and renamed. It starts at a position and another game replaces it, `loadFen` replaces it
+  only when the FEN reads, a test that wants a board without both kings builds a `Chessboard` and starts a `Game` from it.
+  `moves()` is its past. `MoveHistory` is `RepetitionHistory`, the heuristics' `history` is `butterfly`, `io::pgn_parser`'s
+  text of a game is `PgnGame`. `PerftSearch` has its own copy. `pgn_parser::deserialize` still plays onto a `Game`, it's
+  specified to continue from the current position and tests rely on it.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 
@@ -94,16 +100,13 @@ Decided:
 
 ## What's left, in order
 
-4. **`Game`.** `GameContext` shrinks and is renamed. `age`, `IsRepetition`, `editChessboard` & `editGameHistory` go,
-   `MoveHistory` becomes `RepetitionHistory`, heuristics' `history` becomes `butterfly`. `PerftSearch` takes a `Game` by value,
-   `pgn_parser` returns one.
-5. **`position` builds a new `Game`.** Fixes `position fen` never clearing the history (`uci.cpp`): every `position fen ...
+5. **`position` builds a new `Game`,** and `Game::editChessboard` goes, it's the last caller. Fixes `position fen` never clearing the history (`uci.cpp`): every `position fen ...
    moves ...` adds the moves again, and with a non-zero FEN clock and no capture or pawn move since, a position that occurred
    twice can count as threefold. Changes play, bench can't see it: its own commit, a test and an SPRT.
 6. **`Session`, one bench loop.** UCI and the CLI's commands hold a `Game` and a `Monad`. Bench builds its own, so it leaves
    the session alone, and shares the loop but not the output, which `docs/spec/engine.md` specifies per binary. The CLI's
-   `search` stops building its own `SearchContext`, so histories carry over in normal mode. `readGameContext` &
-   `editGameContext` move over gradually, 40 uses in `uci_test.cpp`.
+   `search` stops building its own `SearchContext`, so histories carry over in normal mode. `readGame` &
+   `editGame` move over gradually, 40 uses in `uci_test.cpp`.
 7. **`UCI` moves to `src/cli`,** with `UciSearchListener`. The tests then link the CLI library, `ob_build/makefile` lists CLI
    sources by name, and the bench hook doesn't watch `src/cli/inc`. Rename the CLI's `namespace elephant`.
 8. **The per-ply struct, then `Worker`.** Gather `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers
