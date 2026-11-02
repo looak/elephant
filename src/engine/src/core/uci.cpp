@@ -8,13 +8,8 @@
 #include <io/san_parser.hpp>
 #include <io/printer.hpp>
 #include <core/game.hpp>
-#include <math/bench_positions.hpp>
 #include <move/move.hpp>
-#include <search/search.hpp>
-#include <search/state/search_context.hpp>
-#include <search/state/transposition_table.hpp>
-#include <system/clock.hpp>
-#include <system/time_manager.hpp>
+#include <search/bench.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -394,54 +389,13 @@ UCI::prepareSearch(const std::list<std::string>& args)
 
 bool UCI::Bench(std::list<std::string>)
 {
-    // todo consolidate with the benchscope in openbench.cpp
-    // every bench position is a new game: the TT & the search context are zeroed in place, never reallocated, so the
-    // clock below only measures search.
-    struct BenchScope{
-        BenchScope(Game& ctx, TranspositionTable& table, SearchContext& sc)
-            : context(ctx), tt(table), searchContext(sc) {
-            tt.clear();
-            searchContext.reset();
-        }
-        void loadFen(const std::string& fen) {
-            context.loadFen(fen);
-        }
-        Game& context;
-        TranspositionTable& tt;
-        SearchContext& searchContext;
-    };
-
     spdlog::info("Starting benchmark...");
 
-    // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
-    // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0,
-    // the same as a new one, the node count doesn't change. 16 MB rather than the default 64: each position clears the
-    // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
-    // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
-    Game context;
-    TranspositionTable tt(16);
-    SearchContext searchContext;
     UciSearchListener listener;
-    Clock timer;
-    timer.Start();
-    u64 nodes = 0;
-    for (const auto& fen : bench::fens) {
-        BenchScope scope(context, tt, searchContext);
-        scope.loadFen(fen);
+    const bench::Result result = bench::runSignature(listener);
 
-        Search search(searchContext, tt, listener);
-        SearchLimits params;
-        TimeManager tm(params, context.readToPlay());
-        
-        params.SearchDepth = bench::depth;
-        nodes += search.go(makeSearchRequest(context, params), tm).count;
-    }
-    timer.Stop();
-
-    float elapsedSeconds = timer.getElapsedSeconds();
-    i64 elapsedMilliseconds = timer.getElapsedTime();    
-    io::printer::uci("info string {} seconds", elapsedSeconds);
-    io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
+    io::printer::uci("info string {} seconds", static_cast<float>(result.elapsedMs) / 1000.0f);
+    io::printer::uci("info string {} nodes {} nps", result.nodes, result.nps());
     io::printer::uci_flush();
     return true;
 }

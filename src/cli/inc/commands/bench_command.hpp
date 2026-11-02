@@ -2,14 +2,9 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <core/game.hpp>
 #include <core/uci_search_listener.hpp>
 #include <diagnostics/logger.hpp>
-#include <io/fen_parser.hpp>
-#include <search/search.hpp>
-#include <math/bench_positions.hpp>
-#include <system/clock.hpp>
-#include <system/time_manager.hpp>
+#include <search/bench.hpp>
 #include <fstream>
 
 struct EpdTestCase {
@@ -75,56 +70,23 @@ public:
 	bool execute(const BenchArgs& args) override {		
         spdlog::info("Starting benchmark...");
 
-        Clock timer;
-        timer.Start();
-        u64 nodes = 0;
-
-        if (args.testCases.size() > 0) {
-        // this bench is evaluating if the engine can solve some tricky positions
-            for (const auto& testCase : args.testCases) {
-                Game context;
-                context.loadFen(testCase.fen.c_str());
-
-                SearchContext searchContext;
-                UciSearchListener listener;
-                TranspositionTable tt;
-                Search search(searchContext, tt, listener);
-                SearchLimits params;
-                TimeManager tm(params, context.readToPlay());
-                
-                params.SearchDepth = args.depth;
-                nodes += search.go(makeSearchRequest(context, params), tm).count;
-            }
-            timer.Stop();
-            double elapsedSeconds = static_cast<double>(timer.getElapsedTime()) / 1000.0;
-
-            std::cout << "info string " << elapsedSeconds << " seconds\n";
-            std::cout << nodes << " nodes " << timer.calcNodesPerSecond(nodes) << " nps\n";
-            return true;
+        UciSearchListener listener;
+        bench::Result result;
+        if (args.testCases.empty()) {
+            // this bench is all about nps.
+            result = bench::runSignature(listener);
         }
         else {
-        // this bench is all about nps.
-        for (const auto& fen : bench::fens) {
-            Game context;
-            context.loadFen(fen.c_str());
-
-            SearchContext searchContext;
-            UciSearchListener listener;
-            TranspositionTable tt;
-            Search search(searchContext, tt, listener);
-            SearchLimits params;
-            TimeManager tm(params, context.readToPlay());
-
-            params.SearchDepth = bench::depth;
-            nodes += search.go(makeSearchRequest(context, params), tm).count;
+            // this bench is evaluating if the engine can solve some tricky positions, deep enough to need the bigger
+            // table.
+            std::vector<std::string> fens;
+            for (const auto& testCase : args.testCases)
+                fens.push_back(testCase.fen);
+            result = bench::run(fens, args.depth, 64, listener);
         }
 
-        timer.Stop();
-        float elapsedSeconds = timer.getElapsedSeconds();
-
-        std::cout << "info string " << elapsedSeconds << " seconds\n";
-        std::cout << nodes << " nodes " << timer.calcNodesPerSecond(nodes) << " nps\n";
-    }
+        std::cout << "info string " << static_cast<double>(result.elapsedMs) / 1000.0 << " seconds\n";
+        std::cout << result.nodes << " nodes " << result.nps() << " nps\n";
         return true;
 	}
 
