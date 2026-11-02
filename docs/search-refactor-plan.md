@@ -56,8 +56,8 @@ On `refactor-monad`:
 - `Monad`: owns the TT, which left `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
   immediately, `wait()` gives the result, the listener hears `onBestMove` or `onSearchFailed`. An infinite search that
   ends on its own keeps its answer until `stop`. A `TimeManager` per `go`, so a stop can't be lost or carry over.
-  Its destructor stops and joins. Until step 6 the CLI's `search` has its
-  own table per command, it had the `GameContext`'s.
+  Its destructor stops and joins. The CLI's `search` got its table back with
+  `CommandContext`.
 
 - `Game`: `GameContext` shrunk and renamed. It starts at a position and another game replaces it, `loadFen` replaces it
   only when the FEN reads, a test that wants a board without both kings builds a `Chessboard` and starts a `Game` from it.
@@ -82,6 +82,9 @@ On `refactor-monad`:
 
 - `tuner` & `indexer` moved into `src/`, and `main.cpp` into `src/cli`: every program we build is in `src/`. `test/` stays at
   the top level, it holds scripts & data as well and none of it ships.
+
+- `CommandContext`: the CLI's commands share a `Game` & a `Monad`, so `search` keeps its table & history tables between
+  commands until `new`. `UCI`'s `readGame` & `editGame` stay, for `print` and the tests.
 
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
@@ -118,9 +121,6 @@ Decided:
 
 ## What's left, in order
 
-6. **`CommandContext`.** The CLI's commands get a `Game` and a `Monad` through one small struct of the CLI's own, UCI has its
-   own already. The CLI's `search` stops building its own table & `SearchContext`, so both carry over in normal mode.
-   `readGame` & `editGame` on `UCI` move over gradually, 40 uses in `uci_test.cpp`.
 8. **The per-ply struct, then `Worker`.** Gather `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers
    into one struct per ply, #47's. Then `Search` splits: starting & joining threads, the shared stop & node count and the
    listener go to `Monad`, `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become
