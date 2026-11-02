@@ -32,8 +32,8 @@ void verifyPestoThroughTree(GameContext& context, PestoAccumulator& accumulator,
         line.push_back(move.toString());
         MoveExecutor executor(context.editChessPosition(), &accumulator);
         MoveUndoUnit undo;
-        u16 plyCount = 0;
-        executor.makeMove(move, undo, plyCount);
+        u16 halfmoveClock = 0;
+        executor.makeMove(move, undo, halfmoveClock);
 
         if (!matchesScratch(context, accumulator)) {
             for (const auto& m : line) firstFailure += m + " ";

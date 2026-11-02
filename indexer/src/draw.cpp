@@ -230,7 +230,7 @@ void Drawer::draw(const GameIndex& entry, std::string& out, std::optional<u32> m
             break;
         MoveExecutor executor(board.editPosition());
         GameState& state = board.editState();
-        executor.makeMove<true>(entry.played[ply], undo, state.plyCount);
+        executor.makeMove<true>(entry.played[ply], undo, state.halfmoveClock);
         state.whiteToMove = !state.whiteToMove;
         state.moveCount += static_cast<u16>(state.whiteToMove);
     }

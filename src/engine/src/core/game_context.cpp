@@ -35,7 +35,7 @@ void GameContext::MakeMove(const PackedMove move)
     auto& undoUnit = m_history.moveUndoUnits.emplace_back();
     
     MoveExecutor executor(m_board.editPosition());
-    executor.makeMove<validation>(move, undoUnit, gameState.plyCount);
+    executor.makeMove<validation>(move, undoUnit, gameState.halfmoveClock);
 
     // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
     gameState.whiteToMove = !gameState.whiteToMove;
@@ -57,7 +57,7 @@ bool GameContext::UnmakeMove()
     auto& gameState = m_board.editState();
     gameState.moveCount -= (short)gameState.whiteToMove;
     gameState.whiteToMove = !gameState.whiteToMove;
-    gameState.plyCount = undoState.plyCount;
+    gameState.halfmoveClock = undoState.halfmoveClock;
     m_history.moveUndoUnits.pop_back();
     m_history.age--;
 

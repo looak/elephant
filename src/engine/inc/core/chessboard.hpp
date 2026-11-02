@@ -30,18 +30,18 @@
 struct GameState {
     GameState() = default;
     GameState(const GameState& rhs) :
-        plyCount(rhs.plyCount),
+        halfmoveClock(rhs.halfmoveClock),
         moveCount(rhs.moveCount),
         whiteToMove(rhs.whiteToMove)
     {}
 
     bool operator==(const GameState& other) const {
-        return  plyCount == other.plyCount &&
+        return  halfmoveClock == other.halfmoveClock &&
                 moveCount == other.moveCount &&
                 whiteToMove == other.whiteToMove;
     }
 
-    u16 plyCount = 0;  // number of half moves made
+    u16 halfmoveClock = 0;  // half moves since the last capture or pawn move, the fifty move rule's counter
     u16 moveCount = 1;  // number of full moves made
     bool whiteToMove = true;  // true if it's white's turn to move
 };
@@ -65,7 +65,7 @@ public:
     void makeMove(const PackedMove move);
 
     u16 readMoveCount() const { return m_gameState.moveCount; }
-    u16 readPlyCount() const { return m_gameState.plyCount; }
+    u16 readHalfmoveClock() const { return m_gameState.halfmoveClock; }
     Set readToPlay() const { return m_gameState.whiteToMove ? Set::WHITE : Set::BLACK; }    
 
     std::string toString() const;

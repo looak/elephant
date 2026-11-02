@@ -35,7 +35,7 @@ SearchRequest makeSearchRequest(const GameContext& game, SearchLimits limits) {
     SearchRequest request;
     request.root = game.readChessPosition().copy();
     request.toPlay = game.readToPlay();
-    request.rootHalfmoveClock = game.readPly();
+    request.rootHalfmoveClock = game.readHalfmoveClock();
 
     const auto& undoUnits = game.readGameHistory().moveUndoUnits;
     request.gameHashes.reserve(undoUnits.size());

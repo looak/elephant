@@ -50,7 +50,7 @@ TEST_F(FenParserFixture, StartingPosition)
     bool result = io::fen_parser::deserialize(startingPositionFen, newGameBoard);
     EXPECT_TRUE(result);
 
-    EXPECT_EQ(0, newGameBoard.readPlyCount());
+    EXPECT_EQ(0, newGameBoard.readHalfmoveClock());
     EXPECT_EQ(1, newGameBoard.readMoveCount());
     EXPECT_EQ(Set::WHITE, newGameBoard.readToPlay());
     EXPECT_FALSE(posReader.enPassant());
@@ -103,7 +103,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     bool result = io::fen_parser::deserialize(gameSixFen, resultBoard);
     EXPECT_TRUE(result);
     // PrintBoard(testContext.readChessboard());
-    EXPECT_EQ(2, resultBoard.readPlyCount());
+    EXPECT_EQ(2, resultBoard.readHalfmoveClock());
     EXPECT_EQ(136, resultBoard.readMoveCount());
     EXPECT_EQ(Set::BLACK, resultBoard.readToPlay());
     EXPECT_FALSE(resultBoard.readPosition().enPassant());
@@ -112,7 +112,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     Chessboard expected;
     chess_positions::nepomniachtchiResignsGameSix(expected.editPosition());
     expected.editState().moveCount = 136;
-    expected.editState().plyCount = 2;
+    expected.editState().halfmoveClock = 2;
     expected.editState().whiteToMove = false;
     // black to move, the hash carries the black to move key like the one loaded from the FEN.
     expected.editPosition().hash() = zobrist::updateBlackToMoveHash(expected.readPosition().hash());
@@ -145,7 +145,7 @@ TEST_F(FenParserFixture, PerftPositionThree)
 
     EXPECT_TRUE(result);
     
-    EXPECT_EQ(0, testBoard.readPlyCount());
+    EXPECT_EQ(0, testBoard.readHalfmoveClock());
     EXPECT_EQ(1, testBoard.readMoveCount());
     EXPECT_EQ(Set::WHITE, testBoard.readToPlay());
     EXPECT_FALSE(testBoard.readPosition().enPassant());
@@ -170,7 +170,7 @@ TEST_F(FenParserFixture, EnPassantPlyMovePlay_RoundTripSerialize)
     std::string fen("8/8/1k6/2b5/2pP4/8/5K2/8 b - d3 5 19");
     io::fen_parser::deserialize(fen, testingBoard);
 
-    EXPECT_EQ(5, testingBoard.readPlyCount());
+    EXPECT_EQ(5, testingBoard.readHalfmoveClock());
     EXPECT_EQ(19, testingBoard.readMoveCount());
     EXPECT_EQ(Set::BLACK, testingBoard.readToPlay());
     auto sqr = testingBoard.readPosition().enPassant().readSquare();
@@ -187,7 +187,7 @@ TEST_F(FenParserFixture, MoveCountPast255_IsClamped)
     // a long endgame from a tuning dataset, its fullmove number doesn't fit the byte it's kept in.
     Chessboard testingBoard;
     EXPECT_TRUE(io::fen_parser::deserialize("5k2/5P2/4B3/pK6/P7/2b5/8/8 b - - 32 261", testingBoard));
-    EXPECT_EQ(32, testingBoard.readPlyCount());
+    EXPECT_EQ(32, testingBoard.readHalfmoveClock());
     EXPECT_EQ(255, testingBoard.readMoveCount());
 
     const std::string fen("5k2/5P2/4B3/pK6/P7/2b5/8/8 b - - 32 261");

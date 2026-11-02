@@ -22,7 +22,7 @@ changed only here, by agreement with the owner.
 
 New and changed code follows these; `.clang-tidy` (`readability-identifier-naming`) and `.clang-format` encode them.
 
-- **Naming**: types CamelCase; functions, methods, variables, parameters and constants camelBack (`readPly`,
+- **Naming**: types CamelCase; functions, methods, variables, parameters and constants camelBack (`readHalfmoveClock`,
   `minDepth`, `c_` on a constant is allowed); enum values UPPER_CASE (`Set::WHITE`); namespaces lower_case; macros
   UPPER_CASE; `u8`..`u64`, `i8`..`i64` are the integer aliases. Older code still has PascalCase methods (`UCI`,
   `GameContext`) and a few snake_case functions: don't copy them, and don't rename them inside an unrelated change.

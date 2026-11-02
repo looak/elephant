@@ -58,7 +58,7 @@ public:
     PositionReader readChessPosition() const { return m_board.readPosition(); }
     PositionEditor editChessPosition() { return m_board.editPosition(); }
 
-    u16 readPly() const { return m_board.readPlyCount(); }
+    u16 readHalfmoveClock() const { return m_board.readHalfmoveClock(); }
     u16 readMoveCount() const { return m_board.readMoveCount(); }
 
     Set readToPlay() const { return m_board.readToPlay(); }

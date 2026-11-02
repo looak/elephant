@@ -52,7 +52,7 @@ namespace {
         position.enPassant().clear();
         position.hash() = zobrist::updateBlackToMoveHash(position.hash());
         GameState& state = board.editState();
-        ++state.plyCount;
+        ++state.halfmoveClock;
         state.whiteToMove = !state.whiteToMove;
         state.moveCount += static_cast<u16>(state.whiteToMove);
     }
@@ -110,7 +110,7 @@ namespace {
             return checked ? Ending::Checkmate : Ending::Stalemate;
         if (insufficientMaterial(position))
             return Ending::InsufficientMaterial;
-        if (board.readState().plyCount >= 100)
+        if (board.readState().halfmoveClock >= 100)
             return Ending::FiftyMoves;
         if (std::count(hashes.begin(), hashes.end(), hashes.back()) >= 3)
             return Ending::Repetition;
@@ -267,7 +267,7 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool
 
             MoveExecutor executor(board.editPosition());
             GameState& state = board.editState();
-            executor.makeMove<true>(move, undo, state.plyCount);
+            executor.makeMove<true>(move, undo, state.halfmoveClock);
             state.whiteToMove = !state.whiteToMove;
             state.moveCount += static_cast<u16>(state.whiteToMove);
         }

@@ -209,13 +209,13 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = parseCounter(tokens.front());
+        byte halfmoveClock = parseCounter(tokens.front());
         tokens.pop_front();
 
         byte moveCount = parseCounter(tokens.front());
         tokens.pop_front();
 
-        outputBoard.editState().plyCount = plyCount;
+        outputBoard.editState().halfmoveClock = halfmoveClock;
         outputBoard.editState().moveCount = moveCount;
     }
 
@@ -264,13 +264,13 @@ bool deserialize(const char* input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = parseCounter(tokens.front());
+        byte halfmoveClock = parseCounter(tokens.front());
         tokens.pop_front();
 
         byte moveCount = parseCounter(tokens.front());
         tokens.pop_front();
 
-        outputBoard.editState().plyCount = plyCount;
+        outputBoard.editState().halfmoveClock = halfmoveClock;
         outputBoard.editState().moveCount = moveCount;
     }
 
@@ -366,7 +366,7 @@ bool serialize(const Chessboard& board, std::string& resultFen)
     
     resultFen += ' ';
 
-    resultFen += std::to_string(board.readState().plyCount) + " ";
+    resultFen += std::to_string(board.readState().halfmoveClock) + " ";
     resultFen += std::to_string(board.readState().moveCount);
 
     return true;

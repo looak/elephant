@@ -36,7 +36,7 @@ struct MoveUndoUnit {
         castlingState(),
         enPassantState(),
         hash(0),
-        plyCount(0)
+        halfmoveClock(0)
     {
     }
     PackedMove move;
@@ -46,5 +46,5 @@ struct MoveUndoUnit {
     EnPassantStateInfo enPassantState;
     u64 hash;
     PestoAccumulator pesto;  // search's accumulator before the move, restored on unmake like the hash
-    u16 plyCount;
+    u16 halfmoveClock;
 };

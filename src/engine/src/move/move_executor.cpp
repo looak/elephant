@@ -9,7 +9,7 @@
 
 
 template<bool validation>
-void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& plyCount)
+void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& halfmoveClock)
 {
     if constexpr (validation) {
         if (move.isNull()) {
@@ -22,7 +22,7 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     undoUnit.hash = m_position.hash();
     if (m_accumulator)
         undoUnit.pesto = *m_accumulator;
-    undoUnit.plyCount = plyCount;
+    undoUnit.halfmoveClock = halfmoveClock;
 
     ChessPiece movingPiece = m_position.pieceAt(move.sourceSqr());
     undoUnit.movedPiece = movingPiece;
@@ -45,14 +45,14 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     undoUnit.castlingState.write(m_position.castling().read());
 
     // fifty move rule counter, a pawn move or a capture resets it below.
-    plyCount++;
+    halfmoveClock++;
 
     switch (movingPiece.getType()) {
     case PieceType::PAWN:
         // updating pieceTarget since if we're capturing enpassant the target will be on a
         // different square.
         std::tie(captureTarget, movingPiece) = internalHandlePawnMove(move, movingPiece.getSet(), materialEditor, undoUnit);
-        plyCount = 0;  // reset ply count on pawn move
+        halfmoveClock = 0;
         break;
 
     case PieceType::KING:
@@ -69,7 +69,7 @@ void MoveExecutor::makeMove(const PackedMove move, MoveUndoUnit& undoUnit, u16& 
     if (move.isCapture())
     {
         internalHandleCapture(move, captureTarget, undoUnit);
-        plyCount = 0;  // reset ply count on capture move
+        halfmoveClock = 0;
     }   
 
     // should happen after capture since enpassant logic relies on that order.

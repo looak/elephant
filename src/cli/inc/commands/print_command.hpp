@@ -86,7 +86,7 @@ public:
         std::vector<std::string> statsPanel;
         statsPanel.push_back("stats:");
         statsPanel.push_back(" turn: " + std::string(context.readToPlay() == Set::WHITE ? "White" : "Black"));
-        statsPanel.push_back(" move: " + std::to_string(context.readMoveCount()) + "  ply: " + std::to_string(context.readPly()));
+        statsPanel.push_back(" move: " + std::to_string(context.readMoveCount()) + "  halfmove clock: " + std::to_string(context.readHalfmoveClock()));
         statsPanel.push_back(" castling: " + position.castling().toString());
         statsPanel.push_back(" en passant: " + position.enPassant().toString());
         statsPanel.push_back(" hash: " + hashStream.str());

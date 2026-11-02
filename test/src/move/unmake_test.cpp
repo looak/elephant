@@ -75,7 +75,7 @@ public:
         EXPECT_EQ(static_cast<int>(wanted.castling().read()), static_cast<int>(actual.castling().read())) << context;
         EXPECT_EQ(static_cast<int>(wanted.enPassant().read()), static_cast<int>(actual.enPassant().read())) << context;
         EXPECT_EQ(expected.readToPlay(), board.readToPlay()) << context;
-        EXPECT_EQ(expected.readPlyCount(), board.readPlyCount()) << context;
+        EXPECT_EQ(expected.readHalfmoveClock(), board.readHalfmoveClock()) << context;
         EXPECT_EQ(expected.readMoveCount(), board.readMoveCount()) << context;
         EXPECT_TRUE(board.compare(expected)) << context;
     }

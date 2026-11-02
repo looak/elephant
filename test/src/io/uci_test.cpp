@@ -1157,7 +1157,7 @@ TEST_F(UciFixture, position_moves_NonPawnOntoEnPassantSquare_IsNotACapture)
         EXPECT_EQ(ChessPiece::None(), board.pieceAt(c.emptied)) << c.moves;
         EXPECT_EQ(PieceType::PAWN, board.pieceAt(c.pawn).getType()) << c.moves;
         EXPECT_FALSE(board.enPassant()) << c.moves;
-        EXPECT_EQ(1, uci.readGameContext().readPly()) << c.moves;
+        EXPECT_EQ(1, uci.readGameContext().readHalfmoveClock()) << c.moves;
 
         std::string outputFen;
         io::fen_parser::serialize(uci.readGameContext().readChessboard(), outputFen);
@@ -1185,7 +1185,7 @@ TEST_F(UciFixture, position_moves_PawnOntoEnPassantSquare_CapturesEnPassant)
     EXPECT_EQ(WHITEPAWN, board.pieceAt(Square::D6));
     EXPECT_EQ(ChessPiece::None(), board.pieceAt(Square::D5));
     EXPECT_EQ(ChessPiece::None(), board.pieceAt(Square::E5));
-    EXPECT_EQ(0, m_uci.readGameContext().readPly());
+    EXPECT_EQ(0, m_uci.readGameContext().readHalfmoveClock());
 
     std::string outputFen;
     io::fen_parser::serialize(m_uci.readGameContext().readChessboard(), outputFen);
@@ -1224,7 +1224,7 @@ static bool isThreefold(const GameContext& context)
     history.setGameHashes(gameHashes);
     const u64 hash = context.readChessPosition().hash();
     history.push(hash);
-    return history.isRepetition(hash, context.readPly());
+    return history.isRepetition(hash, context.readHalfmoveClock());
 }
 
 TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)

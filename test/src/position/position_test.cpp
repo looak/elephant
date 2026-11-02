@@ -2562,13 +2562,13 @@ TEST_F(FenRoundTripFixture, Fen_FullRanksWithoutGaps_NoDigitsInThem)
 TEST_F(FenRoundTripFixture, Fen_MoveCounters_WrittenAndReadBack)
 {
     m_board.editPosition().placePieces(K, E1, k, E8);
-    m_board.editState().plyCount = 37;
+    m_board.editState().halfmoveClock = 37;
     m_board.editState().moveCount = 112;
     expectRoundTrip("4k3/8/8/8/8/8/8/4K3 w - - 37 112");
 
     Chessboard read;
     ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/8/8/8/8/8/4K3 w - - 37 112", read));
-    EXPECT_EQ(37, read.readPlyCount());
+    EXPECT_EQ(37, read.readHalfmoveClock());
     EXPECT_EQ(112, read.readMoveCount());
 }
 

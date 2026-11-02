@@ -67,7 +67,7 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
 TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
     // white: Ke1 Nb1 pawns d2 e2, black: Ke8 Nf6 pawn d5, halfmove clock 7.
     ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", m_game.editChessboard()));
-    ASSERT_EQ(7, m_game.readPly());
+    ASSERT_EQ(7, m_game.readHalfmoveClock());
 
     struct Step {
         PackedMove move;
@@ -94,9 +94,9 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
 
     std::vector<u16> before;
     for (const auto& step : steps) {
-        before.push_back(m_game.readPly());
+        before.push_back(m_game.readHalfmoveClock());
         m_game.MakeMove(step.move);
-        EXPECT_EQ(step.expected, m_game.readPly()) << step.name << ", " << step.move.toString();
+        EXPECT_EQ(step.expected, m_game.readHalfmoveClock()) << step.name << ", " << step.move.toString();
 
         std::string fen;
         io::fen_parser::serialize(m_game.readChessboard(), fen);
@@ -109,9 +109,9 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
 
     for (size_t i = std::size(steps); i-- > 0;) {
         m_game.UnmakeMove();
-        EXPECT_EQ(before[i], m_game.readPly()) << "unmake " << steps[i].move.toString();
+        EXPECT_EQ(before[i], m_game.readHalfmoveClock()) << "unmake " << steps[i].move.toString();
     }
-    EXPECT_EQ(7, m_game.readPly());
+    EXPECT_EQ(7, m_game.readHalfmoveClock());
     std::string restored;
     io::fen_parser::serialize(m_game.readChessboard(), restored);
     EXPECT_EQ("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", restored);
@@ -121,11 +121,11 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
 TEST_F(MoveExecutorFixture, PawnPush_ResetsHalfmoveClock)
 {
     io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 7 20", m_game.editChessboard());
-    EXPECT_EQ(7, m_game.readChessboard().readPlyCount());
+    EXPECT_EQ(7, m_game.readChessboard().readHalfmoveClock());
 
     m_game.MakeMove<true>(PackedMove(Square::E2, Square::E4));
 
-    EXPECT_EQ(0, m_game.readChessboard().readPlyCount());
+    EXPECT_EQ(0, m_game.readChessboard().readHalfmoveClock());
 }
 
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
