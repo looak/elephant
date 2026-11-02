@@ -152,10 +152,9 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
 
         context.position = board.readPosition().copy();
         context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
-        context.gameState.whiteToMove = board.readToPlay() == Set::WHITE;
 
         bool decided = false;
-        const PVLine line = resolveToQuiet(context, decided);
+        const PVLine line = resolveToQuiet(context, board.readToPlay(), decided);
         if (decided) {
             ++report.decided;
             return true;

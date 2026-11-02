@@ -20,7 +20,7 @@
 #include <array>
 #include <vector>
 
-#include <core/chessboard.hpp>
+#include <position/position.hpp>
 #include <search/search.hpp>
 #include <search/core/search_constants.hpp>
 #include <search/state/search_heuristic_structures.hpp>
@@ -45,9 +45,7 @@ struct ThreadContext {
           heuristics(_heuristics),
           pawnHash(_pawnHash),
           position(_request.root),
-          accumulator(PestoAccumulator::computeFromScratch(position.read().material())) {
-            gameState.whiteToMove = _request.toPlay == Set::WHITE;
-        }
+          accumulator(PestoAccumulator::computeFromScratch(position.read().material())) {}
 
     // --- Owned elsewhere, outlive this context ---
 
@@ -74,7 +72,6 @@ struct ThreadContext {
     Position position;
     // PeSTO sums for position, kept in step by the executors from executor() & read by evaluate().
     PestoAccumulator accumulator;
-    GameState gameState;
 
     // --- The current line, indexed by ply ---
 

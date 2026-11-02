@@ -29,8 +29,8 @@ PVLine resolve(ThreadContext& context, bool& decided) {
 
 } // namespace
 
-PVLine resolveToQuiet(ThreadContext& context, bool& decided) {
-    return context.gameState.whiteToMove ? resolve<Set::WHITE>(context, decided) : resolve<Set::BLACK>(context, decided);
+PVLine resolveToQuiet(ThreadContext& context, Set toPlay, bool& decided) {
+    return toPlay == Set::WHITE ? resolve<Set::WHITE>(context, decided) : resolve<Set::BLACK>(context, decided);
 }
 
 } // namespace tuner

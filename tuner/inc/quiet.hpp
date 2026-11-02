@@ -28,10 +28,10 @@
 namespace tuner {
 
 /**
- * Searches context's position with quiescence and plays its line on context, leaving context's position & accumulator
- * on the quiet position at its end. Returns that line, empty when the position already was quiet. Sets decided, and
- * leaves context as it was, when the search finds a mate for either side: the line ends in a mated position, there's
- * no quiet one to fit. context needs stopEnabled false.    */
-PVLine resolveToQuiet(ThreadContext& context, bool& decided);
+ * Searches context's position, with toPlay to move, with quiescence and plays its line on context, leaving context's
+ * position & accumulator on the quiet position at its end. Returns that line, empty when the position already was quiet.
+ * Sets decided, and leaves context as it was, when the search finds a mate for either side: the line ends in a mated
+ * position, there's no quiet one to fit. context needs stopEnabled false.    */
+PVLine resolveToQuiet(ThreadContext& context, Set toPlay, bool& decided);
 
 } // namespace tuner

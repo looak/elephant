@@ -94,11 +94,10 @@ struct Drawer::Impl {
     {
         context.position = board.readPosition().copy();
         context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
-        context.gameState.whiteToMove = board.readToPlay() == Set::WHITE;
 
         PVLine line;
-        const i16 score = context.gameState.whiteToMove ? Search::quiescenceLine<Set::WHITE>(context, line)
-                                                         : Search::quiescenceLine<Set::BLACK>(context, line);
+        const i16 score = board.readToPlay() == Set::WHITE ? Search::quiescenceLine<Set::WHITE>(context, line)
+                                                           : Search::quiescenceLine<Set::BLACK>(context, line);
         return line.length == 0 && std::abs(score) < c_checkmateMinScore;
     }
 
