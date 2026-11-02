@@ -14,11 +14,12 @@ where noted.
 main
   search-time
     refactor-thread-context    PR #51 into search-time, open
-      search-request           this branch, pushed, no PR yet
+      search-request           pushed, no PR yet
+        refactor-monad         this branch
 ```
 
-`search-request` should get a PR into `refactor-thread-context`. CI only runs on pull requests into `main`, so nothing
-on these branches is checked unless it's built by hand.
+`search-request` should get a PR into `refactor-thread-context`. CI only runs by itself on pull requests into `main`, on these
+branches start it with `gh workflow run ci.yml --ref <branch>`.
 
 ## Done
 
@@ -43,71 +44,67 @@ On `search-request`:
 Checked on the tip of `search-request`, g++ 16 in WSL and MSVC 19.52: full build with warnings as errors, 598 of 598 unit
 tests, bench 467534. The OpenBench makefile build has no warnings. `ElephantSuite` passes on g++.
 
+## How it fits together
+
+Three layers, by lifetime. Nothing clears a history: a `Game` starts at a position and is replaced whole.
+
+| Construct | What it is | Lives for | Owner |
+|---|---|---|---|
+| `Chessboard` | `Position`, side to move, clocks. Copyable | as long as its holder wants | anyone: `Game`, indexer, tuner |
+| `Game` | a start position and the moves played | one start position, until replaced | the interface (UCI, CLI, a test) |
+| `Monad` | the TT, the workers' tables, options, the running search | the process | the interface |
+| `SearchRequest` | the question: root, game hashes, root moves, limits | one `go`, immutable | the search |
+| `TimeManager` | the limits and the stop signal | one `go` | `Monad` |
+| `ThreadContext` | working position, accumulator, current line, killers, counters | one `go`, one thread | the search thread |
+
+| Event | `Game` | TT | History tables, pawn hash | Killers |
+|---|---|---|---|---|
+| `position` | replaced | kept | kept | n/a |
+| `ucinewgame` | replaced | zeroed | zeroed | n/a |
+| `go` | copied into the request | kept, age incremented | kept | fresh |
+
+Decided:
+
+- **`Monad`** is the name, after Leibniz: its own memory, nothing shared with another one, no colour of its own. The class
+  comment says so.
+- **The interface owns the `Game`,** not `Monad`. `SearchRequest` is already a complete copy, so self-play (#49) is one
+  `Game` and two `Monad`s. UCI and the CLI hold both, a small `Session` in the CLI covers that.
+- **`Monad` owns the TT,** one per `Monad`. Its workers borrow it for a `go`.
+- **`Game` replaces `GameContext`,** which is a board and an undo stack once the TT has left.
+- **`Chessboard` stays.** The indexer and tuner use it without a history.
+- **`SearchHandle`** is left out: one `Monad` runs one search at a time, and #53 closed the race it was meant to prevent.
+
 ## What's left, in order
 
-### 1. `Elephant` (called `Engine` in earlier discussion)
+1. **`Chessboard` moves and `io::fen_parser::read`.** One place plays a move and keeps the side to move & clocks in step,
+   one place reads a FEN without throwing. The indexer, tuner and `GameContext` use them. `game_index.cpp`'s FEN tag
+   keeps `deserialize`, its error text carries the parser's message and that's in the indexer's output.
+2. **`QuiescenceProbe`.** The setup the tuner and indexer each repeat (clock, empty request, 1 MB TT, heuristics, context)
+   in the engine, and a home for `Search::quiescenceLine`. It keeps its tables between positions like they do today.
+   Neither tool's output may change, and bench doesn't cover them: compare their output on a fixed input.
+3. **`Monad`.** Owns the TT, which leaves `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
+   immediately, `wait()` returns the `SearchResult`, the listener gets `onBestMove`. Decide who holds `bestmove` back on an
+   infinite search and how a failed search reports. The destructor stops and joins, today `go infinite` then `normal` hangs.
+   The TT's default is 64 MB in `GameContext` and 8 MB through the option: check deep search tests when it changes.
+4. **`Game`.** `GameContext` shrinks and is renamed. `age`, `IsRepetition`, `editChessboard` & `editGameHistory` go,
+   `MoveHistory` becomes `RepetitionHistory`, heuristics' `history` becomes `butterfly`. `PerftSearch` takes a `Game` by value,
+   `pgn_parser` returns one.
+5. **`position` builds a new `Game`.** Fixes `position fen` never clearing the history (`uci.cpp`): every `position fen ...
+   moves ...` adds the moves again, and with a non-zero FEN clock and no capture or pawn move since, a position that occurred
+   twice can count as threefold. Changes play, bench can't see it: its own commit, a test and an SPRT.
+6. **`Session`, one bench loop.** UCI and the CLI's commands hold a `Game` and a `Monad`. Bench builds its own, so it leaves
+   the session alone, and shares the loop but not the output, which `docs/spec/engine.md` specifies per binary. The CLI's
+   `search` stops building its own `SearchContext`, so histories carry over in normal mode. `readGameContext` &
+   `editGameContext` move over gradually, 40 uses in `uci_test.cpp`.
+7. **`UCI` moves to `src/cli`,** with `UciSearchListener`. The tests then link the CLI library, `ob_build/makefile` lists CLI
+   sources by name, and the bench hook doesn't watch `src/cli/inc`. Rename the CLI's `namespace elephant`.
+8. **The per-ply struct, then `Worker`.** Gather `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers
+   into one struct per ply, #47's. Then `Search` splits: starting & joining threads, the shared stop & node count and the
+   listener go to `Monad`, `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become
+   `std::vector<Worker>`. A `Worker` is a thread's tables, not a thread: threads still start per `go`. Layout changes in the
+   hot path can move nps with bench unchanged, so check nps as well. Compare `Worker` with the other engines first.
 
-A class of its own for the engine, separate from the UCI protocol. It takes the TT, `SearchContext`, clock, options &
-current game away from `UCI`, and replaces `GameContext` as what the CLI's commands hold. No change in play, bench stays.
-
-```cpp
-class Elephant {
-public:
-    void setThreads(u16 count);
-    void setHash(size_t megabytes);
-    void setMoveOverhead(u32 milliseconds);
-
-    void newGame();
-    bool setPosition(std::string_view fen);
-    void makeMove(PackedMove move);
-    const GameContext& game() const;     // read only, for print, evaluate, perft
-
-    void go(SearchLimits limits, SearchListener& listener);  // returns immediately
-    void stop();
-    void wait();
-};
-```
-
-What moves or changes:
-
-- `UCI` keeps parsing text & formatting output, and holds an `Elephant`. Its rules ("a valid setoption ends the search
-  first", "reset the stop state before starting") move into `Elephant`, so every caller gets them.
-- `NormalModeProcessor` & the commands hold an `Elephant` instead of a `GameContext*`, see `command_api.hpp`. `search`
-  stops building its own `SearchContext`, so histories carry over in normal mode as they do in UCI.
-- The three benches (`UCI::Bench`, `bench_command.hpp`, `openbench.cpp`) become one loop. `openbench.cpp` has its own FEN
-  list, check it against `bench_positions.hpp`. `BenchScope` goes away: it's `newGame` & `setPosition`.
-- `UCI` moves out of the engine library into `src/cli`, the engine no longer depends on a protocol. Add it to
-  `docs/architecture.md`.
-
-Things to check while building it:
-
-- `PerftSearch` takes a non-const `GameContext&`. If it edits it during its walk, a read only `game()` means it needs its
-  own copy or a position.
-- `readGameContext` & `editGameContext` on `UCI` are used by tests. Move them over gradually.
-- `namespace elephant` in the CLI's `static_initializer` compiles alongside the class but reads badly, rename it.
-- Keep each `Elephant` able to live next to another in one process, #49 (in-engine self-play) needs that.
-
-**Open: `SearchHandle`.** The sketch has `stop()` & `wait()` on `Elephant`. A handle object was proposed earlier, but one
-`Elephant` runs one search at a time and #53 closed the race it was meant to prevent with a one-line move. Leaning
-towards leaving it out unless it earns its place. Also, `SearchListener` has no `onBestMove` yet, that comes with `go`
-returning immediately.
-
-### 2. `Game`
-
-Once the TT has moved into `Elephant`, `GameContext` is only a `Chessboard` (`Position` + `GameState`) and the history.
-Fold them into one type, a separate step from the first. This does the `TODO: Probably just remove chessboard
-entirely` in `chessboard.hpp`. The FEN parser, indexer & CLI commands use `editState()`, so they need a clear place to go
-first, which is why this waits for `Elephant`.
-
-### 3. `Worker`
-
-`alphaBeta` & friends move off `Search`, which only ends up starting & joining threads. A `Worker` runs a `ThreadContext`.
-`threadId` & `ThreadHeuristics` keep their names for now.
-
-Also #47's per-ply struct, which is the thread stack rewrite: gather `halfmoveClock[]`, `nullMoveAt[]` & the continuation
-stack into one struct per ply, possibly with the static eval & killers. Debug logging leaves `thread_context.hpp` for a
-file of its own, about 85 lines. Decide `SearchContext`'s parallel vectors at the same time, one vector of
-`{ThreadHeuristics, PawnHashTable}` is the persistent half of a `Worker`.
+Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request as each step they describe.
 
 ## Parked
 
@@ -117,18 +114,13 @@ file of its own, about 85 lines. Decide `SearchContext`'s parallel vectors at th
   moves on every visit. It would suit best move stability in the 1.5 cycle, and `NodeKind` gives it a home. It changes
   ordering for every search, so it changes bench and needs an SPRT. `allowedRootMoves` would be a more accurate name for
   the field until then.
-- **A todo that was lost:** `// todo: remove root moves, probably solved by replacing the mov generator or something` went
-  with `SearchInputs`. Search no longer checks root moves itself, but the list & `RootMoveSource` remain. Put it back
-  somewhere if it still applies.
 - **Pluggable move ordering:** scoring sits inside the generator, `move_generator.cpp`'s `scoreMove`. A separate ordering
   type that scores and learns, with the generator only knowing the rules, was discussed but not started.
 - **SPSA:** a params registry as the one place a search constant is written, generating the release `constexpr`s, the
   tuning build's UCI options and OpenBench's input. Not started, 1.5 plans an SPSA pass after the search changes.
 - **#50:** `ElephantSuite`'s only search test is disabled, so the suite is perft only right now.
-- **Sharing one `Elephant` across modes:** with `AppContext` owning it, switching from normal to `uci` could keep the
+- **Sharing one `Session` across modes:** with `AppContext` owning it, switching from normal to `uci` could keep the
   position. A behaviour change, not part of the first step.
-- **A real strength check:** history carrying over between searches (`e7f11c7` on `refactor-thread-context`) changes
-  play. Its commit message mentions no SPRT, run one if that hasn't happened.
 
 ## Things to remember
 
