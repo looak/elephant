@@ -65,6 +65,9 @@ On `refactor-monad`:
   text of a game is `PgnGame`. `PerftSearch` has its own copy. `pgn_parser::deserialize` still plays onto a `Game`, it's
   specified to continue from the current position and tests rely on it.
 
+- `bench::run` & `bench::runSignature`: the one bench loop, UCI's, `elephant_ob`'s & the CLI's. Each binary still prints it
+  its own way, `docs/spec/engine.md` specifies that. `openbench.cpp`'s own copy of the FENs is gone, they were identical.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 
@@ -103,8 +106,7 @@ Decided:
 5. **`position` builds a new `Game`,** and `Game::editChessboard` goes, it's the last caller. Fixes `position fen` never clearing the history (`uci.cpp`): every `position fen ...
    moves ...` adds the moves again, and with a non-zero FEN clock and no capture or pawn move since, a position that occurred
    twice can count as threefold. Changes play, bench can't see it: its own commit, a test and an SPRT.
-6. **`Session`, one bench loop.** UCI and the CLI's commands hold a `Game` and a `Monad`. Bench builds its own, so it leaves
-   the session alone, and shares the loop but not the output, which `docs/spec/engine.md` specifies per binary. The CLI's
+6. **`Session`.** UCI and the CLI's commands hold a `Game` and a `Monad`. The CLI's
    `search` stops building its own `SearchContext`, so histories carry over in normal mode. `readGame` &
    `editGame` move over gradually, 40 uses in `uci_test.cpp`.
 7. **`UCI` moves to `src/cli`,** with `UciSearchListener`. The tests then link the CLI library, `ob_build/makefile` lists CLI
