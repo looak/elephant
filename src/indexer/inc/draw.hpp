@@ -105,7 +105,7 @@ struct DrawInput {
     u64 drawn = 0;                  // of them looked at
 };
 
-// The run's statistics as one JSON object, version c_statsVersion, see indexer/README.md. reader is the Elephant version.
+// The run's statistics as one JSON object, version c_statsVersion, see src/indexer/README.md. reader is the Elephant version.
 std::string statsJson(const DrawStats& stats, const DrawOptions& options, const std::vector<DrawInput>& inputs,
     const std::string& reader);
 

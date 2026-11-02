@@ -80,6 +80,9 @@ On `refactor-monad`:
   `eg-uci-<version>-<win|linux|mac>-<instructions>`. `ob_build/makefile` stays while OpenBench's `Engines/elephant.json`
   points at it: as far as I recall each commit builds from its own tree, so moving it breaks tests against older bases.
 
+- `tuner` & `indexer` moved into `src/`, and `main.cpp` into `src/cli`: every program we build is in `src/`. `test/` stays at
+  the top level, it holds scripts & data as well and none of it ships.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 

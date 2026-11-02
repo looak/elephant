@@ -15,7 +15,7 @@ README for the system and the contracts table, `elephant-engine.md`, `elephant-t
 repo's Direction (planned work, open decisions), and `plans/` for work spanning repos. **Read ramani, never edit it**,
 nor any other sibling checkout. A pull request that does a plan's step says `Closes looak/<repo>#<sub-issue>`. When it
 settles one of ramani's open decisions, say so in the final report. Contracts this repo owns (UCI with `bench` and
-`buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `indexer/README.md`) are
+`buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `src/indexer/README.md`) are
 changed only here, by agreement with the owner.
 
 ## Code conventions

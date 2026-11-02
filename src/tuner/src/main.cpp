@@ -1,4 +1,4 @@
-// ElephantTuner, the offline evaluation tuner, see tuner/CMakeLists.txt and tuner/README.md.
+// ElephantTuner, the offline evaluation tuner, see src/tuner/CMakeLists.txt and src/tuner/README.md.
 //
 //   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
 //                 [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]

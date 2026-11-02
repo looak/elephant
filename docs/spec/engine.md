@@ -12,9 +12,9 @@ fourth binary reads games with the library's PGN and SAN parsing and move genera
 | Binary | Built by | Entry | For |
 |:--|:--|:--|:--|
 | `eg-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
-| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
-| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
-| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
+| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/cli/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
+| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `src/tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
+| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `src/indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
 
 `ElephantGambit` and `eg-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
 release binaries are it, and the bench signature comes from it. The test binaries are in [tests.md](tests.md).
@@ -213,14 +213,14 @@ whoever plays the games writes the players and tags.
   discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
   ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
   duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
-  `--stats OUT` writes the run's statistics as versioned JSON (`indexer/README.md`).
+  `--stats OUT` writes the run's statistics as versioned JSON (`src/indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
   engine build, and `ob_build/makefile`, which never builds phant-indexer, fetch and link none of it; the bench doesn't
   move.
 - **The cards' format** (now format 2) and the positions records are a contract with nyayo, owned here:
-  [`indexer/README.md`](../../indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
+  [`src/indexer/README.md`](../../src/indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
   check against python-chess in [test-pipeline.md](test-pipeline.md#phant-indexer-against-python-chess).
 
 ### Builds & releases
@@ -261,7 +261,7 @@ whoever plays the games writes the players and tags.
 | out | UCI on stdout | above |
 | out | bench line in commit messages | `bench <nodes> nodes`, its own paragraph before trailers |
 | out | release binaries | `release.yml` |
-| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
-| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
-| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
+| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`src/indexer/README.md`](../../src/indexer/README.md) |
 

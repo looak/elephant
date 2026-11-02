@@ -124,7 +124,7 @@ flowchart TD
 
 ### Phase 0: preparing the data
 
-Source: [`tuner_data.hpp`](inc/tuner_data.hpp), [`quiescence_probe.hpp`](../src/engine/inc/search/quiescence_probe.hpp),
+Source: [`tuner_data.hpp`](inc/tuner_data.hpp), [`quiescence_probe.hpp`](../engine/inc/search/quiescence_probe.hpp),
 [`trace.hpp`](inc/trace.hpp), [`dataset.hpp`](inc/dataset.hpp)
 
 The tuner never keeps the FENs. Each position becomes a ~16-byte `TunerEntry` plus a short list of 2-byte

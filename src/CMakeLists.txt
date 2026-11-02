@@ -16,7 +16,7 @@
 
 set(MAIN_EXE ElephantGambit)
 
-add_executable (${MAIN_EXE} main.cpp)
+add_executable (${MAIN_EXE} cli/main.cpp)
 
 target_compile_features(${MAIN_EXE} PUBLIC cxx_std_20)
 set_target_properties(${MAIN_EXE} PROPERTIES 

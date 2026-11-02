@@ -94,14 +94,14 @@ add_subdirectory(src)
 
 option(ELEPHANT_BUILD_TUNER "Build ElephantTuner, the offline evaluation tuner" ON)
 if(ELEPHANT_BUILD_TUNER)
-    add_subdirectory(tuner)
+    add_subdirectory(src/tuner)
 endif()
 
 # phant-indexer, the game reader for nyayo's catalogue. Off by default: it fetches zlib, bzip2 & zstd at configure
 # time, which an engine build has no use for.
 option(ELEPHANT_BUILD_INDEXER "Build phant-indexer, the game reader for nyayo's catalogue" OFF)
 if(ELEPHANT_BUILD_INDEXER)
-    add_subdirectory(indexer)
+    add_subdirectory(src/indexer)
 endif()
 
 # the tests fetch googletest at configure time, which building the engine has no use for.

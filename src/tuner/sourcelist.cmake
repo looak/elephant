@@ -1,4 +1,4 @@
-# ElephantTuner sources, see tuner/CMakeLists.txt.
+# ElephantTuner sources, see src/tuner/CMakeLists.txt.
 
 set(TUNER_SOURCE_ALL
 ## /...

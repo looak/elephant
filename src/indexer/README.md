@@ -146,7 +146,7 @@ counters are ignored, as the hash ignores them. Only games that read are searche
 
 **`--draw N`** reads the games like the entries do and writes, instead of them, training positions for the evaluation's
 tuner: one `<fen> [result]` line each, the result white's, `[1.0]`, `[0.5]` or `[0.0]` (`--merge` below writes averages),
-the format `ElephantTuner` reads (`tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any
+the format `ElephantTuner` reads (`src/tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any
 batch: zstd, bz2, gzip or plain PGN, **any number of files in one run**, or standard input. For each game that read and
 has a result (a `Result` tag or the movetext's, `1-0`, `0-1` or `1/2-1/2`):
 

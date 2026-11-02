@@ -1,8 +1,8 @@
 #include <format>
 #include <string>
-#include "cli/inc/elephant_cli.hpp"
+#include "inc/elephant_cli.hpp"
 #include "system/static_initializer.hpp"
-#include "cli/inc/static_initializer.hpp"
+#include "inc/static_initializer.hpp"
 #include "elephant_gambit_config.h"
 #include <diagnostics/logger.hpp>
 #ifdef OUTPUT_LOG_TO_FILE

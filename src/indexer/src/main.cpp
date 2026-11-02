@@ -1,7 +1,7 @@
 // phant-indexer: reads PGN, from files or standard input, plain, bz2, gzip or zstd, and writes one JSON line per game
 // to standard output, see game_index.hpp for what a line holds; with --positions every position's hash too, and with
 // --position the games that reach a position instead, and with --draw the training positions drawn from the games.
-// indexer/README.md has the formats.
+// src/indexer/README.md has the formats.
 
 #include "draw.hpp"
 #include "game_index.hpp"
