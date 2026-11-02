@@ -1361,4 +1361,70 @@ TEST_F(UciFixture, go_DoublePushWithoutCapturer_PVStopsAtRepetition)
     EXPECT_EQ(3, std::count(keys.begin(), keys.end(), keys[gameLength + 1])) << "f3f4 should be the third occurrence";
 }
 
+// A GUI playing from a FEN sends the whole game every turn: position fen F, position fen F moves a b, ...
+class UciPositionFenFixture : public UciFixture {
+public:
+    // a FEN with this halfmove clock, then the game as the GUI sends it over four turns.
+    void playFourTurnsFrom(const std::string& halfmoveClock, std::vector<size_t>* movesRecorded = nullptr)
+    {
+        const std::string fen = "7k/8/8/8/8/8/R7/K7 w - - " + halfmoveClock + " 1";
+        for (const char* moves : { "", " moves a2a3 h8g8", " moves a2a3 h8g8 a3b3 g8h8", " moves a2a3 h8g8 a3b3 g8h8 b3c3 h8g8" }) {
+            std::list<std::string> args;
+            extractArgsFromCommand("position fen " + fen + moves, args);
+            args.pop_front();
+            ASSERT_TRUE(m_uci.Position(args));
+            if (movesRecorded != nullptr)
+                movesRecorded->push_back(m_uci.readGame().moves().size());
+        }
+    }
+};
+
+TEST_F(UciPositionFenFixture, position_fen_SentEveryTurn_KeepsOnlyThisTurnsMoves)
+{
+    std::vector<size_t> movesRecorded;
+    playFourTurnsFrom("0", &movesRecorded);
+    EXPECT_EQ((std::vector<size_t>{ 0, 2, 4, 6 }), movesRecorded);
+}
+
+// Rook a3, king g8, white to move was reached once, after 1...Kg8. Reaching it again in the search is its second
+// occurrence, which isn't a draw. The moves of earlier turns used to stay in the history and count it a third time, once
+// the halfmove clock let the scan reach past the FEN.
+TEST_F(UciPositionFenFixture, position_fen_SentEveryTurn_SecondOccurrenceIsNoThreefold)
+{
+    playFourTurnsFrom("10");
+
+    const SearchRequest request = makeSearchRequest(m_uci.readGame(), SearchLimits{});
+    Chessboard board = m_uci.readGame().board();
+    RepetitionHistory history;
+    history.setGameHashes(request.gameHashes);
+    history.push(board.readPosition().hash());
+    u16 halfmoveClock = board.readHalfmoveClock();
+
+    MoveUndoUnit undo;
+    for (PackedMove move : { PackedMove(Square::C3, Square::B3), PackedMove(Square::G8, Square::H8),
+                             PackedMove(Square::B3, Square::A3), PackedMove(Square::H8, Square::G8) }) {
+        board.makeMove(move, undo);
+        history.push(board.readPosition().hash());
+        ++halfmoveClock;
+    }
+
+    const u64 hash = board.readPosition().hash();
+    EXPECT_EQ(1, std::count(request.gameHashes.begin(), request.gameHashes.end(), hash));
+    EXPECT_FALSE(history.isRepetition(hash, halfmoveClock));
+}
+
+TEST_F(UciPositionFenFixture, position_fen_ThatDoesNotRead_KeepsTheGame)
+{
+    playFourTurnsFrom("0");
+    const u64 before = m_uci.readGame().readPosition().hash();
+
+    std::list<std::string> args;
+    extractArgsFromCommand("position fen not a fen at all", args);
+    args.pop_front();
+    EXPECT_FALSE(m_uci.Position(args));
+
+    EXPECT_EQ(before, m_uci.readGame().readPosition().hash());
+    EXPECT_EQ(6u, m_uci.readGame().moves().size());
+}
+
 }  // namespace ElephantTest

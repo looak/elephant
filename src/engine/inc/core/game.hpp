@@ -47,10 +47,6 @@ public:
     u16 readMoveCount() const { return m_board.readMoveCount(); }
     Set readToPlay() const { return m_board.readToPlay(); }
 
-    // Only UCI's position fen, which keeps the moves of the game before it until it builds a new Game. Don't add
-    // callers.
-    Chessboard& editChessboard() { return m_board; }
-
 private:
     Chessboard m_board;
     std::vector<MoveUndoUnit> m_moves;

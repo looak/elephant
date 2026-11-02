@@ -159,7 +159,8 @@ UCI::ParsePosition(std::list<std::string> args)
             args.pop_front();
         }
 
-        if (!io::fen_parser::deserialize(fen.c_str(), m_game.editChessboard()))
+        // a new game like startpos's above, GUIs send the whole game again every turn.
+        if (!m_game.loadFen(fen))
             throw ephant::uci_command_exception("position", "Invalid fen: " + fen);
     }
     else {
