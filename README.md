@@ -150,6 +150,8 @@ git clone --recursive https://github.com/looak/elephant.git
 ./build.sh --help
 ```
 
+From PowerShell or cmd on Windows use `./build --all` instead, `build.cmd` runs the same script in Git Bash. There `./build.sh` only opens it in a window of its own, and `bash` can be WSL's, which builds a Linux binary.
+
 Plain CMake works just the same, the binaries still land in `dist/`:
 
 ```bash

@@ -229,6 +229,7 @@ whoever plays the games writes the players and tags.
   `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `eg-uci` is
   named `eg-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
   their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
+- `build.cmd` runs `build.sh` in Git Bash with the same options, for PowerShell & cmd on Windows.
 - `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
   A build of `eg-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
