@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <new>
 #include <search/state/transposition_table.hpp>
 #include <search/core/search_constants.hpp>
 
@@ -203,6 +204,41 @@ TEST(TranspositionTest, Hashfull_CountsEntriesOfTheCurrentSearch) {
     // entries of an earlier search don't count.
     table.incrementAge();
     EXPECT_EQ(0u, table.hashfull());
+}
+
+TEST(TranspositionTest, Resize_NotFitting_ThrowsAndGoesBackToTheOldSize) {
+    TranspositionTable table(2);
+    const u64 hash = 0x1234567890abcdef;
+    table.store(hash, PackedMove(Square::E2, Square::E4), 7, 3, TTF_CUT_EXACT);
+
+    const size_t oldBuckets = table.size_bytes() / sizeof(transposition_table::bucket);
+    auto onlyTheOldSizeFits = [oldBuckets](size_t count) {
+        return count == oldBuckets ? new (std::nothrow) transposition_table::bucket[count] : nullptr;
+    };
+
+    EXPECT_THROW(table.resizeWith(64, 1, onlyTheOldSizeFits), std::bad_alloc);
+
+    EXPECT_EQ(2u, table.size_mb());
+    // empty, and usable where the old code had freed the table and kept the bucket count.
+    EXPECT_FALSE(probe(table, hash).hit);
+    table.store(hash, PackedMove(Square::E2, Square::E4), 7, 3, TTF_CUT_EXACT);
+    EXPECT_TRUE(probe(table, hash).hit);
+}
+
+TEST(TranspositionTest, Resize_NotEvenTheOldSizeFitting_HalvesUntilSomethingDoes) {
+    TranspositionTable table(4);
+    const size_t oldBuckets = table.size_bytes() / sizeof(transposition_table::bucket);
+    auto aQuarterFits = [oldBuckets](size_t count) {
+        return count <= oldBuckets / 4 ? new (std::nothrow) transposition_table::bucket[count] : nullptr;
+    };
+
+    EXPECT_THROW(table.resizeWith(64, 1, aQuarterFits), std::bad_alloc);
+
+    EXPECT_EQ(1u, table.size_mb());
+    EXPECT_EQ(oldBuckets / 4 * transposition_table::constants::c_bucketEntries, table.size());
+    const u64 hash = 0x1234567890abcdef;
+    table.store(hash, PackedMove(Square::E2, Square::E4), 7, 3, TTF_CUT_EXACT);
+    EXPECT_TRUE(probe(table, hash).hit);
 }
 
 } // namespace ElephantTest
