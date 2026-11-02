@@ -83,7 +83,7 @@ bool NormalModeProcessor::processInput(AppContext* context, const std::string& l
     }
 
     // The command is created, used, and then destroyed here.
-    command->setContext(&m_gameContext);
+    command->setContext(&m_context);
     if (command->run(args) > 0 && fallbackToMove) {
         prnt::err << "Error: Unknown command '" << command_name << "'" << std::endl;
     }

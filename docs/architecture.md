@@ -72,6 +72,7 @@ flowchart TD
     app --> bench
     ucimode --> uci
     normal --> game
+    normal --> monad
     bench --> go
     uci --> game
     uci --> monad

@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 
-#include <core/game.hpp>
+#include "commands/command_context.hpp"
 
 class AppContext;
 
@@ -18,7 +18,7 @@ public:
 
 class NormalModeProcessor : public ICommandProcessor {
 private:
-    Game m_gameContext;  // Local game context for normal mode
+    CommandContext m_context;
 
 public:
     bool processInput(AppContext* context, const std::string& line) override;

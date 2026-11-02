@@ -179,7 +179,7 @@ and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and th
 ### ElephantGambit, the development binary
 
 Without arguments it starts an interactive CLI: `help`, `about`, `new`, `fen`, `move`, `print`, `evaluate`, `search`,
-`perft`, `divide`, `bench`, `exit`. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
+`perft`, `divide`, `bench`, `exit`. It starts at the start position. `search` keeps its 64 MB table and history tables between commands, `new` clears them. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
 builds have assertions and exceptions on in every configuration by default (`ASSERTIONS_ENABLED`,
 `EXCEPTIONS_ENABLED` in `cmake/options.cmake`, always on in Debug); the makefile builds have neither.
 

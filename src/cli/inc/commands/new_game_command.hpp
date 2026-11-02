@@ -15,7 +15,8 @@ public:
     // Executes the command with the given arguments.
     bool execute() override
     {
-        *m_context = Game{};
+        m_context->game = Game{};
+        m_context->monad.newGame();
         return true;
     }
 

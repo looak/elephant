@@ -39,11 +39,11 @@ public:
 		// If fen is empty we want to serialize current context.
 		if (args.fen.empty()) {
 			std::string output;
-			bool result = io::fen_parser::serialize(m_context->board(), output);
+			bool result = io::fen_parser::serialize(m_context->game.board(), output);
 			prnt::err << " " << (result ? output : "Serializing failed!");
 			return result;
 		}
-		bool ret = m_context->loadFen(args.fen.c_str());
+		bool ret = m_context->game.loadFen(args.fen.c_str());
 		if (!ret)
 			prnt::err << " Invalid FEN: " << args.fen << std::endl;
 		return ret;

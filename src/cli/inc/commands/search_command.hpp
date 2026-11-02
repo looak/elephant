@@ -3,9 +3,8 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <uci/uci_search_listener.hpp>
-#include <search/search.hpp>
-#include <system/time_manager.hpp>
+#include <search/search_listener.hpp>
+#include <search/search_request.hpp>
 
 struct SearchCommandArgs
 {
@@ -67,25 +66,12 @@ public:
 
     bool execute(const SearchCommandArgs& args) override
     {
-        const auto material = m_context->readPosition().material();
-        if (material.whiteKing().count() == 0 || material.blackKing().count() == 0) {
-            prnt::err << " Error: Position is not initialized. Use 'new' or 'fen' before searching.";
-            return false;
-        }
-
         SearchLimits params;
         params.SearchDepth = args.depth;
         params.MoveTime = args.moveTimeMs;
 
-        TimeManager timeManager(params, m_context->readToPlay());
-        timeManager.applyTimeSettings(params, m_context->readToPlay());
-
-        SearchContext searchContext;
-        UciSearchListener listener;
-        TranspositionTable tt;
-        Search search(searchContext, tt, listener);
-        SearchResult result = search.go(makeSearchRequest(*m_context, params), timeManager);
-
+        m_context->monad.go(makeSearchRequest(m_context->game, params), noSearchListener());
+        const SearchResult result = m_context->monad.wait();
 
         if (result.move().isNull()) {
             prnt::err << " Error: Search completed without a legal move.";

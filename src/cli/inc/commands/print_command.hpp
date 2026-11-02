@@ -26,7 +26,7 @@ public:
     bool execute(const PrintCommandArgs&) override
     {        
         const auto position = readPosition();
-        const auto& context = readContext();
+        const auto& context = readGame();
 
         std::vector<std::string> boardPanel;
         {

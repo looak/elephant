@@ -39,7 +39,7 @@ public:
     bool execute(const DivideCommandArgs& args) override
     {        
         prnt::out << " Divide command executed with depth: " << args.depth << std::endl;
-        PerftSearch perftSearch(*m_context);
+        PerftSearch perftSearch(m_context->game);
         auto results = perftSearch.Divide(args.depth);
 
         std::sort(results.begin(), results.end(), [](const DivideResult& a, const DivideResult& b) {
