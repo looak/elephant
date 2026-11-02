@@ -17,7 +17,7 @@ namespace ElephantTest {
 TEST(TimeManagerTest, limits_IncrementLargerThanClock_NeverExceedClockMinusOverhead)
 {
     // setup, 75% of the increment alone is far more than what is left on the clock.
-    SearchParameters params;
+    SearchLimits params;
     params.WhiteTimelimit = 500;
     params.WhiteTimeIncrement = 2000;
     TimeManager tm(params, Set::WHITE);
@@ -34,7 +34,7 @@ TEST(TimeManagerTest, limits_IncrementLargerThanClock_NeverExceedClockMinusOverh
 TEST(TimeManagerTest, limits_ClockBelowOverhead_AllocateMinimalTime)
 {
     // setup, the first iteration always completes so we still return a move.
-    SearchParameters params;
+    SearchLimits params;
     params.BlackTimelimit = 20;
     params.BlackTimeIncrement = 1000;
     TimeManager tm(params, Set::BLACK);
@@ -51,7 +51,7 @@ TEST(TimeManagerTest, limits_ClockBelowOverhead_AllocateMinimalTime)
 TEST(TimeManagerTest, limits_MoveTime_UseAllOfItMinusOverhead)
 {
     // setup
-    SearchParameters params;
+    SearchLimits params;
     params.MoveTime = 1000;
     TimeManager tm(params, Set::WHITE);
     tm.setMoveOverhead(100);
@@ -67,7 +67,7 @@ TEST(TimeManagerTest, limits_MoveTime_UseAllOfItMinusOverhead)
 TEST(TimeManagerTest, limits_PlentyOfTime_AreSharesOfTargetTime)
 {
     // setup, the target is the clock spread over the default moves to go plus 75% of the increment.
-    SearchParameters params;
+    SearchLimits params;
     params.WhiteTimelimit = 60000;
     params.WhiteTimeIncrement = 1000;
     TimeManager tm(params, Set::WHITE);
@@ -85,7 +85,7 @@ TEST(TimeManagerTest, limits_PlentyOfTime_AreSharesOfTargetTime)
 TEST(TimeManagerTest, limits_OneMoveToGo_KeepAShareOfTheClock)
 {
     // setup
-    SearchParameters params;
+    SearchLimits params;
     params.WhiteTimelimit = 10000;
     params.MovesToGo = 1;
     TimeManager tm(params, Set::WHITE);
@@ -102,7 +102,7 @@ TEST(TimeManagerTest, limits_OneMoveToGo_KeepAShareOfTheClock)
 TEST(TimeManagerTest, limits_DepthOnly_AreUnbounded)
 {
     // setup
-    SearchParameters params;
+    SearchLimits params;
     params.SearchDepth = 5;
     TimeManager tm(params, Set::WHITE);
 
@@ -118,7 +118,7 @@ TEST(TimeManagerTest, limits_DepthOnly_AreUnbounded)
 TEST(TimeManagerTest, setMoveOverhead_AboveMaximum_IsClamped)
 {
     // setup
-    SearchParameters params;
+    SearchLimits params;
     params.MoveTime = 10000;
     TimeManager tm(params, Set::WHITE);
     tm.setMoveOverhead(c_maxMoveOverhead_ms + 1000);

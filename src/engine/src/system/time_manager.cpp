@@ -4,13 +4,13 @@
 #include <algorithm>
 #include <limits>
 
-TimeManager::TimeManager(const SearchParameters& params, Set perspective)
+TimeManager::TimeManager(const SearchLimits& params, Set perspective)
     : m_isTimeManaged(true)
 {
     applyTimeSettings(params, perspective);
 }
 
-void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspective) {
+void TimeManager::applyTimeSettings(const SearchLimits& params, Set perspective) {
     m_isTimeManaged = false;
 
     // Set up the time parameters for our side

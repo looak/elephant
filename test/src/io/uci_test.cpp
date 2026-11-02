@@ -18,6 +18,7 @@
 #include <streambuf>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace ElephantTest {
 /**
@@ -517,6 +518,33 @@ TEST_F(UciFixture, setoption_BadValue_DuringASearchLeavesItRunning)
     EXPECT_NE(std::string::npos, output.read().find("bestmove"));
 }
 
+// The search works on its own copy of the game, a position command doesn't reach it. Before the copy, a position sent
+// right after go could be what the search found when it started.
+TEST_F(UciFixture, position_RightAfterGo_DoesNotChangeTheSearch)
+{
+    // setup, mate in one.
+    m_uci.Enable();
+    std::list<std::string> position;
+    extractArgsFromCommand("fen 6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1", position);
+    m_uci.Position(position);
+
+    std::list<std::string> nextPosition;
+    extractArgsFromCommand("startpos", nextPosition);
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        m_uci.AsyncGo({ "depth", "2" });
+        m_uci.Position(nextPosition);
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_NE(std::string::npos, testOutput.str().find("bestmove a1a8"));
+}
+
 TEST_F(UciFixture, setoption_MultiWordName_MoveOverheadIsAccepted)
 {
     // setup
@@ -694,11 +722,11 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
         GameContext context;
         context.NewGame();
         SearchContext searchContext;
-        Search searcher(searchContext, context);
-        SearchParameters params;
+        Search searcher(searchContext, context.editTranspositionTable());
+        SearchLimits params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
-        return searcher.go<Set::WHITE>(params, clock);
+        return searcher.go(makeSearchRequest(context, params), clock);
     };
 
     // do
@@ -1120,12 +1148,52 @@ const std::string movesAfterH4 = "e4f5 f4f3 f5e4 f3f4 e4f5";
 // plus the current one.
 static bool isThreefold(const GameContext& context)
 {
-    MoveHistory history;
+    std::vector<u64> gameHashes;
     for (const auto& undoUnit : context.readGameHistory().moveUndoUnits)
-        history.push(undoUnit.hash);
+        gameHashes.push_back(undoUnit.hash);
+
+    MoveHistory history;
+    history.setGameHashes(gameHashes);
     const u64 hash = context.readChessPosition().hash();
     history.push(hash);
     return history.isRepetition(hash, context.readPly());
+}
+
+TEST(MoveHistoryTest, isRepetition_CountsTheGameAndTheSearchLineAsOneHistory)
+{
+    constexpr u64 a = 1;
+    constexpr u64 b = 2;
+    constexpr u64 c = 3;
+
+    // the third occurrence is the root, both earlier ones are in the game.
+    {
+        const std::vector<u64> game{ a, b, a, b };
+        MoveHistory history;
+        history.setGameHashes(game);
+        history.push(a);
+        EXPECT_TRUE(history.isRepetition(a, 4));
+        // the fifty move counter says only the last positions can repeat this one.
+        EXPECT_FALSE(history.isRepetition(a, 3));
+    }
+    // one occurrence in the game, one in the search's line.
+    {
+        const std::vector<u64> game{ a, b };
+        MoveHistory history;
+        history.setGameHashes(game);
+        history.push(a);
+        history.push(b);
+        history.push(a);
+        EXPECT_TRUE(history.isRepetition(a, 4));
+    }
+    // positions with the other side to move don't count, the first a here is an odd number of plies back.
+    {
+        const std::vector<u64> game{ a, b, c, a };
+        MoveHistory history;
+        history.setGameHashes(game);
+        history.push(b);
+        history.push(a);
+        EXPECT_FALSE(history.isRepetition(a, 5));
+    }
 }
 
 TEST_F(UciFixture, position_DoublePushWithoutCapturer_RepetitionDetected)

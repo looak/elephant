@@ -12,6 +12,7 @@
 #include <math/bench_positions.hpp>
 #include <move/move.hpp>
 #include <search/search.hpp>
+#include <search/state/search_context.hpp>
 #include <system/clock.hpp>
 
 #include <algorithm>
@@ -32,6 +33,14 @@ void reportError(const std::exception& e)
     io::printer::uci_flush();
 }
 
+// The GUI waits for a bestmove whatever happened.
+void reportFailedSearch(const std::exception& e)
+{
+    reportError(e);
+    io::printer::uci("bestmove 0000");
+    io::printer::uci_flush();
+}
+
 // long algebraic notation as UCI sends it, e2e4 or e7e8q.
 bool looksLikeUciMove(const std::string& token)
 {
@@ -47,7 +56,7 @@ bool looksLikeUciMove(const std::string& token)
 
 UCI::UCI()
     : m_enabled(true)
-    , m_timeManager(SearchParameters{}, Set::WHITE)
+    , m_timeManager(SearchLimits{}, Set::WHITE)
 {
     io::printer::uciPrinterInit();
     io::printer::uci("id name Elephant Gambit {}", ELEPHANT_GAMBIT_VERSION_FULL);
@@ -122,6 +131,7 @@ UCI::SetOption(const std::list<std::string> args)
             SyncGo();
             m_options["Threads"] = value;
             m_threadCount = threadCount;
+            m_searchContext.initialize(threadCount);
         }
         else if (name == "Hash") {
             size_t newSize = static_cast<size_t>(std::max(1, toInt()));
@@ -262,21 +272,26 @@ UCI::AsyncGo(std::list<std::string> args)
         reportError(ephant::uci_command_exception("go", "Search already in progress"));
         return false;
     }
-    m_isSearching.store(true);
-
-    // before the search thread starts, on the thread that reads stop. Done on the search thread, a stop sent right after
-    // go could arrive first and be thrown away with the old source, and an infinite search would then never end.
+    // before the search thread starts, on the thread that reads stop & position. Done on the search thread, a stop sent
+    // right after go could arrive first and be thrown away with the old source, and an infinite search would then never
+    // end, and a position could change what's searched.
     m_timeManager.reset();
+    std::optional<SearchRequest> request;
+    try {
+        request = prepareSearch(args);
+    }
+    catch (const std::exception& e) {
+        reportFailedSearch(e);
+        return false;
+    }
 
-    m_searchFuture = std::async(std::launch::async, [this, args]() {
+    m_isSearching.store(true);
+    m_searchFuture = std::async(std::launch::async, [this, request = std::move(*request)]() {
         try {
-            this->runSearch(args);
+            this->runSearch(request);
         }
         catch (const std::exception& e) {
-            // the GUI waits for a bestmove whatever happened.
-            reportError(e);
-            io::printer::uci("bestmove 0000");
-            io::printer::uci_flush();
+            reportFailedSearch(e);
             m_isSearching.store(false);
         }
     });
@@ -302,13 +317,13 @@ bool
 UCI::Go(std::list<std::string> args)
 {
     m_timeManager.reset();
-    return runSearch(std::move(args));
+    return runSearch(prepareSearch(args));
 }
 
-bool
-UCI::runSearch(std::list<std::string> args)
+SearchRequest
+UCI::prepareSearch(const std::list<std::string>& args)
 {
-    SearchParameters searchParams;
+    SearchLimits searchParams;
 
     // Typedef for sanity
     using ArgIterator = std::list<std::string>::const_iterator;
@@ -428,20 +443,18 @@ UCI::runSearch(std::list<std::string> args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    UciSearchListener listener(m_debug);
-    Search searcher(m_searchContext, m_context, listener);
-    searchParams.ThreadCount = m_threadCount;
+    m_timeManager.applyTimeSettings(searchParams, m_context.readToPlay());
+    return makeSearchRequest(m_context, std::move(searchParams));
+}
 
-    SearchResult result;
+bool
+UCI::runSearch(const SearchRequest& request)
+{
+    UciSearchListener listener(m_debug.load());
+    Search searcher(m_searchContext, m_context.editTranspositionTable(), listener);
+
     const auto searchStart = std::chrono::steady_clock::now();
-    if (m_context.readToPlay() == Set::WHITE) {
-        m_timeManager.applyTimeSettings(searchParams, Set::WHITE);
-        result = searcher.go<Set::WHITE>(searchParams, m_timeManager);
-    }
-    else {
-        m_timeManager.applyTimeSettings(searchParams, Set::BLACK);
-        result = searcher.go<Set::BLACK>(searchParams, m_timeManager);
-    }
+    SearchResult result = searcher.go(request, m_timeManager);
 
     // the iteration lines only count completed iterations, this one counts every node searched, all threads together,
     // like Stockfish's last line. Test runners & GUIs read the total from it.
@@ -452,7 +465,7 @@ UCI::runSearch(std::list<std::string> args)
 
     // UCI: an infinite or ponder search may only send bestmove after "stop" or "ponderhit", also when it ended on its
     // own (mate, ply limit).
-    if (searchParams.Infinite) {
+    if (request.limits.Infinite) {
         std::stop_token stopToken = m_timeManager.cancelToken();
         while (stopToken.stop_requested() == false)
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -502,19 +515,12 @@ bool UCI::Bench(std::list<std::string>)
         BenchScope scope(context, searchContext);
         scope.loadFen(fen);
 
-        Search search(searchContext, context, listener);
-        SearchParameters params;
+        Search search(searchContext, context.editTranspositionTable(), listener);
+        SearchLimits params;
         TimeManager tm(params, context.readToPlay());
         
         params.SearchDepth = bench::depth;
-        if (context.readToPlay() == Set::WHITE) {
-            auto result = search.go<Set::WHITE>(params, tm);
-            nodes += result.count;
-        }
-        else {
-            auto result = search.go<Set::BLACK>(params, tm);
-            nodes += result.count;
-        }
+        nodes += search.go(makeSearchRequest(context, params), tm).count;
     }
     timer.Stop();
 

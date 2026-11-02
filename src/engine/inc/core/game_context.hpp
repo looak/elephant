@@ -20,7 +20,7 @@
 #include <search/state/transposition_table.hpp>
 
 struct SearchResult;
-struct SearchParameters;
+struct SearchLimits;
 
 struct GameHistory {
     GameHistory() = default;    

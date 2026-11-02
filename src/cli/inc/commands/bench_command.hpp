@@ -87,19 +87,12 @@ public:
 
                 SearchContext searchContext;
                 UciSearchListener listener;
-                Search search(searchContext, context, listener);
-                SearchParameters params;
+                Search search(searchContext, context.editTranspositionTable(), listener);
+                SearchLimits params;
                 TimeManager tm(params, context.readToPlay());
                 
                 params.SearchDepth = args.depth;
-                if (context.readToPlay() == Set::WHITE) {
-                    auto result = search.go<Set::WHITE>(params, tm);
-                    nodes += result.count;
-                }
-                else {
-                    auto result = search.go<Set::BLACK>(params, tm);
-                    nodes += result.count;
-                }
+                nodes += search.go(makeSearchRequest(context, params), tm).count;
             }
             timer.Stop();
             double elapsedSeconds = static_cast<double>(timer.getElapsedTime()) / 1000.0;
@@ -116,19 +109,12 @@ public:
 
             SearchContext searchContext;
             UciSearchListener listener;
-            Search search(searchContext, context, listener);
-            SearchParameters params;
+            Search search(searchContext, context.editTranspositionTable(), listener);
+            SearchLimits params;
             TimeManager tm(params, context.readToPlay());
 
             params.SearchDepth = bench::depth;
-            if (context.readToPlay() == Set::WHITE) {
-                auto result = search.go<Set::WHITE>(params, tm);
-                nodes += result.count;
-            }
-            else {
-                auto result = search.go<Set::BLACK>(params, tm);
-                nodes += result.count;
-            }
+            nodes += search.go(makeSearchRequest(context, params), tm).count;
         }
 
         timer.Stop();

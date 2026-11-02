@@ -27,6 +27,8 @@
 // What search keeps beyond a single go, owned by UCI next to the GameContext. Everything here is one per thread and
 // never shared between threads. The TT, shared by every thread, still lives in the GameContext.
 struct SearchContext {
+    explicit SearchContext(u16 threadCount = 1) { initialize(threadCount); }
+
     // killers, butterfly & continuation history, indexed by thread id. Heap allocated, ~1.2 MB each is too much for a
     // thread's stack.
     std::vector<std::unique_ptr<ThreadHeuristics>> threadHeuristics;
@@ -52,6 +54,8 @@ struct SearchContext {
         pawnHashes.clear();
         m_threadCount = 0;
     }
+
+    [[nodiscard]] u16 threadCount() const { return m_threadCount; }
 
     void reset() {
         for (auto& heuristics : threadHeuristics)

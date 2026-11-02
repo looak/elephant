@@ -34,24 +34,27 @@
 #include <move/move_executor.hpp>
 
 // One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
-// holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the inputs by go, the
+// holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the request & clock by go, the
 // heuristics & pawn hash by the SearchContext, the TT by the GameContext, the shared stop & node count by Search.
 struct ThreadContext {
-    ThreadContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, TranspositionTable& _tt,
-                        ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
-        : inputs(_inputs),
+    ThreadContext(const SearchRequest& _request, const TimeManager& _clock, TranspositionTable& _tt,
+                  ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
+        : request(_request),
+          clock(_clock),
           tt(_tt),
           heuristics(_heuristics),
           pawnHash(_pawnHash),
-          position(_position),
+          position(_request.root),
           accumulator(PestoAccumulator::computeFromScratch(position.read().material())) {
-            gameState.whiteToMove = whiteToMove;
+            gameState.whiteToMove = _request.toPlay == Set::WHITE;
         }
 
     // --- Owned elsewhere, outlive this context ---
 
-    // what this go was asked for: the clock, the node limit & the root moves. Shared by every thread, read only.
-    const SearchInputs& inputs;
+    // what this go was asked. Shared by every thread, read only.
+    const SearchRequest& request;
+    // the time limits for this go, every thread asks it whether to stop.
+    const TimeManager& clock;
     // the transposition table, the same one for every thread of the search. Its entries are single atomic words, so
     // the threads read & write it without locks.
     TranspositionTable& tt;
@@ -125,7 +128,7 @@ struct ThreadContext {
     }
 
     [[nodiscard]] bool nodeLimitReached() const {
-        return inputs.nodeLimit != 0 && totalNodes() >= inputs.nodeLimit;
+        return request.limits.NodeLimit != 0 && totalNodes() >= request.limits.NodeLimit;
     }
 
     [[nodiscard]] bool searchStopped() const {
@@ -140,7 +143,7 @@ struct ThreadContext {
     }
 
     [[nodiscard]] bool isRootMoveAllowed(PackedMove move) const {
-        for (PackedMove allowed : inputs.rootMoves) {
+        for (PackedMove allowed : request.rootMoves) {
             if (sameUciMove(allowed, move))
                 return true;
         }
@@ -158,7 +161,7 @@ struct ThreadContext {
             stopped = true;
         else if ((++stopCheckCounter & 1023) == 0) {
             publishNodes();
-            if (inputs.clock.shouldStop() || searchStopped())
+            if (clock.shouldStop() || searchStopped())
                 stopped = true;
         }
         return stopped;
@@ -238,11 +241,11 @@ struct ThreadContext {
         }
     } 
 
-    void debug_print_begin(int threadId, const SearchParameters& params) {
+    void debug_print_begin(int threadId, u16 threadCount) {
         auto logger = logging::debug_search_logger();
         if (logger) {
         logger->debug("[TID:{:X}] Starting search with {} threads, time control: {}",
-            params.ThreadCount, params.ThreadCount, params.MoveTime);
+            threadId, threadCount, request.limits.MoveTime);
         }
     }
 
@@ -258,7 +261,7 @@ struct ThreadContext {
     void debug_print_tt_probe_score(i16, u8, u16, u64) const {}
     void debug_print_scout_search() {}
     void debug_print_scout_re_search() {}
-    void debug_print_begin(int, const SearchParameters&) {}
+    void debug_print_begin(int, u16) {}
     void debug_print_end(int) {}
 #endif
 

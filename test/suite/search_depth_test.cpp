@@ -16,11 +16,7 @@ public:
     SearchDepthFixture() :
         timeManager(testingParams, Set::WHITE)
     {}
-    void SetUp() override {
-        testingParams.ThreadCount = 1;
-    }
-
-    SearchParameters testingParams;
+    SearchLimits testingParams;
     TimeManager timeManager;
 };
 ////////////////////////////////////////////////////////////////
@@ -33,7 +29,7 @@ TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context);
+        Search searcher(searchContext, context.editTranspositionTable());
 
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
@@ -41,15 +37,8 @@ TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
         // at 19. With pawn structure in the evaluation it's found at 22, 23 leaves a ply of margin. Raise this when new
         // pruning or evaluation pushes it out of reach.
         testingParams.SearchDepth = 23;
-        SearchResult result;
-        if (context.readToPlay() == Set::BLACK) {
-            timeManager.applyTimeSettings(testingParams, Set::BLACK);
-            result = searcher.go<Set::BLACK>(testingParams, timeManager);
-        }
-        else {
-            timeManager.applyTimeSettings(testingParams, Set::WHITE);
-            result = searcher.go<Set::WHITE>(testingParams, timeManager);
-        }
+        timeManager.applyTimeSettings(testingParams, context.readToPlay());
+        SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
         OUT() << "Tested position: " << searchCase.fen;

@@ -115,14 +115,14 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     const std::vector<TaperedScore> current = params::current();
 
     // one context for every position in range, reset to each in turn. Never stopped, quiescence runs to its own end.
-    const SearchParameters noLimits{};
+    const SearchLimits noLimits{};
     const TimeManager clock(noLimits, Set::WHITE);
-    const SearchInputs inputs{ clock, 0, {}, 0 };
+    const SearchRequest request{};
     // quiescence never touches the TT, the smallest table satisfies the context.
     TranspositionTable tt(1);
     auto heuristics = std::make_unique<ThreadHeuristics>();
     PawnHashTable pawnHash;
-    ThreadContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
+    ThreadContext context(request, clock, tt, *heuristics, pawnHash);
 
     context.stopEnabled = false;
 

@@ -19,6 +19,7 @@
 #include <search/state/search_context.hpp>
 #include <search/core/search_policies.hpp>
 #include <search/search_listener.hpp>
+#include <search/search_request.hpp>
 #include <search/search_results.hpp>
 
 #include <optional>
@@ -28,54 +29,9 @@
 // forward-declare
 struct ThreadContext;
 
-class GameContext;
 template<Set us>
 class SearchMoveSource;
 class TimeManager;
-
-struct SearchParameters {
-    // search depth in half moves, a.k.a. ply or plies.
-    // 0 = no depth limit, the search runs until stopped by time or reaches the ply limit.
-    u8 SearchDepth = 0;
-    // u8 QuiescenceDepth = quiescence_params::defaultMaxDepth;
-    u16 ThreadCount = 1;
-
-    // total amount of time allowed to search for a move in milliseconds.
-    // 0 = no time limit
-    u32 MoveTime = 0;
-
-    // time limit for white and black in milliseconds including increments.
-    // 0 = no time limit.
-    u32 WhiteTimelimit = 0;
-    u32 BlackTimelimit = 0;
-    u32 WhiteTimeIncrement = 0;
-    u32 BlackTimeIncrement = 0;
-
-    u32 MovesToGo = 0;
-    bool Infinite = false;
-
-    // stop once a search thread has visited this many nodes (nodes + qnodes), 0 = no node limit. The first iteration
-    // always completes, so the count can overshoot when the limit is smaller than a depth 1 search.
-    u64 NodeLimit = 0;
-
-    // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
-    // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
-    std::vector<PackedMove> SearchMoves;
-};
-
-// Everything one go's search is given to read, built by go from its SearchParameters and the game before the threads
-// start. One instance, every thread holds a const reference to it, nothing in it changes while they search.
-struct SearchInputs {
-    // the time limits for this go, every thread asks it whether to stop.
-    const TimeManager& clock;
-    // go nodes, 0 = no limit. Checked against the nodes of all threads, with one thread the search is deterministic.
-    u64 nodeLimit = 0;
-    // todo: remove root moves, probably solved by replacing the mov generator or something.
-    // go searchmoves filtered to the moves legal at the root, the only ones searched there. Empty = all moves.
-    std::vector<PackedMove> rootMoves;
-    // the game's fifty move rule counter at the root, every thread starts its halfmoveClock[1] from it.
-    u16 rootHalfmoveClock = 0;
-};
 
 // What the threads of one search share. The main thread (id 0) sets stop once it's done so the helpers unwind, every
 // thread adds its node count to nodes as it searches.
@@ -87,11 +43,12 @@ struct SharedSearchState {
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(SearchContext& searchContext, GameContext& context, SearchListener& listener = noSearchListener());
+    Search(SearchContext& searchContext, TranspositionTable& transpositionTable,
+           SearchListener& listener = noSearchListener());
 
-    // entry point
-    template<Set us>
-    SearchResult go(SearchParameters params, TimeManager& clock);
+    // entry point, one thread for every thread the SearchContext was sized for. Blocks until they are done, request and
+    // clock are read throughout.
+    SearchResult go(const SearchRequest& request, TimeManager& clock);
 
     // Quiescence search from context's position with the whole window, line set to the line it plays. For the tuner,
     // which fits the evaluation on the quiet position at its end. context's moves are made & unmade, it's left as it was.
@@ -99,9 +56,12 @@ public:
     static i16 quiescenceLine(ThreadContext& context, PVLine& line);
 
 private:
+    template<Set us>
+    SearchResult run(const SearchRequest& request, TimeManager& clock);
+
     // start of actual search
     template<Set us>
-    SearchResult iterativeDeepening(ThreadContext& context, SearchParameters params);
+    SearchResult iterativeDeepening(ThreadContext& context);
 
     // internal seach methods
     template<Set us>
@@ -123,9 +83,7 @@ private:
     
     TranspositionTable& m_transpositionTable;
     SearchContext& m_searchContext;
-    GameContext& m_gameContext;
     SearchListener& m_listener;
 
-    PositionReader m_originPosition;
     SharedSearchState m_shared;
 };

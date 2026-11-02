@@ -73,7 +73,7 @@ public:
             return false;
         }
 
-        SearchParameters params;
+        SearchLimits params;
         params.SearchDepth = args.depth;
         params.MoveTime = args.moveTimeMs;
 
@@ -82,15 +82,9 @@ public:
 
         SearchContext searchContext;
         UciSearchListener listener;
-        Search search(searchContext, *m_context, listener);
-        SearchResult result;
+        Search search(searchContext, m_context->editTranspositionTable(), listener);
+        SearchResult result = search.go(makeSearchRequest(*m_context, params), timeManager);
 
-        if (m_context->readToPlay() == Set::WHITE) {
-            result = search.go<Set::WHITE>(params, timeManager);
-        }
-        else {
-            result = search.go<Set::BLACK>(params, timeManager);
-        }
 
         if (result.move().isNull()) {
             prnt::err << " Error: Search completed without a legal move.";

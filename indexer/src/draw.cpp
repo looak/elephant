@@ -80,11 +80,10 @@ namespace {
 struct Drawer::Impl {
     explicit Impl(DrawOptions o)
         : options(o)
-        , clock(SearchParameters{}, Set::WHITE)
-        , inputs{ clock, 0, {}, 0 }
+        , clock(SearchLimits{}, Set::WHITE)
         , tt(1)
         , heuristics(std::make_unique<ThreadHeuristics>())
-        , context(Position{}, true, inputs, tt, *heuristics, pawnHash)
+        , context(request, clock, tt, *heuristics, pawnHash)
     {
         context.stopEnabled = false;  // quiescence runs to its own end
     }
@@ -114,7 +113,7 @@ struct Drawer::Impl {
     std::vector<Merged> merged;                       // in the order the positions were first drawn
     std::unordered_map<u64, size_t> mergedIndex;      // Polyglot hash to its place in merged
     TimeManager clock;
-    SearchInputs inputs;
+    SearchRequest request;
     // quiescence never touches the TT, the smallest table satisfies the context.
     TranspositionTable tt;
     std::unique_ptr<ThreadHeuristics> heuristics;

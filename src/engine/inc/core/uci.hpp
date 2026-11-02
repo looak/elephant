@@ -30,6 +30,7 @@
 #include <future>
 
 #include <core/game_context.hpp>
+#include <search/search_request.hpp>
 #include <search/state/search_context.hpp>
 #include <system/time_manager.hpp>
 
@@ -120,13 +121,16 @@ private:
     // Position's parser, throws on a malformed command which Position reports.
     bool ParsePosition(std::list<std::string> args);
 
-    // Parses the go arguments, searches and sends bestmove. The caller has reset the time manager, Go on its own thread
-    // and AsyncGo before it starts the search thread.
-    bool runSearch(std::list<std::string> args);
+    // The go arguments as a request for the current position, with the time manager set up for it. Runs on the thread
+    // that reads commands, so the next command can't change what's searched.
+    SearchRequest prepareSearch(const std::list<std::string>& args);
+
+    // Searches and sends bestmove. The caller has reset the time manager.
+    bool runSearch(const SearchRequest& request);
 
     bool m_enabled;
     u16 m_threadCount = 1;
-    bool m_debug = false;
+    std::atomic<bool> m_debug = false;
     TimeManager m_timeManager;
     GameContext m_context;
     SearchContext m_searchContext;
