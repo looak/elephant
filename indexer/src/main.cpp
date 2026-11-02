@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -182,19 +183,12 @@ int main(int argc, char** argv)
         }
         else if (arg == "--position") {
             const std::string fen = argv[++i];
-            Chessboard board;
-            bool read = false;
-            try {
-                read = io::fen_parser::deserialize(fen, board);
-            }
-            catch (const std::exception&) {
-                read = false;
-            }
-            if (!read) {
+            const std::optional<Chessboard> board = io::fen_parser::read(fen);
+            if (!board) {
                 std::cerr << "phant-indexer: the FEN doesn't read: " << fen << "\n";
                 return 2;
             }
-            wanted = indexer::polyglotHash(board);
+            wanted = indexer::polyglotHash(*board);
         }
         else if (arg == "--version") {
             std::cout << "phant-indexer " << version() << " format " << indexer::c_formatVersion << " positions "

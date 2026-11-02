@@ -12,7 +12,7 @@
 
 #include <core/chessboard.hpp>
 #include <io/fen_parser.hpp>
-#include <move/move_executor.hpp>
+#include <move/move_undo.hpp>
 #include <search/search.hpp>
 #include <search/core/search_constants.hpp>
 #include <search/state/thread_context.hpp>
@@ -172,17 +172,12 @@ void Drawer::draw(const GameIndex& entry, std::string& out, std::optional<u32> m
         return;
     }
 
-    Chessboard board;
-    try {
-        if (!io::fen_parser::deserialize(entry.startFen, board)) {
-            ++m_stats.unread;
-            return;
-        }
-    }
-    catch (const std::exception&) {
+    std::optional<Chessboard> start = io::fen_parser::read(entry.startFen);
+    if (!start) {
         ++m_stats.unread;
         return;
     }
+    Chessboard& board = *start;
 
     ++m_stats.drawn;
 
@@ -228,11 +223,7 @@ void Drawer::draw(const GameIndex& entry, std::string& out, std::optional<u32> m
         }
         if (ply == entry.plies)
             break;
-        MoveExecutor executor(board.editPosition());
-        GameState& state = board.editState();
-        executor.makeMove<true>(entry.played[ply], undo, state.halfmoveClock);
-        state.whiteToMove = !state.whiteToMove;
-        state.moveCount += static_cast<u16>(state.whiteToMove);
+        board.makeMove<true>(entry.played[ply], undo);
     }
 
     m_stats.candidates += candidateCount;

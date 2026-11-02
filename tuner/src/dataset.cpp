@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
-#include <exception>
 #include <format>
 #include <fstream>
 #include <ios>
@@ -202,14 +201,7 @@ std::vector<TuningPosition> loadDataset(const std::string& path, LoadReport& rep
     std::vector<TuningPosition> positions;
     for (const ByteRange& range : splitDataset(path, 1, 0)) {
         forEachPosition(path, range, report, [&positions](const TuningPosition& position) {
-            bool valid = false;
-            try {
-                Chessboard board;
-                valid = io::fen_parser::deserialize(position.fen, board);
-            }
-            catch (const std::exception&) {
-                valid = false;
-            }
+            const bool valid = io::fen_parser::read(position.fen).has_value();
             if (valid)
                 positions.push_back(position);
             return valid;

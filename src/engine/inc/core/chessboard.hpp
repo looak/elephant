@@ -46,8 +46,8 @@ struct GameState {
     bool whiteToMove = true;  // true if it's white's turn to move
 };
 
+struct MoveUndoUnit;
 
-// TODO: Probably just remove chessboard entierly.
 /**
  * @brief The Chessboard class represents a chess board and its current state.  */
 class Chessboard {
@@ -61,8 +61,14 @@ public:
     GameState& editState() { return m_gameState; }
     const GameState& readState() const { return m_gameState; }
 
+    // Plays move and keeps the side to move & the counters in step with the position, undo is what unmakeMove takes it
+    // back with.
     template<bool validation = false>
-    void makeMove(const PackedMove move);
+    void makeMove(PackedMove move, MoveUndoUnit& undo);
+    bool unmakeMove(const MoveUndoUnit& undo);
+    // A side passing, as python-chess plays a null move: no en passant capture for the other side, the fifty move count
+    // goes on. It can't be taken back.
+    void makeNullMove();
 
     u16 readMoveCount() const { return m_gameState.moveCount; }
     u16 readHalfmoveClock() const { return m_gameState.halfmoveClock; }

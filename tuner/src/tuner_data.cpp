@@ -6,6 +6,7 @@
 #include <chrono>
 #include <exception>
 #include <iostream>
+#include <optional>
 #include <thread>
 
 #include <core/chessboard.hpp>
@@ -136,25 +137,20 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     EvalTrace trace;
     std::size_t unreported = 0;
     forEachPosition(path, range, part.load, [&](const TuningPosition& position) {
-        Chessboard board;
-        try {
-            if (!io::fen_parser::deserialize(position.fen, board))
-                return false;
-        }
-        catch (const std::exception&) {
+        const std::optional<Chessboard> board = io::fen_parser::read(position.fen);
+        if (!board)
             return false;
-        }
         ++report.positions;
         if (++unreported == 4096) {
             progress.fetch_add(unreported, std::memory_order_relaxed);
             unreported = 0;
         }
 
-        context.position = board.readPosition().copy();
+        context.position = board->readPosition().copy();
         context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
 
         bool decided = false;
-        const PVLine line = resolveToQuiet(context, board.readToPlay(), decided);
+        const PVLine line = resolveToQuiet(context, board->readToPlay(), decided);
         if (decided) {
             ++report.decided;
             return true;

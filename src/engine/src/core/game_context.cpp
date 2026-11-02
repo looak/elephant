@@ -5,7 +5,6 @@
 #include <io/fen_parser.hpp>
 #include <position/hash_zobrist.hpp>
 #include <move/move.hpp>
-#include <move/move_executor.hpp>
 #include <search/search.hpp>
 
 #include <algorithm>
@@ -31,15 +30,7 @@ GameContext::NewGame()
 template<bool validation>
 void GameContext::MakeMove(const PackedMove move)
 {
-    auto& gameState = m_board.editState();
-    auto& undoUnit = m_history.moveUndoUnits.emplace_back();
-    
-    MoveExecutor executor(m_board.editPosition());
-    executor.makeMove<validation>(move, undoUnit, gameState.halfmoveClock);
-
-    // flip the bool and if we're back at white turn we assume we just made a black turn and hence we increment the move count.
-    gameState.whiteToMove = !gameState.whiteToMove;
-    gameState.moveCount += (short)gameState.whiteToMove;
+    m_board.makeMove<validation>(move, m_history.moveUndoUnits.emplace_back());
     m_history.age++;
 }
 
@@ -48,16 +39,9 @@ template void GameContext::MakeMove<true>(const PackedMove move);
 
 bool GameContext::UnmakeMove()
 {
-    MoveExecutor executor(m_board.editPosition());
     if (m_history.moveUndoUnits.empty()) return false;
 
-    const MoveUndoUnit& undoState = m_history.moveUndoUnits.back();
-    bool result = executor.unmakeMove(undoState);
-    
-    auto& gameState = m_board.editState();
-    gameState.moveCount -= (short)gameState.whiteToMove;
-    gameState.whiteToMove = !gameState.whiteToMove;
-    gameState.halfmoveClock = undoState.halfmoveClock;
+    const bool result = m_board.unmakeMove(m_history.moveUndoUnits.back());
     m_history.moveUndoUnits.pop_back();
     m_history.age--;
 

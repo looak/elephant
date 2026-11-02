@@ -195,6 +195,28 @@ TEST_F(FenParserFixture, MoveCountPast255_IsClamped)
     EXPECT_EQ(255, testingBoard.readMoveCount());
 }
 
+TEST_F(FenParserFixture, Read_GivesTheSameBoardAsDeserialize)
+{
+    const std::string fen("r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14");
+    Chessboard expected;
+    ASSERT_TRUE(io::fen_parser::deserialize(fen, expected));
+
+    const std::optional<Chessboard> board = io::fen_parser::read(fen);
+    ASSERT_TRUE(board.has_value());
+    EXPECT_TRUE(board->compare(expected));
+}
+
+TEST_F(FenParserFixture, Read_GivesNothingForAFenThatDoesNotRead)
+{
+    EXPECT_FALSE(io::fen_parser::read("").has_value());
+    EXPECT_FALSE(io::fen_parser::read("8/8/8/8/8/8/8/K6k w").has_value());
+    EXPECT_FALSE(io::fen_parser::read("8/8/8/K6k w - - 0 1").has_value());
+#if defined(EXCEPTIONS_ENABLED)
+    // deserialize throws on this one, read doesn't.
+    EXPECT_FALSE(io::fen_parser::read("8/8/8/8/8/8/8/K6k w - z9 0 1").has_value());
+#endif
+}
+
 ////////////////////////////////////////////////////////////////
 
 }  // namespace ElephantTest

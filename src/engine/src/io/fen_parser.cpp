@@ -3,6 +3,7 @@
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
+#include <exception>
 #include <list>
 #include <sstream>
 #include <string>
@@ -225,59 +226,17 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     return true;
 }
 
-bool deserialize(const char* input, Chessboard& outputBoard)
+std::optional<Chessboard> read(std::string_view fen)
 {
-    std::istringstream ssfen(input);
-    std::list<std::string> tokens;
-    std::string token;
-    while (std::getline(ssfen, token, ' ')) {
-        tokens.push_back(token);
+    Chessboard board;
+    try {
+        if (!deserialize(fen, board))
+            return std::nullopt;
     }
-
-    chess::ClearBoard(outputBoard);
-
-    if (tokens.size() < 4 || tokens.size() > 6)
-        return false;
-
-    bool containsMoveCounts = false;
-    if (token.size() == 6)
-        containsMoveCounts = true;    
-
-    if (!deserializeBoard(tokens.front(), outputBoard.editPosition()))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeToPlay(tokens.front(), outputBoard))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeCastling(tokens.front(), outputBoard.editPosition()))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition(), outputBoard.readToPlay()))
-        return false;
-
-    tokens.pop_front();
-
-    if (containsMoveCounts == true) {
-        byte halfmoveClock = parseCounter(tokens.front());
-        tokens.pop_front();
-
-        byte moveCount = parseCounter(tokens.front());
-        tokens.pop_front();
-
-        outputBoard.editState().halfmoveClock = halfmoveClock;
-        outputBoard.editState().moveCount = moveCount;
+    catch (const std::exception&) {
+        return std::nullopt;
     }
-
-    if (!tokens.empty())
-        return false;
-
-    return true;
+    return board;
 }
 
 bool serialize(const Chessboard& board, std::string& resultFen)

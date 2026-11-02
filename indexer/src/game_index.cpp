@@ -13,8 +13,7 @@
 #include <io/san_parser.hpp>
 #include <move/generation/tusk/move_generator.hpp>
 #include <move/move.hpp>
-#include <move/move_executor.hpp>
-#include <position/hash_zobrist.hpp>
+#include <move/move_undo.hpp>
 
 // a move that doesn't read is only told apart from one that does by the parsers' exceptions.
 #ifndef EXCEPTIONS_ENABLED
@@ -42,19 +41,6 @@ namespace {
     {
         return board.readToPlay() == Set::WHITE ? checked<Set::WHITE>(board.readPosition())
                                                 : checked<Set::BLACK>(board.readPosition());
-    }
-
-    // a side passing, as python-chess plays a null move: no en passant capture for the other side, the fifty move
-    // count goes on.
-    void makeNullMove(Chessboard& board)
-    {
-        PositionEditor position = board.editPosition();
-        position.enPassant().clear();
-        position.hash() = zobrist::updateBlackToMoveHash(position.hash());
-        GameState& state = board.editState();
-        ++state.halfmoveClock;
-        state.whiteToMove = !state.whiteToMove;
-        state.moveCount += static_cast<u16>(state.whiteToMove);
     }
 
     std::string readerVersion()
@@ -253,7 +239,7 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool
         const Set us = board.readToPlay();
         PackedMove move = PackedMove::NullMove();
         if (token->kind == Kind::NullMove) {
-            makeNullMove(board);
+            board.makeNullMove();
         }
         else {
             try {
@@ -265,11 +251,7 @@ GameIndex index(const io::pgn_parser::Game& game, u32 number, bool verbose, bool
                 continue;
             }
 
-            MoveExecutor executor(board.editPosition());
-            GameState& state = board.editState();
-            executor.makeMove<true>(move, undo, state.halfmoveClock);
-            state.whiteToMove = !state.whiteToMove;
-            state.moveCount += static_cast<u16>(state.whiteToMove);
+            board.makeMove<true>(move, undo);
         }
         hashes.push_back(board.readPosition().hash());
         if (moves)
