@@ -10,7 +10,7 @@ namespace {
 
 i32 mopUpOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     const auto& material = context.readPosition().material();
     return mopUpScore(material, PestoAccumulator::computeFromScratch(material));
 }

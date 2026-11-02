@@ -102,7 +102,7 @@ TEST_F(FenParserFixture, NepomniachtchiResignsGameSix)
     Chessboard resultBoard;
     bool result = io::fen_parser::deserialize(gameSixFen, resultBoard);
     EXPECT_TRUE(result);
-    // PrintBoard(testContext.readChessboard());
+    // PrintBoard(testContext.board());
     EXPECT_EQ(2, resultBoard.readHalfmoveClock());
     EXPECT_EQ(136, resultBoard.readMoveCount());
     EXPECT_EQ(Set::BLACK, resultBoard.readToPlay());

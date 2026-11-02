@@ -57,7 +57,6 @@ public:
     bool execute(const MoveCommandArgs& args) override
     {   
         try {
-            MoveExecutor exec(m_context->editChessPosition());            
             m_context->makeMove<true>(args.move);
         } catch (const std::exception& e) {
             prnt::err << e.what();

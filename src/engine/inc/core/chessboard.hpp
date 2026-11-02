@@ -29,11 +29,8 @@
  * @brief Represents the state of a game. Important for some rules of such as half move count.  */
 struct GameState {
     GameState() = default;
-    GameState(const GameState& rhs) :
-        halfmoveClock(rhs.halfmoveClock),
-        moveCount(rhs.moveCount),
-        whiteToMove(rhs.whiteToMove)
-    {}
+    GameState(const GameState& rhs) = default;
+    GameState& operator=(const GameState& rhs) = default;
 
     bool operator==(const GameState& other) const {
         return  halfmoveClock == other.halfmoveClock &&
@@ -54,7 +51,8 @@ class Chessboard {
 public:
     Chessboard();
     ~Chessboard() = default;
-    Chessboard(const Chessboard& other);
+    Chessboard(const Chessboard& other) = default;
+    Chessboard& operator=(const Chessboard& other) = default;
     
     PositionReader readPosition() const { return m_position.read(); }
     PositionEditor editPosition() { return m_position.edit(); }

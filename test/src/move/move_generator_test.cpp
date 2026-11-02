@@ -57,7 +57,7 @@ public:
     // sets the board up from fen and returns the moves of the side to move, those matching pred when one is given.
     std::vector<PackedMove> legalMoves(std::string_view fen, MovePredicate pred = nullptr)
     {
-        EXPECT_TRUE(io::fen_parser::deserialize(fen, testContext.editChessboard())) << fen;
+        EXPECT_TRUE(testContext.loadFen(fen)) << fen;
         if (testContext.readToPlay() == Set::WHITE)
             return collectMoves<Set::WHITE>(pred);
         return collectMoves<Set::BLACK>(pred);
@@ -126,6 +126,7 @@ public:
 // move generator asserts if the board is empty
 TEST_P(MoveGeneratorFixture, Empty)
 {
+    testContext = Game(Chessboard{});
     EXPECT_TRUE(collectMoves<Set::WHITE>().empty());
     EXPECT_TRUE(collectMoves<Set::BLACK>().empty());
 }
@@ -137,10 +138,9 @@ TEST_P(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
     using enum Square;
 
     // setup
-    PositionEditor editor = testContext.editChessPosition();
-    editor.placePieces(
-        piece_constants::white_king, Square::E4
-    );
+    Chessboard board;
+    board.editPosition().placePieces(piece_constants::white_king, Square::E4);
+    testContext = Game(board);
 
     // expected
     Bitboard expected = BitboardResultFactory::buildExpectedBoard(
@@ -160,10 +160,9 @@ TEST_P(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
     using enum Square;
 
     // setup
-    PositionEditor editor = testContext.editChessPosition();
-    editor.placePieces(
-        piece_constants::black_king, Square::E4
-    );
+    Chessboard board;
+    board.editPosition().placePieces(piece_constants::black_king, Square::E4);
+    testContext = Game(board);
 
     // expected
     Bitboard expected = BitboardResultFactory::buildExpectedBoard(
@@ -795,14 +794,14 @@ TEST_P(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
 
 TEST_P(MoveGeneratorFixture, Pawn_NotCheckingKing)
 {
-    io::fen_parser::deserialize("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34", testContext.editChessboard());
+    testContext.loadFen("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34");
 
     EXPECT_FALSE(sideToMoveIsChecked());
 }
 
 TEST_P(MoveGeneratorFixture, Pawn_White_CheckingKing)
 {
-    io::fen_parser::deserialize("8/8/6k1/7P/7K/8/8/8 b - - 0 1", testContext.editChessboard());
+    testContext.loadFen("8/8/6k1/7P/7K/8/8/8 b - - 0 1");
 
     EXPECT_TRUE(isChecked<Set::BLACK>());
     EXPECT_FALSE(isChecked<Set::WHITE>());
@@ -810,7 +809,7 @@ TEST_P(MoveGeneratorFixture, Pawn_White_CheckingKing)
 
 TEST_P(MoveGeneratorFixture, Pawn_Black_CheckingKing)
 {
-    io::fen_parser::deserialize("8/8/6k1/6p1/7K/8/8/8 w - - 0 1", testContext.editChessboard());
+    testContext.loadFen("8/8/6k1/6p1/7K/8/8/8 w - - 0 1");
 
     EXPECT_TRUE(isChecked<Set::WHITE>());
     EXPECT_FALSE(isChecked<Set::BLACK>());

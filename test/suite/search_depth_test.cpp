@@ -26,7 +26,7 @@ public:
 TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
     for (const auto& searchCase : s_nullMovePruningDeep) {
         Game context;
-        io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
+        context.loadFen(searchCase.fen.c_str());
 
         SearchContext searchContext;
         TranspositionTable tt;

@@ -68,7 +68,7 @@ public:
         std::vector<std::string> historyPanel;
         historyPanel.push_back("history:");
 
-        const auto& history = context.readGameHistory().moveUndoUnits;
+        const auto& history = context.moves();
         if (history.empty()) {
             historyPanel.push_back(" (none)");
         }

@@ -24,7 +24,7 @@ struct RecordingTrace {
 
 RecordingTrace traceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     RecordingTrace trace;
     (void)mobilityScore(context.readPosition().material(), trace);
     return trace;
@@ -67,7 +67,7 @@ TEST(Mobility, MirroredPositionsScoreNothing) {
     for (const char* fen : { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                              "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4" }) {
         Game context;
-        io::fen_parser::deserialize(fen, context.editChessboard());
+        context.loadFen(fen);
         EXPECT_EQ(S(0, 0), mobilityScore(context.readPosition().material())) << fen;
     }
 }

@@ -37,7 +37,7 @@ SearchRequest makeSearchRequest(const Game& game, SearchLimits limits) {
     request.toPlay = game.readToPlay();
     request.rootHalfmoveClock = game.readHalfmoveClock();
 
-    const auto& undoUnits = game.readGameHistory().moveUndoUnits;
+    const auto undoUnits = game.moves();
     request.gameHashes.reserve(undoUnits.size());
     for (const auto& undoUnit : undoUnits)
         request.gameHashes.push_back(undoUnit.hash);

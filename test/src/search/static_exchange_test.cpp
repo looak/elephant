@@ -15,7 +15,7 @@ namespace ElephantTest {
 class StaticExchangeFixture : public ::testing::Test {
 public:
     void setPosition(const std::string& fen) {
-        io::fen_parser::deserialize(fen.c_str(), m_context.editChessboard());
+        m_context.loadFen(fen.c_str());
     }
 
     bool ge(PackedMove move, i32 threshold) {

@@ -14,12 +14,6 @@
 Chessboard::Chessboard()
 {}
 
-Chessboard::Chessboard(const Chessboard& other) :
-    m_gameState(other.m_gameState),
-    m_position(other.m_position)
-{
-}
-
 template<bool validation>
 void Chessboard::makeMove(const PackedMove move, MoveUndoUnit& undo)
 {

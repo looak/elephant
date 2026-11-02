@@ -55,7 +55,7 @@ bool UCICommands::PonderHitCommand(std::list<std::string>, UCI& interface) {
 
 bool UCICommands::PrintCommand(std::list<std::string>, UCI& interface)
 {
-    io::printer::board(std::cout, interface.readGame().readChessboard());
+    io::printer::board(std::cout, interface.readGame().board());
     return true;
 }
 

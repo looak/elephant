@@ -73,13 +73,12 @@ void bench() {
     struct BenchScope{
         BenchScope(Game& ctx, TranspositionTable& table, SearchContext& sc)
             : context(ctx), tt(table), searchContext(sc) {
-            context.Reset();
             tt.clear();
             searchContext.reset();
         }
 
         void loadFen(const std::string& fen) {
-            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+            context.loadFen(fen.c_str());
         }
 
         Game& context;

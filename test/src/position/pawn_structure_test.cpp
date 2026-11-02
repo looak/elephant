@@ -48,7 +48,7 @@ struct RecordingTrace {
 
 RecordingTrace traceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     RecordingTrace trace;
     (void)pawnScore(context.readPosition().material(), trace);
     return trace;
@@ -142,7 +142,7 @@ TEST(PawnStructure, MirroredPositionsCancel) {
             EXPECT_EQ(0, total) << fen;
 
         Game context;
-        io::fen_parser::deserialize(fen, context.editChessboard());
+        context.loadFen(fen);
         EXPECT_EQ(S(0, 0), pawnScore(context.readPosition().material())) << fen;
     }
 }

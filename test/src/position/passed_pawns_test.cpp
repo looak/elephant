@@ -46,7 +46,7 @@ struct RecordingTrace {
 
 RecordingTrace traceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     const auto& material = context.readPosition().material();
     RecordingTrace trace;
     (void)passerScore(material, pawnInfo(material), trace);

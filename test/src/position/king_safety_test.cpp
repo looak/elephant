@@ -44,7 +44,7 @@ struct RecordingTrace {
 
 RecordingTrace traceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     RecordingTrace trace;
     (void)kingSafetyScore(context.readPosition().material(), trace);
     return trace;
@@ -52,7 +52,7 @@ RecordingTrace traceOf(const char* fen) {
 
 RecordingTrace attackTraceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     RecordingTrace trace;
     (void)kingAttackScore(context.readPosition().material(), trace);
     return trace;

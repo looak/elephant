@@ -83,7 +83,7 @@ public:
         // this bench is evaluating if the engine can solve some tricky positions
             for (const auto& testCase : args.testCases) {
                 Game context;
-                io::fen_parser::deserialize(testCase.fen.c_str(), context.editChessboard());
+                context.loadFen(testCase.fen.c_str());
 
                 SearchContext searchContext;
                 UciSearchListener listener;
@@ -106,7 +106,7 @@ public:
         // this bench is all about nps.
         for (const auto& fen : bench::fens) {
             Game context;
-            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+            context.loadFen(fen.c_str());
 
             SearchContext searchContext;
             UciSearchListener listener;

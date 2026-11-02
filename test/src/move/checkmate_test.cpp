@@ -28,8 +28,7 @@ public:
 
     void setup(std::string_view fen)
     {
-        m_context.Reset();
-        ASSERT_TRUE(io::fen_parser::deserialize(fen, m_context.editChessboard())) << fen;
+        ASSERT_TRUE(m_context.loadFen(fen)) << fen;
     }
 
     // the outcome for set if it were to move in the current position.

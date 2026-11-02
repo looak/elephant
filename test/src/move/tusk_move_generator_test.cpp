@@ -88,7 +88,7 @@ TEST(TuskMoveGenerator, StagedMatchesUnordered) {
     constexpr int depth = 3;
     for (const std::string& fen : testPositions) {
         Game context;
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        context.loadFen(fen.c_str());
 
         PerftSearch perft(context);
         const u64 unordered = perft.Run<move_gen_policy::Tusk>(depth).Nodes;
@@ -102,7 +102,7 @@ TEST(TuskMoveGenerator, StagedMatchesUnordered) {
 TEST(TuskMoveGenerator, StagedHandsOutEachMoveOnce) {
     for (const std::string& fen : testPositions) {
         Game context;
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        context.loadFen(fen.c_str());
         if (context.readToPlay() != Set::WHITE)
             continue;
 
@@ -124,7 +124,7 @@ TEST(TuskMoveGenerator, StagedHandsOutEachMoveOnce) {
 // Qd2xd5 loses the queen to the c6 pawn, it's the only capture.
 TEST(TuskMoveGenerator, DeferLosingCaptures_LosingCaptureComesAfterTheQuiets) {
     Game context;
-    io::fen_parser::deserialize("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1", context.editChessboard());
+    context.loadFen("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1");
     PositionReader position = context.readPosition();
     tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
     const std::string losingCapture = "d2d5";
@@ -155,7 +155,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_LosingCaptureComesAfterTheQuiets) {
 TEST(TuskMoveGenerator, DeferLosingCaptures_StagedHandsOutEachMoveOnce) {
     for (const std::string& fen : testPositions) {
         Game context;
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        context.loadFen(fen.c_str());
         if (context.readToPlay() != Set::WHITE)
             continue;
 
@@ -178,7 +178,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_StagedHandsOutEachMoveOnce) {
 
 TEST(TuskMoveGenerator, CapturesOnlyFilter) {
     Game context;
-    io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());
+    context.loadFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
     PositionReader position = context.readPosition();
     tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
@@ -200,7 +200,7 @@ TEST(TuskMoveGenerator, CapturesOnlyFilter) {
 // pv, tt, captures, killers, then the remaining quiets.
 TEST(TuskMoveGenerator, StagedOrdering) {
     Game context;
-    io::fen_parser::deserialize("3k1r2/8/8/8/8/PPPP4/5Q2/1K6 w - - 0 1", context.editChessboard());
+    context.loadFen("3k1r2/8/8/8/8/PPPP4/5Q2/1K6 w - - 0 1");
 
     PackedMove queenCapture(Square::F2, Square::F8);
     queenCapture.setCapture(true);
@@ -239,7 +239,7 @@ TEST(TuskMoveGenerator, StagedOrdering) {
 
 TEST(TuskMoveGenerator, PeekDoesNotConsume) {
     Game context;
-    io::fen_parser::deserialize("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", context.editChessboard());
+    context.loadFen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
     PositionReader position = context.readPosition();
     tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);

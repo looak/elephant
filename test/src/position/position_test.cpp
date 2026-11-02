@@ -986,9 +986,9 @@ public:
     Position m_position;
     Game m_game;
 
-    void setup(std::string_view fen) { ASSERT_TRUE(io::fen_parser::deserialize(fen, m_game.editChessboard())) << fen; }
+    void setup(std::string_view fen) { ASSERT_TRUE(m_game.loadFen(fen)) << fen; }
 
-    u64 boardHash() const { return zobrist::computeBoardHash(m_game.readChessboard()); }
+    u64 boardHash() const { return zobrist::computeBoardHash(m_game.board()); }
 
     PackedMove findMove(Square source, Square target, PieceType promoteTo = PieceType::NONE)
     {

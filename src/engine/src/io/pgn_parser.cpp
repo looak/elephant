@@ -263,8 +263,7 @@ namespace {
         THROW_EXPR(!variant || standardVariant(*variant), ephant::io_error,
             std::format("pgn_parser :: Not standard chess, Variant \"{}\"", *variant));
         if (const std::string* fen = parsed->tag("FEN")) {
-            game.Reset();
-            [[maybe_unused]] const bool read = io::fen_parser::deserialize(*fen, game.editChessboard());
+            [[maybe_unused]] const bool read = game.loadFen(*fen);
             THROW_EXPR(read, ephant::io_error, std::format("pgn_parser :: The FEN tag doesn't read: {}", *fen));
         }
 

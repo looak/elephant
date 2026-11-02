@@ -24,7 +24,7 @@ TEST_P(PerftShallow, NodeCount)
     ASSERT_GT(depth, 0) << position.name << " is over the shallow budget at depth 1";
 
     Game context;
-    io::fen_parser::deserialize(position.fen.c_str(), context.editChessboard());
+    context.loadFen(position.fen.c_str());
     PerftSearch perft(context);
 
     EXPECT_EQ(position.nodesAt(depth), perft.Run<move_gen_policy::Tusk>(depth).Nodes)
@@ -37,7 +37,7 @@ TEST_P(PerftShallow, DivideSumsToNodeCount)
     const PerftPosition& position = GetParam();
     for (int depth = 1; depth <= std::min(position.deepestWithin(c_perftShallowBudget), 3); ++depth) {
         Game context;
-        io::fen_parser::deserialize(position.fen.c_str(), context.editChessboard());
+        context.loadFen(position.fen.c_str());
         PerftSearch perft(context);
 
         u64 total = 0;

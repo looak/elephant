@@ -218,7 +218,6 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     EXPECT_TRUE(result);
     EXPECT_EQ(Set::WHITE, m_uci.readGame().readToPlay());
     EXPECT_EQ(1, m_uci.readGame().readMoveCount());
-    // EXPECT_EQ(0, m_uci.readGame().readMoveHistory().size());
 
     auto board = m_uci.readGame().readPosition();
     EXPECT_EQ(WHITEKING, board.pieceAt(Square::E1));
@@ -229,7 +228,7 @@ TEST_F(UciFixture, position_startpos_InitializesGameContextToDefaultStartPos)
     EXPECT_TRUE(board.castling().hasAll());
 
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_EQ(c_startPositionFen, outputFen);
 }
 
@@ -239,7 +238,7 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     m_uci.Enable();
     std::string gocFen = "r3rnk1/pb3pp1/3pp2p/1q4BQ/1P1P4/4N1R1/P4PPP/4R1K1 b - - 18 1";
     Game expected;
-    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
+    expected.loadFen(gocFen.c_str());
 
     // do
     std::string commandLine = "position fen " + gocFen;
@@ -251,7 +250,6 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     // verify
     EXPECT_TRUE(result);
     EXPECT_EQ(Set::BLACK, m_uci.readGame().readToPlay());
-    // EXPECT_EQ(0, m_uci.readGame().readMoveHistory().size());
 
     const auto& board = m_uci.readGame().readPosition();
     EXPECT_EQ(WHITEKING, board.pieceAt(Square::G1));
@@ -260,7 +258,7 @@ TEST_F(UciFixture, position_fen_InitializesGameToGivenFen)
     EXPECT_FALSE(board.castling().hasAny());
 
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
@@ -271,7 +269,7 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
     m_uci.Enable();
     std::string gocFen = "2r5/p1p1nk1p/q4pp1/1p1pp3/1P4P1/2P5/3PPP1P/2Q1K1NR w K - 0 32";
     Game expected;
-    io::fen_parser::deserialize(gocFen.c_str(), expected.editChessboard());
+    expected.loadFen(gocFen.c_str());
 
     // do
     std::string commandLine = "position fen " + gocFen + " moves d2d4 e5d4";
@@ -283,7 +281,6 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
     // verify
     EXPECT_TRUE(result);
     EXPECT_EQ(Set::WHITE, m_uci.readGame().readToPlay());
-    // EXPECT_EQ(0, m_uci.readGame().readMoveHistory().size());
 
     const auto& board = m_uci.readGame().readPosition();
     EXPECT_EQ(BLACKPAWN, board.pieceAt(Square::D4));
@@ -299,7 +296,7 @@ TEST_F(UciFixture, position_fen_moves_InitializesGameToGivenFenAndAppliesMoves_P
 
     gocFen = "2r5/p1p1nk1p/q4pp1/1p1p4/1P1p2P1/2P5/4PP1P/2Q1K1NR w K - 0 33";
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_STREQ(gocFen.c_str(), outputFen.c_str());
 }
 
@@ -330,7 +327,7 @@ TEST_F(UciFixture, position_fen_PerftAnnotationsAreIgnored)
     EXPECT_FALSE(board.enPassant());
 
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_STREQ(startFen.c_str(), outputFen.c_str());
 }
 
@@ -582,7 +579,7 @@ TEST_F(UciFixture, position_PromotingPawn)
     EXPECT_EQ(WHITEQUEEN, board.pieceAt(Square::G8));
 
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_STREQ("6Q1/2k5/8/8/8/8/8/2K5 b - - 0 1", outputFen.c_str());  // a promotion is a pawn move, the clock resets
 }
 
@@ -721,7 +718,6 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
 {
     auto search = [](u64 nodeLimit) {
         Game context;
-        context.NewGame();
         SearchContext searchContext;
         TranspositionTable tt;
         Search searcher(searchContext, tt);
@@ -1148,7 +1144,7 @@ TEST_F(UciFixture, position_moves_NonPawnOntoEnPassantSquare_IsNotACapture)
         args.pop_front();  // pop position
         EXPECT_TRUE(uci.Position(args)) << c.fen;
 
-        const auto& history = uci.readGame().readGameHistory().moveUndoUnits;
+        const auto& history = uci.readGame().moves();
         ASSERT_EQ(2u, history.size()) << c.fen;
         EXPECT_FALSE(history.back().move.isCapture()) << c.moves;
         EXPECT_FALSE(history.back().move.isEnPassant()) << c.moves;
@@ -1162,7 +1158,7 @@ TEST_F(UciFixture, position_moves_NonPawnOntoEnPassantSquare_IsNotACapture)
         EXPECT_EQ(1, uci.readGame().readHalfmoveClock()) << c.moves;
 
         std::string outputFen;
-        io::fen_parser::serialize(uci.readGame().readChessboard(), outputFen);
+        io::fen_parser::serialize(uci.readGame().board(), outputFen);
         EXPECT_EQ(c.expectedFen, outputFen);
     }
 }
@@ -1178,7 +1174,7 @@ TEST_F(UciFixture, position_moves_PawnOntoEnPassantSquare_CapturesEnPassant)
     args.pop_front();  // pop position
     EXPECT_TRUE(m_uci.Position(args));
 
-    const auto& history = m_uci.readGame().readGameHistory().moveUndoUnits;
+    const auto& history = m_uci.readGame().moves();
     ASSERT_EQ(2u, history.size());
     EXPECT_TRUE(history.back().move.isCapture());
     EXPECT_TRUE(history.back().move.isEnPassant());
@@ -1190,7 +1186,7 @@ TEST_F(UciFixture, position_moves_PawnOntoEnPassantSquare_CapturesEnPassant)
     EXPECT_EQ(0, m_uci.readGame().readHalfmoveClock());
 
     std::string outputFen;
-    io::fen_parser::serialize(m_uci.readGame().readChessboard(), outputFen);
+    io::fen_parser::serialize(m_uci.readGame().board(), outputFen);
     EXPECT_EQ("4k3/8/3P4/8/8/8/8/4K3 b - - 0 41", outputFen);
 }
 
@@ -1219,7 +1215,7 @@ const std::string movesAfterH4 = "e4f5 f4f3 f5e4 f3f4 e4f5";
 static bool isThreefold(const Game& context)
 {
     std::vector<u64> gameHashes;
-    for (const auto& undoUnit : context.readGameHistory().moveUndoUnits)
+    for (const auto& undoUnit : context.moves())
         gameHashes.push_back(undoUnit.hash);
 
     RepetitionHistory history;
@@ -1350,7 +1346,7 @@ TEST_F(UciFixture, go_DoublePushWithoutCapturer_PVStopsAtRepetition)
         extractArgsFromCommand("fen " + repetition_game::fen + (played.empty() ? "" : " moves" + played), args);
         ASSERT_TRUE(m_uci.Position(args));
         std::string fen;
-        io::fen_parser::serialize(m_uci.readGame().readChessboard(), fen);
+        io::fen_parser::serialize(m_uci.readGame().board(), fen);
         std::list<std::string> fields;
         extractArgsFromCommand(fen, fields);
         keys.push_back(fields.front() + " " + *std::next(fields.begin()) + " " + *std::next(fields.begin(), 2));

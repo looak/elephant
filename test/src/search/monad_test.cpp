@@ -40,14 +40,13 @@ public:
 SearchRequest requestFor(const char* fen, SearchLimits limits)
 {
     Game game;
-    io::fen_parser::deserialize(fen, game.editChessboard());
+    game.loadFen(fen);
     return makeSearchRequest(game, std::move(limits));
 }
 
 SearchRequest startposRequest(SearchLimits limits)
 {
     Game game;
-    game.NewGame();
     return makeSearchRequest(game, std::move(limits));
 }
 } // namespace

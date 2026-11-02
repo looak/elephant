@@ -58,7 +58,8 @@ struct DivideResult {
  * Run & Divide are explicitly instantiated for move_gen_policy::Tusk.   */
 class PerftSearch {
 public:
-    PerftSearch(Game& context);
+    // its own copy of the game, the walk makes and takes back moves on it.
+    explicit PerftSearch(Game game);
 
     /**
      * @brief Runs the perft search to the specified depth.
@@ -87,7 +88,7 @@ private:
     template<typename TMoveGen>
     u64 internalRunEntryPoint(int depth);
 
-    Game& m_context;
+    Game m_game;
 };
 
 // counts in bulk at depth 1, the last ply's moves are counted by the generator and never made.
@@ -97,15 +98,15 @@ u64 PerftSearch::internalRun(int depth)
     if (depth <= 0)
         return 0;
 
-    const PositionReader position = m_context.readChessboard().readPosition();
+    const PositionReader position = m_game.board().readPosition();
     if (depth == 1)
         return TMoveGen::template countMoves<us>(position);
 
     u64 nodes = 0;
     TMoveGen::template forEachMove<us>(position, [&](PackedMove move) {
-        m_context.makeMove(move);
+        m_game.makeMove(move);
         nodes += internalRun<opposing_set<us>(), TMoveGen>(depth - 1);
-        m_context.unmakeMove();
+        m_game.unmakeMove();
     });
 
     return nodes;
@@ -114,7 +115,7 @@ u64 PerftSearch::internalRun(int depth)
 template<typename TMoveGen>
 u64 PerftSearch::internalRunEntryPoint(int depth)
 {
-    if (m_context.readToPlay() == Set::WHITE)
+    if (m_game.readToPlay() == Set::WHITE)
         return internalRun<Set::WHITE, TMoveGen>(depth);
     return internalRun<Set::BLACK, TMoveGen>(depth);
 }

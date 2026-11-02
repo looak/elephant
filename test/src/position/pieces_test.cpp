@@ -30,7 +30,7 @@ struct RecordingTrace {
 
 RecordingTrace traceOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     RecordingTrace trace;
     (void)pieceScore(context.readPosition().material(), trace);
     return trace;
@@ -38,7 +38,7 @@ RecordingTrace traceOf(const char* fen) {
 
 TaperedScore scoreOf(const char* fen) {
     Game context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    context.loadFen(fen);
     return pieceScore(context.readPosition().material());
 }
 

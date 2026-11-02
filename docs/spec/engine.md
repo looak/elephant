@@ -62,6 +62,7 @@ last line before `bestmove` is `info nodes <n> time <ms> nps <nps>`. With `debug
 come as `info string thread <id> depth <d> score <s> nodes <n> pv <moves>`.
 `go infinite` and `go ponder` run until `stop` or `ponderhit`: one that ends on its own, on a forced mate or at the
 ply limit, sends those last two lines only then, with the search's own time.
+Before any `position` the engine is at the start position.
 With no legal move at the root (mate or stalemate) the answer is `bestmove 0000`. `position fen` refuses a board
 without exactly one king a side.
 

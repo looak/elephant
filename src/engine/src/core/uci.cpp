@@ -154,7 +154,7 @@ UCI::ParsePosition(std::list<std::string> args)
 
     if (arg == "startpos") {
         args.pop_front();
-        m_game.NewGame();
+        m_game = Game{};
     }
     else if (arg == "fen") {
         args.pop_front();
@@ -175,7 +175,7 @@ UCI::ParsePosition(std::list<std::string> args)
         return true;
 
     if (args.front() == "moves") {
-        PositionReader position = m_game.readChessboard().readPosition();
+        PositionReader position = m_game.board().readPosition();
 
         args.pop_front();
         while (args.size() > 0) {
@@ -214,7 +214,7 @@ UCI::NewGame()
 {
     // Not part of Game::NewGame, "position startpos" calls that every move and must keep the tables.
     m_monad.newGame();
-    m_game.NewGame();
+    m_game = Game{};
     return true;
 }
 
@@ -400,12 +400,11 @@ bool UCI::Bench(std::list<std::string>)
     struct BenchScope{
         BenchScope(Game& ctx, TranspositionTable& table, SearchContext& sc)
             : context(ctx), tt(table), searchContext(sc) {
-            context.Reset();
             tt.clear();
             searchContext.reset();
         }
         void loadFen(const std::string& fen) {
-            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+            context.loadFen(fen);
         }
         Game& context;
         TranspositionTable& tt;

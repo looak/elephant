@@ -51,7 +51,7 @@ std::vector<PackedMove> legalMoves(Game& context)
 {
     std::vector<PackedMove> moves;
     auto collect = [&moves](PackedMove move) { moves.push_back(move); };
-    const PositionReader position = context.readChessboard().readPosition();
+    const PositionReader position = context.board().readPosition();
     if (context.readToPlay() == Set::WHITE)
         TMoveGen::template forEachMove<Set::WHITE>(position, collect);
     else
@@ -93,8 +93,7 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
     {
         auto context = std::make_unique<Game>();
         for (size_t caseIndex : order) {
-            context->Reset();
-            io::fen_parser::deserialize(cases[caseIndex].position->fen.c_str(), context->editChessboard());
+            context->loadFen(cases[caseIndex].position->fen.c_str());
             std::vector<PackedMove> path;
             splitJobs<TMoveGen>(*context, caseIndex, path, cases[caseIndex].depth, 2, jobs);
         }
@@ -105,8 +104,7 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
     auto work = [&](Game& context) {
         for (size_t i = next++; i < jobs.size(); i = next++) {
             const PerftJob& job = jobs[i];
-            context.Reset();
-            io::fen_parser::deserialize(cases[job.caseIndex].position->fen.c_str(), context.editChessboard());
+            context.loadFen(cases[job.caseIndex].position->fen.c_str());
             for (PackedMove move : job.path)
                 context.makeMove<true>(move);
             PerftSearch perft(context);

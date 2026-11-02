@@ -14,58 +14,44 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 #pragma once
+#include <span>
+#include <string_view>
 #include <vector>
+
 #include <core/chessboard.hpp>
 #include <move/move_undo.hpp>
 
-struct SearchResult;
-struct SearchLimits;
-
-struct GameHistory {
-    GameHistory() = default;    
-
-    // needs to be a vector to allow validation of move repetition.
-    std::vector<MoveUndoUnit> moveUndoUnits;
-
-
-    private:
-    GameHistory(const GameHistory& rhs) = delete;
-    GameHistory& operator=(const GameHistory& rhs) = delete;
-};
-
+// A game: where it stands and the moves played to get there. Nothing clears its past, a game starts at a position and
+// another game replaces it, so the moves always lead to the board. What a search needs of it is copied into a
+// SearchRequest, so a Game can be replaced while a search runs.
 class Game {
 public:
-    Game()
-    {
-        Reset();
-    }
+    // At the start position.
+    Game();
+    // At start, whatever it came from, with no moves played.
+    explicit Game(const Chessboard& start) : m_board(start) {}
 
-    void Reset();
-    void NewGame();
-        
+    // Replaces this game with one starting at fen. When fen doesn't read, returns false and the game stays as it was.
+    bool loadFen(std::string_view fen);
+
     template<bool validation = false>
-    void makeMove(const PackedMove move);
+    void makeMove(PackedMove move);
     bool unmakeMove();
 
-    const Chessboard& readChessboard() const { return m_board; }
-    Chessboard& editChessboard() { return m_board; }
-    Chessboard copyChessboard() const { return m_board; }
+    const Chessboard& board() const { return m_board; }
+    // the moves played, oldest first. Each holds the hash of the position it was played from.
+    std::span<const MoveUndoUnit> moves() const { return m_moves; }
 
     PositionReader readPosition() const { return m_board.readPosition(); }
-    PositionEditor editChessPosition() { return m_board.editPosition(); }
-
     u16 readHalfmoveClock() const { return m_board.readHalfmoveClock(); }
     u16 readMoveCount() const { return m_board.readMoveCount(); }
-
     Set readToPlay() const { return m_board.readToPlay(); }
 
-    GameHistory& editGameHistory() { return m_history; }
-    const GameHistory& readGameHistory() const { return m_history; }
+    // Only UCI's position fen, which keeps the moves of the game before it until it builds a new Game. Don't add
+    // callers.
+    Chessboard& editChessboard() { return m_board; }
 
 private:
-    Game(const Game& rhs) = delete;
-    Game& operator=(const Game& rhs) = delete;
-
     Chessboard m_board;
-    GameHistory m_history;
+    std::vector<MoveUndoUnit> m_moves;
 };

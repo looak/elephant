@@ -15,8 +15,7 @@ public:
     // Executes the command with the given arguments.
     bool execute() override
     {
-        m_context->Reset();
-        m_context->NewGame();
+        *m_context = Game{};
         return true;
     }
 
