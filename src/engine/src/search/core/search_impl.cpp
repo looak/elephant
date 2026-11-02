@@ -105,6 +105,7 @@ template<Set us>
 SearchResult Search::iterativeDeepening(ThreadContext& context) {
     SearchResult result;
     const SearchLimits& limits = context.request.limits;
+    const bool restrictedRoot = context.request.rootMoves.empty() == false;
 
     // the hard ply limit in alphaBeta makes deeper iterations pointless.
     const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
@@ -138,7 +139,9 @@ SearchResult Search::iterativeDeepening(ThreadContext& context) {
                 itrResult.pvLine.length = 1;
             }
 
-            itrResult.score = alphaBeta<us>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine);
+            itrResult.score = restrictedRoot
+                ? alphaBeta<us, NodeKind::RESTRICTED_ROOT>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine)
+                : alphaBeta<us, NodeKind::ROOT>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine);
             if (context.stopped)
                 break;
 

@@ -135,21 +135,6 @@ struct ThreadContext {
         return shared != nullptr && shared->stop.load(std::memory_order_relaxed);
     }
 
-    // A move parsed from UCI notation carries no capture or special flags, compare what the notation holds.
-    [[nodiscard]] static bool sameUciMove(PackedMove lhs, PackedMove rhs) {
-        return lhs.sourceSqr() == rhs.sourceSqr() && lhs.targetSqr() == rhs.targetSqr()
-            && lhs.isPromotion() == rhs.isPromotion()
-            && (!lhs.isPromotion() || lhs.readPromoteToPieceType() == rhs.readPromoteToPieceType());
-    }
-
-    [[nodiscard]] bool isRootMoveAllowed(PackedMove move) const {
-        for (PackedMove allowed : request.rootMoves) {
-            if (sameUciMove(allowed, move))
-                return true;
-        }
-        return false;
-    }
-
     // Throttled, the clock and the main thread's stop are only consulted every 1024 calls. The node limit is checked on
     // every call so go nodes stops close to exact, the branch is cheap & predictable when no limit is set.
     bool shouldStop() {

@@ -4,9 +4,15 @@
 #include <diagnostics/logger.hpp>
 #include <move/generation/move_ordering_view.hpp>
 #include <search/core/search_move_source.hpp>
-#include <search/state/thread_context.hpp>
 
 namespace {
+// A move parsed from UCI notation carries no capture or special flags, compare what the notation holds.
+bool sameUciMove(PackedMove lhs, PackedMove rhs) {
+    return lhs.sourceSqr() == rhs.sourceSqr() && lhs.targetSqr() == rhs.targetSqr()
+        && lhs.isPromotion() == rhs.isPromotion()
+        && (!lhs.isPromotion() || lhs.readPromoteToPieceType() == rhs.readPromoteToPieceType());
+}
+
 template<Set us>
 std::vector<PackedMove> legalRootMoves(PositionReader position, const std::vector<PackedMove>& requested) {
     std::vector<PackedMove> rootMoves;
@@ -15,7 +21,7 @@ std::vector<PackedMove> legalRootMoves(PositionReader position, const std::vecto
     legalMoves.start(&ordering, MoveTypes::ALL);
     for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
         for (PackedMove move : requested) {
-            if (ThreadContext::sameUciMove(move, legal.move)) {
+            if (sameUciMove(move, legal.move)) {
                 rootMoves.push_back(legal.move);
                 break;
             }

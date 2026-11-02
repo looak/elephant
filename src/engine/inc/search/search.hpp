@@ -40,6 +40,14 @@ struct SharedSearchState {
     std::atomic<u64> nodes{0};
 };
 
+// Where a node is in the tree, decided at compile time so the root's special cases cost the rest of the tree nothing.
+enum class NodeKind {
+    NORMAL,
+    ROOT,
+    // the root of a go searchmoves, only the moves in the request are searched.
+    RESTRICTED_ROOT
+};
+
 class Search {
     friend class QSearchEnabled;
 public:
@@ -64,11 +72,11 @@ private:
     SearchResult iterativeDeepening(ThreadContext& context);
 
     // internal seach methods
-    template<Set us>
+    template<Set us, NodeKind kind = NodeKind::NORMAL>
     i16 alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-    template<Set us>
     // futile: the node failed the futility check, quiet moves that don't give check are skipped.
-    i16 searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+    template<Set us, typename Moves>
+    i16 searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
 
     // moves, when given, is an unstarted move source for this position, alphaBeta passes the one it built at a leaf so
     // the check & pin info isn't computed twice. line records the line played, NoQuiescenceLine records nothing.
