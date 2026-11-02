@@ -23,8 +23,8 @@ root="$(git rev-parse --show-toplevel)"
 engine_paths="src/engine src/uci ob_build/makefile"
 
 run_bench() {
-    # build objects & binary stay in ob_build/build, which is ignored.
-    build='cd ob_build && make -j"$(nproc)" EXE=build/eg-uci >/dev/null 2>&1 && ./build/eg-uci bench | tail -n 1'
+    # objects & binary go in .build/make, which is ignored.
+    build='cd ob_build && make -j"$(nproc)" EXE=../.build/make/eg-uci >/dev/null 2>&1 && ../.build/make/eg-uci bench | tail -n 1'
     if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
         (cd "$root" && sh -c "$build")
     elif command -v wsl.exe >/dev/null 2>&1; then

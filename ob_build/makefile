@@ -1,5 +1,5 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
-EXE ?= eg-uci
+EXE ?= ../dist/eg-uci
 
 # Versioning, read from ../version.txt (major.minor.patch[-label] on line 1, the release's codename on line 2 when
 # there is one), the only place the version is written.
@@ -20,7 +20,7 @@ export ElephantGambit_VERSION_PRERELEASE = $(patsubst $(VERSION_CORE)%,%,$(VERSI
 BUILD_TIMESTAMP := $(shell date '+%b %d %Y at %H:%M:%S')
 
 # Directories
-BUILD_DIR := ./build
+BUILD_DIR ?= ../.build/make
 USRC_DIR := ../src/uci/src
 ESRC_DIR := ../src/engine/src
 
@@ -51,7 +51,7 @@ ENGINE_SRC := $(shell find $(ESRC_DIR) -name "*.cpp")
 UCI_SRC := $(shell find $(USRC_DIR) -name "*.cpp")
 SRC := $(UCI_SRC) $(ENGINE_SRC)
 
-# Object files mirror the source tree (../src/a/b.cpp -> build/src/a/b.o), sources with the same file name in
+# Object files mirror the source tree (../src/a/b.cpp -> $(BUILD_DIR)/src/a/b.o), sources with the same file name in
 # different directories (move_generator.cpp and tusk/move_generator.cpp) must not share an object file.
 OBJ := $(patsubst ../%.cpp,$(BUILD_DIR)/%.o,$(SRC))
 DEP := $(OBJ:.o=.d)
@@ -67,6 +67,7 @@ all: $(EXE_PATH)
 
 # Executable dependency on object files AND version header
 $(EXE_PATH): $(OBJ)
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 # Object file compilation rule

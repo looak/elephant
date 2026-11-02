@@ -22,7 +22,7 @@ input could be read, a game that doesn't read is an entry, not an error; 1 when 
 decompressed (nothing of that input is written) or `--positions` meets more than it can number (below); 2 on a bad
 option or a FEN that doesn't read. It keeps no state between runs.
 
-Built by CMake as the `PhantIndexer` target (`build/Release/bin/phant-indexer`) only with `ELEPHANT_BUILD_INDEXER`
+Built by CMake as the `PhantIndexer` target (`dist/phant-indexer`, `./build.sh --indexer`) only with `ELEPHANT_BUILD_INDEXER`
 on (off by default) and `EXCEPTIONS_ENABLED` on, the parsers report an illegal move by throwing:
 
 ```

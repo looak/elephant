@@ -17,11 +17,7 @@
 message(STATUS "## Enabling testing")
 set(PROJECT_NAME ElephantTest)
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.17.0)
+elephant_declare_dep(googletest https://github.com/google/googletest.git v1.17.0)
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -64,8 +60,8 @@ function(elephant_add_test_executable target)
     # call, after PRIVATE it's read as a directory named SYSTEM.
     target_include_directories(${target} SYSTEM
       PRIVATE
-        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
-        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
+        "${googletest_SOURCE_DIR}/googletest/include"
+        "${googletest_SOURCE_DIR}/googlemock/include")
 
     target_link_libraries(${target} common_warnings gtest_main uci engine spdlog)
 

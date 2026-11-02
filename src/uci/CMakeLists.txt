@@ -25,6 +25,7 @@ target_link_libraries(${UCI_LIB}
 add_executable(eg-uci src/main.cpp)
 
 set_target_properties(eg-uci PROPERTIES
+    OUTPUT_NAME "eg-uci-${ELEPHANT_BINARY_SUFFIX}"
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF)
 

@@ -30,20 +30,9 @@ message(STATUS "## PhantIndexer: ON")
 # with only what decompressing needs, linked into PhantIndexerLib alone, so the release binary needs nothing installed
 # and the engine never sees them. SOURCE_SUBDIR names no directory, which keeps their own CMake builds out.
 enable_language(C)
-include(FetchContent)
-FetchContent_Declare(zlib
-    GIT_REPOSITORY https://github.com/madler/zlib.git
-    GIT_TAG        v1.3.1
-    SOURCE_SUBDIR  not-built-by-its-cmake)
-FetchContent_Declare(bzip2
-    GIT_REPOSITORY https://gitlab.com/bzip2/bzip2.git
-    GIT_TAG        bzip2-1.0.8
-    SOURCE_SUBDIR  not-built-by-its-cmake)
-FetchContent_Declare(zstd
-    GIT_REPOSITORY https://github.com/facebook/zstd.git
-    GIT_TAG        v1.5.7
-    GIT_SHALLOW    TRUE
-    SOURCE_SUBDIR  not-built-by-its-cmake)
+elephant_declare_dep(zlib https://github.com/madler/zlib.git v1.3.1 SOURCE_SUBDIR not-built-by-its-cmake)
+elephant_declare_dep(bzip2 https://gitlab.com/bzip2/bzip2.git bzip2-1.0.8 SOURCE_SUBDIR not-built-by-its-cmake)
+elephant_declare_dep(zstd https://github.com/facebook/zstd.git v1.5.7 GIT_SHALLOW TRUE SOURCE_SUBDIR not-built-by-its-cmake)
 FetchContent_MakeAvailable(zlib bzip2 zstd)
 
 add_library(indexer_zlib STATIC

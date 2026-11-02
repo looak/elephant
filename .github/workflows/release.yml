@@ -63,9 +63,9 @@ jobs:
       shell: bash
       run: |
         version="$(head -n 1 version.txt | tr -d '\r[:space:]')"
-        os="$([ "$RUNNER_OS" = Windows ] && echo windows || echo linux)"
+        os="$([ "$RUNNER_OS" = Windows ] && echo win || echo linux)"
         ext="$([ "$RUNNER_OS" = Windows ] && echo .exe || echo)"
-        echo "BINARY=elephant-gambit-$version-$os-${{ matrix.name }}$ext" >> "$GITHUB_ENV"
+        echo "BINARY=eg-uci-$version-$os-${{ matrix.name }}$ext" >> "$GITHUB_ENV"
 
     - name: Build (Linux)
       if: runner.os == 'Linux'
@@ -130,13 +130,13 @@ jobs:
         os="$([ "$RUNNER_OS" = Windows ] && echo windows || echo linux)"
         ext="$([ "$RUNNER_OS" = Windows ] && echo .exe || echo)"
         echo "BINARY=phant-indexer-$version-$os-x86-64$ext" >> "$GITHUB_ENV"
-        echo "BUILT=build/Release/bin/phant-indexer$ext" >> "$GITHUB_ENV"
+        echo "BUILT=dist/phant-indexer$ext" >> "$GITHUB_ENV"
 
     - name: Configure
       shell: bash
       run: |
         static="$([ "$RUNNER_OS" = Windows ] && echo -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded || echo -DCMAKE_EXE_LINKER_FLAGS=-static)"
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DELEPHANT_NATIVE_ARCH=OFF -DASSERTIONS_ENABLED=OFF \
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DELEPHANT_ARCH=x86-64 -DASSERTIONS_ENABLED=OFF \
           -DEXCEPTIONS_ENABLED=ON -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_TUNER=OFF \
           "$static"
 

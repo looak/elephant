@@ -4,11 +4,11 @@
 # HTML report to <build dir>/coverage/index.html, then prints gcovr's summary. Sources under test/, third_party/ &
 # _deps/ are left out. Needs gcovr (pipx install gcovr).
 #
-#   test/coverage.sh [build dir]     default: build-cov in the repository
+#   test/coverage.sh [build dir]     default: .build/coverage in the repository
 set -e
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
-build="${1:-$root/build-cov}"
+build="${1:-$root/.build/coverage}"
 report="$build/coverage"
 command -v gcovr >/dev/null 2>&1 || { echo "coverage: gcovr not found, pipx install gcovr" >&2; exit 2; }
 
@@ -25,7 +25,7 @@ ctest --test-dir "$build" -L unit -j "$(nproc)" --output-on-failure || tests=$?
 # throw branches are the exception paths every call that can throw grows, gcc counts them as branches. The hot board
 # accessors pass 2^32 hits in the unit tests, gcovr's default threshold for a gcov bug, so it's off.
 cd "$root"
-gcovr --root "$root" --object-directory "$build" --exclude '(.*/)?(test|third_party|_deps)/' --exclude-throw-branches \
+gcovr --root "$root" --object-directory "$build" --exclude '(.*/)?(test|third_party|_deps|\.build)/' --exclude-throw-branches \
     --gcov-suspicious-hits-threshold 0 --html-details "$report/index.html" --txt --print-summary
 
 echo "coverage: report in $report/index.html"

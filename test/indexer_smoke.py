@@ -2,7 +2,7 @@
 """phant-indexer against python-chess, a full circle: games are written as PGN, phant-indexer reads them back, and
 every game's entry has to agree with what python-chess reads from the same PGN.
 
-    python test/indexer_smoke.py --indexer build/Release/bin/phant-indexer
+    python test/indexer_smoke.py --indexer dist/phant-indexer
     python test/indexer_smoke.py --indexer ... --random 5000 --seed 7 test/pgn/*.pgn
     python test/indexer_smoke.py --indexer ... --keep logs/indexer_random.pgn     keep the generated games
     python test/indexer_smoke.py --indexer ... --random 0 --games ../uwanja/runs --limit 5000   real games, sampled

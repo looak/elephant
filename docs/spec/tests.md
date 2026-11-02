@@ -128,9 +128,9 @@ them otherwise. It turns link time optimization off; the scripts build Debug so 
 so it isn't in the report.
 
 - `test/coverage.ps1 [build dir]` (Windows, clang-cl, loads Visual Studio's developer environment when needed):
-  configures `build-cov` (ignored by git) with coverage, Debug, `ELEPHANT_BUILD_INDEXER=ON`, the suite & tuner off,
+  configures `.build/coverage` (ignored by git) with coverage, Debug, `ELEPHANT_BUILD_INDEXER=ON`, the suite & tuner off,
   builds `ElephantTest`, runs `ctest -L unit` with `LLVM_PROFILE_FILE` set (a pool of profiles the test processes
-  merge into), merges them with `llvm-profdata` and writes `llvm-cov show`'s HTML to `build-cov/coverage/index.html`,
+  merge into), merges them with `llvm-profdata` and writes `llvm-cov show`'s HTML to `.build/coverage/coverage/index.html`,
   then prints `llvm-cov report`. Exit code: the tests'.
 - `test/coverage.sh [build dir]` (Linux, gcc, needs gcovr): the same with gcovr, throw branches left out, HTML to
   `<build dir>/coverage/index.html` and the text summary to the console.
@@ -147,7 +147,7 @@ gates anything.
 | CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off, warnings as errors | thrown away |
 | CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."`, warnings as errors | thrown away |
 | CI `coverage.yml`, run by hand on any branch, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away; on `main` the line coverage replaces `coverage.json` on the `badges` branch, the README's badge |
-| `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `build-cov/coverage/` |
+| `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `.build/coverage/coverage/` |
 
 ## Interfaces
 
@@ -155,5 +155,5 @@ gates anything.
 |:--|:--|
 | in | the engine library (`engine` target), `res/` for test data |
 | out | gtest console output & exit code, ctest labels `unit` & `suite` |
-| out | coverage: an HTML report in `build-cov/coverage/`, a text summary on CI's summary page, `coverage.json` (shields.io endpoint format: `schemaVersion`, `label`, `message` the line percent, `color`) on the `badges` branch for the README |
+| out | coverage: an HTML report in `.build/coverage/coverage/`, a text summary on CI's summary page, `coverage.json` (shields.io endpoint format: `schemaVersion`, `label`, `message` the line percent, `color`) on the `badges` branch for the README |
 

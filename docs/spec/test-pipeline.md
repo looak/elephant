@@ -21,7 +21,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `hooks/prepare-commit-msg` | the `bench N nodes` line in commit messages |
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
-| `test/coverage.ps1` (`coverage.sh` with gcc) | the unit tests' coverage, an HTML report in `build-cov/coverage/`, nothing recorded ([tests.md](tests.md#coverage)) |
+| `test/coverage.ps1` (`coverage.sh` with gcc) | the unit tests' coverage, an HTML report in `.build/coverage/coverage/`, nothing recorded ([tests.md](tests.md#coverage)) |
 
 ## Scope
 
@@ -34,7 +34,7 @@ keeps one number, the line coverage for the README's badge, on the `badges` bran
 
 ## Current
 
-### Smoke, `test/smoke.sh [build dir]`
+### Smoke, `test/smoke.sh [folder]`, `dist` by default
 
 Runs in order and prints a summary, exit non-zero if a step fails. Run it in a visible console, it takes about a
 minute.
@@ -44,7 +44,7 @@ minute.
    count warns: fine for a search change, not for a refactor.
 3. **Suite**: all of `ElephantSuite`, perft on every core and the deep searches ([tests.md](tests.md)).
 3b. **phant-indexer**: `indexer_smoke.py` against python-chess, below. It warns, and doesn't fail, when phant-indexer
-   isn't found in the build directory (configure with `-DELEPHANT_BUILD_INDEXER=ON`), when Python has no
+   isn't found there (`./build.sh --indexer`), when Python has no
    python-chess, or when it has no zstd.
 4. **EPD smoke tier** through `epd_runner.py` with `ElephantGambit`.
 5. **Results**: `record --kind smoke`, `compare`, `sync`.

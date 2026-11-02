@@ -11,12 +11,12 @@ fourth binary reads games with the library's PGN and SAN parsing and move genera
 
 | Binary | Built by | Entry | For |
 |:--|:--|:--|:--|
-| `elephant_ob` and the release binaries | `ob_build/makefile`, g++ | `src/cli/src/openbench.cpp` | playing: OpenBench, GitHub releases, match runners |
+| `eg-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
 | `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
 | `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
 | `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
 
-`ElephantGambit` and `elephant_ob` speak the same UCI. The makefile build is the reference: OpenBench builds it, the
+`ElephantGambit` and `eg-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
 release binaries are it, and the bench signature comes from it. The test binaries are in [tests.md](tests.md).
 
 ## Scope
@@ -75,13 +75,13 @@ on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. T
 
 ### Bench
 
-`elephant_ob bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
+`eg-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
 504347 on `main` at 1.4.0. Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
-(`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
+(`src/engine`, `src/uci`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
 leaves the line out. Windows and Linux builds give the same count since the Zobrist keys come from a fixed seed
 splitmix64.
@@ -225,11 +225,17 @@ whoever plays the games writes the players and tags.
 
 ### Builds & releases
 
+- `./build.sh`, on anything with bash, checks the toolchain and builds into `dist/`: `eg-uci` by default, `--cli`, `--tuner`,
+  `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `eg-uci` is
+  named `eg-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
+  their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
+- `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
+  A build of `eg-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
-  with its own `EXE`.
+  with its own `EXE`, objects in `$(BUILD_DIR)`, `.build/make` by default.
 - `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `-march=x86-64`,
   `x86-64-v2` and `x86-64-v3`, linked static, named by the instructions each needs:
-  `elephant-gambit-<version>-<os>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
+  `eg-uci-<version>-<win | linux>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
   hand with `indexer` on, never on a release: in a job of its own with CMake and `ELEPHANT_BUILD_INDEXER=ON`, for
   Windows & Linux at `x86-64`, linked static (the C runtime too), named `phant-indexer-<version>-<os>-x86-64` and
   smoke tested on OpenBench's workload, bz2 compressed, before it is attached. A third job titles the GitHub release

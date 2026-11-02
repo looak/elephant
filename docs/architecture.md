@@ -5,7 +5,7 @@ flowchart TD
     subgraph cli["cli"]
         app["Application / AppContext"]
         normal["NormalModeProcessor<br/>commands: fen, move, print,<br/>search, perft, divide, evaluate"]
-        ucimode["UciModeProcessor<br/>UCICommands table"]
+        ucimode["UciModeProcessor<br/>starts the UCI loop"]
         bench["bench / openbench"]
     end
 
