@@ -92,6 +92,12 @@ On `refactor-worker`:
 - `PlyFrame`: `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers in one struct per ply, #47's. Same nodes
   as the baseline on every workload, +0.32% nps against a noise floor of about 2%.
 
+- `Worker`: a thread's tables and the search code, it builds a `ThreadContext` on its stack per `go`. `Monad` starts & joins the
+  threads and has a blocking `search` beside `go`, for bench and the tests. `Search` & `SearchContext` are gone. Same nodes as the
+  baseline. About 1% slower in `test/perf.sh`, -1.27, -0.96 and -1.01 over three runs, the same with the tables in separate
+  allocations, so not the memory layout. The search code didn't change, code layout is the likely cause, not proven. Check
+  with a non-regression SPRT when these branches are tested.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 
@@ -144,10 +150,7 @@ difference under about 2% on the total isn't one. Roughly 3.6M nps on that workl
 
 ## What's left, in order
 
-8. **`Worker`.** `Search` splits: starting & joining threads, the shared stop & node count and the listener go to `Monad`,
-   `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become `std::vector<Worker>`. A `Worker` holds a
-   thread's tables and builds its `ThreadContext` on its stack for each `go`. It isn't a thread: threads still start per `go`.
-   Compare with the baseline above as well as bench.
+Nothing. Delete this file when the branches are in, keeping the parked items somewhere they'll be found.
 
 Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request as each step they describe.
 
