@@ -15,8 +15,8 @@ main
   search-time
     refactor-thread-context    PR #51 into search-time, open
       search-request           pushed, no PR yet
-        refactor-monad         the refactor up to the per-ply work, not pushed
-          refactor-worker      this branch, the per-ply struct & Worker, not pushed
+        refactor-monad         the refactor up to the per-ply work, goes in with refactor-worker
+          refactor-worker      this branch, the per-ply struct & Worker, PR into search-request
 ```
 
 `search-request` should get a PR into `refactor-thread-context`. CI only runs by itself on pull requests into `main`, on these
