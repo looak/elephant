@@ -107,79 +107,101 @@ struct Part {
     std::exception_ptr error;
 };
 
-// the work of one thread: every position in range, with its own context & trace.
-void prepareRange(const std::string& path, ByteRange range, Part& part, std::atomic<std::size_t>& progress) {
-    const std::vector<TaperedScore> current = params::current();
+// Turns positions into entries, one thread's worth: a position is resolved to a quiet one, traced, then kept.
+class EntryBuilder {
+public:
+    EntryBuilder(TunerData& data, PrepareReport& report) : m_data(data), m_report(report), m_current(params::current()) {}
 
-    QuiescenceProbe probe;
-
-    TunerData& data = part.data;
-    PrepareReport& report = part.report;
-    // about 65 bytes a line and 15 coefficients a position in the datasets seen so far.
-    const std::size_t expected = (range.end - range.begin) / 60;
-    data.entries.reserve(expected);
-    data.coefficients.reserve(expected * 16);
-
-    EvalTrace trace;
-    std::size_t unreported = 0;
-    forEachPosition(path, range, part.load, [&](const TuningPosition& position) {
+    // False when the position's FEN doesn't read. A position with a mate in it is counted and left out.
+    bool add(const TuningPosition& position) {
         const std::optional<Chessboard> board = io::fen_parser::read(position.fen);
         if (!board)
             return false;
-        ++report.positions;
-        if (++unreported == 4096) {
-            progress.fetch_add(unreported, std::memory_order_relaxed);
-            unreported = 0;
-        }
+        ++m_report.positions;
 
-        const QuiescenceResult resolved = probe.search(*board);
+        const QuiescenceResult resolved = m_probe.search(*board);
         if (resolved.decided) {
-            ++report.decided;
+            ++m_report.decided;
             return true;
         }
         if (resolved.line.length > 0) {
-            ++report.resolved;
-            report.lineMoves += resolved.line.length;
-            report.longestLine = std::max<std::size_t>(report.longestLine, resolved.line.length);
+            ++m_report.resolved;
+            m_report.lineMoves += resolved.line.length;
+            m_report.longestLine = std::max<std::size_t>(m_report.longestLine, resolved.line.length);
         }
-        probe.playLine(resolved.line);
+        m_probe.playLine(resolved.line);
 
-        // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
-        // left behind, mobility's, pawn structure's, the passed pawn extras, king shelter & storm, king attack and the
-        // piece terms.
-        trace.clear();
-        const PestoAccumulator traced = PestoAccumulator::computeFromScratch(probe.position().material(), trace);
-        if (!(traced == probe.accumulator()))
-            ++report.accumulatorMismatch;
+        keepEntry(static_cast<float>(position.result), traceTerms());
+        return true;
+    }
+
+private:
+    // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves left
+    // behind, mobility's, pawn structure's, the passed pawn extras, king shelter & storm, king attack and the piece terms.
+    PestoAccumulator traceTerms() {
+        const auto material = m_probe.position().material();
+        m_trace.clear();
+        const PestoAccumulator traced = PestoAccumulator::computeFromScratch(material, m_trace);
+        if (!(traced == m_probe.accumulator()))
+            ++m_report.accumulatorMismatch;
         KingZoneAttacks onKing[2];
-        (void)mobilityScore(probe.position().material(), trace, onKing);
-        const PawnInfo pawns = pawnInfo(probe.position().material(), trace);
-        (void)passerScore(probe.position().material(), pawns, trace);
-        (void)kingSafetyScore(probe.position().material(), trace);
-        (void)kingAttackScore(probe.position().material(), onKing, trace);
-        (void)pieceScore(probe.position().material(), trace);
+        (void)mobilityScore(material, m_trace, onKing);
+        const PawnInfo pawns = pawnInfo(material, m_trace);
+        (void)passerScore(material, pawns, m_trace);
+        (void)kingSafetyScore(material, m_trace);
+        (void)kingAttackScore(material, onKing, m_trace);
+        (void)pieceScore(material, m_trace);
+        return traced;
+    }
 
-        // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
-        Evaluator evaluator(probe.position(), traced);
+    // the traced coefficients and the engine's own numbers: the whole static evaluation, and the part made of the terms
+    // that are fitted.
+    void keepEntry(float result, const PestoAccumulator& traced) {
+        Evaluator evaluator(m_probe.position(), traced);
         const i32 staticEval = evaluator.Evaluate();
         const i32 tapered = evaluator.EvaluateTapered();
 
         TunerEntry entry{};
-        entry.result = static_cast<float>(position.result);
+        entry.result = result;
         entry.staticEval = static_cast<i16>(staticEval);
         entry.fixedOffset = static_cast<i16>(staticEval - tapered);
         entry.phase = static_cast<u8>(std::min(traced.phase, evaluator_data::maxGamePhase));
-        entry.coefficientStart = static_cast<u32>(data.coefficients.size());
-        for (const Coefficient& c : trace.coefficients())
-            data.coefficients.push_back(c);
-        entry.coefficientCount = static_cast<u8>(data.coefficients.size() - entry.coefficientStart);
+        entry.coefficientStart = static_cast<u32>(m_data.coefficients.size());
+        for (const Coefficient& c : m_trace.coefficients())
+            m_data.coefficients.push_back(c);
+        entry.coefficientCount = static_cast<u8>(m_data.coefficients.size() - entry.coefficientStart);
 
         if (entry.fixedOffset != 0)
-            ++report.withOffset;
-        if (data.fittedScore(entry, current) != tapered)
-            ++report.rebuildMismatch;
+            ++m_report.withOffset;
+        if (m_data.fittedScore(entry, m_current) != tapered)
+            ++m_report.rebuildMismatch;
 
-        data.entries.push_back(entry);
+        m_data.entries.push_back(entry);
+    }
+
+    TunerData& m_data;
+    PrepareReport& m_report;
+    const std::vector<TaperedScore> m_current;
+    QuiescenceProbe m_probe;
+    EvalTrace m_trace;
+};
+
+// the work of one thread: every position in range.
+void prepareRange(const std::string& path, ByteRange range, Part& part, std::atomic<std::size_t>& progress) {
+    // about 65 bytes a line and 15 coefficients a position in the datasets seen so far.
+    const std::size_t expected = (range.end - range.begin) / 60;
+    part.data.entries.reserve(expected);
+    part.data.coefficients.reserve(expected * 16);
+
+    EntryBuilder builder(part.data, part.report);
+    std::size_t unreported = 0;
+    forEachPosition(path, range, part.load, [&](const TuningPosition& position) {
+        if (!builder.add(position))
+            return false;
+        if (++unreported == 4096) {
+            progress.fetch_add(unreported, std::memory_order_relaxed);
+            unreported = 0;
+        }
         return true;
     });
     progress.fetch_add(unreported, std::memory_order_relaxed);

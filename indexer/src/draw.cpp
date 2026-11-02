@@ -4,6 +4,7 @@
 #include <charconv>
 #include <format>
 #include <memory>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -70,6 +71,31 @@ namespace {
         }
         return out + '"';
     }
+
+    // the whole of text as a number, nothing when it's anything else.
+    std::optional<u32> readNumber(std::string_view text)
+    {
+        u32 value = 0;
+        const char* last = text.data() + text.size();
+        const auto [end, error] = std::from_chars(text.data(), last, value);
+        if (error != std::errc{} || end != last)
+            return std::nullopt;
+        return value;
+    }
+
+    // a position of a game that may be drawn: the ply it's after and its FEN, as it stood on the board.
+    struct Candidate {
+        u32 ply;
+        std::string fen;
+    };
+
+    // a seeded shuffle, the same on every platform.
+    void shuffle(std::vector<Candidate>& candidates, u64 seed)
+    {
+        Random random{ seed };
+        for (size_t i = candidates.size(); i > 1; --i)
+            std::swap(candidates[i - 1], candidates[random.next() % i]);
+    }
 } // namespace
 
 struct Drawer::Impl {
@@ -81,6 +107,92 @@ struct Drawer::Impl {
     {
         const QuiescenceResult result = probe.search(board);
         return result.line.length == 0 && !result.decided;
+    }
+
+    // the plies to skip, counted from the position the game starts at: its tag's, else its file's, else the global one.
+    u32 minPlyOf(const GameIndex& entry, std::optional<u32> minPlyHere, DrawStats& stats) const
+    {
+        u32 minPly = minPlyHere ? *minPlyHere : options.minPly;
+        bool own = minPlyHere.has_value();
+        for (const io::pgn_parser::Tag& tag : entry.tags) {
+            if (tag.name != c_minPlyTag)
+                continue;
+            if (const std::optional<u32> value = readNumber(tag.value)) {
+                minPly = *value;
+                own = true;
+            }
+            else {
+                ++stats.badMinimumTags;
+            }
+        }
+        if (own)
+            ++stats.ownMinimum;
+        return minPly;
+    }
+
+    // the positions after ply 0, 1, ... in turn, the ones from minPly on that are worth a look. Plays the game on board.
+    std::vector<Candidate> candidatesOf(const GameIndex& entry, Chessboard& board, u32 minPly, DrawStats& stats)
+    {
+        std::vector<Candidate> candidates;
+        MoveUndoUnit undo;
+        u32 candidateCount = 0;
+        for (u32 ply = 0;; ++ply) {
+            if (ply >= minPly) {
+                const PositionFacts facts = positionFacts(board);
+                if (!facts.inCheck && facts.canMove) {
+                    ++candidateCount;
+                    if (!options.quiet || naturallyQuiet(board)) {
+                        std::string fen;
+                        io::fen_parser::serialize(board, fen);
+                        candidates.push_back({ ply, std::move(fen) });
+                    }
+                }
+            }
+            if (ply == entry.plies)
+                break;
+            board.makeMove<true>(entry.played[ply], undo);
+        }
+
+        stats.candidates += candidateCount;
+        stats.quiet += candidates.size();
+        stats.quietPerGame.push_back(static_cast<u32>(candidates.size()));
+        return candidates;
+    }
+
+    // the first perGame, whoever gave them before: finish() writes them with their results averaged.
+    void merge(const GameIndex& entry, const std::vector<Candidate>& candidates, u32 halves, DrawStats& stats)
+    {
+        const size_t taken = std::min<size_t>(candidates.size(), options.perGame);
+        for (size_t i = 0; i < taken; ++i) {
+            const auto [place, added] = mergedIndex.try_emplace(entry.positions[candidates[i].ply], merged.size());
+            if (added)
+                merged.push_back({ candidates[i].fen, 0, 0 });
+            merged[place->second].halves += halves;
+            ++merged[place->second].games;
+            ++stats.draws;
+        }
+    }
+
+    // the first perGame that no game has given yet.
+    void write(const GameIndex& entry, const std::vector<Candidate>& candidates, const std::string& label, u32 halves,
+        std::string& out, DrawStats& stats)
+    {
+        u32 written = 0;
+        for (const Candidate& candidate : candidates) {
+            if (written == options.perGame)
+                break;
+            if (!seen.insert(entry.positions[candidate.ply]).second) {
+                ++stats.duplicates;
+                continue;
+            }
+            out += candidate.fen;
+            out += ' ';
+            out += label;
+            out += '\n';
+            ++written;
+        }
+        stats.written += written;
+        (halves == 2 ? stats.whiteWins : halves == 0 ? stats.blackWins : stats.drawResults) += written;
     }
 
     // a position drawn by one or more games: the sum of their results in halves, 2 a win and 1 a draw.
@@ -106,11 +218,8 @@ std::pair<std::string, std::optional<u32>> splitInputMinimum(const std::string& 
     const size_t colon = argument.rfind(':');
     if (colon == std::string::npos || colon == 0 || colon + 1 == argument.size())
         return { argument, std::nullopt };
-    u32 value = 0;
-    const char* first = argument.data() + colon + 1;
-    const char* last = argument.data() + argument.size();
-    const auto [end, error] = std::from_chars(first, last, value);
-    if (error != std::errc{} || end != last)
+    const std::optional<u32> value = readNumber(std::string_view(argument).substr(colon + 1));
+    if (!value)
         return { argument, std::nullopt };
     return { argument.substr(0, colon), value };
 }
@@ -153,93 +262,17 @@ void Drawer::draw(const GameIndex& entry, std::string& out, std::optional<u32> m
         ++m_stats.unread;
         return;
     }
-    Chessboard& board = *start;
 
     ++m_stats.drawn;
 
-    // the plies to skip, counted from the position the game starts at: its tag's, else its file's, else the global one.
-    u32 minPly = minPlyHere ? *minPlyHere : impl.options.minPly;
-    bool own = minPlyHere.has_value();
-    for (const io::pgn_parser::Tag& tag : entry.tags) {
-        if (tag.name != c_minPlyTag)
-            continue;
-        u32 value = 0;
-        const auto [end, error] = std::from_chars(tag.value.data(), tag.value.data() + tag.value.size(), value);
-        if (error == std::errc{} && end == tag.value.data() + tag.value.size() && !tag.value.empty()) {
-            minPly = value;
-            own = true;
-        }
-        else {
-            ++m_stats.badMinimumTags;
-        }
-    }
-    if (own)
-        ++m_stats.ownMinimum;
+    const u32 minPly = impl.minPlyOf(entry, minPlyHere, m_stats);
+    std::vector<Candidate> candidates = impl.candidatesOf(entry, *start, minPly, m_stats);
+    shuffle(candidates, gameSeed(impl.options.seed, game));
 
-    struct Candidate {
-        u32 ply;
-        std::string fen;
-    };
-    std::vector<Candidate> candidates;
-
-    // the positions after ply 0, 1, ... in turn, the ones from minPly on that are worth a look.
-    MoveUndoUnit undo;
-    u32 candidateCount = 0;
-    for (u32 ply = 0;; ++ply) {
-        if (ply >= minPly) {
-            const PositionFacts facts = positionFacts(board);
-            if (!facts.inCheck && facts.canMove) {
-                ++candidateCount;
-                if (!impl.options.quiet || impl.naturallyQuiet(board)) {
-                    std::string fen;
-                    io::fen_parser::serialize(board, fen);
-                    candidates.push_back({ ply, std::move(fen) });
-                }
-            }
-        }
-        if (ply == entry.plies)
-            break;
-        board.makeMove<true>(entry.played[ply], undo);
-    }
-
-    m_stats.candidates += candidateCount;
-    m_stats.quiet += candidates.size();
-    m_stats.quietPerGame.push_back(static_cast<u32>(candidates.size()));
-
-    // a seeded shuffle, then the first that no game has given yet; with merge the first N, whoever gave them before.
-    Random random{ gameSeed(impl.options.seed, game) };
-    for (size_t i = candidates.size(); i > 1; --i)
-        std::swap(candidates[i - 1], candidates[random.next() % i]);
-
-    if (impl.options.merge) {
-        const size_t taken = std::min<size_t>(candidates.size(), impl.options.perGame);
-        for (size_t i = 0; i < taken; ++i) {
-            const auto [place, added] = impl.mergedIndex.try_emplace(entry.positions[candidates[i].ply], impl.merged.size());
-            if (added)
-                impl.merged.push_back({ candidates[i].fen, 0, 0 });
-            impl.merged[place->second].halves += *halves;
-            ++impl.merged[place->second].games;
-            ++m_stats.draws;
-        }
-        return;
-    }
-
-    u32 written = 0;
-    for (const Candidate& candidate : candidates) {
-        if (written == impl.options.perGame)
-            break;
-        if (!impl.seen.insert(entry.positions[candidate.ply]).second) {
-            ++m_stats.duplicates;
-            continue;
-        }
-        out += candidate.fen;
-        out += ' ';
-        out += label;
-        out += '\n';
-        ++written;
-    }
-    m_stats.written += written;
-    (*halves == 2 ? m_stats.whiteWins : *halves == 0 ? m_stats.blackWins : m_stats.drawResults) += written;
+    if (impl.options.merge)
+        impl.merge(entry, candidates, *halves, m_stats);
+    else
+        impl.write(entry, candidates, label, *halves, out, m_stats);
 }
 
 void Drawer::finish(std::string& out)
