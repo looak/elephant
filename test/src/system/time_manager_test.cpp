@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <search/search.hpp>
+#include <search/search_request.hpp>
 #include <system/time_manager.hpp>
 
 #include <limits>

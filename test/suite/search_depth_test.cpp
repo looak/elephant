@@ -3,9 +3,8 @@
 
 #include <io/fen_parser.hpp>
 #include <core/game.hpp>
-#include <search/search.hpp>
+#include <search/monad.hpp>
 #include <search_cases.hpp>
-#include <system/time_manager.hpp>
 
 // Searches too deep for the unit tests: moves the engine only finds seconds into a search.
 
@@ -13,11 +12,7 @@ namespace ElephantTest {
 ////////////////////////////////////////////////////////////////
 class SearchDepthFixture : public ::testing::Test {
 public:
-    SearchDepthFixture() :
-        timeManager(testingParams, Set::WHITE)
-    {}
     SearchLimits testingParams;
-    TimeManager timeManager;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -28,9 +23,7 @@ TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
         Game context;
         context.loadFen(searchCase.fen.c_str());
 
-        SearchContext searchContext;
-        TranspositionTable tt;
-        Search searcher(searchContext, tt);
+        Monad monad(64);
 
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17
@@ -38,8 +31,7 @@ TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
         // at 19. With pawn structure in the evaluation it's found at 22, 23 leaves a ply of margin. Raise this when new
         // pruning or evaluation pushes it out of reach.
         testingParams.SearchDepth = 23;
-        timeManager.applyTimeSettings(testingParams, context.readToPlay());
-        SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
+        SearchResult result = monad.search(makeSearchRequest(context, testingParams));
 
         EXPECT_EQ(searchCase.expectedMove, result.move().toString());
         OUT() << "Tested position: " << searchCase.fen;

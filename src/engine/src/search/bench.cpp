@@ -3,12 +3,9 @@
 #include <algorithm>
 
 #include <core/game.hpp>
-#include <search/search.hpp>
+#include <search/monad.hpp>
 #include <search/search_request.hpp>
-#include <search/state/search_context.hpp>
-#include <search/state/transposition_table.hpp>
 #include <system/clock.hpp>
-#include <system/time_manager.hpp>
 
 namespace bench {
 
@@ -23,8 +20,7 @@ Result run(const std::vector<std::string>& positions, u32 searchDepth, size_t ha
     // and the bench time was mostly the OS mapping that memory in, not the search. A cleared TT is all zero with age 0, the
     // same as a new one, the node count doesn't change. Created before the clock.
     Game game;
-    TranspositionTable tt(hashMb);
-    SearchContext searchContext;
+    Monad monad(hashMb);
 
     Clock timer;
     timer.Start();
@@ -32,14 +28,11 @@ Result run(const std::vector<std::string>& positions, u32 searchDepth, size_t ha
     for (const std::string& fen : positions) {
         if (!game.loadFen(fen))
             continue;
-        tt.clear();
-        searchContext.reset();
+        monad.newGame();
 
         SearchLimits limits;
         limits.SearchDepth = static_cast<u8>(searchDepth);
-        TimeManager clock(limits, game.readToPlay());
-        Search search(searchContext, tt, listener);
-        nodes += search.go(makeSearchRequest(game, limits), clock).count;
+        nodes += monad.search(makeSearchRequest(game, limits), listener).count;
     }
     timer.Stop();
 

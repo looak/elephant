@@ -34,7 +34,7 @@ struct PVLine {
 };
 
 /**
- * Search::quiescence's line policy when nothing records the line, the search's own path. Both calls compile away.
+ * Worker::quiescence's line policy when nothing records the line, the search's own path. Both calls compile away.
  * PVLine is the policy that records it: reset() when a node starts, raise(move, child) when move raises alpha, the
  * tuner fits the evaluation on the position at the end of that line.    */
 struct NoQuiescenceLine {

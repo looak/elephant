@@ -21,7 +21,7 @@
 #include <vector>
 
 #include <position/position.hpp>
-#include <search/search.hpp>
+#include <search/worker.hpp>
 #include <search/core/search_constants.hpp>
 #include <search/state/ply_frame.hpp>
 #include <search/state/repetition_history.hpp>
@@ -37,7 +37,7 @@
 
 // One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
 // holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the request & clock by go, the
-// heuristics & pawn hash by the SearchContext, the TT by the Monad, the shared stop & node count by Search.
+// heuristics & pawn hash by the Worker, the TT by the Monad, the shared stop & node count by the Monad for this search.
 struct ThreadContext {
     ThreadContext(const SearchRequest& _request, const TimeManager& _clock, TranspositionTable& _tt,
                   ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
@@ -58,14 +58,14 @@ struct ThreadContext {
     // the transposition table, the same one for every thread of the search. Its entries are single atomic words, so
     // the threads read & write it without locks.
     TranspositionTable& tt;
-    // this thread's butterfly & continuation history, from the SearchContext. Never shared between threads.
+    // this thread's butterfly & continuation history, from the Worker. Never shared between threads.
     ThreadHeuristics& heuristics;
-    // this thread's pawn structure scores, from the SearchContext, see pawn_hash.hpp.
+    // this thread's pawn structure scores, from the Worker, see pawn_hash.hpp.
     PawnHashTable& pawnHash;
     // Lazy SMP, every thread searches the same root and they share the TT. Thread 0 is the main thread, it reports,
     // manages time and its result is the one played. The helpers only fill the TT.
     u16 threadId = 0;
-    // the stop flag & node count of all threads, owned by Search. Null in the tuner, which searches alone.
+    // the stop flag & node count of all threads. Null in the tuner, which searches alone.
     SharedSearchState* shared = nullptr;
 
     // --- The position being searched ---

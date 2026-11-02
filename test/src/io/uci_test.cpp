@@ -7,7 +7,7 @@
 #include <uci/uci_search_listener.hpp>
 #include <elephant_gambit_config.h>
 #include <core/game.hpp>
-#include <search/search.hpp>
+#include <search/monad.hpp>
 #include <system/time_manager.hpp>
 #include <search/state/repetition_history.hpp>
 #include <search/state/search_heuristic_structures.hpp>
@@ -720,13 +720,10 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
 {
     auto search = [](u64 nodeLimit) {
         Game context;
-        SearchContext searchContext;
-        TranspositionTable tt;
-        Search searcher(searchContext, tt);
+        Monad monad(64);
         SearchLimits params;
         params.NodeLimit = nodeLimit;
-        TimeManager clock(params, Set::WHITE);
-        return searcher.go(makeSearchRequest(context, params), clock);
+        return monad.search(makeSearchRequest(context, params));
     };
 
     // do

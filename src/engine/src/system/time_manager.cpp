@@ -1,5 +1,5 @@
 #include <system/time_manager.hpp>
-#include <search/search.hpp>
+#include <search/search_request.hpp>
 
 #include <algorithm>
 #include <limits>

@@ -5,8 +5,7 @@
 #include <core/chessboard.hpp>
 #include <move/move_executor.hpp>
 #include <search/core/search_constants.hpp>
-#include <search/search.hpp>
-#include <search/state/search_heuristic_structures.hpp>
+#include <search/worker.hpp>
 #include <search/state/thread_context.hpp>
 #include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
@@ -17,7 +16,7 @@ struct QuiescenceProbe::Impl {
     Impl()
         : clock(SearchLimits{}, Set::WHITE)
         , tt(1)
-        , context(request, clock, tt, heuristics, pawnHash)
+        , context(request, clock, tt, worker.m_heuristics, worker.m_pawnHash)
     {
         context.stopEnabled = false;
     }
@@ -25,8 +24,7 @@ struct QuiescenceProbe::Impl {
     SearchRequest request;
     TimeManager clock;
     TranspositionTable tt;
-    ThreadHeuristics heuristics;
-    PawnHashTable pawnHash;
+    Worker worker;
     ThreadContext context;
 };
 
@@ -40,8 +38,8 @@ QuiescenceResult QuiescenceProbe::search(const Chessboard& board)
     context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
 
     QuiescenceResult result;
-    result.score = board.readToPlay() == Set::WHITE ? Search::quiescenceLine<Set::WHITE>(context, result.line)
-                                                    : Search::quiescenceLine<Set::BLACK>(context, result.line);
+    result.score = board.readToPlay() == Set::WHITE ? Worker::quiescenceLine<Set::WHITE>(context, result.line)
+                                                    : Worker::quiescenceLine<Set::BLACK>(context, result.line);
     result.decided = std::abs(result.score) >= c_checkmateMinScore;
     return result;
 }

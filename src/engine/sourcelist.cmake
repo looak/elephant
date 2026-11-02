@@ -101,7 +101,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 
 ## /search/...
     ${ENGINE_INC_DIR}/search/perft/perft_search.hpp
-    ${ENGINE_INC_DIR}/search/search.hpp
+    ${ENGINE_INC_DIR}/search/worker.hpp
     ${ENGINE_INC_DIR}/search/search_listener.hpp
     ${ENGINE_INC_DIR}/search/bench.hpp
     ${ENGINE_INC_DIR}/search/monad.hpp
@@ -109,7 +109,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/search_request.hpp
     ${ENGINE_INC_DIR}/search/state/ply_frame.hpp
     ${ENGINE_INC_DIR}/search/state/repetition_history.hpp
-    ${ENGINE_INC_DIR}/search/state/search_context.hpp
     ${ENGINE_INC_DIR}/search/core/search_constants.hpp
     ${ENGINE_INC_DIR}/search/state/search_heuristic_structures.hpp
     ${ENGINE_INC_DIR}/search/core/search_move_source.hpp
@@ -171,7 +170,6 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 
 ## /search/...
     ${ENGINE_SRC_DIR}/search/perft/perft_search.cpp
-    ${ENGINE_SRC_DIR}/search/search.cpp
     ${ENGINE_SRC_DIR}/search/bench.cpp
     ${ENGINE_SRC_DIR}/search/monad.cpp
     ${ENGINE_SRC_DIR}/search/quiescence_probe.cpp

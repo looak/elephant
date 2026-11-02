@@ -1,4 +1,4 @@
-#include <search/search.hpp>
+#include <search/worker.hpp>
 #include <position/position_hash.hpp>
 
 #include <array>
@@ -18,7 +18,7 @@
 #include <system/time_manager.hpp>
 
 template<Set us, NodeKind kind>
-i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
+i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
@@ -183,7 +183,7 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 }
 
 #define INSTANTIATE_ALPHA_BETA(us, kind) \
-    template i16 Search::alphaBeta<us, kind>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv)
+    template i16 Worker::alphaBeta<us, kind>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv)
 INSTANTIATE_ALPHA_BETA(Set::WHITE, NodeKind::NORMAL);
 INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::NORMAL);
 INSTANTIATE_ALPHA_BETA(Set::WHITE, NodeKind::ROOT);
@@ -193,7 +193,7 @@ INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
 #undef INSTANTIATE_ALPHA_BETA
 
 template<Set us, typename Moves>
-i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
+i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -380,7 +380,7 @@ i16 Search::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     return bestEval;
 }
 
-template i16 Search::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Search::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Search::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Search::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);

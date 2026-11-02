@@ -30,7 +30,6 @@
 #include <system/clock.hpp>
 
 // Forward-declare Search class for policy callbacks
-class Search;
 
 struct MaterialPositionMask;
 struct ThreadHeuristics;

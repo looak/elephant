@@ -17,8 +17,8 @@ flowchart TD
     end
 
     subgraph search["search"]
-        monad["Monad<br/>the TT, every thread's tables,<br/>one search at a time"]
-        go["Search::go<br/>Lazy SMP, one thread per Threads"]
+        monad["Monad<br/>the TT, the Workers,<br/>one search at a time"]
+        go["Worker::run<br/>Lazy SMP, one thread per Worker"]
         shared["SharedSearchState<br/>stop flag, node count"]
         listener["SearchListener<br/>iterations, UCI prints them"]
         ctx["ThreadContext<br/>position, accumulator, pawn hash,<br/>move ordering, repetition history"]
