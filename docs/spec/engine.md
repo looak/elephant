@@ -60,6 +60,8 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 `info score cp|mate <s> depth <d> nodes <n> time <ms> hashfull <h> pv <moves>`, nodes counted over all threads; the
 last line before `bestmove` is `info nodes <n> time <ms> nps <nps>`. With `debug on` the helper threads' iterations
 come as `info string thread <id> depth <d> score <s> nodes <n> pv <moves>`.
+`go infinite` and `go ponder` run until `stop` or `ponderhit`: one that ends on its own, on a forced mate or at the
+ply limit, sends those last two lines only then, with the search's own time.
 With no legal move at the root (mate or stalemate) the answer is `bestmove 0000`. `position fen` refuses a board
 without exactly one king a side.
 

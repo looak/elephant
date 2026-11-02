@@ -1,5 +1,4 @@
 #include <core/uci.hpp>
-#include <core/uci_search_listener.hpp>
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>
@@ -13,16 +12,16 @@
 #include <move/move.hpp>
 #include <search/search.hpp>
 #include <search/state/search_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/clock.hpp>
+#include <system/time_manager.hpp>
 
 #include <algorithm>
-#include <chrono>
 #include <functional>
 #include <limits>
 #include <map>
 #include <optional>
 #include <string>
-#include <thread>
 
 namespace {
 // A bad command never ends the engine, the GUI is told through an info string and the log keeps it.
@@ -30,14 +29,6 @@ void reportError(const std::exception& e)
 {
     LOG_WARN("{}", e.what());
     io::printer::uci("info string error {}", e.what());
-    io::printer::uci_flush();
-}
-
-// The GUI waits for a bestmove whatever happened.
-void reportFailedSearch(const std::exception& e)
-{
-    reportError(e);
-    io::printer::uci("bestmove 0000");
     io::printer::uci_flush();
 }
 
@@ -56,23 +47,16 @@ bool looksLikeUciMove(const std::string& token)
 
 UCI::UCI()
     : m_enabled(true)
-    , m_timeManager(SearchLimits{}, Set::WHITE)
 {
     io::printer::uciPrinterInit();
     io::printer::uci("id name Elephant Gambit {}", ELEPHANT_GAMBIT_VERSION_FULL);
     io::printer::uci("id author Alexander Loodin Ek");
-    InitializeOptions();
 }
 
 UCI::~UCI() {
+    SyncGo();
     io::printer::uci("quit");
     io::printer::uci_flush();
-}
-
-void UCI::InitializeOptions() {
-    SetOption({"name", "Threads", "value", "1"});
-    SetOption({ "name", "Hash", "value", "8" });
-    SetOption({ "name", "Move", "Overhead", "value", std::to_string(c_defaultMoveOverhead_ms) });
 }
 
 void
@@ -124,26 +108,16 @@ UCI::SetOption(const std::list<std::string> args)
             }
         };
 
-        // A running search reads these and Hash frees the table it's using, so a valid option ends the search first. GUIs
-        // only set options while idle, a bad one is reported above without touching the search.
+        // A valid option ends a running search first, see Monad. GUIs only set options while idle, a bad one is
+        // reported here without touching the search.
         if (name == "Threads") {
-            u16 threadCount = static_cast<u16>(std::clamp(toInt(), 1, 64));
-            SyncGo();
-            m_options["Threads"] = value;
-            m_threadCount = threadCount;
-            m_searchContext.initialize(threadCount);
+            m_monad.setThreads(static_cast<u16>(std::clamp(toInt(), 1, 64)));
         }
         else if (name == "Hash") {
-            size_t newSize = static_cast<size_t>(std::max(1, toInt()));
-            SyncGo();
-            m_options["Hash"] = value;
-            m_context.editTranspositionTable().resize(newSize, m_threadCount);
+            m_monad.setHash(static_cast<size_t>(std::max(1, toInt())));
         }
         else if (name == "Move Overhead") {
-            u32 overhead = static_cast<u32>(std::max(0, toInt()));
-            SyncGo();
-            m_options["Move Overhead"] = value;
-            m_timeManager.setMoveOverhead(overhead);
+            m_monad.setMoveOverhead(static_cast<u32>(std::max(0, toInt())));
         }
         else {
             throw ephant::uci_command_exception("option", "Unknown option: " + name);
@@ -238,86 +212,58 @@ UCI::ParsePosition(std::list<std::string> args)
 bool
 UCI::NewGame()
 {
-    // a search still running would race the clear below, GUIs stop it first but make sure.
-    SyncGo();
+    // Not part of GameContext::NewGame, "position startpos" calls that every move and must keep the tables.
+    m_monad.newGame();
     m_context.NewGame();
-    // games are independent, nothing from the last game may carry over: the TT (and its age), and the history tables &
-    // pawn hashes in the SearchContext, which outlive a go. Not part of GameContext::NewGame, "position startpos" calls
-    // that every move.
-    m_context.editTranspositionTable().clear(m_threadCount);
-    m_searchContext.reset();
     return true;
 }
 
 bool
 UCI::Stop()
 {
-    m_timeManager.cancel();
+    m_monad.stop();
     return true;
 }
 
 bool
 UCI::PonderHit()
 {
-    m_timeManager.cancel();
+    m_monad.stop();
     return true;
 }
 
 bool
 UCI::AsyncGo(std::list<std::string> args)
 {
-    SyncGo(); // should stop any ongoing search first -- but we still check to be sure.
+    // before reading the arguments, a bad go answers after the bestmove of the search it replaces.
+    SyncGo();
 
-    if (m_isSearching.load()) {
-        reportError(ephant::uci_command_exception("go", "Search already in progress"));
-        return false;
-    }
-    // before the search thread starts, on the thread that reads stop & position. Done on the search thread, a stop sent
-    // right after go could arrive first and be thrown away with the old source, and an infinite search would then never
-    // end, and a position could change what's searched.
-    m_timeManager.reset();
     std::optional<SearchRequest> request;
     try {
         request = prepareSearch(args);
     }
     catch (const std::exception& e) {
-        reportFailedSearch(e);
+        m_listener.onSearchFailed(e);
         return false;
     }
 
-    m_isSearching.store(true);
-    m_searchFuture = std::async(std::launch::async, [this, request = std::move(*request)]() {
-        try {
-            this->runSearch(request);
-        }
-        catch (const std::exception& e) {
-            reportFailedSearch(e);
-            m_isSearching.store(false);
-        }
-    });
-
+    m_monad.go(std::move(*request), m_listener);
     return true;
 }
 
 void
 UCI::SyncGo()
 {
-    m_timeManager.cancel(); // Ensure any ongoing search is stopped
-    if (m_searchFuture.valid()) {
-        try{
-            m_searchFuture.get(); // wait
-        }
-        catch (const std::exception&  e) {
-            spdlog::error("Exception in async search: {}", e.what());
-        }
-    }
+    m_monad.stop();
+    (void)m_monad.wait();
 }
 
 bool
 UCI::Go(std::list<std::string> args)
 {
-    m_timeManager.reset();
-    return runSearch(prepareSearch(args));
+    m_monad.go(prepareSearch(args), m_listener);
+    (void)m_monad.wait();
+    return true;
 }
 
 SearchRequest
@@ -443,40 +389,7 @@ UCI::prepareSearch(const std::list<std::string>& args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    m_timeManager.applyTimeSettings(searchParams, m_context.readToPlay());
     return makeSearchRequest(m_context, std::move(searchParams));
-}
-
-bool
-UCI::runSearch(const SearchRequest& request)
-{
-    UciSearchListener listener(m_debug.load());
-    Search searcher(m_searchContext, m_context.editTranspositionTable(), listener);
-
-    const auto searchStart = std::chrono::steady_clock::now();
-    SearchResult result = searcher.go(request, m_timeManager);
-
-    // the iteration lines only count completed iterations, this one counts every node searched, all threads together,
-    // like Stockfish's last line. Test runners & GUIs read the total from it.
-    const u64 searchMs = static_cast<u64>(std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::steady_clock::now() - searchStart).count());
-    io::printer::uci("info nodes {} time {} nps {}", result.count, searchMs,
-                     searchMs > 0 ? result.count * 1000 / searchMs : result.count);
-
-    // UCI: an infinite or ponder search may only send bestmove after "stop" or "ponderhit", also when it ended on its
-    // own (mate, ply limit).
-    if (request.limits.Infinite) {
-        std::stop_token stopToken = m_timeManager.cancelToken();
-        while (stopToken.stop_requested() == false)
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-
-    // no legal move at the root (mate or stalemate) is a null move, UCI writes that as 0000.
-    io::printer::uci("bestmove {}", result.move().isNull() ? std::string("0000") : result.move().toString());
-    io::printer::uci_flush();
-
-    m_isSearching.store(false); // mark search as completed
-    return true;
 }
 
 bool UCI::Bench(std::list<std::string>)
@@ -485,15 +398,17 @@ bool UCI::Bench(std::list<std::string>)
     // every bench position is a new game: the TT & the search context are zeroed in place, never reallocated, so the
     // clock below only measures search.
     struct BenchScope{
-        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+        BenchScope(GameContext& ctx, TranspositionTable& table, SearchContext& sc)
+            : context(ctx), tt(table), searchContext(sc) {
             context.Reset();
-            context.editTranspositionTable().clear();
+            tt.clear();
             searchContext.reset();
         }
         void loadFen(const std::string& fen) {
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
         }
         GameContext& context;
+        TranspositionTable& tt;
         SearchContext& searchContext;
     };
 
@@ -505,17 +420,17 @@ bool UCI::Bench(std::list<std::string>)
     // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
-    context.editTranspositionTable().resize(16);
+    TranspositionTable tt(16);
     SearchContext searchContext;
     UciSearchListener listener;
     Clock timer;
     timer.Start();
     u64 nodes = 0;
     for (const auto& fen : bench::fens) {
-        BenchScope scope(context, searchContext);
+        BenchScope scope(context, tt, searchContext);
         scope.loadFen(fen);
 
-        Search search(searchContext, context.editTranspositionTable(), listener);
+        Search search(searchContext, tt, listener);
         SearchLimits params;
         TimeManager tm(params, context.readToPlay());
         

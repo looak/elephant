@@ -46,14 +46,6 @@ unsigned perftThreads()
     return std::max(1u, std::thread::hardware_concurrency());
 }
 
-// perft doesn't use the transposition table, a context per thread at the default 64 MB adds up.
-std::unique_ptr<GameContext> perftContext()
-{
-    auto context = std::make_unique<GameContext>();
-    context->editTranspositionTable().resize(1);
-    return context;
-}
-
 template<typename TMoveGen>
 std::vector<PackedMove> legalMoves(GameContext& context)
 {
@@ -99,7 +91,7 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
 
     std::vector<PerftJob> jobs;
     {
-        auto context = perftContext();
+        auto context = std::make_unique<GameContext>();
         for (size_t caseIndex : order) {
             context->Reset();
             io::fen_parser::deserialize(cases[caseIndex].position->fen.c_str(), context->editChessboard());
@@ -124,7 +116,7 @@ std::vector<u64> runPerft(const std::vector<PerftCase>& cases, unsigned threads)
 
     std::vector<std::unique_ptr<GameContext>> contexts;
     for (unsigned t = 0; t < threads; ++t)
-        contexts.push_back(perftContext());
+        contexts.push_back(std::make_unique<GameContext>());
     {
         std::vector<std::jthread> workers;
         for (auto& context : contexts)

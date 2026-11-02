@@ -17,7 +17,6 @@ GameContext::Reset()
 {
     chess::ClearBoard(m_board);
     m_history.moveUndoUnits.clear();
-    // keeping transposition table
 }
 
 void

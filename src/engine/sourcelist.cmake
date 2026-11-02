@@ -105,6 +105,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/perft/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
     ${ENGINE_INC_DIR}/search/search_listener.hpp
+    ${ENGINE_INC_DIR}/search/monad.hpp
     ${ENGINE_INC_DIR}/search/quiescence_probe.hpp
     ${ENGINE_INC_DIR}/search/search_request.hpp
     ${ENGINE_INC_DIR}/search/state/search_context.hpp
@@ -172,6 +173,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ## /search/...
     ${ENGINE_SRC_DIR}/search/perft/perft_search.cpp
     ${ENGINE_SRC_DIR}/search/search.cpp
+    ${ENGINE_SRC_DIR}/search/monad.cpp
     ${ENGINE_SRC_DIR}/search/quiescence_probe.cpp
     ${ENGINE_SRC_DIR}/search/search_request.cpp
     ${ENGINE_SRC_DIR}/search/core/search_impl.cpp

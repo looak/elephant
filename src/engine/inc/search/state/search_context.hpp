@@ -24,8 +24,8 @@
 #include <search/state/search_heuristic_structures.hpp>
 #include <search/state/transposition_table.hpp>
 
-// What search keeps beyond a single go, owned by UCI next to the GameContext. Everything here is one per thread and
-// never shared between threads. The TT, shared by every thread, still lives in the GameContext.
+// What search keeps beyond a single go, owned by a Monad. Everything here is one per thread and never shared between
+// threads. The TT, shared by every thread, sits next to it in the Monad.
 struct SearchContext {
     explicit SearchContext(u16 threadCount = 1) { initialize(threadCount); }
 

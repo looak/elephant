@@ -722,7 +722,8 @@ TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
         GameContext context;
         context.NewGame();
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
         SearchLimits params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);
@@ -1037,7 +1038,7 @@ TEST_F(UciFixture, ucinewgame_ClearsTranspositionTableAndAge)
 {
     // setup
     m_uci.Enable();
-    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    auto& tt = m_uci.editMonad().editTranspositionTable();
     const u64 hash = 0x123456789ABCDEF0ull;
     tt.setAge(5);
     tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
@@ -1062,7 +1063,7 @@ TEST_F(UciFixture, position_startpos_moves_KeepsTranspositionTable)
     // setup
     m_uci.Enable();
     m_uci.NewGame();
-    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    auto& tt = m_uci.editMonad().editTranspositionTable();
     const u64 hash = 0x123456789ABCDEF0ull;
     tt.setAge(5);
     tt.store(hash, PackedMove(Square::E2, Square::E4), 42, 7, TTF_CUT_EXACT);
@@ -1102,7 +1103,7 @@ TEST_F(UciFixture, ucinewgame_AfterSearch_RootIsNoLongerInTranspositionTable)
         m_uci.Go(goArgs);
     }
 
-    auto& tt = m_uci.editGameContext().editTranspositionTable();
+    auto& tt = m_uci.editMonad().editTranspositionTable();
     PackedMove move;
     Score score = 0;
     u8 depth = 0;

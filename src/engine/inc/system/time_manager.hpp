@@ -81,10 +81,6 @@ public:
      * @brief Gets the stop token associated with this TimeManager.
      * @return The std::stop_token used to signal search threads to stop.     */
     std::stop_token cancelToken() const;
-    /**
-     * @brief Resets the TimeManager state for a new search.
-     * This clears any stop requests and prepares the manager for reuse.     */
-    void reset();
 
 private:
     // --- Configuration (set at creation) ---

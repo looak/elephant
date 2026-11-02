@@ -51,7 +51,8 @@ TEST_F(SearchFixture, Listener_HearsEveryIterationOfTheSearch)
     context.NewGame();
     SearchContext searchContext;
     RecordingListener listener;
-    Search searcher(searchContext, context.editTranspositionTable(), listener);
+    TranspositionTable tt;
+    Search searcher(searchContext, tt, listener);
     testingParams.SearchDepth = 4;
 
     // execute
@@ -74,7 +75,8 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     
     // execute
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
@@ -97,7 +99,8 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
 
     // execute
     timeManager.applyTimeSettings(testingParams, Set::BLACK);
@@ -118,7 +121,8 @@ TEST_F(SearchFixture, WhiteForcedMate)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
     EXPECT_TRUE(result.ForcedMate);
@@ -131,7 +135,8 @@ TEST_F(SearchFixture, MateAgainstSelf)
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
     EXPECT_NE(result.move(), PackedMove::NullMove());
@@ -143,7 +148,8 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
         timeManager.applyTimeSettings(testingParams, Set::WHITE);
         SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
 
@@ -157,7 +163,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
         SearchResult result;
         timeManager.applyTimeSettings(testingParams, context.readToPlay());
         result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
@@ -177,7 +184,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
 
         SearchResult result;
         timeManager.applyTimeSettings(testingParams, context.readToPlay());
@@ -198,7 +206,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInEight) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
 
         SearchResult result;
         timeManager.applyTimeSettings(testingParams, context.readToPlay());
@@ -218,7 +227,8 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
         SearchContext searchContext;
-        Search searcher(searchContext, context.editTranspositionTable());
+        TranspositionTable tt;
+        Search searcher(searchContext, tt);
 
         // e1f1 is found at depth 9 & g5h6 at 8, the fixture's 12 leaves a margin. The deep d4e3 line is in
         // ElephantSuite, search_depth_test.cpp.
@@ -240,7 +250,8 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     Clock testing_clock;
     testing_clock.Start();
 
@@ -265,7 +276,8 @@ TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 99 120", context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     testingParams.SearchDepth = 6;
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
@@ -280,7 +292,8 @@ TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 0 120", context.editChessboard());
 
     SearchContext searchContext;
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     testingParams.SearchDepth = 6;
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
@@ -300,12 +313,14 @@ TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
 
     // do
     SearchContext singleSearchContext;
-    Search singleSearch(singleSearchContext, single.editTranspositionTable());
+    TranspositionTable singleTT;
+    Search singleSearch(singleSearchContext, singleTT);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult singleResult = singleSearch.go(makeSearchRequest(single, testingParams), timeManager);
 
     SearchContext threadedSearchContext(4);
-    Search threadedSearch(threadedSearchContext, threaded.editTranspositionTable());
+    TranspositionTable threadedTT;
+    Search threadedSearch(threadedSearchContext, threadedTT);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult threadedResult = threadedSearch.go(makeSearchRequest(threaded, testingParams), timeManager);
 
@@ -329,7 +344,8 @@ TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)
     Clock clock;
     clock.Start();
     SearchContext searchContext(8);
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
     clock.Stop();
@@ -349,7 +365,8 @@ TEST_F(SearchFixture, LazySmp_NodeLimit_CountsAllThreads)
 
     // do
     SearchContext searchContext(4);
-    Search searcher(searchContext, context.editTranspositionTable());
+    TranspositionTable tt;
+    Search searcher(searchContext, tt);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go(makeSearchRequest(context, testingParams), timeManager);
 

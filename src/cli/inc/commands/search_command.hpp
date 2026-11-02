@@ -82,7 +82,8 @@ public:
 
         SearchContext searchContext;
         UciSearchListener listener;
-        Search search(searchContext, m_context->editTranspositionTable(), listener);
+        TranspositionTable tt;
+        Search search(searchContext, tt, listener);
         SearchResult result = search.go(makeSearchRequest(*m_context, params), timeManager);
 
 

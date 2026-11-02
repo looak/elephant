@@ -124,9 +124,3 @@ void TimeManager::cancel() {
 std::stop_token TimeManager::cancelToken() const {
     return m_stopSource.get_token();
 }
-
-void TimeManager::reset() {
-    // Clear any previous stop requests
-    this->cancel();
-    m_stopSource = std::stop_source();
-}

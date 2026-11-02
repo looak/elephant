@@ -71,9 +71,10 @@ static const std::vector<std::string> fens = {
 void bench() {
 
     struct BenchScope{
-        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+        BenchScope(GameContext& ctx, TranspositionTable& table, SearchContext& sc)
+            : context(ctx), tt(table), searchContext(sc) {
             context.Reset();
-            context.editTranspositionTable().clear();
+            tt.clear();
             searchContext.reset();
         }
 
@@ -82,6 +83,7 @@ void bench() {
         }
 
         GameContext& context;
+        TranspositionTable& tt;
         SearchContext& searchContext;
     };
 
@@ -93,7 +95,7 @@ void bench() {
     // whole table and OpenBench benches every worker thread at once, clearing 64 MB 26 times made the bench measure
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
-    context.editTranspositionTable().resize(16);
+    TranspositionTable tt(16);
     SearchContext searchContext;
     UciSearchListener listener;
 
@@ -102,10 +104,10 @@ void bench() {
     u64 nodes = 0;
 
     for (const auto& fen : fens) {
-        BenchScope scope(context, searchContext);
+        BenchScope scope(context, tt, searchContext);
         scope.loadFen(fen);
 
-        Search search(searchContext, context.editTranspositionTable(), listener);
+        Search search(searchContext, tt, listener);
         SearchLimits params;
         TimeManager tm(params, context.readToPlay());
 

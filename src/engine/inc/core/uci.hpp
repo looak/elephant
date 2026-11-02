@@ -26,13 +26,11 @@
 #include <iostream>
 #include <syncstream>
 #include <list>
-#include <unordered_map>
-#include <future>
 
 #include <core/game_context.hpp>
+#include <core/uci_search_listener.hpp>
+#include <search/monad.hpp>
 #include <search/search_request.hpp>
-#include <search/state/search_context.hpp>
-#include <system/time_manager.hpp>
 
 class UCI
 {
@@ -62,7 +60,7 @@ public:
     bool IsReady() const;
 
     // debug on|off, with debug on the Lazy SMP helper threads report their iterations as info strings.
-    void Debug(bool enabled) { m_debug = enabled; }
+    void Debug(bool enabled) { m_listener.setReportHelpers(enabled); }
 
     /**
      * option name [name] value [value]
@@ -113,28 +111,18 @@ public:
 
     const GameContext& readGameContext() { return m_context; }
     GameContext& editGameContext() { return m_context; }
+    Monad& editMonad() { return m_monad; }
 private:
-    /**
-     * initialize the engines options with default values    */
-    void InitializeOptions();
-
     // Position's parser, throws on a malformed command which Position reports.
     bool ParsePosition(std::list<std::string> args);
 
-    // The go arguments as a request for the current position, with the time manager set up for it. Runs on the thread
-    // that reads commands, so the next command can't change what's searched.
+    // The go arguments as a request for the current position. Runs on the thread that reads commands, so the next
+    // command can't change what's searched.
     SearchRequest prepareSearch(const std::list<std::string>& args);
 
-    // Searches and sends bestmove. The caller has reset the time manager.
-    bool runSearch(const SearchRequest& request);
-
     bool m_enabled;
-    u16 m_threadCount = 1;
-    std::atomic<bool> m_debug = false;
-    TimeManager m_timeManager;
     GameContext m_context;
-    SearchContext m_searchContext;
-    std::atomic<bool> m_isSearching;
-    std::future<void> m_searchFuture;
-    std::unordered_map<std::string, std::string> m_options;
+    // before the Monad, a search it ends on its way out still reports here.
+    UciSearchListener m_listener;
+    Monad m_monad;
 };

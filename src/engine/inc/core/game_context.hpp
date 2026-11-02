@@ -17,7 +17,6 @@
 #include <vector>
 #include <core/chessboard.hpp>
 #include <move/move_undo.hpp>
-#include <search/state/transposition_table.hpp>
 
 struct SearchResult;
 struct SearchLimits;
@@ -38,11 +37,10 @@ struct GameHistory {
 
 class GameContext {
 public:
-    GameContext() :
-        m_transpositionTable(64)
+    GameContext()
     {
         Reset();
-    }    
+    }
 
     void Reset();
     void NewGame();
@@ -63,7 +61,6 @@ public:
 
     Set readToPlay() const { return m_board.readToPlay(); }
 
-    TranspositionTable& editTranspositionTable() { return m_transpositionTable; }
     GameHistory& editGameHistory() { return m_history; }
     const GameHistory& readGameHistory() const { return m_history; }
 
@@ -72,7 +69,5 @@ private:
     GameContext& operator=(const GameContext& rhs) = delete;
 
     Chessboard m_board;
-    TranspositionTable m_transpositionTable;
-
     GameHistory m_history;
 };

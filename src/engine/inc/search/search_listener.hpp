@@ -1,4 +1,6 @@
 #pragma once
+#include <exception>
+
 #include <search/search_results.hpp>
 #include <system/platform.hpp>
 
@@ -21,6 +23,11 @@ class SearchListener {
 public:
     virtual ~SearchListener() = default;
     virtual void onIteration(const IterationInfo& info) = 0;
+
+    // From a Monad, once, when its search is over. elapsedMs is the search's own time, not the wait for a stop.
+    virtual void onBestMove([[maybe_unused]] const SearchResult& result, [[maybe_unused]] u64 elapsedMs) {}
+    // From a Monad in place of onBestMove, there's no answer to give.
+    virtual void onSearchFailed([[maybe_unused]] const std::exception& e) {}
 };
 
 // For searches nobody is watching, the default.

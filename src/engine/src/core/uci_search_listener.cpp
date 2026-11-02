@@ -1,9 +1,11 @@
 #include <core/uci_search_listener.hpp>
 
+#include <diagnostics/logger.hpp>
 #include <io/printer.hpp>
 #include <search/core/search_constants.hpp>
 
 #include <cstdlib>
+#include <string>
 
 void UciSearchListener::onIteration(const IterationInfo& info) {
     if (info.threadId != 0) {
@@ -27,4 +29,22 @@ void UciSearchListener::onIteration(const IterationInfo& info) {
 
     io::printer::uci("info score cp {} depth {} nodes {} time {} hashfull {} pv {}", info.score, info.depth, info.nodes,
         info.timeMs, info.hashfull, info.pv.toString());
+}
+
+void UciSearchListener::onBestMove(const SearchResult& result, u64 elapsedMs) {
+    // the iteration lines only count completed iterations, this one counts every node searched, all threads together,
+    // like Stockfish's last line. Test runners & GUIs read the total from it.
+    io::printer::uci("info nodes {} time {} nps {}", result.count, elapsedMs,
+                     elapsedMs > 0 ? result.count * 1000 / elapsedMs : result.count);
+
+    // no legal move at the root (mate or stalemate) is a null move, UCI writes that as 0000.
+    io::printer::uci("bestmove {}", result.move().isNull() ? std::string("0000") : result.move().toString());
+    io::printer::uci_flush();
+}
+
+void UciSearchListener::onSearchFailed(const std::exception& e) {
+    LOG_WARN("{}", e.what());
+    io::printer::uci("info string error {}", e.what());
+    io::printer::uci("bestmove 0000");
+    io::printer::uci_flush();
 }

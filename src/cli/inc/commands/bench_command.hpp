@@ -87,7 +87,8 @@ public:
 
                 SearchContext searchContext;
                 UciSearchListener listener;
-                Search search(searchContext, context.editTranspositionTable(), listener);
+                TranspositionTable tt;
+                Search search(searchContext, tt, listener);
                 SearchLimits params;
                 TimeManager tm(params, context.readToPlay());
                 
@@ -109,7 +110,8 @@ public:
 
             SearchContext searchContext;
             UciSearchListener listener;
-            Search search(searchContext, context.editTranspositionTable(), listener);
+            TranspositionTable tt;
+            Search search(searchContext, tt, listener);
             SearchLimits params;
             TimeManager tm(params, context.readToPlay());
 

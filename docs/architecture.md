@@ -17,6 +17,7 @@ flowchart TD
     end
 
     subgraph search["search"]
+        monad["Monad<br/>the TT, every thread's tables,<br/>one search at a time"]
         go["Search::go<br/>Lazy SMP, one thread per Threads"]
         shared["SharedSearchState<br/>stop flag, node count"]
         listener["SearchListener<br/>iterations, UCI prints them"]
@@ -73,12 +74,13 @@ flowchart TD
     normal --> game
     bench --> go
     uci --> game
-    uci --> go
-    uci --> time
+    uci --> monad
+    monad --> go
+    monad --> time
+    monad --> tt
     uci --> io
     game --> board
     game --> history
-    game --> tt
     board --> pos
 
     go --> shared

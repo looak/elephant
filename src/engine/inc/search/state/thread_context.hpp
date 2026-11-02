@@ -35,7 +35,7 @@
 
 // One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
 // holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the request & clock by go, the
-// heuristics & pawn hash by the SearchContext, the TT by the GameContext, the shared stop & node count by Search.
+// heuristics & pawn hash by the SearchContext, the TT by the Monad, the shared stop & node count by Search.
 struct ThreadContext {
     ThreadContext(const SearchRequest& _request, const TimeManager& _clock, TranspositionTable& _tt,
                   ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
