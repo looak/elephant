@@ -53,6 +53,12 @@ On `refactor-monad`:
   going away, so the probe takes it along in step 8.
 - The tuner's `EntryBuilder` and `Drawer::draw`'s steps split out.
 
+- `Monad`: owns the TT, which left `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
+  immediately, `wait()` gives the result, the listener hears `onBestMove` or `onSearchFailed`. An infinite search that
+  ends on its own keeps its answer until `stop`. A `TimeManager` per `go`, so a stop can't be lost or carry over.
+  Its destructor stops and joins, `go infinite` then `normal` no longer hangs. Until step 6 the CLI's `search` has its
+  own table per command, it had the `GameContext`'s.
+
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
 
@@ -88,10 +94,6 @@ Decided:
 
 ## What's left, in order
 
-3. **`Monad`.** Owns the TT, which leaves `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
-   immediately, `wait()` returns the `SearchResult`, the listener gets `onBestMove`. Decide who holds `bestmove` back on an
-   infinite search and how a failed search reports. The destructor stops and joins, today `go infinite` then `normal` hangs.
-   The TT's default is 64 MB in `GameContext` and 8 MB through the option: check deep search tests when it changes.
 4. **`Game`.** `GameContext` shrinks and is renamed. `age`, `IsRepetition`, `editChessboard` & `editGameHistory` go,
    `MoveHistory` becomes `RepetitionHistory`, heuristics' `history` becomes `butterfly`. `PerftSearch` takes a `Game` by value,
    `pgn_parser` returns one.
@@ -120,6 +122,9 @@ Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request
   moves on every visit. It would suit best move stability in the 1.5 cycle, and `NodeKind` gives it a home. It changes
   ordering for every search, so it changes bench and needs an SPRT. `allowedRootMoves` would be a more accurate name for
   the field until then.
+- **Shorter mates on `go infinite`:** iterative deepening breaks out at the first mate (`search_impl.cpp`), so the
+  search stops looking while it holds for `stop`. MultiPV isn't needed, a shorter mate scores higher on the normal
+  line: limit the break to searches that aren't infinite. Only `go infinite` & `go ponder` change, bench doesn't.
 - **Pluggable move ordering:** scoring sits inside the generator, `move_generator.cpp`'s `scoreMove`. A separate ordering
   type that scores and learns, with the generator only knowing the rules, was discussed but not started.
 - **SPSA:** a params registry as the one place a search constant is written, generating the release `constexpr`s, the
