@@ -90,7 +90,7 @@ flowchart TD
     subgraph P0["Phase 0 · prepare (tuner_data.cpp)"]
         direction TB
         P0a["Split the file into byte ranges,<br/>one per thread"] --> P0b["Parse each FEN"]
-        P0b --> P0c["Resolve to a quiet position<br/>with quiescence (quiet.cpp)"]
+        P0b --> P0c["Resolve to a quiet position<br/>with quiescence (QuiescenceProbe)"]
         P0c -->|mate found| P0x["Dropped: decided"]
         P0c --> P0d["Trace the evaluation:<br/>coefficients, phase, offset"]
         P0d --> P0e["Self-checks:<br/>rebuilt score == engine's score?"]
@@ -124,8 +124,8 @@ flowchart TD
 
 ### Phase 0: preparing the data
 
-Source: [`tuner_data.hpp`](inc/tuner_data.hpp), [`quiet.hpp`](inc/quiet.hpp), [`trace.hpp`](inc/trace.hpp),
-[`dataset.hpp`](inc/dataset.hpp)
+Source: [`tuner_data.hpp`](inc/tuner_data.hpp), [`quiescence_probe.hpp`](../src/engine/inc/search/quiescence_probe.hpp),
+[`trace.hpp`](inc/trace.hpp), [`dataset.hpp`](inc/dataset.hpp)
 
 The tuner never keeps the FENs. Each position becomes a ~16-byte `TunerEntry` plus a short list of 2-byte
 `Coefficient`s:
@@ -282,7 +282,6 @@ ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--ra
 |----------------------------------------------|-----------------------------------------------------------|
 | [`src/main.cpp`](src/main.cpp)               | command line, runs the phases, prints the report          |
 | [`inc/dataset.hpp`](inc/dataset.hpp)         | reading and splitting the dataset file                    |
-| [`inc/quiet.hpp`](inc/quiet.hpp)             | resolving a position to a quiet one                       |
 | [`inc/trace.hpp`](inc/trace.hpp)             | the value layout (`params::`) and the coefficient tracer  |
 | [`inc/tuner_data.hpp`](inc/tuner_data.hpp)   | phase 0, entries, held-back split                         |
 | [`inc/find_k.hpp`](inc/find_k.hpp)           | phase 1, the sigmoid, the error, the K search             |

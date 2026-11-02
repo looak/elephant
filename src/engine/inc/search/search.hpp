@@ -49,7 +49,7 @@ enum class NodeKind {
 };
 
 class Search {
-    friend class QSearchEnabled;
+    friend class QuiescenceProbe;
 public:
     Search(SearchContext& searchContext, TranspositionTable& transpositionTable,
            SearchListener& listener = noSearchListener());
@@ -58,12 +58,12 @@ public:
     // clock are read throughout.
     SearchResult go(const SearchRequest& request, TimeManager& clock);
 
-    // Quiescence search from context's position with the whole window, line set to the line it plays. For the tuner,
-    // which fits the evaluation on the quiet position at its end. context's moves are made & unmade, it's left as it was.
+private:
+    // Quiescence search from context's position with the whole window, line set to the line it plays. context's moves are
+    // made & unmade, it's left as it was. See QuiescenceProbe.
     template<Set us>
     static i16 quiescenceLine(ThreadContext& context, PVLine& line);
 
-private:
     template<Set us>
     SearchResult run(const SearchRequest& request, TimeManager& clock);
 

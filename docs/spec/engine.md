@@ -206,7 +206,7 @@ whoever plays the games writes the players and tags.
   default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
   carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
   With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
-  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  search (`QuiescenceProbe`) returns the position's own static evaluation. The search is a test and its line is
   discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
   ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
   duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and

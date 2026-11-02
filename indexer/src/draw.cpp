@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <charconv>
-#include <cstdlib>
 #include <format>
 #include <memory>
 #include <unordered_map>
@@ -13,11 +12,7 @@
 #include <core/chessboard.hpp>
 #include <io/fen_parser.hpp>
 #include <move/move_undo.hpp>
-#include <search/search.hpp>
-#include <search/core/search_constants.hpp>
-#include <search/state/thread_context.hpp>
-#include <search/state/transposition_table.hpp>
-#include <system/time_manager.hpp>
+#include <search/quiescence_probe.hpp>
 
 namespace indexer {
 namespace {
@@ -78,27 +73,14 @@ namespace {
 } // namespace
 
 struct Drawer::Impl {
-    explicit Impl(DrawOptions o)
-        : options(o)
-        , clock(SearchLimits{}, Set::WHITE)
-        , tt(1)
-        , heuristics(std::make_unique<ThreadHeuristics>())
-        , context(request, clock, tt, *heuristics, pawnHash)
-    {
-        context.stopEnabled = false;  // quiescence runs to its own end
-    }
+    explicit Impl(DrawOptions o) : options(o) {}
 
     // Not in check, and the engine's own quiescence search finds nothing it would rather play than stand pat: the
     // position is its own evaluation. The search is a test, its line is thrown away.
     bool naturallyQuiet(const Chessboard& board)
     {
-        context.position = board.readPosition().copy();
-        context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
-
-        PVLine line;
-        const i16 score = board.readToPlay() == Set::WHITE ? Search::quiescenceLine<Set::WHITE>(context, line)
-                                                           : Search::quiescenceLine<Set::BLACK>(context, line);
-        return line.length == 0 && std::abs(score) < c_checkmateMinScore;
+        const QuiescenceResult result = probe.search(board);
+        return result.line.length == 0 && !result.decided;
     }
 
     // a position drawn by one or more games: the sum of their results in halves, 2 a win and 1 a draw.
@@ -111,13 +93,7 @@ struct Drawer::Impl {
     DrawOptions options;
     std::vector<Merged> merged;                       // in the order the positions were first drawn
     std::unordered_map<u64, size_t> mergedIndex;      // Polyglot hash to its place in merged
-    TimeManager clock;
-    SearchRequest request;
-    // quiescence never touches the TT, the smallest table satisfies the context.
-    TranspositionTable tt;
-    std::unique_ptr<ThreadHeuristics> heuristics;
-    PawnHashTable pawnHash;
-    ThreadContext context;
+    QuiescenceProbe probe;
     std::unordered_set<u64> seen;   // the Polyglot hashes written so far
     u64 gamesSeen = 0;
 };

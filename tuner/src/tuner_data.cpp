@@ -18,11 +18,7 @@
 #include <eval/pesto_accumulator.hpp>
 #include <eval/pieces.hpp>
 #include <io/fen_parser.hpp>
-#include <quiet.hpp>
-#include <search/search.hpp>
-#include <search/state/thread_context.hpp>
-#include <search/state/transposition_table.hpp>
-#include <system/time_manager.hpp>
+#include <search/quiescence_probe.hpp>
 
 namespace tuner {
 
@@ -115,17 +111,7 @@ struct Part {
 void prepareRange(const std::string& path, ByteRange range, Part& part, std::atomic<std::size_t>& progress) {
     const std::vector<TaperedScore> current = params::current();
 
-    // one context for every position in range, reset to each in turn. Never stopped, quiescence runs to its own end.
-    const SearchLimits noLimits{};
-    const TimeManager clock(noLimits, Set::WHITE);
-    const SearchRequest request{};
-    // quiescence never touches the TT, the smallest table satisfies the context.
-    TranspositionTable tt(1);
-    auto heuristics = std::make_unique<ThreadHeuristics>();
-    PawnHashTable pawnHash;
-    ThreadContext context(request, clock, tt, *heuristics, pawnHash);
-
-    context.stopEnabled = false;
+    QuiescenceProbe probe;
 
     TunerData& data = part.data;
     PrepareReport& report = part.report;
@@ -146,38 +132,35 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
             unreported = 0;
         }
 
-        context.position = board->readPosition().copy();
-        context.accumulator = PestoAccumulator::computeFromScratch(context.position.read().material());
-
-        bool decided = false;
-        const PVLine line = resolveToQuiet(context, board->readToPlay(), decided);
-        if (decided) {
+        const QuiescenceResult resolved = probe.search(*board);
+        if (resolved.decided) {
             ++report.decided;
             return true;
         }
-        if (line.length > 0) {
+        if (resolved.line.length > 0) {
             ++report.resolved;
-            report.lineMoves += line.length;
-            report.longestLine = std::max<std::size_t>(report.longestLine, line.length);
+            report.lineMoves += resolved.line.length;
+            report.longestLine = std::max<std::size_t>(report.longestLine, resolved.line.length);
         }
+        probe.playLine(resolved.line);
 
         // the quiet position's terms, traced from scratch: PeSTO's, compared with the incremental sums the line's moves
         // left behind, mobility's, pawn structure's, the passed pawn extras, king shelter & storm, king attack and the
         // piece terms.
         trace.clear();
-        const PestoAccumulator traced = PestoAccumulator::computeFromScratch(context.position.read().material(), trace);
-        if (!(traced == context.accumulator))
+        const PestoAccumulator traced = PestoAccumulator::computeFromScratch(probe.position().material(), trace);
+        if (!(traced == probe.accumulator()))
             ++report.accumulatorMismatch;
         KingZoneAttacks onKing[2];
-        (void)mobilityScore(context.position.read().material(), trace, onKing);
-        const PawnInfo pawns = pawnInfo(context.position.read().material(), trace);
-        (void)passerScore(context.position.read().material(), pawns, trace);
-        (void)kingSafetyScore(context.position.read().material(), trace);
-        (void)kingAttackScore(context.position.read().material(), onKing, trace);
-        (void)pieceScore(context.position.read().material(), trace);
+        (void)mobilityScore(probe.position().material(), trace, onKing);
+        const PawnInfo pawns = pawnInfo(probe.position().material(), trace);
+        (void)passerScore(probe.position().material(), pawns, trace);
+        (void)kingSafetyScore(probe.position().material(), trace);
+        (void)kingAttackScore(probe.position().material(), onKing, trace);
+        (void)pieceScore(probe.position().material(), trace);
 
         // the engine's own numbers: the whole static evaluation, and the part made of the terms that are fitted.
-        Evaluator evaluator(context.position.read(), traced);
+        Evaluator evaluator(probe.position(), traced);
         const i32 staticEval = evaluator.Evaluate();
         const i32 tapered = evaluator.EvaluateTapered();
 
