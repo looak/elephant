@@ -15,7 +15,7 @@ main
   search-time
     refactor-thread-context    PR #51 into search-time, open
       search-request           pushed, no PR yet
-        refactor-monad         this branch
+        refactor-monad         this branch, not pushed
 ```
 
 `search-request` should get a PR into `refactor-thread-context`. CI only runs by itself on pull requests into `main`, on these
@@ -56,7 +56,7 @@ On `refactor-monad`:
 - `Monad`: owns the TT, which left `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
   immediately, `wait()` gives the result, the listener hears `onBestMove` or `onSearchFailed`. An infinite search that
   ends on its own keeps its answer until `stop`. A `TimeManager` per `go`, so a stop can't be lost or carry over.
-  Its destructor stops and joins, `go infinite` then `normal` no longer hangs. Until step 6 the CLI's `search` has its
+  Its destructor stops and joins. Until step 6 the CLI's `search` has its
   own table per command, it had the `GameContext`'s.
 
 - `Game`: `GameContext` shrunk and renamed. It starts at a position and another game replaces it, `loadFen` replaces it
@@ -65,13 +65,20 @@ On `refactor-monad`:
   text of a game is `PgnGame`. `PerftSearch` has its own copy. `pgn_parser::deserialize` still plays onto a `Game`, it's
   specified to continue from the current position and tests rely on it.
 
-- `bench::run` & `bench::runSignature`: the one bench loop, UCI's, `elephant_ob`'s & the CLI's. Each binary still prints it
+- `bench::run` & `bench::runSignature`: the one bench loop, UCI's, `eg-uci`'s & the CLI's. Each binary still prints it
   its own way, `docs/spec/engine.md` specifies that. `openbench.cpp`'s own copy of the FENs is gone, they were identical.
 
 - `position fen` starts a new game like `position startpos`. Its moves stayed in the history every turn, so with a non-zero
   FEN clock and no capture or pawn move since, a position that occurred twice could count as threefold. Unit tests, no
   SPRT: the bug can't fire with a FEN clock of 0, as in the OpenBench games in `test/pgn`. Four of the eight games in
   `fastchess_gauntlet.pgn` have a non-zero one, so gauntlets could see it.
+
+- `src/uci`, a library the engine knows nothing of, and `eg-uci`, the binary that is only UCI & bench. `openbench.cpp` is its
+  main. The read loop ends when standard input closes, it used to spin forever. `normal` mode from UCI was dead code, the
+  command table never had it.
+- `./build.sh`, `dist/` for what you run, `.build/` for objects, `.build/deps` for fetched sources. Binaries are named
+  `eg-uci-<version>-<win|linux|mac>-<instructions>`. `ob_build/makefile` stays while OpenBench's `Engines/elephant.json`
+  points at it: as far as I recall each commit builds from its own tree, so moving it breaks tests against older bases.
 
 Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
 `test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
@@ -100,7 +107,7 @@ Decided:
 - **`Monad`** is the name, after Leibniz: its own memory, nothing shared with another one, no colour of its own. The class
   comment says so.
 - **The interface owns the `Game`,** not `Monad`. `SearchRequest` is already a complete copy, so self-play (#49) is one
-  `Game` and two `Monad`s. UCI and the CLI hold both, a small `Session` in the CLI covers that.
+  `Game` and two `Monad`s. UCI holds both itself, the CLI's commands share a small `CommandContext`.
 - **`Monad` owns the TT,** one per `Monad`. Its workers borrow it for a `go`.
 - **`Game` replaces `GameContext`,** which is a board and an undo stack once the TT has left.
 - **`Chessboard` stays.** The indexer and tuner use it without a history.
@@ -108,11 +115,9 @@ Decided:
 
 ## What's left, in order
 
-6. **`Session`.** UCI and the CLI's commands hold a `Game` and a `Monad`. The CLI's
-   `search` stops building its own `SearchContext`, so histories carry over in normal mode. `readGame` &
-   `editGame` move over gradually, 40 uses in `uci_test.cpp`.
-7. **`UCI` moves to `src/cli`,** with `UciSearchListener`. The tests then link the CLI library, `ob_build/makefile` lists CLI
-   sources by name, and the bench hook doesn't watch `src/cli/inc`. Rename the CLI's `namespace elephant`.
+6. **`CommandContext`.** The CLI's commands get a `Game` and a `Monad` through one small struct of the CLI's own, UCI has its
+   own already. The CLI's `search` stops building its own table & `SearchContext`, so both carry over in normal mode.
+   `readGame` & `editGame` on `UCI` move over gradually, 40 uses in `uci_test.cpp`.
 8. **The per-ply struct, then `Worker`.** Gather `halfmoveClock[]`, `nullMoveAt[]`, the continuation stack and the killers
    into one struct per ply, #47's. Then `Search` splits: starting & joining threads, the shared stop & node count and the
    listener go to `Monad`, `alphaBeta` & friends to `Worker`, and `SearchContext`'s parallel vectors become
@@ -137,7 +142,7 @@ Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request
 - **SPSA:** a params registry as the one place a search constant is written, generating the release `constexpr`s, the
   tuning build's UCI options and OpenBench's input. Not started, 1.5 plans an SPSA pass after the search changes.
 - **#50:** `ElephantSuite`'s only search test is disabled, so the suite is perft only right now.
-- **Sharing one `Session` across modes:** with `AppContext` owning it, switching from normal to `uci` could keep the
+- **Sharing one `CommandContext` across modes:** with `AppContext` owning it, switching from normal to `uci` could keep the
   position. A behaviour change, not part of the first step.
 
 ## Things to remember
@@ -156,19 +161,14 @@ Update `docs/spec/engine.md` and `docs/architecture.md` in the same pull request
 
 ## Building
 
-The prepare-commit-msg & post-commit hooks in `hooks/` aren't installed by default on a new clone, and the bench they add
-is built with g++ through `ob_build/makefile`.
+The prepare-commit-msg & post-commit hooks in `hooks/` aren't installed by default on a new clone, and need copying again
+when they change. The bench they add is built with g++ through `ob_build/makefile`.
 
 ```bash
-cd ob_build && make -j8 EXE=build/elephant_ob && ./build/elephant_ob bench | tail -1
+./build.sh                 # eg-uci
+./build.sh --reference     # the g++ makefile build, from WSL on Windows, prints where the binary went
+./build.sh --all           # everything with assertions on, the tests included
+dist/ElephantTest --gtest_brief=1
 ```
 
-```bash
-cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DASSERTIONS_ENABLED=ON -DEXCEPTIONS_ENABLED=ON -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TEST_SUITE=ON -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
-```
-
-```bash
-cmake --build build --parallel 8 && ctest --test-dir build -C Release -L unit
-```
-
-Binaries land in `build/Release/bin`. Bench should print `467534 nodes` on both g++ and MSVC.
+Bench should print `467534 nodes` on g++, clang-cl and MSVC.
