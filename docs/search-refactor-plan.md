@@ -44,6 +44,18 @@ On `search-request`:
 Checked on the tip of `search-request`, g++ 16 in WSL and MSVC 19.52: full build with warnings as errors, 598 of 598 unit
 tests, bench 467534. The OpenBench makefile build has no warnings. `ElephantSuite` passes on g++.
 
+On `refactor-monad`:
+
+- `Chessboard::makeMove`, `unmakeMove` & `makeNullMove`, one place plays a move and keeps the side to move & clocks in
+  step. `io::fen_parser::read`, one place reads a FEN without throwing. `game_index.cpp`'s FEN tag keeps `deserialize`,
+  its error text carries the parser's message and that's in the indexer's output.
+- `QuiescenceProbe`, the setup the tuner and indexer each repeated. `Search::quiescenceLine` is private to it. `Search` is
+  going away, so the probe takes it along in step 8.
+- The tuner's `EntryBuilder` and `Drawer::draw`'s steps split out.
+
+Bench doesn't cover the tuner or indexer. These were checked by comparing their output with `search-request`'s on
+`test/pgn` and a dataset drawn from it: entries, positions, draws, stats, tuned tables.
+
 ## How it fits together
 
 Three layers, by lifetime. Nothing clears a history: a `Game` starts at a position and is replaced whole.
@@ -76,12 +88,6 @@ Decided:
 
 ## What's left, in order
 
-1. **`Chessboard` moves and `io::fen_parser::read`.** One place plays a move and keeps the side to move & clocks in step,
-   one place reads a FEN without throwing. The indexer, tuner and `GameContext` use them. `game_index.cpp`'s FEN tag
-   keeps `deserialize`, its error text carries the parser's message and that's in the indexer's output.
-2. **`QuiescenceProbe`.** The setup the tuner and indexer each repeat (clock, empty request, 1 MB TT, heuristics, context)
-   in the engine, and a home for `Search::quiescenceLine`. It keeps its tables between positions like they do today.
-   Neither tool's output may change, and bench doesn't cover them: compare their output on a fixed input.
 3. **`Monad`.** Owns the TT, which leaves `GameContext`, and a `SearchContext`, and creates a `Search` per `go`. `go` returns
    immediately, `wait()` returns the `SearchResult`, the listener gets `onBestMove`. Decide who holds `bestmove` back on an
    infinite search and how a failed search reports. The destructor stops and joins, today `go infinite` then `normal` hangs.
