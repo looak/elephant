@@ -23,7 +23,7 @@
 #pragma once
 
 #include <search/search_results.hpp>
-#include <search/search_threadcontext.hpp>
+#include <search/state/thread_context.hpp>
 
 namespace tuner {
 
@@ -32,6 +32,6 @@ namespace tuner {
  * on the quiet position at its end. Returns that line, empty when the position already was quiet. Sets decided, and
  * leaves context as it was, when the search finds a mate for either side: the line ends in a mated position, there's
  * no quiet one to fit. context needs stopEnabled false.    */
-PVLine resolveToQuiet(ThreadSearchContext& context, bool& decided);
+PVLine resolveToQuiet(ThreadContext& context, bool& decided);
 
 } // namespace tuner

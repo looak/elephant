@@ -4,7 +4,7 @@
 #include "commands/logic/command_registry.hpp"
 #include <core/game_context.hpp>
 #include <diagnostics/logger.hpp>
-#include <search/perft_search.hpp>
+#include <search/perft/perft_search.hpp>
 
 
 struct DivideCommandArgs

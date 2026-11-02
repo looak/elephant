@@ -3,11 +3,12 @@
 #include <io/fen_parser.hpp>
 #include <core/build_info.hpp>
 #include <core/uci.hpp>
+#include <core/uci_search_listener.hpp>
 #include <elephant_gambit_config.h>
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -631,6 +632,60 @@ TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
     EXPECT_GE(finalReportedNodes(output), 5000u);
     EXPECT_LE(finalReportedNodes(output), 5000u + c_maxSearchDepth);
     EXPECT_LT(output.rfind("info nodes "), output.rfind("bestmove"));
+}
+
+TEST_F(UciFixture, searchListener_WritesTheInfoLinesGuisRead)
+{
+    // setup, mate scores are +-(checkmate - matePly), a distance of 4 is 3 plies from the root.
+    PVLine pv;
+    UciSearchListener listener;
+    IterationInfo centipawns{ .threadId = 0, .depth = 5, .score = 25, .nodes = 100, .timeMs = 20, .hashfull = 7, .pv = pv };
+    IterationInfo mating{ .threadId = 0, .depth = 5, .score = c_checkmateConstant - 4, .nodes = 100, .timeMs = 20,
+                          .hashfull = 7, .pv = pv };
+    IterationInfo mated{ .threadId = 0, .depth = 5, .score = -(c_checkmateConstant - 4), .nodes = 100, .timeMs = 20,
+                         .hashfull = 7, .pv = pv };
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        listener.onIteration(centipawns);
+        listener.onIteration(mating);
+        listener.onIteration(mated);
+    }
+
+    // verify
+    EXPECT_EQ("info score cp 25 depth 5 nodes 100 time 20 hashfull 7 pv \n"
+              "info score mate 2 depth 5 nodes 100 time 20 hashfull 7 pv \n"
+              "info score mate -1 depth 5 nodes 100 time 20 hashfull 7 pv \n",
+              testOutput.str());
+}
+
+TEST_F(UciFixture, searchListener_HelperThreadsOnlyReportedWithDebugOn)
+{
+    // setup
+    PVLine pv;
+    IterationInfo helper{ .threadId = 1, .depth = 5, .score = 25, .nodes = 100, .timeMs = 20, .hashfull = 0, .pv = pv };
+    UciSearchListener debugOff;
+    UciSearchListener debugOn(true);
+
+    std::stringstream silentOutput;
+    std::stringstream reportedOutput;
+
+    // do
+    {
+        ScopedRedirect coutRedirect(std::cout, silentOutput);
+        debugOff.onIteration(helper);
+    }
+    {
+        ScopedRedirect coutRedirect(std::cout, reportedOutput);
+        debugOn.onIteration(helper);
+    }
+
+    // verify
+    EXPECT_EQ("", silentOutput.str());
+    EXPECT_EQ("info string thread 1 depth 5 score 25 nodes 100 pv \n", reportedOutput.str());
 }
 
 TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)

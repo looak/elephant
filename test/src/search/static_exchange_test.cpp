@@ -2,7 +2,7 @@
 
 #include <core/game_context.hpp>
 #include <io/fen_parser.hpp>
-#include <search/static_exchange.hpp>
+#include <search/core/static_exchange.hpp>
 
 namespace ElephantTest {
 /**

@@ -3,6 +3,7 @@
 #include "commands/logic/command_registry.hpp"
 
 #include <core/game_context.hpp>
+#include <core/uci_search_listener.hpp>
 #include <diagnostics/logger.hpp>
 #include <io/fen_parser.hpp>
 #include <search/search.hpp>
@@ -85,7 +86,8 @@ public:
                 io::fen_parser::deserialize(testCase.fen.c_str(), context.editChessboard());
 
                 SearchContext searchContext;
-                Search search(searchContext, context);
+                UciSearchListener listener;
+                Search search(searchContext, context, listener);
                 SearchParameters params;
                 TimeManager tm(params, context.readToPlay());
                 
@@ -113,7 +115,8 @@ public:
             io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
             SearchContext searchContext;
-            Search search(searchContext, context);
+            UciSearchListener listener;
+            Search search(searchContext, context, listener);
             SearchParameters params;
             TimeManager tm(params, context.readToPlay());
 

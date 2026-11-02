@@ -7,6 +7,7 @@
 #include <system/static_initializer.hpp>
 #include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
+#include <core/uci_search_listener.hpp>
 #include <io/fen_parser.hpp>
 #include <io/printer.hpp>
 #include <search/search.hpp>
@@ -94,6 +95,7 @@ void bench() {
     GameContext context;
     context.editTranspositionTable().resize(16);
     SearchContext searchContext;
+    UciSearchListener listener;
 
     Clock timer;
     timer.Start();
@@ -103,7 +105,7 @@ void bench() {
         BenchScope scope(context, searchContext);
         scope.loadFen(fen);
 
-        Search search(searchContext, context);
+        Search search(searchContext, context, listener);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
 

@@ -16,8 +16,9 @@
 #pragma once
 #include <material/chess_piece_defines.hpp>
 #include <position/position_accessors.hpp>
-#include <search/search_context.hpp>
-#include <search/search_policies.hpp>
+#include <search/state/search_context.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/search_listener.hpp>
 #include <search/search_results.hpp>
 
 #include <optional>
@@ -25,7 +26,7 @@
 #include <vector>
 
 // forward-declare
-struct ThreadSearchContext;
+struct ThreadContext;
 
 class GameContext;
 template<Set us>
@@ -60,8 +61,6 @@ struct SearchParameters {
     // restrict the root to these moves, empty = all legal moves. Only source, target & promotion are compared, moves
     // that aren't legal in the root position are dropped and if none are left the restriction is ignored.
     std::vector<PackedMove> SearchMoves;
-    // uci debug on, the helper threads also report their completed iterations as info strings.
-    bool ThreadInfo = false;
 };
 
 // Everything one go's search is given to read, built by go from its SearchParameters and the game before the threads
@@ -88,7 +87,7 @@ struct SharedSearchState {
 class Search {
     friend class QSearchEnabled;
 public:
-    Search(SearchContext& searchContext, GameContext& context);
+    Search(SearchContext& searchContext, GameContext& context, SearchListener& listener = noSearchListener());
 
     // entry point
     template<Set us>
@@ -97,35 +96,35 @@ public:
     // Quiescence search from context's position with the whole window, line set to the line it plays. For the tuner,
     // which fits the evaluation on the quiet position at its end. context's moves are made & unmade, it's left as it was.
     template<Set us>
-    static i16 quiescenceLine(ThreadSearchContext& context, PVLine& line);
+    static i16 quiescenceLine(ThreadContext& context, PVLine& line);
 
 private:
     // start of actual search
     template<Set us>
-    SearchResult iterativeDeepening(ThreadSearchContext& context, SearchParameters params);
+    SearchResult iterativeDeepening(ThreadContext& context, SearchParameters params);
 
     // internal seach methods
     template<Set us>
-    i16 alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+    i16 alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
     template<Set us>
     // futile: the node failed the futility check, quiet moves that don't give check are skipped.
-    i16 searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+    i16 searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
 
     // moves, when given, is an unstarted move source for this position, alphaBeta passes the one it built at a leaf so
     // the check & pin info isn't computed twice. line records the line played, NoQuiescenceLine records nothing.
     template<Set us, typename Line>
-    static i16 quiescence(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line,
+    static i16 quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line,
                           SearchMoveSource<us>* moves = nullptr);
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
-    std::optional<i16> tryNullMovePrune(ThreadSearchContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
+    std::optional<i16> tryNullMovePrune(ThreadContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
 
-    void reportResult(SearchResult& searchResult, u32 itrDepth, u64 nodes, u64 elapsedTime) const;
     
     TranspositionTable& m_transpositionTable;
     SearchContext& m_searchContext;
     GameContext& m_gameContext;
+    SearchListener& m_listener;
 
     PositionReader m_originPosition;
     SharedSearchState m_shared;

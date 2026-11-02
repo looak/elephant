@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <search/transposition_table.hpp>
-#include <search/search_constants.hpp>
+#include <search/state/transposition_table.hpp>
+#include <search/core/search_constants.hpp>
 
 namespace ElephantTest {
 

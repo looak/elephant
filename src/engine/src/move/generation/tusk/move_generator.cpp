@@ -11,7 +11,7 @@
 #include <position/castling_state_info.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/position.hpp>
-#include <search/static_exchange.hpp>
+#include <search/core/static_exchange.hpp>
 
 namespace tusk {
 namespace {

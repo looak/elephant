@@ -22,8 +22,8 @@
 
 #include <core/chessboard.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
@@ -36,8 +36,8 @@
 // One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
 // holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the inputs by go, the
 // heuristics & pawn hash by the SearchContext, the TT by the GameContext, the shared stop & node count by Search.
-struct ThreadSearchContext {
-    ThreadSearchContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, TranspositionTable& _tt,
+struct ThreadContext {
+    ThreadContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, TranspositionTable& _tt,
                         ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
         : inputs(_inputs),
           tt(_tt),

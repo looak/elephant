@@ -3,11 +3,10 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 #include <diagnostics/logger.hpp>
-#include <io/printer.hpp>
 
-#include <search/search_move_source.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 #include <algorithm>
@@ -31,7 +30,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
         legalMoves.start(&ordering, MoveTypes::ALL);
         for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
             for (PackedMove requested : params.SearchMoves) {
-                if (ThreadSearchContext::sameUciMove(requested, legal.move)) {
+                if (ThreadContext::sameUciMove(requested, legal.move)) {
                     rootMoves.push_back(legal.move);
                     break;
                 }
@@ -58,7 +57,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
             [this, &params, &inputs, threadId]() {
-            ThreadSearchContext searchContext(
+            ThreadContext searchContext(
                 this->m_originPosition.copy(),
                 us == Set::WHITE,
                 inputs,
@@ -126,7 +125,7 @@ bool helperSkipsDepth(u16 threadId, u8 depth) {
 } // namespace
 
 template<Set us>
-SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {
+SearchResult Search::iterativeDeepening(ThreadContext& context, SearchParameters params) {
     SearchResult result;
 
     // the hard ply limit in alphaBeta makes deeper iterations pointless.
@@ -179,13 +178,12 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         if (context.stopped)
             break;
 
-        // the time this iteration finished, reported with the nodes of all threads so nodes / time is the real nps.
-        // Only the main thread reports, the helpers are silent.
-        if (context.isMainThread())
-            reportResult(itrResult, itrDepth, context.totalNodes(), context.inputs.clock.now());
-        else if (params.ThreadInfo)
-            io::printer::uci("info string thread {} depth {} score {} nodes {} pv {}", context.threadId, itrDepth,
-                itrResult.score, context.nodeCount + context.qNodeCount, itrResult.pvLine.toString());
+        // the time this iteration finished. hashfull walks a thousand entries and nothing reads it from a helper.
+        const bool isMain = context.isMainThread();
+        m_listener.onIteration({ .threadId = context.threadId, .depth = itrDepth, .score = itrResult.score,
+            .nodes = isMain ? context.totalNodes() : context.nodeCount + context.qNodeCount,
+            .timeMs = context.inputs.clock.now(), .hashfull = isMain ? m_transpositionTable.hashfull() : 0u,
+            .pv = itrResult.pvLine });
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);
@@ -216,5 +214,5 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
     return result;
 }
 
-template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadSearchContext&, SearchParameters);
-template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadSearchContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadContext&, SearchParameters);

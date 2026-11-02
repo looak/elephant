@@ -19,8 +19,8 @@
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
 #include <search/search.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 namespace tuner {
@@ -122,7 +122,7 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     TranspositionTable tt(1);
     auto heuristics = std::make_unique<ThreadHeuristics>();
     PawnHashTable pawnHash;
-    ThreadSearchContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
+    ThreadContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
 
     context.stopEnabled = false;
 

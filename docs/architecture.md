@@ -19,7 +19,8 @@ flowchart TD
     subgraph search["search"]
         go["Search::go<br/>Lazy SMP, one thread per Threads"]
         shared["SharedSearchState<br/>stop flag, node count"]
-        ctx["ThreadSearchContext<br/>position, accumulator, pawn hash,<br/>move ordering, repetition history"]
+        listener["SearchListener<br/>iterations, UCI prints them"]
+        ctx["ThreadContext<br/>position, accumulator, pawn hash,<br/>move ordering, repetition history"]
         id["iterative deepening<br/>aspiration windows"]
         ab["alphaBeta (PVS)<br/>TT probe, check ext, IIR,<br/>RFP, NMP, LMR, SEE pruning"]
         qs["quiescence"]
@@ -86,6 +87,8 @@ flowchart TD
     time --> clock
     id --> time
     id --> ab
+    id --> listener
+    uci --> listener
     ab --> qs
     ab --> policies
     policies --> tt
