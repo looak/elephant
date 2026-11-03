@@ -22,8 +22,8 @@
 
 #include <core/chessboard.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 #include <system/platform.hpp>
 #include <system/clock.hpp>
 #include <system/time_manager.hpp>
@@ -33,55 +33,78 @@
 #include <eval/pesto_accumulator.hpp>
 #include <move/move_executor.hpp>
 
-struct ThreadSearchContext {
-    ThreadSearchContext(Position _position, bool whiteToMove, const TimeManager& _clock)
-        : position(_position),
-          accumulator(PestoAccumulator::computeFromScratch(position.read().material())),
-          clock(_clock) {
+// One search thread's state for one go. Built on the thread's stack when go starts and gone when it ends, so it only
+// holds what is small & per go itself. What lives longer is owned elsewhere & referenced: the inputs by go, the
+// heuristics & pawn hash by the SearchContext, the TT by the GameContext, the shared stop & node count by Search.
+struct ThreadContext {
+    ThreadContext(Position _position, bool whiteToMove, const SearchInputs& _inputs, TranspositionTable& _tt,
+                        ThreadHeuristics& _heuristics, PawnHashTable& _pawnHash)
+        : inputs(_inputs),
+          tt(_tt),
+          heuristics(_heuristics),
+          pawnHash(_pawnHash),
+          position(_position),
+          accumulator(PestoAccumulator::computeFromScratch(position.read().material())) {
             gameState.whiteToMove = whiteToMove;
-
         }
+
+    // --- Owned elsewhere, outlive this context ---
+
+    // what this go was asked for: the clock, the node limit & the root moves. Shared by every thread, read only.
+    const SearchInputs& inputs;
+    // the transposition table, the same one for every thread of the search. Its entries are single atomic words, so
+    // the threads read & write it without locks.
+    TranspositionTable& tt;
+    // this thread's killers, butterfly & continuation history, from the SearchContext. Never shared between threads.
+    ThreadHeuristics& heuristics;
+    // this thread's pawn structure scores, from the SearchContext, see pawn_hash.hpp.
+    PawnHashTable& pawnHash;
+    // Lazy SMP, every thread searches the same root and they share the TT. Thread 0 is the main thread, it reports,
+    // manages time and its result is the one played. The helpers only fill the TT.
+    u16 threadId = 0;
+    // the stop flag & node count of all threads, owned by Search. Null in the tuner, which searches alone.
+    SharedSearchState* shared = nullptr;
+
+    // --- The position being searched ---
+
+    // this thread's copy of the root, moves are made & unmade on it as the search walks the tree.
     Position position;
     // PeSTO sums for position, kept in step by the executors from executor() & read by evaluate().
     PestoAccumulator accumulator;
-    // this thread's pawn structure scores, see pawn_hash.hpp.
-    PawnHashTable pawnHash;
     GameState gameState;
+
+    // --- The current line, indexed by ply ---
+
+    // hashes of the game's positions and of the line searched to here, for threefold repetition.
     MoveHistory history;
-    MoveOrderingHeuristic moveOrdering;
+    // halfmoveClock[ply] is the fifty move rule counter of the position at ply, the root (ply 1) gets the game's.
+    std::array<u16, c_maxSearchDepth + 1> halfmoveClock{};
+    // the continuation history reply table of the move made at each ply.
+    ContinuationStack continuationStack{};
     // nullMoveAt[ply] is set while the reply to a null move made at ply is searched, so the reply doesn't null move
     // straight back.
     std::array<bool, c_maxSearchDepth> nullMoveAt{};
-    // halfmoveClock[ply] is the fifty move rule counter of the position at ply, the root (ply 1) gets the game's.
-    std::array<u16, c_maxSearchDepth + 1> halfmoveClock{};
     // While a null move fail high is verified, nmpColor doesn't null move before nmpMinPly.
     u16 nmpMinPly = 0;
     bool nmpColorWhite = false;
+
+    // --- Counters ---
+
     u64 nodeCount = 0;
     u64 qNodeCount = 0;
     u64 evalCount = 0;
-    const TimeManager& clock;
+    // this thread's nodes already added to shared->nodes.
+    u64 publishedNodes = 0;
+
+    // --- Stopping ---
 
     // Set once the clock says stop. From then on every search function unwinds immediately and its return value is
     // meaningless, callers must check stopped before trusting a score, updating alpha, pv, killers or the TT.
     bool stopped = false;
     // Iterative deepening disables stopping for the first iteration so there is always one complete result.
     bool stopEnabled = true;
-
+    // calls to shouldStop, the clock & the shared stop are consulted every 1024th.
     u32 stopCheckCounter = 0;
-
-    // go nodes, 0 = no limit. Checked against the nodes of all threads, with one thread the search is deterministic.
-    u64 nodeLimit = 0;
-
-    // go searchmoves, the only moves searched at the root. Empty = all moves.
-    std::vector<PackedMove> rootMoves;
-
-    // Lazy SMP, every thread searches the same root and they share the TT. Thread 0 is the main thread, it reports,
-    // manages time and its result is the one played. The helpers only fill the TT.
-    u16 threadId = 0;
-    SharedSearchState* shared = nullptr;
-    // this thread's nodes already added to shared->nodes.
-    u64 publishedNodes = 0;
 
     [[nodiscard]] bool isMainThread() const { return threadId == 0; }
 
@@ -102,7 +125,7 @@ struct ThreadSearchContext {
     }
 
     [[nodiscard]] bool nodeLimitReached() const {
-        return nodeLimit != 0 && totalNodes() >= nodeLimit;
+        return inputs.nodeLimit != 0 && totalNodes() >= inputs.nodeLimit;
     }
 
     [[nodiscard]] bool searchStopped() const {
@@ -117,7 +140,7 @@ struct ThreadSearchContext {
     }
 
     [[nodiscard]] bool isRootMoveAllowed(PackedMove move) const {
-        for (PackedMove allowed : rootMoves) {
+        for (PackedMove allowed : inputs.rootMoves) {
             if (sameUciMove(allowed, move))
                 return true;
         }
@@ -135,7 +158,7 @@ struct ThreadSearchContext {
             stopped = true;
         else if ((++stopCheckCounter & 1023) == 0) {
             publishNodes();
-            if (clock.shouldStop() || searchStopped())
+            if (inputs.clock.shouldStop() || searchStopped())
                 stopped = true;
         }
         return stopped;
@@ -190,7 +213,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void tt_probe_score(i16 score, u8 depth, u16 ply, u64 hash) const {
+    void debug_print_tt_probe_score(i16 score, u8 depth, u16 ply, u64 hash) const {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] TT | P:{} | D:{} | Hash:{:016X} | Score:{:05}",
@@ -199,7 +222,7 @@ struct ThreadSearchContext {
         }
     }
     
-    void scout_search() {
+    void debug_print_scout_search() {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] Scout Search triggered.",
@@ -207,7 +230,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void scout_re_search() {
+    void debug_print_scout_re_search() {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}] Scout Re-Search triggered.",
@@ -215,7 +238,7 @@ struct ThreadSearchContext {
         }
     } 
 
-    void begin(int threadId, const SearchParameters& params) {
+    void debug_print_begin(int threadId, const SearchParameters& params) {
         auto logger = logging::debug_search_logger();
         if (logger) {
         logger->debug("[TID:{:X}] Starting search with {} threads, time control: {}",
@@ -223,7 +246,7 @@ struct ThreadSearchContext {
         }
     }
 
-    void end(int threadId) {
+    void debug_print_end(int threadId) {
         auto logger = logging::debug_search_logger();
         if (logger) {
             logger->debug("[TID:{:X}]Ending search thread.", threadId);
@@ -232,11 +255,11 @@ struct ThreadSearchContext {
 #else
     void debug_print_alphabeta_entry(u8, u16, i16, i16, u64) const {}
     void debug_print_eval(PackedMove, i16, i16, i16, u8, u16, u64) const {}
-    void tt_probe_score(i16, u8, u16, u64) const {}
-    void scout_search() {}
-    void scout_re_search() {}
-    void begin(int, const SearchParameters&) {}
-    void end(int) {}
+    void debug_print_tt_probe_score(i16, u8, u16, u64) const {}
+    void debug_print_scout_search() {}
+    void debug_print_scout_re_search() {}
+    void debug_print_begin(int, const SearchParameters&) {}
+    void debug_print_end(int) {}
 #endif
 
 

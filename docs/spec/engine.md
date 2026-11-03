@@ -109,7 +109,7 @@ promotions.
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
 | piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
 | mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, hand-set | every evaluation, outside the taper |
-| tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
+| tempo: 15 cp to the side to move | `search/state/thread_context.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
 `Evaluator::EvaluateTapered` is the tapered sum, the part the tuner fits; `Evaluate` adds mop-up and asserts both
 kings are on the board (search never evaluates without one), search adds tempo. A safe square is

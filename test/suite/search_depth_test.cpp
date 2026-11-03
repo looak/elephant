@@ -25,12 +25,15 @@ public:
 };
 ////////////////////////////////////////////////////////////////
 
-TEST_F(SearchDepthFixture, NullMovePruning_DeepLine) {
+// Disabled, #50: since continuation history the engine plays g7g3, which wins as well as d4e3 (both about +6.7 at
+// depth 30), so the position no longer tests whether pruning hides the d4e3 line.
+TEST_F(SearchDepthFixture, DISABLED_NullMovePruning_DeepLine) {
     for (const auto& searchCase : s_nullMovePruningDeep) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
 
         // d4e3 needs a full depth 9 search without pruning, null move pruning and LMR take plies off the lines that
         // matter. With both it was first found at depth 13, futility & reverse futility pruning pushed that to 17

@@ -1,4 +1,5 @@
 #include <core/uci.hpp>
+#include <core/uci_search_listener.hpp>
 
 #include <elephant_gambit_config.h>
 #include <core/build_info.hpp>
@@ -114,18 +115,23 @@ UCI::SetOption(const std::list<std::string> args)
             }
         };
 
+        // A running search reads these and Hash frees the table it's using, so a valid option ends the search first. GUIs
+        // only set options while idle, a bad one is reported above without touching the search.
         if (name == "Threads") {
             u16 threadCount = static_cast<u16>(std::clamp(toInt(), 1, 64));
+            SyncGo();
             m_options["Threads"] = value;
             m_threadCount = threadCount;
         }
         else if (name == "Hash") {
             size_t newSize = static_cast<size_t>(std::max(1, toInt()));
+            SyncGo();
             m_options["Hash"] = value;
             m_context.editTranspositionTable().resize(newSize, m_threadCount);
         }
         else if (name == "Move Overhead") {
             u32 overhead = static_cast<u32>(std::max(0, toInt()));
+            SyncGo();
             m_options["Move Overhead"] = value;
             m_timeManager.setMoveOverhead(overhead);
         }
@@ -225,10 +231,11 @@ UCI::NewGame()
     // a search still running would race the clear below, GUIs stop it first but make sure.
     SyncGo();
     m_context.NewGame();
-    // games are independent, nothing from the last game may carry over. The TT (and its age) is the only search state
-    // that outlives a go, the killers & history are built per search in ThreadSearchContext. Not part of
-    // GameContext::NewGame, "position startpos" calls that every move.
+    // games are independent, nothing from the last game may carry over: the TT (and its age), and the history tables &
+    // pawn hashes in the SearchContext, which outlive a go. Not part of GameContext::NewGame, "position startpos" calls
+    // that every move.
     m_context.editTranspositionTable().clear(m_threadCount);
+    m_searchContext.reset();
     return true;
 }
 
@@ -257,9 +264,13 @@ UCI::AsyncGo(std::list<std::string> args)
     }
     m_isSearching.store(true);
 
+    // before the search thread starts, on the thread that reads stop. Done on the search thread, a stop sent right after
+    // go could arrive first and be thrown away with the old source, and an infinite search would then never end.
+    m_timeManager.reset();
+
     m_searchFuture = std::async(std::launch::async, [this, args]() {
         try {
-            this->Go(args);
+            this->runSearch(args);
         }
         catch (const std::exception& e) {
             // the GUI waits for a bestmove whatever happened.
@@ -290,8 +301,14 @@ UCI::SyncGo()
 bool
 UCI::Go(std::list<std::string> args)
 {
-    SearchParameters searchParams;
     m_timeManager.reset();
+    return runSearch(std::move(args));
+}
+
+bool
+UCI::runSearch(std::list<std::string> args)
+{
+    SearchParameters searchParams;
 
     // Typedef for sanity
     using ArgIterator = std::list<std::string>::const_iterator;
@@ -411,9 +428,9 @@ UCI::Go(std::list<std::string> args)
         searchParams.SearchDepth = searchParams.SearchDepth == 0 ? matePlies : std::min(searchParams.SearchDepth, matePlies);
     }
 
-    Search searcher(m_context);
+    UciSearchListener listener(m_debug);
+    Search searcher(m_searchContext, m_context, listener);
     searchParams.ThreadCount = m_threadCount;
-    searchParams.ThreadInfo = m_debug;
 
     SearchResult result;
     const auto searchStart = std::chrono::steady_clock::now();
@@ -451,6 +468,22 @@ UCI::Go(std::list<std::string> args)
 
 bool UCI::Bench(std::list<std::string>)
 {
+    // todo consolidate with the benchscope in openbench.cpp
+    // every bench position is a new game: the TT & the search context are zeroed in place, never reallocated, so the
+    // clock below only measures search.
+    struct BenchScope{
+        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+            context.Reset();
+            context.editTranspositionTable().clear();
+            searchContext.reset();
+        }
+        void loadFen(const std::string& fen) {
+            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        }
+        GameContext& context;
+        SearchContext& searchContext;
+    };
+
     spdlog::info("Starting benchmark...");
 
     // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
@@ -460,17 +493,16 @@ bool UCI::Bench(std::list<std::string>)
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
     context.editTranspositionTable().resize(16);
-
+    SearchContext searchContext;
+    UciSearchListener listener;
     Clock timer;
     timer.Start();
     u64 nodes = 0;
-
     for (const auto& fen : bench::fens) {
-        context.Reset();
-        context.editTranspositionTable().clear();
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        BenchScope scope(context, searchContext);
+        scope.loadFen(fen);
 
-        Search search(context);
+        Search search(searchContext, context, listener);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
         
@@ -484,12 +516,13 @@ bool UCI::Bench(std::list<std::string>)
             nodes += result.count;
         }
     }
-
     timer.Stop();
+
     float elapsedSeconds = timer.getElapsedSeconds();
     i64 elapsedMilliseconds = timer.getElapsedTime();    
     io::printer::uci("info string {} seconds", elapsedSeconds);
     io::printer::uci("info string {} nodes {} nps", nodes, nodes*1000 / (u64)elapsedMilliseconds);
+    io::printer::uci_flush();
     return true;
 }
 

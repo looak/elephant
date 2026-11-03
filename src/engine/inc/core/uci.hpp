@@ -30,6 +30,7 @@
 #include <future>
 
 #include <core/game_context.hpp>
+#include <search/state/search_context.hpp>
 #include <system/time_manager.hpp>
 
 class UCI
@@ -119,11 +120,16 @@ private:
     // Position's parser, throws on a malformed command which Position reports.
     bool ParsePosition(std::list<std::string> args);
 
+    // Parses the go arguments, searches and sends bestmove. The caller has reset the time manager, Go on its own thread
+    // and AsyncGo before it starts the search thread.
+    bool runSearch(std::list<std::string> args);
+
     bool m_enabled;
     u16 m_threadCount = 1;
     bool m_debug = false;
     TimeManager m_timeManager;
     GameContext m_context;
+    SearchContext m_searchContext;
     std::atomic<bool> m_isSearching;
     std::future<void> m_searchFuture;
     std::unordered_map<std::string, std::string> m_options;

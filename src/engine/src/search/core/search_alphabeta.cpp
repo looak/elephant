@@ -8,16 +8,16 @@
 
 #include <move/move_executor.hpp>
 
-#include <search/search_constants.hpp>
-#include <search/search_move_source.hpp>
-#include <search/search_policies.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 
 #include <system/time_manager.hpp>
 
 template<Set us>
-i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
+i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
@@ -69,7 +69,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     if constexpr (search_policies::TT::enabled) {
         // probe only returns a score when the entry is deep enough and its bound allows a cutoff with this window.
         // bestMove is set on any hit, also when the entry is too shallow to cut.
-        std::optional<i16> ttProbeResult = search_policies::TT::probe(pos.hash(), depth, ply, alpha, beta, flag, bestMove);
+        std::optional<i16> ttProbeResult = search_policies::TT::probe(context.tt, pos.hash(), depth, ply, alpha, beta, flag, bestMove);
 
         // No cutoffs at PV nodes, the stored score may come from an earlier search or another path with different
         // repetitions. At the root it would also play the stored move without searching it. The TT move still
@@ -107,7 +107,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.moveOrdering, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.heuristics, context.continuationStack, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -158,7 +158,7 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     // --- Store to TT ---
     if constexpr (search_policies::TT::enabled) {
         // All moves searched, no cutoff.
-        search_policies::TT::update(
+        search_policies::TT::update(context.tt,
             pos.hash(),
             bestMove, // Store the best move found
             eval, // Store the best score (which is alpha if it was a PV node)
@@ -170,11 +170,11 @@ i16 Search::alphaBeta(ThreadSearchContext& context, u8 depth, i16 alpha, i16 bet
     return eval;
 }
 
-template i16 Search::alphaBeta<Set::WHITE>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-template i16 Search::alphaBeta<Set::BLACK>(ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+template i16 Search::alphaBeta<Set::WHITE>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+template i16 Search::alphaBeta<Set::BLACK>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
 
 template<Set us>
-i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
+i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -203,7 +203,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
     // go searchmoves, only the given moves are searched at the root.
-    const bool restrictRoot = ply == 1 && context.rootMoves.empty() == false;
+    const bool restrictRoot = ply == 1 && context.inputs.rootMoves.empty() == false;
 
     do {
         if (context.shouldStop()) break;
@@ -241,8 +241,13 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         executor.makeMove(move, undoState, halfmoveClock);
         context.halfmoveClock[ply + 1] = halfmoveClock;
         if constexpr (search_policies::TT::enabled)
-            search_policies::TT::prefetch(pos.hash());
+            search_policies::TT::prefetch(context.tt, pos.hash());
         context.history.push(pos.hash());
+
+        if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
+            auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
+            context.continuationStack.recordReplies(ply, historyPtr);
+        }
         
         i16 eval;
 
@@ -261,9 +266,8 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
         } 
         else {
             // --- Scout Search (Subsequent Moves) ---
-            // Zero window: Try to prove move is <= alpha
-            this->scout_search_count++;
-            context.scout_search();
+            // Zero window: Try to prove move is <= alpha            
+            context.debug_print_scout_search();
 
             // --- Late Move Reduction ---
             // Quiet moves late in the ordering rarely matter, scout them shallower first.
@@ -286,8 +290,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // We must re-search with the full window to get the exact score.
             // (Only if it's also < beta, otherwise we just take the beta cutoff)            
             if (eval > alpha && eval < beta) {
-                context.scout_re_search();
-                this->scout_re_search_count++;
+                context.debug_print_scout_re_search();
                 eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, adjustedDepth, static_cast<i16>(-beta),
                     static_cast<i16>(-alpha), ply + 1, &childPv));
                 
@@ -312,9 +315,22 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
             // --- Beta Cutoff (Fail-High) ---
             if (bestEval >= beta) {
                 flag = TranspositionFlag::TTF_CUT_BETA;
-                if (search_policies::MoveOrdering::isQuiet(move))
-                    search_policies::MoveOrdering::updateQuietCutoff(context.moveOrdering, us, move,
+                if (search_policies::MoveOrdering::isQuiet(move)) {
+                    search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
                         std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
+
+                    if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
+                        using search_policies::ContinuationHistoryPolicy;
+                        const i32 bonus = search_policies::MoveOrdering::quietBonus(depth);
+                        ContinuationHistoryPolicy::update(context.continuationStack, ply, pos.pieceAt(move.sourceSqr()),
+                            move.targetSqr(), bonus);
+
+                        for (u16 i = 0; i < quietCount; ++i)
+                            ContinuationHistoryPolicy::update(context.continuationStack, ply,
+                                pos.pieceAt(quietsTried[i].sourceSqr()), quietsTried[i].targetSqr(), -bonus);
+                    }
+                }
+
                 outMove = intermmediateMove;
                 return bestEval;
             }
@@ -354,5 +370,5 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadSearchContext& contex
     return bestEval;
 }
 
-template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadSearchContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);

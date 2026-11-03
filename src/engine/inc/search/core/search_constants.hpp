@@ -100,3 +100,10 @@ inline constexpr u32 defaultMaxDepth = 8;
 // delta pruning, slack on top of the material a capture can win before it's judged hopeless.
 inline constexpr i16 deltaMargin = 200; // 2 pawns
 } // namespace quiescence_params
+
+namespace continuation_params {
+// parameters for continuation history heuristic
+// pliesBack, slots reserved in front of the per-ply continuation pointers. Scoring a move reads the entries of the
+// moves made 1 and 2 plies earlier, which near the root would index ply - 1 and ply - 2 below zero.
+inline constexpr u8 pliesBack = 2;
+} // namespace continuation_params

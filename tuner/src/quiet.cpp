@@ -4,14 +4,14 @@
 
 #include <move/move_executor.hpp>
 #include <search/search.hpp>
-#include <search/search_constants.hpp>
+#include <search/core/search_constants.hpp>
 
 namespace tuner {
 
 namespace {
 
 template<Set us>
-PVLine resolve(ThreadSearchContext& context, bool& decided) {
+PVLine resolve(ThreadContext& context, bool& decided) {
     PVLine line;
     const i16 score = Search::quiescenceLine<us>(context, line);
     decided = std::abs(score) >= c_checkmateMinScore;
@@ -29,7 +29,7 @@ PVLine resolve(ThreadSearchContext& context, bool& decided) {
 
 } // namespace
 
-PVLine resolveToQuiet(ThreadSearchContext& context, bool& decided) {
+PVLine resolveToQuiet(ThreadContext& context, bool& decided) {
     return context.gameState.whiteToMove ? resolve<Set::WHITE>(context, decided) : resolve<Set::BLACK>(context, decided);
 }
 

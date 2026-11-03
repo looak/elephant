@@ -1,7 +1,7 @@
-#include <search/search_policies.hpp>
-#include <search/search_constants.hpp>
-#include <search/search_heuristic_structures.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/search_heuristic_structures.hpp>
+#include <search/state/transposition_table.hpp>
 
 #include <bitboard/bitboard_constants.hpp>
 #include <material/chess_piece.hpp>
@@ -37,14 +37,10 @@ i16 scoreFromTT(i16 score, u16 ply) {
 } // namespace
 
 // --- Transposition Table Policies ---
-void TT::assign(TranspositionTable& tt) {
-    m_table = &tt;
-}
-
-std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
+std::optional<i16> TT::probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
     i16 score;
     u8 depth;
-    if (m_table->probe(hash, outMove, score, depth, flag) == false)
+    if (tt.probe(hash, outMove, score, depth, flag) == false)
         return std::nullopt;
 
     if (depth < requiredDepth)
@@ -70,26 +66,26 @@ std::optional<i16> TT::probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i1
     return std::nullopt;
 }
 
-void TT::prefetch(u64 hash) {
-    m_table->prefetch(hash);
+void TT::prefetch(TranspositionTable& tt, u64 hash) {
+    tt.prefetch(hash);
 }
 
-bool TT::probeMove(u64 hash, PackedMove& outMove) {
+bool TT::probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove) {
     i16 dummyScore;
     u8 dummyDepth;
     TranspositionFlag dummyFlag;
-    return m_table->probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
+    return tt.probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
 }
 
-void TT::update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
+void TT::update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
 {
-    m_table->store(hash, move, scoreToTT(score, ply), depth, flag);
+    tt.store(hash, move, scoreToTT(score, ply), depth, flag);
 }
 
-void TT::printStats() 
+void TT::printStats([[maybe_unused]] TranspositionTable& tt)
 {
 #ifdef DEBUG_TRANSITION_TABLE
-    m_table->print_stats();
+    tt.print_stats();
 #endif
 }
 
@@ -122,20 +118,26 @@ bool MoveOrdering::isQuiet(PackedMove move) {
     return !move.isCapture() && !move.isPromotion();
 }
 
-void MoveOrdering::updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
+void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply) {
     // killers keep their original rule, castling isn't one.
     if (move.isQuiet())
         heuristic.killers.push(move, ply);
 
-    const i32 bonus = std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
+    const i32 bonus = quietBonus(depth);
     heuristic.history.update(us, move, bonus);
     for (PackedMove tried : quietsTried)
         heuristic.history.update(us, tried, -bonus);
 }
 
-void MoveOrdering::prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply) {
+void MoveOrdering::prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply) {
     heuristic.killers.retrieve(ply, view.killers[0], view.killers[1]);
     view.history = heuristic.history.data();
+    view.negativeOnePly = continuationStack.repliesTo(ply, 1)->front().data();
+    view.negativeTwoPly = continuationStack.repliesTo(ply, 2)->front().data();
+}
+
+i32 MoveOrdering::quietBonus(u8 depth) {
+    return std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
 }
 
 // --- Reverse Futility Pruning (RFP) Policies ---
@@ -214,6 +216,24 @@ bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, Pack
         gain += c_promotionGain;
 
     return deltaPrune(standPat, gain, alpha);
+}
+
+// Continuation History Policy
+PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {
+    return &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
+}
+
+void ContinuationHistoryPolicy::update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {
+    for (u16 distance = 1; distance <= continuation_params::pliesBack; ++distance) {
+        PieceToHistory* replies = stack.repliesTo(ply, distance);
+        if (replies == &heuristic_defaults::noPreviousMove)
+            continue;
+
+        // same gravity as HistoryTable::update, in 32 bits. |bonus| <= maxBonus < historyMax keeps it within i16.
+        i16& entry = (*replies)[pieceIndex(piece)][*toSquare];
+        const i32 current = entry;
+        entry = static_cast<i16>(current + bonus - current * std::abs(bonus) / MoveOrderingView::historyMax);
+    }
 }
 
 

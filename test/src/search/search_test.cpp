@@ -29,6 +29,43 @@ public:
 
 ////////////////////////////////////////////////////////////////
 
+// One thread, so nothing here needs a lock.
+class RecordingListener final : public SearchListener {
+public:
+    void onIteration(const IterationInfo& info) override {
+        depths.push_back(info.depth);
+        threadIds.push_back(info.threadId);
+        lastNodes = info.nodes;
+        lastMove = info.pv.moves[0];
+    }
+
+    std::vector<u32> depths;
+    std::vector<u16> threadIds;
+    u64 lastNodes = 0;
+    PackedMove lastMove = PackedMove::NullMove();
+};
+
+TEST_F(SearchFixture, Listener_HearsEveryIterationOfTheSearch)
+{
+    // setup
+    GameContext context;
+    context.NewGame();
+    SearchContext searchContext;
+    RecordingListener listener;
+    Search searcher(searchContext, context, listener);
+    testingParams.SearchDepth = 4;
+
+    // execute
+    timeManager.applyTimeSettings(testingParams, Set::WHITE);
+    SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
+
+    // verify
+    EXPECT_EQ((std::vector<u32>{ 1, 2, 3, 4 }), listener.depths);
+    EXPECT_EQ((std::vector<u16>{ 0, 0, 0, 0 }), listener.threadIds);
+    EXPECT_GT(listener.lastNodes, 0u);
+    EXPECT_EQ(result.move(), listener.lastMove);
+}
+
 TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 {
     // setup
@@ -37,7 +74,8 @@ TEST_F(SearchFixture, WhiteMateInThree_ExpectQg6AsFirstMove)
 
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     
     // execute
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
@@ -59,7 +97,8 @@ TEST_F(SearchFixture, BlackMateInTwo_ExpectQc4CheckAsFirstMove)
     std::string fen("5k2/6pp/p1qN4/1p1p4/3P4/2PKP2Q/PP3r2/3R4 b - - 0 1");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
 
     // execute
     timeManager.applyTimeSettings(testingParams, Set::BLACK);
@@ -79,7 +118,8 @@ TEST_F(SearchFixture, WhiteForcedMate)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
     EXPECT_TRUE(result.ForcedMate);
@@ -91,7 +131,8 @@ TEST_F(SearchFixture, MateAgainstSelf)
     GameContext context;
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
     EXPECT_NE(result.move(), PackedMove::NullMove());
@@ -102,7 +143,8 @@ TEST_F(SearchFixture, ExpectedMoveSearchCases) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
         timeManager.applyTimeSettings(testingParams, Set::WHITE);
         SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
 
@@ -115,7 +157,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInThree) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
             timeManager.applyTimeSettings(testingParams, Set::BLACK);
@@ -140,7 +183,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInFive) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
@@ -166,7 +210,8 @@ TEST_F(SearchFixture, ExpectedMoveMateInEight) {
         testingParams.SearchDepth = 16; // increase depth for harder mates
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
 
         SearchResult result;
         if (context.readToPlay() == Set::BLACK) {
@@ -191,7 +236,8 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         GameContext context;
         io::fen_parser::deserialize(searchCase.fen.c_str(), context.editChessboard());
 
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
 
         // e1f1 is found at depth 9 & g5h6 at 8, the fixture's 12 leaves a margin. The deep d4e3 line is in
         // ElephantSuite, search_depth_test.cpp.
@@ -218,7 +264,8 @@ TEST_F(SearchFixture, SearchTimeManagement_InitialTest) {
     std::string fen("r4rk1/2pb1p1p/p1n1p1p1/1p6/3Pn3/2P2N2/PP1BRPPP/5RK1 w - - 0 19");
     io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     Clock testing_clock;
     testing_clock.Start();
 
@@ -242,7 +289,8 @@ TEST_F(SearchFixture, FiftyMoveRule_EveryMoveDraws_ScoresADraw) {
     GameContext context;
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 99 120", context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     testingParams.SearchDepth = 6;
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
@@ -256,7 +304,8 @@ TEST_F(SearchFixture, FiftyMoveRule_ClockFarFromLimit_ScoresTheRook) {
     GameContext context;
     io::fen_parser::deserialize("8/8/8/4k3/8/8/8/R3K3 w - - 0 120", context.editChessboard());
 
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     testingParams.SearchDepth = 6;
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
@@ -275,12 +324,14 @@ TEST_F(SearchFixture, LazySmp_FourThreads_FindsTheMateAndReportsAllNodes)
     io::fen_parser::deserialize(fen.c_str(), threaded.editChessboard());
 
     // do
-    Search singleSearch(single);
+    SearchContext singleSearchContext;
+    Search singleSearch(singleSearchContext, single);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult singleResult = singleSearch.go<Set::WHITE>(testingParams, timeManager);
 
     testingParams.ThreadCount = 4;
-    Search threadedSearch(threaded);
+    SearchContext threadedSearchContext;
+    Search threadedSearch(threadedSearchContext, threaded);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult threadedResult = threadedSearch.go<Set::WHITE>(testingParams, timeManager);
 
@@ -304,7 +355,8 @@ TEST_F(SearchFixture, LazySmp_DepthLimit_HelpersStopWithTheMainThread)
     // do
     Clock clock;
     clock.Start();
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
     clock.Stop();
@@ -324,7 +376,8 @@ TEST_F(SearchFixture, LazySmp_NodeLimit_CountsAllThreads)
     testingParams.NodeLimit = 200000;
 
     // do
-    Search searcher(context);
+    SearchContext searchContext;
+    Search searcher(searchContext, context);
     timeManager.applyTimeSettings(testingParams, Set::WHITE);
     SearchResult result = searcher.go<Set::WHITE>(testingParams, timeManager);
 

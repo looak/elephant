@@ -19,7 +19,8 @@
 #include <io/fen_parser.hpp>
 #include <quiet.hpp>
 #include <search/search.hpp>
-#include <search/search_threadcontext.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 namespace tuner {
@@ -116,7 +117,13 @@ void prepareRange(const std::string& path, ByteRange range, Part& part, std::ato
     // one context for every position in range, reset to each in turn. Never stopped, quiescence runs to its own end.
     const SearchParameters noLimits{};
     const TimeManager clock(noLimits, Set::WHITE);
-    ThreadSearchContext context(Position{}, true, clock);
+    const SearchInputs inputs{ clock, 0, {}, 0 };
+    // quiescence never touches the TT, the smallest table satisfies the context.
+    TranspositionTable tt(1);
+    auto heuristics = std::make_unique<ThreadHeuristics>();
+    PawnHashTable pawnHash;
+    ThreadContext context(Position{}, true, inputs, tt, *heuristics, pawnHash);
+
     context.stopEnabled = false;
 
     TunerData& data = part.data;

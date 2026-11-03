@@ -3,11 +3,10 @@
 #include <core/game_context.hpp>
 #include <math/cast.hpp>
 #include <diagnostics/logger.hpp>
-#include <io/printer.hpp>
 
-#include <search/search_move_source.hpp>
-#include <search/search_threadcontext.hpp>
-#include <search/transposition_table.hpp>
+#include <search/core/search_move_source.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/state/transposition_table.hpp>
 #include <system/time_manager.hpp>
 
 #include <algorithm>
@@ -23,6 +22,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
 
     // go searchmoves, keep the moves that are legal here. With none left the root isn't restricted, the search must
     // still return a move.
+    // todo: move specific search move out of generic go
     std::vector<PackedMove> rootMoves;
     if (params.SearchMoves.empty() == false) {
         MoveOrderingView ordering;
@@ -30,7 +30,7 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
         legalMoves.start(&ordering, MoveTypes::ALL);
         for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
             for (PackedMove requested : params.SearchMoves) {
-                if (ThreadSearchContext::sameUciMove(requested, legal.move)) {
+                if (ThreadContext::sameUciMove(requested, legal.move)) {
                     rootMoves.push_back(legal.move);
                     break;
                 }
@@ -43,17 +43,30 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
     m_shared.stop.store(false, std::memory_order_relaxed);
     m_shared.nodes.store(0, std::memory_order_relaxed);
 
+    // what every thread reads, alive until all of them are joined below.
+    const SearchInputs inputs{ clock, params.NodeLimit, std::move(rootMoves), m_gameContext.readPly() };
+
     std::vector<std::future<SearchResult>> searchResults;
+
+    // the history tables & pawn hashes carry over from the last go, ucinewgame clears them. Killers are indexed by ply
+    // and the root moves on two plies every turn, so they start empty every go.
+    m_searchContext.initialize(params.ThreadCount);
+    for (auto& heuristics : m_searchContext.threadHeuristics)
+        heuristics->killers.clear();
 
     for(u16 threadId = 0; threadId < params.ThreadCount; ++threadId) {
         searchResults.push_back(std::async(std::launch::async,
-            [this, &params, &clock, &rootMoves, threadId]() {
-            ThreadSearchContext searchContext(this->m_originPosition.copy(), us == Set::WHITE, clock);
+            [this, &params, &inputs, threadId]() {
+            ThreadContext searchContext(
+                this->m_originPosition.copy(),
+                us == Set::WHITE,
+                inputs,
+                m_transpositionTable,
+                *m_searchContext.threadHeuristics[threadId],
+                *m_searchContext.pawnHashes[threadId]);
             searchContext.threadId = threadId;
             searchContext.shared = &m_shared;
-            searchContext.nodeLimit = params.NodeLimit;
-            searchContext.rootMoves = rootMoves;
-            searchContext.begin(threadId, params);
+            searchContext.debug_print_begin(threadId, params);
             // prime hashes from historical positions to allow proper 3-fold repetition avoidance
             for (auto undoUnit : m_gameContext.readGameHistory().moveUndoUnits) {
                 searchContext.history.push(undoUnit.hash);
@@ -61,14 +74,14 @@ SearchResult Search::go(SearchParameters params, TimeManager& clock) {
             // the game history holds the positions before each move, the root is the first occurrence the search
             // can repeat.
             searchContext.history.push(searchContext.position.read().hash());
-            searchContext.halfmoveClock[1] = m_gameContext.readPly();
+            searchContext.halfmoveClock[1] = inputs.rootHalfmoveClock;
             auto result = iterativeDeepening<us>(searchContext, params);
             searchContext.publishNodes();
             result.mainThreadCount = searchContext.nodeCount + searchContext.qNodeCount;
             // the main thread is done, the helpers' work is only useful to it.
             if (searchContext.isMainThread())
                 m_shared.stop.store(true, std::memory_order_relaxed);
-            searchContext.end(threadId);
+            searchContext.debug_print_end(threadId);
             return result;
 
         }));
@@ -112,10 +125,8 @@ bool helperSkipsDepth(u16 threadId, u8 depth) {
 } // namespace
 
 template<Set us>
-SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchParameters params) {
+SearchResult Search::iterativeDeepening(ThreadContext& context, SearchParameters params) {
     SearchResult result;
-
-    // iterative deepening loop -- might make this optional.
 
     // the hard ply limit in alphaBeta makes deeper iterations pointless.
     const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
@@ -126,6 +137,7 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
             continue;
 
         // the first iteration always completes so there is a move to return, deeper ones may be aborted.
+        // TODO: rename and move out of iterartive deepening to allow context to be const.
         context.stopEnabled = itrDepth > 1;
 
         // --- Aspiration Window ---
@@ -166,13 +178,12 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
         if (context.stopped)
             break;
 
-        // the time this iteration finished, reported with the nodes of all threads so nodes / time is the real nps.
-        // Only the main thread reports, the helpers are silent.
-        if (context.isMainThread())
-            reportResult(itrResult, itrDepth, context.totalNodes(), context.clock.now());
-        else if (params.ThreadInfo)
-            io::printer::uci("info string thread {} depth {} score {} nodes {} pv {}", context.threadId, itrDepth,
-                itrResult.score, context.nodeCount + context.qNodeCount, itrResult.pvLine.toString());
+        // the time this iteration finished. hashfull walks a thousand entries and nothing reads it from a helper.
+        const bool isMain = context.isMainThread();
+        m_listener.onIteration({ .threadId = context.threadId, .depth = itrDepth, .score = itrResult.score,
+            .nodes = isMain ? context.totalNodes() : context.nodeCount + context.qNodeCount,
+            .timeMs = context.inputs.clock.now(), .hashfull = isMain ? m_transpositionTable.hashfull() : 0u,
+            .pv = itrResult.pvLine });
 
         // forced mate check
         i32 checkmateDistance = c_checkmateConstant - abs(itrResult.score);
@@ -188,20 +199,20 @@ SearchResult Search::iterativeDeepening(ThreadSearchContext& context, SearchPara
 
         result = itrResult;
 
-        if (context.clock.shouldStop() || context.nodeLimitReached() || context.searchStopped())
+        if (context.inputs.clock.shouldStop() || context.nodeLimitReached() || context.searchStopped())
             break;
 
         // whether another iteration fits the time is the main thread's call, the helpers search until it's done.
-        if (context.isMainThread() && context.clock.continueIterativeDeepening() == false)
+        if (context.isMainThread() && context.inputs.clock.continueIterativeDeepening() == false)
             break;
     }
     
     if constexpr (search_policies::TT::enabled) {
         if (context.isMainThread())
-            search_policies::TT::printStats();
+            search_policies::TT::printStats(context.tt);
     }
     return result;
 }
 
-template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadSearchContext&, SearchParameters);
-template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadSearchContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::WHITE>(ThreadContext&, SearchParameters);
+template SearchResult Search::iterativeDeepening<Set::BLACK>(ThreadContext&, SearchParameters);

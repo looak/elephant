@@ -7,6 +7,7 @@
 #include <system/static_initializer.hpp>
 #include <commands/logic/command_processor.hpp>
 #include <core/game_context.hpp>
+#include <core/uci_search_listener.hpp>
 #include <io/fen_parser.hpp>
 #include <io/printer.hpp>
 #include <search/search.hpp>
@@ -69,6 +70,21 @@ static const std::vector<std::string> fens = {
 
 void bench() {
 
+    struct BenchScope{
+        BenchScope(GameContext& ctx, SearchContext& sc) : context(ctx), searchContext(sc) {
+            context.Reset();
+            context.editTranspositionTable().clear();
+            searchContext.reset();
+        }
+
+        void loadFen(const std::string& fen) {
+            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        }
+
+        GameContext& context;
+        SearchContext& searchContext;
+    };
+
     io::printer::uciPrinterInit();
 
     // one context for every position, cleared like a new game. A fresh one per position allocated a new TT each time
@@ -78,17 +94,18 @@ void bench() {
     // memory bandwidth. The depth 7 searches don't fill 16 MB, the node count is the same. Created before the clock.
     GameContext context;
     context.editTranspositionTable().resize(16);
+    SearchContext searchContext;
+    UciSearchListener listener;
 
     Clock timer;
     timer.Start();
     u64 nodes = 0;
 
     for (const auto& fen : fens) {
-        context.Reset();
-        context.editTranspositionTable().clear();
-        io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
+        BenchScope scope(context, searchContext);
+        scope.loadFen(fen);
 
-        Search search(context);
+        Search search(searchContext, context, listener);
         SearchParameters params;
         TimeManager tm(params, context.readToPlay());
 

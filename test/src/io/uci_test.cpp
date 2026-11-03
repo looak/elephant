@@ -3,16 +3,20 @@
 #include <io/fen_parser.hpp>
 #include <core/build_info.hpp>
 #include <core/uci.hpp>
+#include <core/uci_search_listener.hpp>
 #include <elephant_gambit_config.h>
 #include <core/game_context.hpp>
 #include <search/search.hpp>
 #include <system/time_manager.hpp>
-#include <search/search_heuristic_structures.hpp>
+#include <search/state/search_heuristic_structures.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <sstream>
+#include <streambuf>
+#include <string>
 #include <thread>
 
 namespace ElephantTest {
@@ -64,6 +68,36 @@ public:
 private:
     std::ostream& m_originalStream;
     std::streambuf* m_originalBuffer;
+};
+////////////////////////////////////////////////////////////////
+/**
+ * @class ConcurrentOutput
+ * @brief A stream buffer the test can read while the search thread writes to it, no put area so every write locks. */
+class ConcurrentOutput : public std::streambuf {
+public:
+    std::string read() const {
+        std::lock_guard lock(m_mutex);
+        return m_text;
+    }
+
+protected:
+    int_type overflow(int_type character) override {
+        if (traits_type::eq_int_type(character, traits_type::eof()))
+            return traits_type::not_eof(character);
+        std::lock_guard lock(m_mutex);
+        m_text.push_back(traits_type::to_char_type(character));
+        return character;
+    }
+
+    std::streamsize xsputn(const char* text, std::streamsize count) override {
+        std::lock_guard lock(m_mutex);
+        m_text.append(text, static_cast<size_t>(count));
+        return count;
+    }
+
+private:
+    mutable std::mutex m_mutex;
+    std::string m_text;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -396,6 +430,93 @@ TEST_F(UciFixture, go_ponder_StopEndsThePonderSearch)
     EXPECT_NE(std::string::npos, testOutput.str().find("bestmove"));
 }
 
+// A stop sent right after go, before the search thread has started, used to be thrown away and the search never ended.
+// Not ended with SyncGo, which stops the search itself and would hide a lost stop.
+TEST_F(UciFixture, go_infinite_StopRightAfterGoEndsTheSearch)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        ConcurrentOutput output;
+        std::ostream outputStream(&output);
+        bool answered = false;
+        {
+            ScopedRedirect coutRedirect(std::cout, outputStream);
+
+            // do
+            m_uci.AsyncGo({ "infinite" });
+            m_uci.Stop();
+
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (!answered && std::chrono::steady_clock::now() < deadline) {
+                answered = output.read().find("bestmove") != std::string::npos;
+                if (!answered)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            m_uci.SyncGo();
+        }
+
+        // verify
+        ASSERT_TRUE(answered) << "stop was lost on attempt " << attempt;
+    }
+}
+
+TEST_F(UciFixture, setoption_Hash_DuringASearchEndsItBeforeResizing)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    ConcurrentOutput output;
+    std::ostream outputStream(&output);
+    bool result = false;
+    std::string afterSetOption;
+    {
+        ScopedRedirect coutRedirect(std::cout, outputStream);
+
+        // do
+        m_uci.AsyncGo({ "infinite" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        result = m_uci.SetOption({ "name", "Hash", "value", "2" });
+        afterSetOption = output.read();
+    }
+
+    // verify
+    EXPECT_TRUE(result);
+    EXPECT_NE(std::string::npos, afterSetOption.find("bestmove"));
+}
+
+// A bad value is reported without touching the search, it keeps running until it's stopped.
+TEST_F(UciFixture, setoption_BadValue_DuringASearchLeavesItRunning)
+{
+    // setup
+    m_uci.Enable();
+    m_uci.NewGame();
+
+    ConcurrentOutput output;
+    std::ostream outputStream(&output);
+    bool result = true;
+    std::string afterSetOption;
+    {
+        ScopedRedirect coutRedirect(std::cout, outputStream);
+
+        // do
+        m_uci.AsyncGo({ "infinite" });
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        result = m_uci.SetOption({ "name", "Hash", "value", "lots" });
+        afterSetOption = output.read();
+        m_uci.Stop();
+        m_uci.SyncGo();
+    }
+
+    // verify
+    EXPECT_FALSE(result);
+    EXPECT_EQ(std::string::npos, afterSetOption.find("bestmove"));
+    EXPECT_NE(std::string::npos, output.read().find("bestmove"));
+}
+
 TEST_F(UciFixture, setoption_MultiWordName_MoveOverheadIsAccepted)
 {
     // setup
@@ -513,12 +634,67 @@ TEST_F(UciFixture, go_nodes_StopsAtTheNodeLimitAndReturnsAMove)
     EXPECT_LT(output.rfind("info nodes "), output.rfind("bestmove"));
 }
 
+TEST_F(UciFixture, searchListener_WritesTheInfoLinesGuisRead)
+{
+    // setup, mate scores are +-(checkmate - matePly), a distance of 4 is 3 plies from the root.
+    PVLine pv;
+    UciSearchListener listener;
+    IterationInfo centipawns{ .threadId = 0, .depth = 5, .score = 25, .nodes = 100, .timeMs = 20, .hashfull = 7, .pv = pv };
+    IterationInfo mating{ .threadId = 0, .depth = 5, .score = c_checkmateConstant - 4, .nodes = 100, .timeMs = 20,
+                          .hashfull = 7, .pv = pv };
+    IterationInfo mated{ .threadId = 0, .depth = 5, .score = -(c_checkmateConstant - 4), .nodes = 100, .timeMs = 20,
+                         .hashfull = 7, .pv = pv };
+
+    std::stringstream testOutput;
+    {
+        ScopedRedirect coutRedirect(std::cout, testOutput);
+
+        // do
+        listener.onIteration(centipawns);
+        listener.onIteration(mating);
+        listener.onIteration(mated);
+    }
+
+    // verify
+    EXPECT_EQ("info score cp 25 depth 5 nodes 100 time 20 hashfull 7 pv \n"
+              "info score mate 2 depth 5 nodes 100 time 20 hashfull 7 pv \n"
+              "info score mate -1 depth 5 nodes 100 time 20 hashfull 7 pv \n",
+              testOutput.str());
+}
+
+TEST_F(UciFixture, searchListener_HelperThreadsOnlyReportedWithDebugOn)
+{
+    // setup
+    PVLine pv;
+    IterationInfo helper{ .threadId = 1, .depth = 5, .score = 25, .nodes = 100, .timeMs = 20, .hashfull = 0, .pv = pv };
+    UciSearchListener debugOff;
+    UciSearchListener debugOn(true);
+
+    std::stringstream silentOutput;
+    std::stringstream reportedOutput;
+
+    // do
+    {
+        ScopedRedirect coutRedirect(std::cout, silentOutput);
+        debugOff.onIteration(helper);
+    }
+    {
+        ScopedRedirect coutRedirect(std::cout, reportedOutput);
+        debugOn.onIteration(helper);
+    }
+
+    // verify
+    EXPECT_EQ("", silentOutput.str());
+    EXPECT_EQ("info string thread 1 depth 5 score 25 nodes 100 pv \n", reportedOutput.str());
+}
+
 TEST_F(UciFixture, go_nodes_SearchStopsCloseToTheLimitAndIsDeterministic)
 {
     auto search = [](u64 nodeLimit) {
         GameContext context;
         context.NewGame();
-        Search searcher(context);
+        SearchContext searchContext;
+        Search searcher(searchContext, context);
         SearchParameters params;
         params.NodeLimit = nodeLimit;
         TimeManager clock(params, Set::WHITE);

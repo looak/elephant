@@ -22,9 +22,11 @@
 #include <optional>
 #include <span>
 
-#include <search/transposition_table_fwd.hpp>
+#include <core/square.hpp>
+#include <search/state/transposition_table_fwd.hpp>
 #include <material/chess_piece_defines.hpp>
-#include <search/search_constants.hpp>
+#include <material/chess_piece.hpp>
+#include <search/core/search_constants.hpp>
 #include <system/clock.hpp>
 
 // Forward-declare Search class for policy callbacks
@@ -32,7 +34,8 @@ class Search;
 
 struct KillerMoves;
 struct MaterialPositionMask;
-struct MoveOrderingHeuristic;
+struct ThreadHeuristics;
+struct ContinuationStack;
 struct MoveOrderingView;
 struct PackedMove;
 
@@ -55,6 +58,7 @@ namespace enabled_policies {
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
     inline constexpr bool IIR = true;
+    inline constexpr bool ContinuationHistory = true;
 }
 
 // --- Transposition Table Policies ---
@@ -62,16 +66,15 @@ class TT {
 public:
     static constexpr bool enabled = enabled_policies::TT;
     
-    static void assign(TranspositionTable& tt);
+    // every function takes the table it works on, the search hands each thread a reference to the shared one.
     // ply converts mate scores between root relative (search) and node relative (stored).
-    static std::optional<i16> probe(u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove);
-    static bool probeMove(u64 hash, PackedMove& outMove);
-    static void prefetch(u64 hash);
-    static void update(u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag);
-    static void printStats();
-
-private:
-    static inline TranspositionTable* m_table;
+    static std::optional<i16> probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta,
+                                    TranspositionFlag& flag, PackedMove& outMove);
+    static bool probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove);
+    static void prefetch(TranspositionTable& tt, u64 hash);
+    static void update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply,
+                       const TranspositionFlag& flag);
+    static void printStats(TranspositionTable& tt);
 };
 
 // --- Late Move Reduction (LMR) Policies ---
@@ -91,8 +94,10 @@ public:
     static bool isQuiet(PackedMove move);
 
     // Killer & history update when a quiet move fails high, quietsTried are the quiets searched before it at this node.
-    static void updateQuietCutoff(MoveOrderingHeuristic& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
-    static void prime(const MoveOrderingHeuristic& heuristic, MoveOrderingView& view, u16 ply);
+    static void updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, u16 ply);
+    static void prime(const ThreadHeuristics& heuristic, const ContinuationStack& continuationStack, MoveOrderingView& view, u16 ply);
+    // bonus for a quiet cutoff at depth, the quiets tried before it get it as a malus.
+    static i32 quietBonus(u8 depth);
 };
 
 // --- Null Move Pruning (NMP) Policies ---
@@ -161,6 +166,21 @@ public:
     static bool deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha);
     // Move: this capture (or promotion) alone isn't enough, skip it.
     static bool deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha);
+};
+
+// --- Continuation History Policies ---
+class ContinuationHistoryPolicy {
+public:
+    static constexpr bool enabled = enabled_policies::ContinuationHistory;
+
+    static std::array<std::array<i16, 64>, 12>* slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
+    // Gravity update of piece to toSquare as a reply to each of the moves 1 to pliesBack plies before ply, a negative
+    // bonus is a malus. Lookbacks onto the shared no previous move table are skipped, it stays zero.
+    static void update(const ContinuationStack& stack, u16 ply, ChessPiece piece, Square toSquare, i32 bonus);
+
+private:
+    // 0 to 11, white's pieces then black's.
+    static u32 pieceIndex(ChessPiece piece) { return static_cast<u32>(piece.set() * 6 + piece.index()); }
 };
 
 } // namespace search_policies

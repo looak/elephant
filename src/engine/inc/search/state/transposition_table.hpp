@@ -29,7 +29,7 @@
 #endif
 #include <system/platform.hpp>
 #include <move/move.hpp>
-#include <search/search_constants.hpp>
+#include <search/core/search_constants.hpp>
 #include "transposition_table_fwd.hpp"
 
 #include <algorithm>

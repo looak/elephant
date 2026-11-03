@@ -33,6 +33,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/core/square.hpp
     ${ENGINE_INC_DIR}/core/square_notation.hpp
     ${ENGINE_INC_DIR}/core/uci.hpp
+    ${ENGINE_INC_DIR}/core/uci_search_listener.hpp
 
 ## /diagnostics/...
     ${ENGINE_INC_DIR}/diagnostics/assert.hpp
@@ -101,15 +102,19 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/position/position_proxy.hpp
 
 ## /search/...
-    ${ENGINE_INC_DIR}/search/perft_search.hpp
+    ${ENGINE_INC_DIR}/search/perft/perft_search.hpp
     ${ENGINE_INC_DIR}/search/search.hpp
-    ${ENGINE_INC_DIR}/search/search_constants.hpp
-    ${ENGINE_INC_DIR}/search/search_heuristic_structures.hpp
-    ${ENGINE_INC_DIR}/search/search_move_source.hpp
-    ${ENGINE_INC_DIR}/search/search_policies.hpp    
+    ${ENGINE_INC_DIR}/search/search_listener.hpp
+    ${ENGINE_INC_DIR}/search/state/search_context.hpp
+    ${ENGINE_INC_DIR}/search/core/search_constants.hpp
+    ${ENGINE_INC_DIR}/search/state/search_heuristic_structures.hpp
+    ${ENGINE_INC_DIR}/search/core/search_move_source.hpp
+    ${ENGINE_INC_DIR}/search/core/search_policies.hpp    
     ${ENGINE_INC_DIR}/search/search_results.hpp
-    ${ENGINE_INC_DIR}/search/static_exchange.hpp
-    ${ENGINE_INC_DIR}/search/transposition_table.hpp
+    ${ENGINE_INC_DIR}/search/core/static_exchange.hpp
+    ${ENGINE_INC_DIR}/search/state/transposition_table.hpp
+    ${ENGINE_INC_DIR}/search/state/transposition_table_fwd.hpp
+    ${ENGINE_INC_DIR}/search/state/thread_context.hpp
 
 ## /system/...
     ${ENGINE_INC_DIR}/system/platform.hpp
@@ -131,6 +136,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/core/chessboard.cpp
     ${ENGINE_SRC_DIR}/core/game_context.cpp
     ${ENGINE_SRC_DIR}/core/uci.cpp
+    ${ENGINE_SRC_DIR}/core/uci_search_listener.cpp
 
 ## /diagnostics/...
     ${ENGINE_SRC_DIR}/diagnostics/assert.cpp
@@ -162,15 +168,15 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/position/position_proxy.cpp
 
 ## /search/...
-    ${ENGINE_SRC_DIR}/search/perft_search.cpp
+    ${ENGINE_SRC_DIR}/search/perft/perft_search.cpp
     ${ENGINE_SRC_DIR}/search/search.cpp
-    ${ENGINE_SRC_DIR}/search/search_impl.cpp
-    ${ENGINE_SRC_DIR}/search/search_alphabeta.cpp
-    ${ENGINE_SRC_DIR}/search/search_nullmove.cpp
-    ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
-    ${ENGINE_SRC_DIR}/search/search_policies.cpp
-    ${ENGINE_SRC_DIR}/search/static_exchange.cpp
-    ${ENGINE_SRC_DIR}/search/transposition_table.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_impl.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_alphabeta.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_nullmove.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_quiescence.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_policies.cpp
+    ${ENGINE_SRC_DIR}/search/core/static_exchange.cpp
+    ${ENGINE_SRC_DIR}/search/state/transposition_table.cpp
 
 ## /system/...
     ${ENGINE_SRC_DIR}/system/clock.cpp

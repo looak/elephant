@@ -17,7 +17,7 @@
 #include <vector>
 #include <core/chessboard.hpp>
 #include <move/move_undo.hpp>
-#include <search/transposition_table.hpp>
+#include <search/state/transposition_table.hpp>
 
 struct SearchResult;
 struct SearchParameters;

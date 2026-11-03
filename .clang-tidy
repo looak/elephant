@@ -301,6 +301,9 @@ CheckOptions:
   readability-identifier-naming.LocalVariableCase: camelBack
   readability-identifier-naming.ConstexprVariableCase: camelBack
   readability-identifier-naming.GlobalConstantCase: camelBack
+  # c_ on a constant is allowed, like m_ on a member. The tail may carry a unit, c_defaultMoveOverhead_ms.
+  readability-identifier-naming.ConstexprVariableIgnoredRegexp: '^c_[a-z][a-zA-Z0-9_]*$'
+  readability-identifier-naming.GlobalConstantIgnoredRegexp: '^c_[a-z][a-zA-Z0-9_]*$'
   readability-identifier-naming.NamespaceCase: lower_case
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
   readability-identifier-naming.TypeTemplateParameterCase: CamelCase
@@ -316,5 +319,6 @@ CheckOptions:
 
 # Warnings only until the tree is clean, then '*' and a CI job, see the naming cleanup plan.
 WarningsAsErrors: ''
-HeaderFilterRegex: '(src|tuner|indexer)/.+'
-ExcludeHeaderFilterRegex: '(third_party|_deps)/.+'
+# Either slash: Visual Studio's clang-tidy reports header paths with backslashes, a '/' only filter dropped them all.
+HeaderFilterRegex: '(src|tuner|indexer)[\\/].+'
+ExcludeHeaderFilterRegex: '(third_party|_deps)[\\/].+'

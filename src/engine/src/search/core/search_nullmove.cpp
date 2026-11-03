@@ -2,13 +2,13 @@
 
 #include <position/hash_zobrist.hpp>
 
-#include <search/search_threadcontext.hpp>
+#include <search/state/thread_context.hpp>
 
 // Null Move Pruning: pass the move and search the opponent's reply with a reduced, null window search. If we still
 // fail high after giving the opponent a free move, the position is good enough that a full search would too.
 // Called at non-PV nodes that aren't in check, staticEval is the node's eval from alphaBeta.
 template<Set us>
-std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
+std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
     // never two null moves in a row, the second would just hand the move back.
     if (ctx.nullMoveAt[ply - 1])
         return std::nullopt;
@@ -42,6 +42,10 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
     ctx.history.push(pos.hash());
     ctx.nullMoveAt[ply] = true;
+
+    if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
+        ctx.continuationStack.recordReplies(ply, &heuristic_defaults::noPreviousMove);
+
     // passing counts as a quiet move for the fifty move rule.
     ctx.halfmoveClock[ply + 1] = static_cast<u16>(ctx.halfmoveClock[ply] + 1);
 
@@ -83,5 +87,5 @@ std::optional<i16> Search::tryNullMovePrune(ThreadSearchContext& ctx, u8 depth, 
     return cutScore;
 }
 
-template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
-template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadSearchContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
