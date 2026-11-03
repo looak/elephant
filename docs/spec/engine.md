@@ -11,12 +11,12 @@ fourth binary reads games with the library's PGN and SAN parsing and move genera
 
 | Binary | Built by | Entry | For |
 |:--|:--|:--|:--|
-| `eg-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
-| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/cli/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
-| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `src/tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
-| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `src/indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
+| `phant-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
+| `phant-cli` | CMake (MSVC, clang, gcc) | `src/cli/main.cpp` | development: an interactive CLI, UCI with `phant-cli uci`, the engine epd_runner drives in smoke |
+| `phant-tuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `src/tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
+| `phant-indexer` | CMake, `ELEPHANT_BUILD_INDEXER` (off by default) | `src/indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
 
-`ElephantGambit` and `eg-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
+`phant-cli` and `phant-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
 release binaries are it, and the bench signature comes from it. The test binaries are in [tests.md](tests.md).
 
 ## Scope
@@ -75,7 +75,7 @@ on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. T
 
 ### Bench
 
-`eg-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 11 with one
+`phant-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 11 with one
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
@@ -150,7 +150,7 @@ reaches the engine as a changed header in a commit, which moves the bench.
 Every table rebalanced with every term was then fine-tuned on Elephant's own games, the same groups, kept values and
 centring (1.4.0-pieces.3).
 
-**ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
+**phant-tuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
 trace that records every table entry it used and how often, and checks that the trace rebuilds the engine's
 `EvaluateTapered` exactly; mop-up is carried along as a fixed offset. Phase 1 finds K, the scale of the sigmoid that
@@ -176,10 +176,10 @@ values are only best for the data they were fitted on. `elephant-positions-0.1` 
 own games in nyayo (FEN and result, no duplicates); the 1.4 fine-tune fitted on it lowered its held back error 1.23%
 and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and the positions Elephant reaches won.
 
-### ElephantGambit, the development binary
+### phant-cli, the development binary
 
 Without arguments it starts an interactive CLI: `help`, `about`, `new`, `fen`, `move`, `print`, `evaluate`, `search`,
-`perft`, `divide`, `bench`, `exit`. It starts at the start position. `search` keeps its 64 MB table and history tables between commands, `new` clears them. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
+`perft`, `divide`, `bench`, `exit`. It starts at the start position. `search` keeps its 64 MB table and history tables between commands, `new` clears them. `phant-cli uci` goes straight into UCI mode. It logs through spdlog. CMake
 builds have assertions and exceptions on in every configuration by default (`ASSERTIONS_ENABLED`,
 `EXCEPTIONS_ENABLED` in `cmake/options.cmake`, always on in Debug); the makefile builds have neither.
 
@@ -204,7 +204,7 @@ whoever plays the games writes the players and tags.
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.
 - **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
-  lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
+  lines for the evaluation's tuner (the format `phant-tuner` reads): up to N positions of each game that read and
   has a result, past the game's first P plies, counted from the position the game starts at (`--min-ply`, 0 by
   default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
   carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
@@ -212,7 +212,7 @@ whoever plays the games writes the players and tags.
   search (`QuiescenceProbe`) returns the position's own static evaluation. The search is a test and its line is
   discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
   ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
-  duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
+  duplicates; `phant-tuner` reads such results. Progress for each input and a summary go to standard error, and
   `--stats OUT` writes the run's statistics as versioned JSON (`src/indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
@@ -225,21 +225,21 @@ whoever plays the games writes the players and tags.
 
 ### Builds & releases
 
-- `./build.sh`, on anything with bash, checks the toolchain and builds into `dist/`: `eg-uci` by default, `--cli`, `--tuner`,
-  `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `eg-uci` is
-  named `eg-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
+- `./build.sh`, on anything with bash, checks the toolchain and builds into `dist/`: `phant-uci` by default, `--cli`, `--tuner`,
+  `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `phant-uci` is
+  named `phant-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
   their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
 - `build.cmd` runs `build.sh` in Git Bash with the same options, for PowerShell & cmd on Windows.
 - `gen/generate_workspace.py` writes VS Code workspaces for the machine's OS into `.vscode/workspaces/<os>/`, not tracked:
   `all`, `engine`, `uci`, `cli`, `tuner` & `indexer`. Each is the whole repository with the rest hidden, launches its targets
   through CMake Tools and builds in `.build/vscode-<os>-<variant>`, with tests, tuner & indexer on.
 - `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
-  A build of `eg-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
+  A build of `phant-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
   with its own `EXE`, objects in `$(BUILD_DIR)`, `.build/make` by default.
 - `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `-march=x86-64`,
   `x86-64-v2` and `x86-64-v3`, linked static, named by the instructions each needs:
-  `eg-uci-<version>-<win | linux>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
+  `phant-uci-<version>-<win | linux>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
   hand with `indexer` on, never on a release: in a job of its own with CMake and `ELEPHANT_BUILD_INDEXER=ON`, for
   Windows & Linux at `x86-64`, linked static (the C runtime too), named `phant-indexer-<version>-<os>-x86-64` and
   smoke tested on OpenBench's workload, bz2 compressed, before it is attached. A third job titles the GitHub release
@@ -267,5 +267,5 @@ whoever plays the games writes the players and tags.
 | out | release binaries | `release.yml` |
 | in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`src/indexer/README.md`](../../src/indexer/README.md) |
 | out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`src/indexer/README.md`](../../src/indexer/README.md) |
-| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `phant-tuner`, [`src/indexer/README.md`](../../src/indexer/README.md) |
 

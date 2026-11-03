@@ -120,9 +120,9 @@ Every [release][release-link] has Windows and Linux binaries of the UCI engine, 
 
 | Binary | Needs | CPUs |
 |:-------|:------|:-----|
-| `eg-uci-...-x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
-| `eg-uci-...-x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
-| `eg-uci-...-x86-64` | any 64-bit CPU | anything else |
+| `phant-uci-...-x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
+| `phant-uci-...-x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
+| `phant-uci-...-x86-64` | any 64-bit CPU | anything else |
 
 The binaries are statically linked and need nothing else installed. They start in UCI mode, `bench` as an argument runs the OpenBench bench.
 
@@ -143,7 +143,7 @@ git clone --recursive https://github.com/looak/elephant.git
 `build.sh` checks your toolchain, builds and puts the result in `dist/`. It runs on Linux, macOS and in Git Bash or MSYS2 on Windows, and needs CMake and a C++20 compiler. On Windows it finds Visual Studio by itself:
 
 ```bash
-./build.sh                 # eg-uci, the UCI engine
+./build.sh                 # phant-uci, the UCI engine
 ./build.sh --arch avx2     # for other machines: x86-64, sse42 or avx2, native is the default
 ./build.sh --cli --tuner   # also --indexer, --tests, or --all
 ./build.sh --reference     # with g++ & the makefile, what OpenBench and the releases build
@@ -177,12 +177,12 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 ## Running the tests
 
-Either run `dist/ElephantTest` after build or browse to the build folder and execute `ctest`. `ElephantSuite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
+Either run `dist/phant-test` after build or browse to the build folder and execute `ctest`. `phant-suite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
 
 | Tier | Runs | Takes | What |
 |:--|:--|:--|:--|
 | smoke | `test/smoke.sh` (`test\smoke.ps1` from PowerShell) | under a minute | the local sanity check before a merge: unit tests, perft, bench, then WAC with 1 & 4 threads and the first 25 positions of each STS theme, at low node counts |
-| extended | `python test/epd_runner.py --engine <ElephantGambit> --tier extended` | minutes, depending on the cores | WAC and all of STS with more budget, plus Arasan 2024 with 1 & 4 threads, CI runs it with perft on pull requests to main |
+| extended | `python test/epd_runner.py --engine <phant-cli> --tier extended` | minutes, depending on the cores | WAC and all of STS with more budget, plus Arasan 2024 with 1 & 4 threads, CI runs it with perft on pull requests to main |
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. The runner's `--nodes`, `--depth`, `--movetime`, `--threads` and `--hash` override the settings for experiments. Every position searched is recorded, `test/smoke.sh` compares the run with the nearest ancestor commit's position by position, see [test/RESULTS.md](test/RESULTS.md).
 

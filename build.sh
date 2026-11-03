@@ -2,8 +2,8 @@
 # Builds Elephant Gambit into dist/, on any machine with bash: Linux, macOS, Git Bash or MSYS2 on Windows. Checks the
 # toolchain first and says what's missing. It's a convenience, plain cmake and ob_build/makefile keep working without it.
 #
-#   ./build.sh                  eg-uci, the UCI engine, with CMake and this machine's compiler
-#   ./build.sh --reference      eg-uci with g++ & the makefile: what OpenBench & releases build, where bench comes from
+#   ./build.sh                  phant-uci, the UCI engine, with CMake and this machine's compiler
+#   ./build.sh --reference      phant-uci with g++ & the makefile: what OpenBench & releases build, where bench comes from
 #   ./build.sh --arch avx2      a level other machines can run: x86-64, sse42, avx2, or native (the default)
 #   ./build.sh --cli --tuner    other products: --uci --cli --tuner --indexer --tests, or --all
 #   ./build.sh --dev            assertions & exceptions on. Implied by --indexer, --tests & --all. The name says -dev
@@ -100,7 +100,7 @@ check_reference() {
 }
 
 if [ "$reference" = 1 ]; then
-    [ "$want_cli$want_tuner$want_indexer$want_tests" = 0000 ] || die "--reference only builds eg-uci, the makefile has nothing else."
+    [ "$want_cli$want_tuner$want_indexer$want_tests" = 0000 ] || die "--reference only builds phant-uci, the makefile has nothing else."
     [ "$dev$debug" = 00 ] || die "--reference is the release build, --dev and --debug don't go with it."
     check_reference
 else
@@ -116,7 +116,7 @@ jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"
 # --- the makefile ---
 if [ "$reference" = 1 ]; then
     version="$(head -n 1 "$root/version.txt" | tr -d '\r[:space:]')"
-    name="eg-uci-$version-$os-$arch_name$ext"
+    name="phant-uci-$version-$os-$arch_name$ext"
     # objects by level: the makefile doesn't rebuild when only ARCH changes.
     objects="../.build/make-$os-$arch"
     [ "$clean" = 1 ] && rm -rf "$root/.build/make-$os-$arch"
@@ -166,11 +166,11 @@ compiler="$(grep -m1 '^CMAKE_CXX_COMPILER:' "$tree/CMakeCache.txt" | cut -d= -f2
 row compiler "${compiler:-chosen by the generator}"
 
 targets=()
-[ "$want_uci" = 1 ] && targets+=(eg-uci)
-[ "$want_cli" = 1 ] && targets+=(ElephantGambit)
-[ "$want_tuner" = 1 ] && targets+=(ElephantTuner)
-[ "$want_indexer" = 1 ] && targets+=(PhantIndexer)
-[ "$want_tests" = 1 ] && targets+=(ElephantTest ElephantSuite)
+[ "$want_uci" = 1 ] && targets+=(phant-uci)
+[ "$want_cli" = 1 ] && targets+=(phant-cli)
+[ "$want_tuner" = 1 ] && targets+=(phant-tuner)
+[ "$want_indexer" = 1 ] && targets+=(phant-indexer)
+[ "$want_tests" = 1 ] && targets+=(phant-test phant-suite)
 
 row building "${targets[*]}"
 cmake --build "$tree" --config "$config" --parallel "$jobs" --target "${targets[@]}" || die "the build failed"
@@ -179,8 +179,7 @@ out="$root/dist"
 [ "$debug" = 1 ] && out="$root/dist/debug"
 for product in "${targets[@]}"; do
     case "$product" in
-        eg-uci) file="$(ls -t "$out"/eg-uci-* 2>/dev/null | grep -v '\.pdb$' | head -n 1)" ;;
-        PhantIndexer) file="$out/phant-indexer$ext" ;;
+        phant-uci) file="$(ls -t "$out"/phant-uci-* 2>/dev/null | grep -v '\.pdb$' | head -n 1)" ;;
         *) file="$out/$product$ext" ;;
     esac
     row built "${file#"$root"/}"

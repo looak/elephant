@@ -18,9 +18,9 @@
  * @file pawn_tables.hpp
  * @brief Pawn structure values, see pawn_structure.hpp. Passed and connected pawns by relative rank 2 to 7, index 0
  * for rank 2; isolated, doubled and backward pawns by file folded onto a to d, index 0 for the a & h files. Written by
- * ElephantTuner, laid out the way it writes them. All constexpr, safe to include anywhere.
+ * phant-tuner, laid out the way it writes them. All constexpr, safe to include anywhere.
  *
- * Tuned by ElephantTuner, every table here together with PeSTO's pawn table, the other piece square tables, material
+ * Tuned by phant-tuner, every table here together with PeSTO's pawn table, the other piece square tables, material
  * and mobility kept (--tune psqt_pawn,pawns_passed,pawns_structure,pawns_passed_extras on E12.52-1M-D12-Resolved,
  * K 1.1324, 1000 passes at rate 1, error 0.086746 -> 0.086180, held back positions 0.65% lower). First fitted against
  * PeSTO's own pawn table: the structure terms (K 1.1537, held back 1.56% lower), then the passed pawn extras with the

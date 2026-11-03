@@ -1,6 +1,6 @@
-// ElephantTuner, the offline evaluation tuner, see src/tuner/CMakeLists.txt and src/tuner/README.md.
+// phant-tuner, the offline evaluation tuner, see src/tuner/CMakeLists.txt and src/tuner/README.md.
 //
-//   ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
+//   phant-tuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R] [--tune LIST]
 //                 [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]
 //
 //   dataset          a text file, one position per line: a FEN and the game's result, see dataset.hpp
@@ -75,7 +75,7 @@ struct Options {
 };
 
 int usage() {
-    std::cerr << "usage: ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]\n"
+    std::cerr << "usage: phant-tuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]\n"
                  "                     [--tune LIST] [--out DIR] [--held-back N] [--free-mobility] [--free-psqt]\n"
                  "                     [--min-usage N]\n"
                  "  dataset:         one position per line, a FEN and the game's result from white's side,\n"

@@ -1,5 +1,5 @@
 # Coverage instrumentation (ELEPHANT_COVERAGE), linked as the coverage_flags interface library by engine, cli,
-# PhantIndexerLib and ElephantTest, never by googletest or third_party. Empty when the option is off. test/coverage.ps1
+# PhantIndexerLib and phant-test, never by googletest or third_party. Empty when the option is off. test/coverage.ps1
 # and test/coverage.sh build with it and write the report.
 
 add_library(coverage_flags INTERFACE)

@@ -16,10 +16,10 @@
 
 /**
  * @file piece_tables.hpp
- * @brief Piece values, see pieces.hpp. Written by ElephantTuner, laid out the way it writes them. All constexpr, safe
+ * @brief Piece values, see pieces.hpp. Written by phant-tuner, laid out the way it writes them. All constexpr, safe
  * to include anywhere.
  *
- * Tuned by ElephantTuner, every other value kept, on E12.52-1M-D12-Resolved (10M positions, 1000 passes at rate 1).
+ * Tuned by phant-tuner, every other value kept, on E12.52-1M-D12-Resolved (10M positions, 1000 passes at rate 1).
  * Pairs: --tune pieces_pairs, K 1.1694, error 0.085446 -> 0.085198, held back 0.30% lower.
  *
  * Rebalanced in 1.4, every term fitted together but material, the king's table and kingDanger (--tune psqt_pawn,

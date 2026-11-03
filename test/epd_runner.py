@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Runs EPD suites against a UCI engine, many positions at once, and writes every position's result, see test/RESULTS.md.
 
-    python test/epd_runner.py --engine dist/ElephantGambit --tier smoke --out checks.jsonl
+    python test/epd_runner.py --engine dist/phant-cli --tier smoke --out checks.jsonl
     python test/epd_runner.py --engine ... --tier extended --check Extended_STS --jobs 8
     python test/epd_runner.py --engine ... --tier extended --leave 4 --low-priority   keep working meanwhile
     python test/epd_runner.py --engine ... --tier smoke --nodes 300000        an experiment, compared only with experiments

@@ -199,7 +199,7 @@ TEST_F(SearchFixture, NullMovePruning_ExpectedMove) {
         Monad monad(64);
 
         // e1f1 is found at depth 9 & g5h6 at 8, the fixture's 12 leaves a margin. The deep d4e3 line is in
-        // ElephantSuite, search_depth_test.cpp.
+        // phant-suite, search_depth_test.cpp.
         SearchResult result;
         result = monad.search(makeSearchRequest(context, testingParams));
 

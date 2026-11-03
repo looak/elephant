@@ -1,5 +1,5 @@
-# The instruction set to compile for, see ELEPHANT_ARCH in options.cmake, and what a binary is named after: eg-uci is
-# eg-uci-<version>-<os>-<instructions>, with -dev when it has assertions. ob_build/makefile & release.yml name theirs alike.
+# The instruction set to compile for, see ELEPHANT_ARCH in options.cmake, and what a binary is named after: phant-uci is
+# phant-uci-<version>-<os>-<instructions>, with -dev when it has assertions. ob_build/makefile & release.yml name theirs alike.
 
 if(ELEPHANT_ARCH STREQUAL "native")
     set(ELEPHANT_MARCH native)

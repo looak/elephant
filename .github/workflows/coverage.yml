@@ -1,6 +1,6 @@
 name: Coverage
 
-# What the unit tests reach, run by hand (Actions > Coverage > Run workflow) on any branch: ElephantTest built with
+# What the unit tests reach, run by hand (Actions > Coverage > Run workflow) on any branch: phant-test built with
 # gcc's --coverage (ELEPHANT_COVERAGE, Debug, phant-indexer in), gcovr's line, function & branch summary of src/ &
 # indexer/ on the run's summary page. Not on pushes, it builds the indexer's dependencies in Debug for a number nothing
 # gates on. test/coverage.ps1 & test/coverage.sh write the full HTML report locally.
@@ -23,7 +23,7 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Debug -DELEPHANT_COVERAGE=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TUNER=OFF
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --parallel --target ElephantTest
+      run: cmake --build ${{github.workspace}}/build --parallel --target phant-test
 
     - name: Unit tests
       working-directory: ${{github.workspace}}/build

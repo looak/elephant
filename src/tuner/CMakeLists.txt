@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# ElephantTuner, the offline evaluation tuner. Reads positions labelled with game results and fits the evaluation's
+# phant-tuner, the offline evaluation tuner. Reads positions labelled with game results and fits the evaluation's
 # TaperedScore values to them, linked against the engine library so it evaluates exactly like the engine does.
 # Not part of the OpenBench makefile build.
 
-set(TUNER_EXE ElephantTuner)
+set(TUNER_EXE phant-tuner)
 set(TUNER_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 set(TUNER_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 

@@ -1,5 +1,5 @@
 # Test coverage of the unit tests with clang-cl: configures .build/coverage with ELEPHANT_COVERAGE (Debug, phant-indexer on,
-# ElephantSuite off), builds ElephantTest, runs ctest -L unit, merges the profiles and writes an HTML report to
+# phant-suite off), builds phant-test, runs ctest -L unit, merges the profiles and writes an HTML report to
 # .build/coverage/coverage/index.html, then prints llvm-cov's summary. Sources under test/, third_party/ & _deps/ are left
 # out. Run it from any shell, it loads Visual Studio's developer environment when clang-cl isn't on the path.
 #
@@ -29,7 +29,7 @@ $cov = Join-Path $llvm 'llvm-cov.exe'
 cmake -S $root -B $build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl `
     -DELEPHANT_COVERAGE=ON -DELEPHANT_BUILD_TEST_SUITE=OFF -DELEPHANT_BUILD_INDEXER=ON -DELEPHANT_BUILD_TUNER=OFF
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-cmake --build $build --target ElephantTest
+cmake --build $build --target phant-test
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 # ctest runs each test in a process of its own, %8m has them merge into a pool of 8 profiles as they exit.
@@ -45,7 +45,7 @@ $merged = Join-Path $build 'elephant.profdata'
 & $profdata merge -sparse -o $merged (Get-ChildItem $profiles -Filter *.profraw).FullName
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
-$binary = Get-ChildItem $build -Recurse -Filter ElephantTest.exe | Where-Object FullName -notmatch 'CMakeFiles' | Select-Object -First 1
+$binary = Get-ChildItem $build -Recurse -Filter phant-test.exe | Where-Object FullName -notmatch 'CMakeFiles' | Select-Object -First 1
 $ignore = '[\\/](test|third_party|_deps|\.build)[\\/]'
 & $cov show $binary.FullName "-instr-profile=$merged" "-ignore-filename-regex=$ignore" -format=html `
     "-output-dir=$report" -show-line-counts-or-regions -show-branches=count
