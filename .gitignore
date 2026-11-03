@@ -6,6 +6,8 @@ intermediate/
 output/
 out/
 build/
+.build/
+dist/
 build-cov/
 .vs/
 .vscode/

@@ -15,14 +15,14 @@ README for the system and the contracts table, `elephant-engine.md`, `elephant-t
 repo's Direction (planned work, open decisions), and `plans/` for work spanning repos. **Read ramani, never edit it**,
 nor any other sibling checkout. A pull request that does a plan's step says `Closes looak/<repo>#<sub-issue>`. When it
 settles one of ramani's open decisions, say so in the final report. Contracts this repo owns (UCI with `bench` and
-`buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `indexer/README.md`) are
+`buildinfo`, the bench signature, `test/epd_tiers.json`, phant-indexer's record format in `src/indexer/README.md`) are
 changed only here, by agreement with the owner.
 
 ## Code conventions
 
 New and changed code follows these; `.clang-tidy` (`readability-identifier-naming`) and `.clang-format` encode them.
 
-- **Naming**: types CamelCase; functions, methods, variables, parameters and constants camelBack (`readPly`,
+- **Naming**: types CamelCase; functions, methods, variables, parameters and constants camelBack (`readHalfmoveClock`,
   `minDepth`, `c_` on a constant is allowed); enum values UPPER_CASE (`Set::WHITE`); namespaces lower_case; macros
   UPPER_CASE; `u8`..`u64`, `i8`..`i64` are the integer aliases. Older code still has PascalCase methods (`UCI`,
   `GameContext`) and a few snake_case functions: don't copy them, and don't rename them inside an unrelated change.

@@ -1,16 +1,16 @@
 #include <system/time_manager.hpp>
-#include <search/search.hpp>
+#include <search/search_request.hpp>
 
 #include <algorithm>
 #include <limits>
 
-TimeManager::TimeManager(const SearchParameters& params, Set perspective)
+TimeManager::TimeManager(const SearchLimits& params, Set perspective)
     : m_isTimeManaged(true)
 {
     applyTimeSettings(params, perspective);
 }
 
-void TimeManager::applyTimeSettings(const SearchParameters& params, Set perspective) {
+void TimeManager::applyTimeSettings(const SearchLimits& params, Set perspective) {
     m_isTimeManaged = false;
 
     // Set up the time parameters for our side
@@ -123,10 +123,4 @@ void TimeManager::cancel() {
 
 std::stop_token TimeManager::cancelToken() const {
     return m_stopSource.get_token();
-}
-
-void TimeManager::reset() {
-    // Clear any previous stop requests
-    this->cancel();
-    m_stopSource = std::stop_source();
 }

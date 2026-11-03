@@ -1,8 +1,9 @@
-#include <search/search.hpp>
+#include <search/worker.hpp>
 #include <position/position_hash.hpp>
 
 #include <array>
 #include <span>
+#include <type_traits>
 
 #include <eval/evaluator.hpp>
 
@@ -16,8 +17,8 @@
 
 #include <system/time_manager.hpp>
 
-template<Set us>
-i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
+template<Set us, NodeKind kind>
+i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv) {
     ASSERT_MSG(depth >= 0, "Depth cannot be negative in alphaBeta.");
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
@@ -43,18 +44,24 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // threefold repetition, the root & the game's earlier positions included, and the fifty move rule. Never at the
     // root, a search started in a drawn position still has to return a move. A mate given on the hundredth half move
     // would win but is scored a draw, rare enough not to generate moves for.
-    if (ply > 1) {
-        if (context.history.isRepetition(pos.hash(), context.halfmoveClock[ply]) || context.halfmoveClock[ply] >= 100)
+    if constexpr (kind == NodeKind::NORMAL) {
+        if (context.repetitions.isRepetition(pos.hash(), context.frame(ply).halfmoveClock) || context.frame(ply).halfmoveClock >= 100)
             return -c_drawConstant;
     }
 
-    // hard ply limit, killers & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
+    // hard ply limit, frames & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
     // depth from ever reaching 0 along a chain of checks.
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
     // Knows whether we're in check before generating anything, start() is called once ordering is primed below.
-    SearchMoveSource<us> moves(pos);
+    using Moves = std::conditional_t<kind == NodeKind::RESTRICTED_ROOT, RootMoveSource<us>, SearchMoveSource<us>>;
+    Moves moves = [&]() -> Moves {
+        if constexpr (kind == NodeKind::RESTRICTED_ROOT)
+            return Moves(pos, context.request.rootMoves);
+        else
+            return Moves(pos);
+    }();
 
     // --- Check Extension ---
     // Search one ply deeper when in check so forcing sequences aren't cut off at the horizon. Covers direct and
@@ -95,7 +102,12 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
             NoQuiescenceLine noLine;
-            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, noLine, &moves);
+            // the root never gets here, iterations start at depth 1 and IIR only takes a ply off deeper ones. A restricted
+            // root's source isn't the type quiescence takes.
+            if constexpr (kind == NodeKind::RESTRICTED_ROOT)
+                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, noLine);
+            else
+                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, alpha, beta, ply, noLine, &moves);
         } else {
             return context.evaluate<us>();
         }
@@ -107,7 +119,7 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // --- prime move ordering ---
     if (bestMove.isNull() == false) orderingView.ttMove = bestMove;
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.heuristics, context.continuationStack, orderingView, ply);
+    search_policies::MoveOrdering::prime(context.heuristics, context.frames, orderingView, ply);
 
     moves.start(&orderingView, MoveTypes::ALL);
 
@@ -170,11 +182,18 @@ i16 Search::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     return eval;
 }
 
-template i16 Search::alphaBeta<Set::WHITE>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-template i16 Search::alphaBeta<Set::BLACK>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+#define INSTANTIATE_ALPHA_BETA(us, kind) \
+    template i16 Worker::alphaBeta<us, kind>(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv)
+INSTANTIATE_ALPHA_BETA(Set::WHITE, NodeKind::NORMAL);
+INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::NORMAL);
+INSTANTIATE_ALPHA_BETA(Set::WHITE, NodeKind::ROOT);
+INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::ROOT);
+INSTANTIATE_ALPHA_BETA(Set::WHITE, NodeKind::RESTRICTED_ROOT);
+INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
+#undef INSTANTIATE_ALPHA_BETA
 
-template<Set us>
-i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
+template<Set us, typename Moves>
+i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -202,19 +221,10 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 
     if constexpr (search_policies::LMP::enabled)
         quietLimit = search_policies::LMP::quietLimit(isPV, moves.isChecked(), depth);
 
-    // go searchmoves, only the given moves are searched at the root.
-    const bool restrictRoot = ply == 1 && context.inputs.rootMoves.empty() == false;
-
     do {
         if (context.shouldStop()) break;
 
         PackedMove move = ordered.move;
-
-        // skipped without counting, the first allowed move is searched as the PV move.
-        if (restrictRoot && context.isRootMoveAllowed(move) == false) {
-            ordered = moves.next();
-            continue;
-        }
 
         // --- Futility Pruning ---
         // skipped quiets weren't searched, they get no history malus either.
@@ -236,17 +246,17 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 
         u8 adjustedDepth = depth;
 
         // makeMove advances the fifty move counter, reset by pawn moves & captures.
-        u16 halfmoveClock = context.halfmoveClock[ply];
+        u16 halfmoveClock = context.frame(ply).halfmoveClock;
         MoveUndoUnit undoState;
         executor.makeMove(move, undoState, halfmoveClock);
-        context.halfmoveClock[ply + 1] = halfmoveClock;
+        context.frame(ply + 1).halfmoveClock = halfmoveClock;
         if constexpr (search_policies::TT::enabled)
             search_policies::TT::prefetch(context.tt, pos.hash());
-        context.history.push(pos.hash());
+        context.repetitions.push(pos.hash());
 
         if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
             auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
-            context.continuationStack.recordReplies(ply, historyPtr);
+            context.frame(ply).continuation = historyPtr;
         }
         
         i16 eval;
@@ -297,7 +307,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 
             }
         }
 
-        context.history.pop();
+        context.repetitions.pop();
         executor.unmakeMove(undoState);
         context.nodeCount++;
 
@@ -317,16 +327,16 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 
                 flag = TranspositionFlag::TTF_CUT_BETA;
                 if (search_policies::MoveOrdering::isQuiet(move)) {
                     search_policies::MoveOrdering::updateQuietCutoff(context.heuristics, us, move,
-                        std::span<const PackedMove>(quietsTried.data(), quietCount), depth, ply);
+                        std::span<const PackedMove>(quietsTried.data(), quietCount), depth, context.frame(ply));
 
                     if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
                         using search_policies::ContinuationHistoryPolicy;
                         const i32 bonus = search_policies::MoveOrdering::quietBonus(depth);
-                        ContinuationHistoryPolicy::update(context.continuationStack, ply, pos.pieceAt(move.sourceSqr()),
+                        ContinuationHistoryPolicy::update(context.frames, ply, pos.pieceAt(move.sourceSqr()),
                             move.targetSqr(), bonus);
 
                         for (u16 i = 0; i < quietCount; ++i)
-                            ContinuationHistoryPolicy::update(context.continuationStack, ply,
+                            ContinuationHistoryPolicy::update(context.frames, ply,
                                 pos.pieceAt(quietsTried[i].sourceSqr()), quietsTried[i].targetSqr(), -bonus);
                     }
                 }
@@ -370,5 +380,7 @@ i16 Search::searchMoves(SearchMoveSource<us>& moves, ThreadContext& context, u8 
     return bestEval;
 }
 
-template i16 Search::searchMoves<Set::WHITE>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Search::searchMoves<Set::BLACK>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);

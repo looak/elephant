@@ -1,4 +1,4 @@
-#include <search/search.hpp>
+#include <search/worker.hpp>
 
 #include <position/hash_zobrist.hpp>
 
@@ -8,9 +8,9 @@
 // fail high after giving the opponent a free move, the position is good enough that a full search would too.
 // Called at non-PV nodes that aren't in check, staticEval is the node's eval from alphaBeta.
 template<Set us>
-std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
+std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
     // never two null moves in a row, the second would just hand the move back.
-    if (ctx.nullMoveAt[ply - 1])
+    if (ctx.frame(ply - 1).nullMove)
         return std::nullopt;
 
     // inside a verification search the verified side doesn't null move until nmpMinPly.
@@ -40,14 +40,14 @@ std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     const byte originalEnPassant = editor.enPassant().read();
     editor.enPassant().clear();
     editor.hash() = zobrist::updateBlackToMoveHash(editor.hash());
-    ctx.history.push(pos.hash());
-    ctx.nullMoveAt[ply] = true;
+    ctx.repetitions.push(pos.hash());
+    ctx.frame(ply).nullMove = true;
 
     if constexpr (search_policies::ContinuationHistoryPolicy::enabled)
-        ctx.continuationStack.recordReplies(ply, &heuristic_defaults::noPreviousMove);
+        ctx.frame(ply).continuation = &heuristic_defaults::noPreviousMove;
 
     // passing counts as a quiet move for the fifty move rule.
-    ctx.halfmoveClock[ply + 1] = static_cast<u16>(ctx.halfmoveClock[ply] + 1);
+    ctx.frame(ply + 1).halfmoveClock = static_cast<u16>(ctx.frame(ply).halfmoveClock + 1);
 
     const u8 R = search_policies::NMP::getReduction(depth, staticEval, beta);
     const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;
@@ -56,8 +56,8 @@ std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
         static_cast<i16>(-beta + 1), ply + 1, &nullPv));
 
     // --- unmake null move ---
-    ctx.nullMoveAt[ply] = false;
-    ctx.history.pop();
+    ctx.frame(ply).nullMove = false;
+    ctx.repetitions.pop();
     if (originalEnPassant)
         editor.enPassant().write(originalEnPassant);
     editor.hash() = originalHash;
@@ -87,5 +87,5 @@ std::optional<i16> Search::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     return cutScore;
 }
 
-template std::optional<i16> Search::tryNullMovePrune<Set::WHITE>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
-template std::optional<i16> Search::tryNullMovePrune<Set::BLACK>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Worker::tryNullMovePrune<Set::WHITE>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Worker::tryNullMovePrune<Set::BLACK>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);

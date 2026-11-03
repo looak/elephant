@@ -11,12 +11,12 @@ fourth binary reads games with the library's PGN and SAN parsing and move genera
 
 | Binary | Built by | Entry | For |
 |:--|:--|:--|:--|
-| `elephant_ob` and the release binaries | `ob_build/makefile`, g++ | `src/cli/src/openbench.cpp` | playing: OpenBench, GitHub releases, match runners |
-| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
-| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
-| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
+| `eg-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
+| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/cli/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
+| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `src/tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
+| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `src/indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
 
-`ElephantGambit` and `elephant_ob` speak the same UCI. The makefile build is the reference: OpenBench builds it, the
+`ElephantGambit` and `eg-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
 release binaries are it, and the bench signature comes from it. The test binaries are in [tests.md](tests.md).
 
 ## Scope
@@ -60,6 +60,9 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 `info score cp|mate <s> depth <d> nodes <n> time <ms> hashfull <h> pv <moves>`, nodes counted over all threads; the
 last line before `bestmove` is `info nodes <n> time <ms> nps <nps>`. With `debug on` the helper threads' iterations
 come as `info string thread <id> depth <d> score <s> nodes <n> pv <moves>`.
+`go infinite` and `go ponder` run until `stop` or `ponderhit`: one that ends on its own, on a forced mate or at the
+ply limit, sends those last two lines only then, with the search's own time.
+Before any `position` the engine is at the start position.
 With no legal move at the root (mate or stalemate) the answer is `bestmove 0000`. `position fen` refuses a board
 without exactly one king a side.
 
@@ -72,13 +75,13 @@ on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. T
 
 ### Bench
 
-`elephant_ob bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
+`eg-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
 504347 on `main` at 1.4.0. Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
-(`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
+(`src/engine`, `src/uci`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
 leaves the line out. Windows and Linux builds give the same count since the Zobrist keys come from a fixed seed
 splitmix64.
@@ -176,7 +179,7 @@ and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and th
 ### ElephantGambit, the development binary
 
 Without arguments it starts an interactive CLI: `help`, `about`, `new`, `fen`, `move`, `print`, `evaluate`, `search`,
-`perft`, `divide`, `bench`, `exit`. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
+`perft`, `divide`, `bench`, `exit`. It starts at the start position. `search` keeps its 64 MB table and history tables between commands, `new` clears them. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
 builds have assertions and exceptions on in every configuration by default (`ASSERTIONS_ENABLED`,
 `EXCEPTIONS_ENABLED` in `cmake/options.cmake`, always on in Debug); the makefile builds have neither.
 
@@ -206,27 +209,34 @@ whoever plays the games writes the players and tags.
   default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
   carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
   With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
-  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  search (`QuiescenceProbe`) returns the position's own static evaluation. The search is a test and its line is
   discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
   ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
   duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
-  `--stats OUT` writes the run's statistics as versioned JSON (`indexer/README.md`).
+  `--stats OUT` writes the run's statistics as versioned JSON (`src/indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
   engine build, and `ob_build/makefile`, which never builds phant-indexer, fetch and link none of it; the bench doesn't
   move.
 - **The cards' format** (now format 2) and the positions records are a contract with nyayo, owned here:
-  [`indexer/README.md`](../../indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
+  [`src/indexer/README.md`](../../src/indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
   check against python-chess in [test-pipeline.md](test-pipeline.md#phant-indexer-against-python-chess).
 
 ### Builds & releases
 
+- `./build.sh`, on anything with bash, checks the toolchain and builds into `dist/`: `eg-uci` by default, `--cli`, `--tuner`,
+  `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `eg-uci` is
+  named `eg-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
+  their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
+- `build.cmd` runs `build.sh` in Git Bash with the same options, for PowerShell & cmd on Windows.
+- `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
+  A build of `eg-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
-  with its own `EXE`.
+  with its own `EXE`, objects in `$(BUILD_DIR)`, `.build/make` by default.
 - `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `-march=x86-64`,
   `x86-64-v2` and `x86-64-v3`, linked static, named by the instructions each needs:
-  `elephant-gambit-<version>-<os>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
+  `eg-uci-<version>-<win | linux>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
   hand with `indexer` on, never on a release: in a job of its own with CMake and `ELEPHANT_BUILD_INDEXER=ON`, for
   Windows & Linux at `x86-64`, linked static (the C runtime too), named `phant-indexer-<version>-<os>-x86-64` and
   smoke tested on OpenBench's workload, bz2 compressed, before it is attached. A third job titles the GitHub release
@@ -252,7 +262,7 @@ whoever plays the games writes the players and tags.
 | out | UCI on stdout | above |
 | out | bench line in commit messages | `bench <nodes> nodes`, its own paragraph before trailers |
 | out | release binaries | `release.yml` |
-| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
-| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
-| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
+| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`src/indexer/README.md`](../../src/indexer/README.md) |
 

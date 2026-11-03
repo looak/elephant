@@ -30,7 +30,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <optional>
+#include <span>
 
 #include <move/generation/tusk/check_info.hpp>
 #include <move/generation/move_ordering_view.hpp>
@@ -73,4 +75,41 @@ template<Set us>
 class SearchMoveSource : public TuskSearchMoveSource<us> {
 public:
     using TuskSearchMoveSource<us>::TuskSearchMoveSource;
+};
+
+// The moves of the root of a go searchmoves: the usual generation & ordering with the rest left out, so the search sees
+// a position with only these moves. allowed has to outlive it.
+template<Set us>
+class RootMoveSource {
+public:
+    RootMoveSource(PositionReader position, std::span<const PackedMove> allowed) :
+        m_moves(position),
+        m_allowed(allowed)
+    {}
+
+    [[nodiscard]] bool isChecked() const { return m_moves.isChecked(); }
+
+    void start(const MoveOrderingView* ordering, MoveTypes filter) { m_moves.start(ordering, filter); }
+
+    [[nodiscard]] PrioritizedMove next() {
+        skipOthers();
+        return m_moves.next();
+    }
+
+    [[nodiscard]] PackedMove peek() {
+        skipOthers();
+        return m_moves.peek();
+    }
+
+private:
+    void skipOthers() {
+        for (PackedMove move = m_moves.peek();
+             move.isNull() == false && std::find(m_allowed.begin(), m_allowed.end(), move) == m_allowed.end();
+             move = m_moves.peek()) {
+            static_cast<void>(m_moves.next());
+        }
+    }
+
+    SearchMoveSource<us> m_moves;
+    std::span<const PackedMove> m_allowed;
 };

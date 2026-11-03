@@ -63,25 +63,28 @@ endif()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-# ELEPHANT_NATIVE_ARCH, see cmake/options.cmake.
-if(ELEPHANT_NATIVE_ARCH)
-    if(MSVC)
-        add_compile_options(/arch:AVX2)
-    else()
-        add_compile_options(-march=native)
-    endif()
-    message(STATUS "## Native instruction set: ON")
-endif()
+include(cmake/arch.cmake)
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
+# What you run goes in dist/, the objects stay in the build tree. A coverage build keeps its binaries in its tree too, they
+# aren't for running and their reports are read from there.
+set(ELEPHANT_DIST_DIR "${CMAKE_SOURCE_DIR}/dist")
 foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER)
     message(STATUS "## Configuring for ${CONFIG_TYPE} build type")
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_LIBDIR})
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_LIBDIR})
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_BINDIR})
+    if(ELEPHANT_COVERAGE)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_BINARY_DIR}/${CONFIG_TYPE}/${CMAKE_INSTALL_BINDIR})
+    elseif(CONFIG_TYPE STREQUAL Debug)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${ELEPHANT_DIST_DIR}/debug)
+    else()
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${ELEPHANT_DIST_DIR})
+    endif()
 endforeach()
+
+include(cmake/deps.cmake)
 
 # third_party libraries
 add_subdirectory(third_party)
@@ -91,16 +94,19 @@ add_subdirectory(src)
 
 option(ELEPHANT_BUILD_TUNER "Build ElephantTuner, the offline evaluation tuner" ON)
 if(ELEPHANT_BUILD_TUNER)
-    add_subdirectory(tuner)
+    add_subdirectory(src/tuner)
 endif()
 
 # phant-indexer, the game reader for nyayo's catalogue. Off by default: it fetches zlib, bzip2 & zstd at configure
 # time, which an engine build has no use for.
 option(ELEPHANT_BUILD_INDEXER "Build phant-indexer, the game reader for nyayo's catalogue" OFF)
 if(ELEPHANT_BUILD_INDEXER)
-    add_subdirectory(indexer)
+    add_subdirectory(src/indexer)
 endif()
 
-# enable testing and define tests
+# the tests fetch googletest at configure time, which building the engine has no use for.
+option(ELEPHANT_BUILD_TESTS "Build the tests, fetches googletest" ON)
 enable_testing()
-add_subdirectory(test)
+if(ELEPHANT_BUILD_TESTS)
+    add_subdirectory(test)
+endif()

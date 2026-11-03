@@ -1,7 +1,7 @@
 #!/bin/sh
 # Adds a "bench <nodes> nodes" line to the commit message, OpenBench reads the bench from the branch's newest commit.
 #
-# When the commit changes the engine (src/engine, src/cli/src or ob_build/makefile) the bench is run, built with
+# When the commit changes the engine (src/engine, src/uci or ob_build/makefile) the bench is run, built with
 # ob_build/makefile and g++ like OpenBench builds it, other compilers give other node counts. Without g++ and make on
 # PATH (Windows) the build runs through WSL. Otherwise the bench line of the last commit that has one is reused.
 #
@@ -20,11 +20,11 @@ msg_file="$1"
 [ "$ELEPHANT_BENCH" = "skip" ] && exit 0
 
 root="$(git rev-parse --show-toplevel)"
-engine_paths="src/engine src/cli/src ob_build/makefile"
+engine_paths="src/engine src/uci ob_build/makefile"
 
 run_bench() {
-    # build objects & binary stay in ob_build/build, which is ignored.
-    build='cd ob_build && make -j"$(nproc)" EXE=build/elephant_ob >/dev/null 2>&1 && ./build/elephant_ob bench | tail -n 1'
+    # objects & binary go in .build/make, which is ignored.
+    build='cd ob_build && make -j"$(nproc)" EXE=../.build/make/eg-uci >/dev/null 2>&1 && ../.build/make/eg-uci bench | tail -n 1'
     if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
         (cd "$root" && sh -c "$build")
     elif command -v wsl.exe >/dev/null 2>&1; then

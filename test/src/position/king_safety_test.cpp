@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/king_safety.hpp>
 #include <io/fen_parser.hpp>
 
@@ -43,18 +43,18 @@ struct RecordingTrace {
 };
 
 RecordingTrace traceOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    Game context;
+    context.loadFen(fen);
     RecordingTrace trace;
-    (void)kingSafetyScore(context.readChessPosition().material(), trace);
+    (void)kingSafetyScore(context.readPosition().material(), trace);
     return trace;
 }
 
 RecordingTrace attackTraceOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    Game context;
+    context.loadFen(fen);
     RecordingTrace trace;
-    (void)kingAttackScore(context.readChessPosition().material(), trace);
+    (void)kingAttackScore(context.readPosition().material(), trace);
     return trace;
 }
 

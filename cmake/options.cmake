@@ -10,13 +10,15 @@ option(EXCEPTIONS_ENABLED "Enable exceptions in optimized builds, always on in D
 # The log always goes to the console, this also writes it and a copy of std::cout to logs/.
 option(OUTPUT_LOG_TO_FILE "Also write the log and std::cout to files in logs/" OFF)
 
-# Target the build machine's instruction set (popcnt, tzcnt, lzcnt...). Turn off for portable binaries, the release
-# binaries are built by ob_build/makefile with an explicit ARCH.
-option(ELEPHANT_NATIVE_ARCH "Optimize for the build machine's instruction set" ON)
+# The instruction set to compile for. native is the build machine's, fast here and maybe not elsewhere, the others run
+# on other machines: x86-64 anywhere, sse42 is x86-64-v2, avx2 is x86-64-v3. Release binaries are built by
+# ob_build/makefile with an explicit ARCH, the same levels.
+set(ELEPHANT_ARCH native CACHE STRING "Instruction set to compile for: native, x86-64, sse42 or avx2")
+set_property(CACHE ELEPHANT_ARCH PROPERTY STRINGS native x86-64 sse42 avx2)
 
 # Instrument engine, cli, phant-indexer & ElephantTest for line, function & branch coverage, gcc's --coverage or
 # clang's source based coverage, see cmake/coverage.cmake. Turns link time optimization off. test/coverage.ps1 and
-# test/coverage.sh configure a build-cov directory with it, run the unit tests and write the report.
+# test/coverage.sh configure .build/coverage with it, run the unit tests and write the report.
 option(ELEPHANT_COVERAGE "Instrument our targets for test coverage, no link time optimization" OFF)
 
 # The log's level, spdlog compiles out everything below it. A level's position in the list is spdlog's

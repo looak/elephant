@@ -28,7 +28,7 @@ public:
     {
         m_streams.push_back(std::make_unique<std::string>(pgn));
         io::pgn_parser::GameReader reader(*m_streams.back());
-        std::optional<io::pgn_parser::Game> game = reader.next();
+        std::optional<io::pgn_parser::PgnGame> game = reader.next();
         EXPECT_TRUE(game);
         return indexer::index(*game, 1, false, true, true);
     }

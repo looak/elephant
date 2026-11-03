@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <search/core/static_exchange.hpp>
 
@@ -15,11 +15,11 @@ namespace ElephantTest {
 class StaticExchangeFixture : public ::testing::Test {
 public:
     void setPosition(const std::string& fen) {
-        io::fen_parser::deserialize(fen.c_str(), m_context.editChessboard());
+        m_context.loadFen(fen.c_str());
     }
 
     bool ge(PackedMove move, i32 threshold) {
-        return see::ge(m_context.readChessPosition().material(), move, threshold);
+        return see::ge(m_context.readPosition().material(), move, threshold);
     }
 
     static PackedMove capture(Square from, Square to) {
@@ -28,7 +28,7 @@ public:
         return move;
     }
 
-    GameContext m_context;
+    Game m_context;
 };
 ////////////////////////////////////////////////////////////////
 

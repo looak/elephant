@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move/move_executor.hpp>
 #include <position/position.hpp>
 #include <io/fen_parser.hpp>
@@ -32,13 +32,13 @@ public:
     std::string fen() const
     {
         std::string output;
-        io::fen_parser::serialize(m_game.readChessboard(), output);
+        io::fen_parser::serialize(m_game.board(), output);
         const size_t moveNumber = output.find_last_of(' ');
         const size_t halfmoveClock = output.find_last_of(' ', moveNumber - 1);
         return output.substr(0, halfmoveClock) + output.substr(moveNumber);
     }
 
-    GameContext m_game;
+    Game m_game;
 };
 ////////////////////////////////////////////////////////////////
 
@@ -46,15 +46,17 @@ public:
 TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
     
     // set up
-    chess_positions::defaultStartingPosition(m_game.editChessPosition());
+    Chessboard board;
+    chess_positions::defaultStartingPosition(board.editPosition());
     u16 ply = 0;
-    MoveExecutor executor(m_game.editChessPosition());
-    PositionReader positionReader(m_game.readChessPosition());
+    MoveExecutor executor(board.editPosition());
+    PositionReader positionReader(board.readPosition());
+    MoveUndoUnit undo;
 
     PackedMove move(Square::E2, Square::E4);
 
     // do
-    executor.makeMove<true>(move, m_game.editGameHistory().moveUndoUnits.emplace_back(), ply);
+    executor.makeMove<true>(move, undo, ply);
 
     // verify
     EXPECT_EQ(positionReader.pieceAt(Square::E4), piece_constants::white_pawn);
@@ -66,8 +68,8 @@ TEST_F(MoveExecutorFixture, MakeValidMove_E2E4_UpdatesBoard) {
 // Unmake restores the value from before the move. The halfmove clock in the FEN agrees.
 TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
     // white: Ke1 Nb1 pawns d2 e2, black: Ke8 Nf6 pawn d5, halfmove clock 7.
-    ASSERT_TRUE(io::fen_parser::deserialize("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", m_game.editChessboard()));
-    ASSERT_EQ(7, m_game.readPly());
+    ASSERT_TRUE(m_game.loadFen("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30"));
+    ASSERT_EQ(7, m_game.readHalfmoveClock());
 
     struct Step {
         PackedMove move;
@@ -94,12 +96,12 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
 
     std::vector<u16> before;
     for (const auto& step : steps) {
-        before.push_back(m_game.readPly());
-        m_game.MakeMove(step.move);
-        EXPECT_EQ(step.expected, m_game.readPly()) << step.name << ", " << step.move.toString();
+        before.push_back(m_game.readHalfmoveClock());
+        m_game.makeMove(step.move);
+        EXPECT_EQ(step.expected, m_game.readHalfmoveClock()) << step.name << ", " << step.move.toString();
 
         std::string fen;
-        io::fen_parser::serialize(m_game.readChessboard(), fen);
+        io::fen_parser::serialize(m_game.board(), fen);
         std::istringstream fields(fen);
         std::string field;
         for (int i = 0; i < 5; ++i)
@@ -108,24 +110,24 @@ TEST_F(MoveExecutorFixture, MakeUnmake_FiftyMoveCounter) {
     }
 
     for (size_t i = std::size(steps); i-- > 0;) {
-        m_game.UnmakeMove();
-        EXPECT_EQ(before[i], m_game.readPly()) << "unmake " << steps[i].move.toString();
+        m_game.unmakeMove();
+        EXPECT_EQ(before[i], m_game.readHalfmoveClock()) << "unmake " << steps[i].move.toString();
     }
-    EXPECT_EQ(7, m_game.readPly());
+    EXPECT_EQ(7, m_game.readHalfmoveClock());
     std::string restored;
-    io::fen_parser::serialize(m_game.readChessboard(), restored);
+    io::fen_parser::serialize(m_game.board(), restored);
     EXPECT_EQ("4k3/8/5n2/3p4/8/8/3PP3/1N2K3 w - - 7 30", restored);
 }
 
 // A pawn push resets the halfmove clock to 0, issue #15.
 TEST_F(MoveExecutorFixture, PawnPush_ResetsHalfmoveClock)
 {
-    io::fen_parser::deserialize("4k3/8/8/8/8/8/4P3/4K3 w - - 7 20", m_game.editChessboard());
-    EXPECT_EQ(7, m_game.readChessboard().readPlyCount());
+    m_game.loadFen("4k3/8/8/8/8/8/4P3/4K3 w - - 7 20");
+    EXPECT_EQ(7, m_game.board().readHalfmoveClock());
 
-    m_game.MakeMove<true>(PackedMove(Square::E2, Square::E4));
+    m_game.makeMove<true>(PackedMove(Square::E2, Square::E4));
 
-    EXPECT_EQ(0, m_game.readChessboard().readPlyCount());
+    EXPECT_EQ(0, m_game.board().readHalfmoveClock());
 }
 
 // 8 [ r ][ n ][ b ][ q ][ k ][ b ][ n ][ r ]
@@ -140,12 +142,12 @@ TEST_F(MoveExecutorFixture, PawnPush_ResetsHalfmoveClock)
 // 1.d4 d5 2.c4 dxc4
 TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.d4 d5 2.c4 dxc4");
 
-    EXPECT_EQ(4u, m_game.readGameHistory().moveUndoUnits.size());
-    EXPECT_TRUE(m_game.readGameHistory().moveUndoUnits.back().move.isCapture());
+    EXPECT_EQ(4u, m_game.moves().size());
+    EXPECT_TRUE(m_game.moves().back().move.isCapture());
     EXPECT_EQ("rnbqkbnr/ppp1pppp/8/8/2pP4/8/PP2PPPP/RNBQKBNR w KQkq - 3", fen());
 }
 
@@ -155,11 +157,11 @@ TEST_F(MoveExecutorFixture, BuildMoveSequence_QueensGambitAccepted)
 // io::pgn_parser wants no space between a move number and its move.
 TEST_F(MoveExecutorFixture, BuildMoveSequence_FischerSpassky)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6");
 
-    const auto& undoUnits = m_game.readGameHistory().moveUndoUnits;
+    const auto& undoUnits = m_game.moves();
     ASSERT_EQ(8u, undoUnits.size());
 
     const std::array<std::tuple<ChessPiece, Square, Square>, 8> expected = { {
@@ -187,12 +189,12 @@ TEST_F(MoveExecutorFixture, BuildMoveSequence_FischerSpassky)
 // sides of it leaves an empty move between them.
 TEST_F(MoveExecutorFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game,
         "1.e4 {This is a comment.}e5 2.Nf3 Nc6 3.Bb5 a6{This opening is called the Ruy Lopez.} 4.Ba4 Nf6 5.O-O Be7");
 
-    const auto& undoUnits = m_game.readGameHistory().moveUndoUnits;
+    const auto& undoUnits = m_game.moves();
     ASSERT_EQ(10u, undoUnits.size());
 
     // 5.O-O
@@ -222,11 +224,11 @@ TEST_F(MoveExecutorFixture, BuildMoveSequence_FischerSpassky_CommentAndCastling)
 // rank, file & square disambiguation, both rooks reach a3, both knights d7, all three queens e1 & both rooks e8.
 TEST_F(MoveExecutorFixture, BuildMoveSequence_DisambiguatingMoves)
 {
-    io::fen_parser::deserialize("rn3rk1/8/5n2/R7/4Q2Q/8/8/RK5Q w - - 0 1", m_game.editChessboard());
+    m_game.loadFen("rn3rk1/8/5n2/R7/4Q2Q/8/8/RK5Q w - - 0 1");
 
     io::pgn_parser::deserialize(m_game, "1.R1a3 Nbd7 2.Qh4e1 Rae8");
 
-    const auto& undoUnits = m_game.readGameHistory().moveUndoUnits;
+    const auto& undoUnits = m_game.moves();
     ASSERT_EQ(4u, undoUnits.size());
 
     EXPECT_EQ(Square::A1, undoUnits[0].move.sourceSqr());   // R1a3

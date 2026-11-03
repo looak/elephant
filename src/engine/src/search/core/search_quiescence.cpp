@@ -1,4 +1,4 @@
-#include <search/search.hpp>
+#include <search/worker.hpp>
 #include <position/position_hash.hpp>
 
 #include <eval/evaluator.hpp>
@@ -14,7 +14,7 @@
 #include <optional>
 
 template<Set us, typename Line>
-i16 Search::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, SearchMoveSource<us>* leafMoves) {
+i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, SearchMoveSource<us>* leafMoves) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
     ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
@@ -137,14 +137,14 @@ i16 Search::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
 }
 
 template<Set us>
-i16 Search::quiescenceLine(ThreadContext& context, PVLine& line) {
+i16 Worker::quiescenceLine(ThreadContext& context, PVLine& line) {
     return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, static_cast<i16>(-c_infinity),
                           static_cast<i16>(c_infinity), 1, line);
 }
 
-template i16 Search::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::WHITE>*);
-template i16 Search::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::BLACK>*);
-template i16 Search::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::WHITE>*);
-template i16 Search::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::BLACK>*);
-template i16 Search::quiescenceLine<Set::WHITE>(ThreadContext&, PVLine&);
-template i16 Search::quiescenceLine<Set::BLACK>(ThreadContext&, PVLine&);
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::WHITE>*);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::BLACK>*);
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::WHITE>*);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::BLACK>*);
+template i16 Worker::quiescenceLine<Set::WHITE>(ThreadContext&, PVLine&);
+template i16 Worker::quiescenceLine<Set::BLACK>(ThreadContext&, PVLine&);

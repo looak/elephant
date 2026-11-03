@@ -120,9 +120,9 @@ Every [release][release-link] has Windows and Linux binaries of the UCI engine, 
 
 | Binary | Needs | CPUs |
 |:-------|:------|:-----|
-| `x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
-| `x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
-| `x86-64` | any 64-bit CPU | anything else |
+| `eg-uci-...-x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
+| `eg-uci-...-x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
+| `eg-uci-...-x86-64` | any 64-bit CPU | anything else |
 
 The binaries are statically linked and need nothing else installed. They start in UCI mode, `bench` as an argument runs the OpenBench bench.
 
@@ -140,30 +140,26 @@ git bash example:
 git clone --recursive https://github.com/looak/elephant.git
 ```
 
-#### Windows
-
-Easiest way to get running on Windows is installing Visual Studio Code and extensions for cmake projects, or Visual Studio Community and opening the initial CMakeLists.txt.
-
-#### Linux
-
-* Create a build directory:
+`build.sh` checks your toolchain, builds and puts the result in `dist/`. It runs on Linux, macOS and in Git Bash or MSYS2 on Windows, and needs CMake and a C++20 compiler. On Windows it finds Visual Studio by itself:
 
 ```bash
-$ mkdir build
-$ cd build
+./build.sh                 # eg-uci, the UCI engine
+./build.sh --arch avx2     # for other machines: x86-64, sse42 or avx2, native is the default
+./build.sh --cli --tuner   # also --indexer, --tests, or --all
+./build.sh --reference     # with g++ & the makefile, what OpenBench and the releases build
+./build.sh --help
 ```
 
-* Call Cmake:
+From PowerShell or cmd on Windows use `./build --all` instead, `build.cmd` runs the same script in Git Bash. There `./build.sh` only opens it in a window of its own, and `bash` can be WSL's, which builds a Linux binary.
+
+Plain CMake works just the same, the binaries still land in `dist/`:
 
 ```bash
-$ cmake ..
+cmake -S . -B .build/mine -DCMAKE_BUILD_TYPE=Release
+cmake --build .build/mine --config Release --parallel
 ```
 
-* Build:
-
-```
-$ make
-```
+`.build/` holds objects and fetched sources and is safe to delete.
 
 ## Running Elephant Gambit
 
@@ -179,7 +175,7 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 ## Running the tests
 
-Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
+Either run `dist/ElephantTest` after build or browse to the build folder and execute `ctest`. `ElephantSuite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
 
 | Tier | Runs | Takes | What |
 |:--|:--|:--|:--|
@@ -188,7 +184,7 @@ Either run the output binary `ElephantTest` after build or browse to `.\build\` 
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. The runner's `--nodes`, `--depth`, `--movetime`, `--threads` and `--hash` override the settings for experiments. Every position searched is recorded, `test/smoke.sh` compares the run with the nearest ancestor commit's position by position, see [test/RESULTS.md](test/RESULTS.md).
 
-`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `build-cov` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `build-cov/coverage/index.html`. The Coverage workflow (`coverage.yml`, Actions > Coverage > Run workflow) prints the same summary on its page, it runs only by hand. Run on `main` it also updates the coverage badge above: line coverage, in `coverage.json` on the `badges` branch, which holds only the latest.
+`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `.build/coverage` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `.build/coverage/coverage/index.html`. The Coverage workflow (`coverage.yml`, Actions > Coverage > Run workflow) prints the same summary on its page, it runs only by hand. Run on `main` it also updates the coverage badge above: line coverage, in `coverage.json` on the `badges` branch, which holds only the latest.
 
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 

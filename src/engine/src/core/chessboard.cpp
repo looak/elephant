@@ -3,6 +3,7 @@
 #include <bitboard/intrinsics.hpp>
 #include <system/platform.hpp>
 #include <move/move.hpp>
+#include <move/move_executor.hpp>
 #include <position/hash_zobrist.hpp>
 
 #include <future>
@@ -13,10 +14,39 @@
 Chessboard::Chessboard()
 {}
 
-Chessboard::Chessboard(const Chessboard& other) :
-    m_gameState(other.m_gameState),
-    m_position(other.m_position)
+template<bool validation>
+void Chessboard::makeMove(const PackedMove move, MoveUndoUnit& undo)
 {
+    MoveExecutor executor(m_position.edit());
+    executor.makeMove<validation>(move, undo, m_gameState.halfmoveClock);
+
+    // back at white's turn means black just moved, which completes a full move.
+    m_gameState.whiteToMove = !m_gameState.whiteToMove;
+    m_gameState.moveCount += static_cast<u16>(m_gameState.whiteToMove);
+}
+
+template void Chessboard::makeMove<false>(const PackedMove move, MoveUndoUnit& undo);
+template void Chessboard::makeMove<true>(const PackedMove move, MoveUndoUnit& undo);
+
+bool Chessboard::unmakeMove(const MoveUndoUnit& undo)
+{
+    MoveExecutor executor(m_position.edit());
+    const bool result = executor.unmakeMove(undo);
+
+    m_gameState.moveCount -= static_cast<u16>(m_gameState.whiteToMove);
+    m_gameState.whiteToMove = !m_gameState.whiteToMove;
+    m_gameState.halfmoveClock = undo.halfmoveClock;
+    return result;
+}
+
+void Chessboard::makeNullMove()
+{
+    PositionEditor position = m_position.edit();
+    position.enPassant().clear();
+    position.hash() = zobrist::updateBlackToMoveHash(position.hash());
+    ++m_gameState.halfmoveClock;
+    m_gameState.whiteToMove = !m_gameState.whiteToMove;
+    m_gameState.moveCount += static_cast<u16>(m_gameState.whiteToMove);
 }
 
 bool Chessboard::compare(const Chessboard& other) const

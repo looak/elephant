@@ -40,6 +40,7 @@
 #include <cstring>
 #include <limits>
 #include <memory>
+#include <new>
 #include <thread>
 
 
@@ -178,6 +179,10 @@ private:
     // more. The least valuable entry in the bucket is replaced.
     i32 worth(u64 data) const;
 
+    static transposition_table::bucket* allocateBuckets(size_t count) {
+        return new (std::nothrow) transposition_table::bucket[count];
+    }
+
 public:
     // size_mb: Size of table in megabytes, all of it is used.
     explicit TranspositionTableImpl(size_t size_mb = 64);
@@ -195,7 +200,12 @@ public:
     // --- Table Management ---    
     // threads split the table between them, a large Hash clears in a fraction of the time.
     void clear(u32 threads = 1);
-    void resize(size_t size_mb, u32 threads = 1);
+    // Throws std::bad_alloc when size_mb doesn't fit. The table is then back at its old size, or the largest half of it
+    // that fits, empty and ready to use: a search may still follow the failed setoption.
+    void resize(size_t size_mb, u32 threads = 1) { resizeWith(size_mb, threads, allocateBuckets); }
+    // resize with allocate(bucketCount) in place of new, nullptr when it doesn't fit. Tests use it to fail an allocation.
+    template<typename Allocate>
+    void resizeWith(size_t size_mb, u32 threads, Allocate allocate);
     size_t size() const { return m_size; }
     size_t size_bytes() const { return m_bucketCount * sizeof(transposition_table::bucket); }
     // UCI hashfull, permille of the first 1000 entries that were stored during the current search.
@@ -235,16 +245,30 @@ TranspositionTableImpl<Debug>::TranspositionTableImpl(size_t size_mb)
 }
 
 template<bool Debug>
-void TranspositionTableImpl<Debug>::resize(size_t size_mb, u32 threads) {
+template<typename Allocate>
+void TranspositionTableImpl<Debug>::resizeWith(size_t size_mb, u32 threads, Allocate allocate) {
     size_mb = std::clamp<size_t>(size_mb, 1, transposition_table::constants::c_tableMaxSize);
     const size_t num_buckets = size_mb * 1024 * 1024 / sizeof(transposition_table::bucket);
 
-    // the old table is released first, both at once may not fit.
+    const auto tryAllocate = [this, &allocate](size_t count) {
+        m_table.reset(allocate(count));
+        m_bucketCount = m_table ? count : 0;
+        return m_table != nullptr;
+    };
+
+    // the old table is released first, both at once may not fit. Probing goes through m_table without a check, so a
+    // failed size can't leave it empty: what was just freed should fit again, else halve until something does. Only a
+    // process out of memory altogether ends without a table.
+    const size_t previous = m_bucketCount;
     m_table.reset();
-    m_table.reset(new transposition_table::bucket[num_buckets]);
-    m_bucketCount = num_buckets;
-    m_size = num_buckets * transposition_table::constants::c_bucketEntries;
+    const bool fits = tryAllocate(num_buckets);
+    for (size_t count = previous; !fits && count > 0 && !tryAllocate(count); count /= 2) {
+    }
+
+    m_size = m_bucketCount * transposition_table::constants::c_bucketEntries;
     clear(threads);
+    if (!fits)
+        throw std::bad_alloc();
 }
 
 template<bool Debug>

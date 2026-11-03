@@ -5,7 +5,7 @@
 #include <diagnostics/logger.hpp>
 #include "printer/printer.hpp"
 
-#include "commands/uci_commands.hpp"
+#include <uci/uci_loop.hpp>
 
 #include <iostream>
 #include <thread>
@@ -83,7 +83,7 @@ bool NormalModeProcessor::processInput(AppContext* context, const std::string& l
     }
 
     // The command is created, used, and then destroyed here.
-    command->setContext(&m_gameContext);
+    command->setContext(&m_context);
     if (command->run(args) > 0 && fallbackToMove) {
         prnt::err << "Error: Unknown command '" << command_name << "'" << std::endl;
     }
@@ -91,67 +91,8 @@ bool NormalModeProcessor::processInput(AppContext* context, const std::string& l
     return true;
 }
 
-UciModeProcessor::UciModeProcessor() 
+bool UciModeProcessor::processInput(AppContext*, const std::string&)
 {
-    // system("cls");
-}
-
-void UciModeProcessor::options()
-{    
-    for (auto&& option : UCICommands::options) {
-        std::cout << "option name " << option.first << " " << option.second << "\n";
-    } 
-}
-
-void UciModeProcessor::tokenize(const std::string& buffer, std::list<std::string>& tokens)
-{
-    std::istringstream ssargs(buffer);
-    std::string token;
-    while (std::getline(ssargs, token, ' ')) {
-        tokens.push_back(token);
-    }
-}
-
-bool UciModeProcessor::processInput(AppContext* context, const std::string&) {
-    UCI interface;
-    options();
-    interface.Enable();
-    
-    while (interface.Enabled()) {
-        std::string buffer = "";
-        std::getline(std::cin, buffer);
-        std::list<std::string> tokens;
-        tokenize(buffer, tokens);        
-
-        if (tokens.size() == 0)
-            continue;
-
-        std::string commandStr = tokens.front();
-        auto&& command = UCICommands::commands.find(commandStr);
-    
-        if (tokens.size() > 0 && command != UCICommands::commands.end()) {
-            auto token = tokens.front();
-    
-            if (token == "quit" || token == "exit")
-                std::exit(0);
-    
-            if (token == "normal") {
-                ASSERT_MSG(context != nullptr, "AppContext is null in UciModeProcessor::processInput");
-                context->setState(std::make_unique<NormalModeProcessor>());
-                return true;
-            }       
-            
-            tokens.pop_front();  // remove command from arguments
-            try {
-                command->second(tokens, interface);
-            }
-            catch (const std::exception& e) {
-                // a malformed command must never take the engine down, report it and keep reading.
-                LOG_ERROR("UCI command '{}' failed: {}", commandStr, e.what());
-                std::cout << "info string error " << e.what() << std::endl;
-            }
-        }
-    }
-
-    return true;
+    runUciLoop();
+    return false;  // standard input closed, there's nothing left to read in any mode.
 }

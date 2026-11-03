@@ -3,7 +3,7 @@
 # tier. Prints a summary and exits non-zero when a step fails. CI runs the unit tests & perft only, see
 # .github/workflows/ci.yml.
 #
-#   test/smoke.sh [build dir]     default: build, the CMake build with ElephantTest, ElephantSuite & ElephantGambit
+#   test/smoke.sh [folder]        default: dist, where ./build.sh --all puts ElephantTest, ElephantSuite & ElephantGambit
 #
 # Bench is built with ob_build/makefile and g++ like the commit hook and OpenBench do, through WSL on Windows. It only
 # warns when it differs from the last commit's bench line, a search change is supposed to change it.
@@ -20,7 +20,7 @@
 # (git config nyayo.url).
 
 root="$(git rev-parse --show-toplevel)"
-build="${1:-$root/build}"
+build="${1:-$root/dist}"
 log_dir="$root/logs"
 mkdir -p "$log_dir"
 stamp="$(date +%Y%m%d_%H%M%S)"
@@ -31,8 +31,12 @@ add_summary() { summary="$summary$(printf '  %-6s %-10s %s' "$1" "$2" "$3")
 "; }
 
 find_binary() {
-    # the Release build first, a multi config generator puts it in Release/bin, a single config one in bin.
-    for candidate in "$build/Release/bin/$1.exe" "$build/Release/bin/$1" "$build/bin/$1.exe" "$build/bin/$1"; do
+    # dist can hold both a Windows and a Linux build of the same name, take this platform's. WSL can run an .exe too.
+    case "$(uname -s)" in
+        Linux) candidates="$build/$1" ;;
+        *) candidates="$build/$1.exe $build/$1" ;;
+    esac
+    for candidate in $candidates; do
         [ -x "$candidate" ] && { echo "$candidate"; return; }
     done
     find "$build" -type f \( -name "$1" -o -name "$1.exe" \) -not -path "*CMakeFiles*" 2>/dev/null | head -n 1
@@ -65,7 +69,7 @@ fi
 
 # --- 2. bench ---
 echo "== bench"
-build_bench='cd ob_build && make -j"$(nproc)" EXE=build/elephant_ob >/dev/null 2>&1 && ./build/elephant_ob bench | tail -n 1'
+build_bench='cd ob_build && make -j"$(nproc)" EXE=../.build/make/eg-uci >/dev/null 2>&1 && ../.build/make/eg-uci bench | tail -n 1'
 if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
     bench_line="$(cd "$root" && sh -c "$build_bench")"
 elif command -v wsl.exe >/dev/null 2>&1; then
@@ -99,7 +103,7 @@ fi
 # --- 3b. phant-indexer against python-chess, a full circle over test/pgn & random games ---
 indexer="$(find_binary phant-indexer)"
 if [ -z "$indexer" ]; then
-    add_summary WARN indexer "phant-indexer not found under $build (configure with -DELEPHANT_BUILD_INDEXER=ON), not checked"
+    add_summary WARN indexer "phant-indexer not found under $build (./build.sh --indexer), not checked"
 elif [ -z "$python" ] || ! "$python" -c "import chess" 2>/dev/null; then
     add_summary WARN indexer "no python-chess (pip install chess), phant-indexer not checked"
 elif ! "$python" -c "from compression import zstd" 2>/dev/null && ! "$python" -c "import zstandard" 2>/dev/null; then

@@ -23,72 +23,10 @@
 #include <array>
 #include <cstdlib>
 #include <cstring>
+#include <span>
 #include <vector>
 
 #include <diagnostics/assert.hpp>
-
-struct MoveHistory {
-private:
-    std::vector<u64> recentHashes;
-
-public:
-    MoveHistory() {
-        // rarely will we have a game that goes this deep.
-        recentHashes.reserve(128);
-    }
-
-    void push(u64 hash) {
-        recentHashes.push_back(hash);
-    }
-    void pop() {
-        if (!recentHashes.empty()) {
-            recentHashes.pop_back();
-        }
-    }
-
-    // Threefold repetition of the last pushed position, hashKey. A capture or pawn move can't be undone, so only the
-    // positions since the last one (halfmoveClock half moves back) can repeat it, and of those only the ones with the
-    // same side to move, every second one.
-    bool isRepetition(u64 hashKey, u16 halfmoveClock) const {
-        ASSERT_MSG(!recentHashes.empty() && recentHashes.back() == hashKey, "the position checked has to be the last pushed.");
-        const size_t last = recentHashes.size() - 1;
-        const size_t window = std::min<size_t>(halfmoveClock, last);
-
-        int occurrences = 1;  // the position itself
-        for (size_t back = 2; back <= window; back += 2) {
-            if (recentHashes[last - back] == hashKey && ++occurrences >= 3)
-                return true;
-        }
-        return false;
-    }
-};
-
-struct KillerMoves {
-    private:
-    PackedMove m_killers[c_maxSearchDepth][2];
-
-    public:
-    KillerMoves() {
-        clear();
-    }
-    void clear() {
-        for (u32 i = 0; i < c_maxSearchDepth; ++i) {
-            m_killers[i][0] = PackedMove::NullMove();
-            m_killers[i][1] = PackedMove::NullMove();
-        }
-    }
-    void push(PackedMove move, u16 ply) {
-        if (m_killers[ply][0] != move) {
-            m_killers[ply][1] = m_killers[ply][0];
-            m_killers[ply][0] = move;
-        }
-    }
-
-    void retrieve(u16 ply, PackedMove& outFirst, PackedMove& outSecond) const {
-        outFirst = m_killers[ply][0];
-        outSecond = m_killers[ply][1];
-    }
-};
 
 // History heuristic: quiet moves that caused beta cutoffs, indexed [side][from][to] the way MoveOrderingView reads it.
 struct HistoryTable {
@@ -119,29 +57,11 @@ inline PieceToHistory noPreviousMove{};
 }
 
 struct ThreadHeuristics {
-    KillerMoves killers{};
-    HistoryTable history{};    
+    HistoryTable butterfly{};    
     ContinuationHistory continuationHistory{};
 
     void reset() {
-        killers.clear();
-        history.clear();
+        butterfly.clear();
         std::memset(&continuationHistory, 0, sizeof(continuationHistory));
     }
-};
-
-struct ContinuationStack {
-    ContinuationStack() {
-        m_entries.fill(&heuristic_defaults::noPreviousMove);
-    }
-    void recordReplies(u16 ply, PieceToHistory* replies) {
-        m_entries[ply+continuation_params::pliesBack] = replies;
-    }
-    PieceToHistory* repliesTo(u16 ply, u16 distance) const {
-        ASSERT_MSG(distance <= continuation_params::pliesBack, "Invalid continuation stack access");
-        return m_entries[static_cast<size_t>(ply - distance + continuation_params::pliesBack)];
-    }
-    
-private:    
-    std::array<PieceToHistory*, c_maxSearchDepth + continuation_params::pliesBack> m_entries{};
 };

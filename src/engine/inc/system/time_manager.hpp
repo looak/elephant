@@ -5,7 +5,7 @@
 
 #include <material/chess_piece_defines.hpp>
 
-struct SearchParameters;
+struct SearchLimits;
 
 using timepoint_t = std::chrono::steady_clock::time_point;
 using ms_t = std::chrono::milliseconds;
@@ -28,16 +28,16 @@ class TimeManager {
 public:
     /**
      * @brief Constructs the TimeManager with the rules for this search.
-     * @param params The SearchParameters (movetime, wtime, binc, etc.) from UCI.
+     * @param params The SearchLimits (movetime, wtime, binc, etc.) from UCI.
      * @param perspective The color we are playing (Set::WHITE or Set::BLACK).   */
-    TimeManager(const SearchParameters& params, Set perspective);
+    TimeManager(const SearchLimits& params, Set perspective);
 
 
     /**
-     * @brief Applies the time settings from the SearchParameters.
-     * @param params The SearchParameters (movetime, wtime, binc, etc.) from UCI.
+     * @brief Applies the time settings from the SearchLimits.
+     * @param params The SearchLimits (movetime, wtime, binc, etc.) from UCI.
     * @param perspective The color we are playing (Set::WHITE or Set::BLACK).   */
-    void applyTimeSettings(const SearchParameters& params, Set perspective);
+    void applyTimeSettings(const SearchLimits& params, Set perspective);
 
     /**
      * @brief Sets the time reserved on every move for communication latency, persists across searches.
@@ -81,10 +81,6 @@ public:
      * @brief Gets the stop token associated with this TimeManager.
      * @return The std::stop_token used to signal search threads to stop.     */
     std::stop_token cancelToken() const;
-    /**
-     * @brief Resets the TimeManager state for a new search.
-     * This clears any stop requests and prepares the manager for reuse.     */
-    void reset();
 
 private:
     // --- Configuration (set at creation) ---

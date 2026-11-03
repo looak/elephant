@@ -17,13 +17,18 @@
 // This is all based on the Forsyth–Edwards Notation standard for chess
 // board positions. https://en.wikipedia.org/wiki/Forsyth-Edwards_Notation
 #pragma once
+#include <optional>
 #include <string>
+#include <string_view>
 #include <position/position_accessors.hpp>
 
 class Chessboard;
 
 namespace io {
-namespace fen_parser {    
+namespace fen_parser {
+
+    // The board fen describes, nothing when it doesn't read. Never throws, and there's no half read board to clean up.
+    [[nodiscard]] std::optional<Chessboard> read(std::string_view fen);
 
     bool deserialize(std::string_view input, PositionEditor outPosition);
     bool deserialize(std::string_view input, Chessboard& outputBoard);    

@@ -5,19 +5,20 @@ flowchart TD
     subgraph cli["cli"]
         app["Application / AppContext"]
         normal["NormalModeProcessor<br/>commands: fen, move, print,<br/>search, perft, divide, evaluate"]
-        ucimode["UciModeProcessor<br/>UCICommands table"]
+        ucimode["UciModeProcessor<br/>starts the UCI loop"]
         bench["bench / openbench"]
     end
 
     subgraph core["core"]
         uci["UCI<br/>position, go, stop, setoption,<br/>bench, buildinfo"]
-        game["GameContext"]
-        history["GameHistory<br/>undo units, repetition"]
+        game["Game"]
+        history["moves played<br/>undo units, the game's hashes"]
         board["Chessboard<br/>Position + GameState"]
     end
 
     subgraph search["search"]
-        go["Search::go<br/>Lazy SMP, one thread per Threads"]
+        monad["Monad<br/>the TT, the Workers,<br/>one search at a time"]
+        go["Worker::run<br/>Lazy SMP, one thread per Worker"]
         shared["SharedSearchState<br/>stop flag, node count"]
         listener["SearchListener<br/>iterations, UCI prints them"]
         ctx["ThreadContext<br/>position, accumulator, pawn hash,<br/>move ordering, repetition history"]
@@ -71,14 +72,16 @@ flowchart TD
     app --> bench
     ucimode --> uci
     normal --> game
+    normal --> monad
     bench --> go
     uci --> game
-    uci --> go
-    uci --> time
+    uci --> monad
+    monad --> go
+    monad --> time
+    monad --> tt
     uci --> io
     game --> board
     game --> history
-    game --> tt
     board --> pos
 
     go --> shared

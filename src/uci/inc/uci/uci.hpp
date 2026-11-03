@@ -1,0 +1,128 @@
+/******************************************************************************
+ * Elephant Gambit Chess Engine - a Chess AI
+ * Copyright(C) 2025  Alexander Loodin Ek
+ * 
+ * This program is free software : you can redistribute it and /or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.If not, see < http://www.gnu.org/licenses/>. 
+ *****************************************************************************/
+
+/**
+ * @file uci.hpp
+ * @brief Implements the Universal Chess Interface (UCI) for communication between chess engines and GUIs 
+ * 
+ */
+
+#pragma once
+#include <iostream>
+#include <syncstream>
+#include <list>
+
+#include <core/game.hpp>
+#include <uci/uci_search_listener.hpp>
+#include <search/monad.hpp>
+#include <search/search_request.hpp>
+
+class UCI
+{
+public:
+    UCI();
+    ~UCI();
+
+    void Enable();
+    bool Enabled() const;
+    void Disable();
+
+    /**
+    * position [fen  | startpos ]  moves  ....
+    * set up the position described in fenstring on the internal board and play the
+    * moves on the internal chess board. If the game was played from the start
+    * position the string "startpos" will be sent. A malformed command is reported with an info string and
+    * returns false, it never throws.   */
+    bool Position(std::list<std::string> args);
+
+    /**
+     * Synchronizes the engine with the GUI by ensuring that the engine is ready
+     * or still alive after processing time-consuming commands.
+     * This function must be called once before initiating any search to allow
+     * the engine to complete its initialization.
+     * The engine will always respond with "readyok" when this command is called,
+     * even during an ongoing search, without interrupting the search process.  */
+    bool IsReady() const;
+
+    // debug on|off, with debug on the Lazy SMP helper threads report their iterations as info strings.
+    void Debug(bool enabled) { m_listener.setReportHelpers(enabled); }
+
+    /**
+     * option name [name] value [value]
+     * sets a option on the engine. An unknown option or bad value is reported with an info string and returns false,
+     * it never throws. */
+    bool SetOption(const std::list<std::string> args);
+
+    /**
+     * Sets up the engine for a new game. The engine will respond "isready"    */
+    bool NewGame();
+
+    /**
+     * Starts calculating the best move for the current position. Number of
+     * options are available according to the UCI standard and described in
+     * the documentation: depth, nodes, mate, movetime, wtime, btime, winc, binc, movestogo, infinite, ponder &
+     * searchmoves. A bad option is reported with an info string and ignored, a bestmove is always sent.     */
+    bool Go(std::list<std::string> args);
+
+    /**
+     *  Starts calculating the best move for the current position asynchronously.     */
+    bool AsyncGo(std::list<std::string> args);
+
+    void SyncGo();
+
+    /**
+     * Stops calculating the best move for the current position. If the engine
+     * was  calculating a move, it will respond with "bestmove"     */
+    bool Stop();
+
+    /**
+     * The opponent played the move we were pondering on. Ends the ponder search, which answers with "bestmove"
+     * for the move found so far.     */
+    bool PonderHit();
+
+    /**
+     * Non standard UCI, used for testing.   */
+    bool Perft(std::list<std::string> args);
+
+    /**
+     *  Non standard UCI, used for benchmarking engine.     */
+    bool Bench(std::list<std::string> args);
+
+    /**
+     * Non standard UCI: what the binary was built from and how, one "buildinfo <key> <value>" line per entry of
+     * build_info::entries(), empty values left out. Engines ignore commands they don't know, so a test runner sends
+     * "buildinfo" then "isready" and reads whatever arrives before "readyok".     */
+    bool BuildInfo() const;
+
+    const Game& readGame() { return m_game; }
+    Game& editGame() { return m_game; }
+    Monad& editMonad() { return m_monad; }
+private:
+    // Position's parser, throws on a malformed command which Position reports.
+    bool ParsePosition(std::list<std::string> args);
+
+    // The go arguments as a request for the current position. Runs on the thread that reads commands, so the next
+    // command can't change what's searched.
+    SearchRequest prepareSearch(const std::list<std::string>& args);
+
+    bool m_enabled;
+    Game m_game;
+    // before the Monad, a search it ends on its way out still reports here.
+    UciSearchListener m_listener;
+    Monad m_monad;
+};

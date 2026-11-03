@@ -1,12 +1,12 @@
-# Test coverage of the unit tests with clang-cl: configures build-cov with ELEPHANT_COVERAGE (Debug, phant-indexer on,
+# Test coverage of the unit tests with clang-cl: configures .build/coverage with ELEPHANT_COVERAGE (Debug, phant-indexer on,
 # ElephantSuite off), builds ElephantTest, runs ctest -L unit, merges the profiles and writes an HTML report to
-# build-cov/coverage/index.html, then prints llvm-cov's summary. Sources under test/, third_party/ & _deps/ are left
+# .build/coverage/coverage/index.html, then prints llvm-cov's summary. Sources under test/, third_party/ & _deps/ are left
 # out. Run it from any shell, it loads Visual Studio's developer environment when clang-cl isn't on the path.
 #
-#   .\test\coverage.ps1 [build dir]     default: build-cov in the repository
+#   .\test\coverage.ps1 [build dir]     default: .build/coverage in the repository
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$build = if ($args.Count -gt 0) { $args[0] } else { Join-Path $root 'build-cov' }
+$build = if ($args.Count -gt 0) { $args[0] } else { Join-Path $root '.build\coverage' }
 $report = Join-Path $build 'coverage'
 
 if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue) -or -not $env:INCLUDE) {
@@ -46,7 +46,7 @@ $merged = Join-Path $build 'elephant.profdata'
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
 $binary = Get-ChildItem $build -Recurse -Filter ElephantTest.exe | Where-Object FullName -notmatch 'CMakeFiles' | Select-Object -First 1
-$ignore = '[\\/](test|third_party|_deps)[\\/]'
+$ignore = '[\\/](test|third_party|_deps|\.build)[\\/]'
 & $cov show $binary.FullName "-instr-profile=$merged" "-ignore-filename-regex=$ignore" -format=html `
     "-output-dir=$report" -show-line-counts-or-regions -show-branches=count
 if ($LASTEXITCODE) { exit $LASTEXITCODE }

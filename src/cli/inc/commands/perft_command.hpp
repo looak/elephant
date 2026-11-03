@@ -44,16 +44,10 @@ public:
 
     bool execute(const PerftCommandArgs& args) override
     {
-        const auto material = m_context->readChessPosition().material();
-        if (material.whiteKing().count() == 0 || material.blackKing().count() == 0) {
-            prnt::err << " Error: Position is not initialized. Use 'new' or 'fen' before running perft.";
-            return false;
-        }
-
         Clock timer;
         timer.Start();
 
-        PerftSearch perftSearch(*m_context);
+        PerftSearch perftSearch(m_context->game);
         auto result = perftSearch.Run<move_gen_policy::Tusk>(args.depth);
 
         timer.Stop();

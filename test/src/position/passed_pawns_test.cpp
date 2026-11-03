@@ -4,7 +4,7 @@
 #include <tuple>
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/passed_pawns.hpp>
 #include <io/fen_parser.hpp>
 
@@ -45,9 +45,9 @@ struct RecordingTrace {
 };
 
 RecordingTrace traceOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
-    const auto& material = context.readChessPosition().material();
+    Game context;
+    context.loadFen(fen);
+    const auto& material = context.readPosition().material();
     RecordingTrace trace;
     (void)passerScore(material, pawnInfo(material), trace);
     return trace;

@@ -29,43 +29,47 @@
  * @brief Represents the state of a game. Important for some rules of such as half move count.  */
 struct GameState {
     GameState() = default;
-    GameState(const GameState& rhs) :
-        plyCount(rhs.plyCount),
-        moveCount(rhs.moveCount),
-        whiteToMove(rhs.whiteToMove)
-    {}
+    GameState(const GameState& rhs) = default;
+    GameState& operator=(const GameState& rhs) = default;
 
     bool operator==(const GameState& other) const {
-        return  plyCount == other.plyCount &&
+        return  halfmoveClock == other.halfmoveClock &&
                 moveCount == other.moveCount &&
                 whiteToMove == other.whiteToMove;
     }
 
-    u16 plyCount = 0;  // number of half moves made
+    u16 halfmoveClock = 0;  // half moves since the last capture or pawn move, the fifty move rule's counter
     u16 moveCount = 1;  // number of full moves made
     bool whiteToMove = true;  // true if it's white's turn to move
 };
 
+struct MoveUndoUnit;
 
-// TODO: Probably just remove chessboard entierly.
 /**
  * @brief The Chessboard class represents a chess board and its current state.  */
 class Chessboard {
 public:
     Chessboard();
     ~Chessboard() = default;
-    Chessboard(const Chessboard& other);
+    Chessboard(const Chessboard& other) = default;
+    Chessboard& operator=(const Chessboard& other) = default;
     
     PositionReader readPosition() const { return m_position.read(); }
     PositionEditor editPosition() { return m_position.edit(); }
     GameState& editState() { return m_gameState; }
     const GameState& readState() const { return m_gameState; }
 
+    // Plays move and keeps the side to move & the counters in step with the position, undo is what unmakeMove takes it
+    // back with.
     template<bool validation = false>
-    void makeMove(const PackedMove move);
+    void makeMove(PackedMove move, MoveUndoUnit& undo);
+    bool unmakeMove(const MoveUndoUnit& undo);
+    // A side passing, as python-chess plays a null move: no en passant capture for the other side, the fifty move count
+    // goes on. It can't be taken back.
+    void makeNullMove();
 
     u16 readMoveCount() const { return m_gameState.moveCount; }
-    u16 readPlyCount() const { return m_gameState.plyCount; }
+    u16 readHalfmoveClock() const { return m_gameState.halfmoveClock; }
     Set readToPlay() const { return m_gameState.whiteToMove ? Set::WHITE : Set::BLACK; }    
 
     std::string toString() const;

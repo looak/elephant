@@ -2,14 +2,9 @@
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
 
-#include <core/game_context.hpp>
-#include <core/uci_search_listener.hpp>
+#include <uci/uci_search_listener.hpp>
 #include <diagnostics/logger.hpp>
-#include <io/fen_parser.hpp>
-#include <search/search.hpp>
-#include <math/bench_positions.hpp>
-#include <system/clock.hpp>
-#include <system/time_manager.hpp>
+#include <search/bench.hpp>
 #include <fstream>
 
 struct EpdTestCase {
@@ -75,68 +70,23 @@ public:
 	bool execute(const BenchArgs& args) override {		
         spdlog::info("Starting benchmark...");
 
-        Clock timer;
-        timer.Start();
-        u64 nodes = 0;
-
-        if (args.testCases.size() > 0) {
-        // this bench is evaluating if the engine can solve some tricky positions
-            for (const auto& testCase : args.testCases) {
-                GameContext context;
-                io::fen_parser::deserialize(testCase.fen.c_str(), context.editChessboard());
-
-                SearchContext searchContext;
-                UciSearchListener listener;
-                Search search(searchContext, context, listener);
-                SearchParameters params;
-                TimeManager tm(params, context.readToPlay());
-                
-                params.SearchDepth = args.depth;
-                if (context.readToPlay() == Set::WHITE) {
-                    auto result = search.go<Set::WHITE>(params, tm);
-                    nodes += result.count;
-                }
-                else {
-                    auto result = search.go<Set::BLACK>(params, tm);
-                    nodes += result.count;
-                }
-            }
-            timer.Stop();
-            double elapsedSeconds = static_cast<double>(timer.getElapsedTime()) / 1000.0;
-
-            std::cout << "info string " << elapsedSeconds << " seconds\n";
-            std::cout << nodes << " nodes " << timer.calcNodesPerSecond(nodes) << " nps\n";
-            return true;
+        UciSearchListener listener;
+        bench::Result result;
+        if (args.testCases.empty()) {
+            // this bench is all about nps.
+            result = bench::runSignature(listener);
         }
         else {
-        // this bench is all about nps.
-        for (const auto& fen : bench::fens) {
-            GameContext context;
-            io::fen_parser::deserialize(fen.c_str(), context.editChessboard());
-
-            SearchContext searchContext;
-            UciSearchListener listener;
-            Search search(searchContext, context, listener);
-            SearchParameters params;
-            TimeManager tm(params, context.readToPlay());
-
-            params.SearchDepth = bench::depth;
-            if (context.readToPlay() == Set::WHITE) {
-                auto result = search.go<Set::WHITE>(params, tm);
-                nodes += result.count;
-            }
-            else {
-                auto result = search.go<Set::BLACK>(params, tm);
-                nodes += result.count;
-            }
+            // this bench is evaluating if the engine can solve some tricky positions, deep enough to need the bigger
+            // table.
+            std::vector<std::string> fens;
+            for (const auto& testCase : args.testCases)
+                fens.push_back(testCase.fen);
+            result = bench::run(fens, args.depth, 64, listener);
         }
 
-        timer.Stop();
-        float elapsedSeconds = timer.getElapsedSeconds();
-
-        std::cout << "info string " << elapsedSeconds << " seconds\n";
-        std::cout << nodes << " nodes " << timer.calcNodesPerSecond(nodes) << " nps\n";
-    }
+        std::cout << "info string " << static_cast<double>(result.elapsedMs) / 1000.0 << " seconds\n";
+        std::cout << result.nodes << " nodes " << result.nps() << " nps\n";
         return true;
 	}
 
