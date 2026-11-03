@@ -70,7 +70,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/material/material_topology.hpp
 
 ## /math/...
-    ${ENGINE_INC_DIR}/math/bench_positions.hpp
     ${ENGINE_INC_DIR}/math/cast.hpp
     ${ENGINE_INC_DIR}/math/math.hpp    
 
@@ -104,6 +103,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/worker.hpp
     ${ENGINE_INC_DIR}/search/search_listener.hpp
     ${ENGINE_INC_DIR}/search/bench.hpp
+    ${ENGINE_INC_DIR}/search/bench_positions.hpp
     ${ENGINE_INC_DIR}/search/monad.hpp
     ${ENGINE_INC_DIR}/search/quiescence_probe.hpp
     ${ENGINE_INC_DIR}/search/search_request.hpp
