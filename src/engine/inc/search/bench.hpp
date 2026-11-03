@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include <math/bench_positions.hpp>
+#include <search/bench_positions.hpp>
 #include <search/search_listener.hpp>
 #include <system/platform.hpp>
 
