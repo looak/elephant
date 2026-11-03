@@ -90,7 +90,7 @@ splitmix64.
 
 Negamax alpha-beta with PVS, iterative deepening with aspiration windows, Lazy SMP, a lock-free transposition table
 of 8 entries per 64-byte bucket, quiescence with delta & SEE pruning, check extensions, null move pruning with
-verification, LMR, LMP, IIR, reverse futility and futility pruning; ordering by PV/TT move, MVV-LVA, killers, history,
+verification, LMR adjusted by history, LMP, IIR, reverse futility and futility pruning; ordering by PV/TT move, MVV-LVA, killers, history,
 losing captures last. Threefold repetition (with the game's earlier positions) and the fifty move rule. Time management
 uses soft & hard limits, is increment aware and subtracts `Move Overhead`. The README's feature list is the long form.
 

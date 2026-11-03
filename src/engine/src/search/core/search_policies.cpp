@@ -102,13 +102,14 @@ const std::array<std::array<u8, 64>, 64> s_lmrTable = [] {
 }();
 } // namespace
 
-u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck) {
+u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history) {
     if (depth < lmr_params::minDepth || moveIndex < lmr_params::fullDepthMoves || !quiet || inCheck || givesCheck)
         return 0;
 
     i32 r = s_lmrTable[std::min<u32>(depth, 63)][std::min<u32>(moveIndex, 63)];
     if (isPV)
         r--;
+    r -= history / lmr_params::historyDivisor;
 
     // the reduced child is searched at depth - 1 - r, keep it out of quiescence.
     return static_cast<u8>(std::clamp(r, 0, depth - 2));

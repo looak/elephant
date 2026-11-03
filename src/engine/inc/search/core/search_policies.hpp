@@ -83,7 +83,9 @@ public:
 
     // Plies to take off a late move's search, 0 when it's searched at full depth. Only quiet moves late in the
     // ordering are reduced, never in check or when the move gives check, and the reduced search keeps depth >= 1.
-    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck);
+    // history is the move's butterfly & continuation scores summed: good history reduces less, down to no reduction, bad
+    // history more.
+    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history);
 };
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---

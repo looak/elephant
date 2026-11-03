@@ -40,6 +40,9 @@ inline constexpr u16 fullDepthMoves = 3;
 // reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
 inline constexpr double base = 0.75;
 inline constexpr double divisor = 2.25;
+// a ply less per this much history, a ply more per this much below zero. The score is three tables of at most 16383 each,
+// so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on anything.
+inline constexpr i32 historyDivisor = 8192;
 } // namespace lmr_params
 
 // history heuristic parameters

@@ -286,8 +286,12 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
             // Quiet moves late in the ordering rarely matter, scout them shallower first.
             u8 reduction = 0;
             if constexpr (search_policies::LMR::enabled) {
-                reduction = search_policies::LMR::reduction(depth, index, isPV, search_policies::MoveOrdering::isQuiet(move),
-                    moves.isChecked(), ordered.isCheck());
+                const bool quiet = search_policies::MoveOrdering::isQuiet(move);
+                const i32 history = quiet
+                    ? ordering.getHistoryScore(us, move.sourceSqr(), move.targetSqr())
+                        + ordering.getContinuationScore(us, movedPiece.index(), move.targetSqr())
+                    : 0;
+                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.isCheck(), history);
             }
 
             eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction),
