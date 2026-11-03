@@ -78,7 +78,7 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
     * quiescence search with delta pruning and static exchange (SEE) pruning
     * check extensions
     * null move pruning with verification, the reduction grows with depth
-    * late move reductions
+    * late move reductions, adjusted by the move's history
     * late move pruning
     * internal iterative reduction
     * reverse futility pruning

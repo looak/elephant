@@ -161,7 +161,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile);
+    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile, orderingView);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -193,7 +193,7 @@ INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
 #undef INSTANTIATE_ALPHA_BETA
 
 template<Set us, typename Moves>
-i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile) {
+i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -254,8 +254,11 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
             search_policies::TT::prefetch(context.tt, pos.hash());
         context.repetitions.push(pos.hash());
 
+        // the move is made, the piece stands on its target.
+        const ChessPiece movedPiece = pos.pieceAt(move.targetSqr());
+
         if constexpr (search_policies::ContinuationHistoryPolicy::enabled) {
-            auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, pos.pieceAt(move.targetSqr()), move.targetSqr());
+            auto historyPtr = search_policies::ContinuationHistoryPolicy::slot(context.heuristics, movedPiece, move.targetSqr());
             context.frame(ply).continuation = historyPtr;
         }
         
@@ -283,8 +286,12 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
             // Quiet moves late in the ordering rarely matter, scout them shallower first.
             u8 reduction = 0;
             if constexpr (search_policies::LMR::enabled) {
-                reduction = search_policies::LMR::reduction(depth, index, isPV, search_policies::MoveOrdering::isQuiet(move),
-                    moves.isChecked(), ordered.isCheck());
+                const bool quiet = search_policies::MoveOrdering::isQuiet(move);
+                const i32 history = quiet
+                    ? ordering.getHistoryScore(us, move.sourceSqr(), move.targetSqr())
+                        + ordering.getContinuationScore(us, movedPiece.index(), move.targetSqr())
+                    : 0;
+                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.isCheck(), history);
             }
 
             eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction),
@@ -380,7 +387,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     return bestEval;
 }
 
-template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
-template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile);
+template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
+template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
+template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
+template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);

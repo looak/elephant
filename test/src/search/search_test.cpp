@@ -4,6 +4,9 @@
 #include <system/clock.hpp>
 #include <io/fen_parser.hpp>
 #include <core/game.hpp>
+#include <move/generation/move_ordering_view.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/core/search_policies.hpp>
 #include <search/monad.hpp>
 #include <search_cases.hpp>
 
@@ -315,6 +318,52 @@ TEST_F(SearchFixture, LazySmp_NodeLimit_CountsAllThreads)
     EXPECT_FALSE(result.move().isNull());
     EXPECT_GE(result.count, 200000u);
     EXPECT_LT(result.count, 200000u + 4u * 4096u);
+}
+
+namespace {
+u8 lateQuietReduction(u8 depth, u16 moveIndex, i32 history) {
+    return search_policies::LMR::reduction(depth, moveIndex, false, true, false, false, history);
+}
+} // namespace
+
+TEST(LateMoveReduction, GoodHistoryReducesLess_BadHistoryMore)
+{
+    const u8 neutral = lateQuietReduction(12, 15, 0);
+    ASSERT_GE(neutral, 2);
+
+    EXPECT_EQ(lateQuietReduction(12, 15, lmr_params::historyDivisor), neutral - 1);
+    EXPECT_EQ(lateQuietReduction(12, 15, -lmr_params::historyDivisor), neutral + 1);
+}
+
+TEST(LateMoveReduction, HistoryBelowOneStep_ChangesNothing)
+{
+    const u8 neutral = lateQuietReduction(12, 15, 0);
+
+    EXPECT_EQ(lateQuietReduction(12, 15, lmr_params::historyDivisor - 1), neutral);
+    EXPECT_EQ(lateQuietReduction(12, 15, -lmr_params::historyDivisor + 1), neutral);
+}
+
+TEST(LateMoveReduction, HistoryStaysWithinTheClamp)
+{
+    // the largest the three tables can sum to, either way.
+    const i32 extreme = 3 * MoveOrderingView::historyMax;
+
+    // never an extension.
+    EXPECT_EQ(lateQuietReduction(12, 15, extreme), 0);
+    // the reduced child stays at depth 1 or more, out of quiescence.
+    EXPECT_EQ(lateQuietReduction(6, 15, -extreme), 4);
+    EXPECT_EQ(lateQuietReduction(3, 3, -extreme), 1);
+}
+
+TEST(LateMoveReduction, HistoryDoesntReduceWhatWasNeverReduced)
+{
+    const i32 awful = -3 * MoveOrderingView::historyMax;
+
+    EXPECT_EQ(search_policies::LMR::reduction(12, 15, false, false, false, false, awful), 0); // not quiet
+    EXPECT_EQ(search_policies::LMR::reduction(12, 15, false, true, true, false, awful), 0);   // in check
+    EXPECT_EQ(search_policies::LMR::reduction(12, 15, false, true, false, true, awful), 0);   // gives check
+    EXPECT_EQ(search_policies::LMR::reduction(12, 2, false, true, false, false, awful), 0);   // early in the ordering
+    EXPECT_EQ(search_policies::LMR::reduction(2, 15, false, true, false, false, awful), 0);   // too shallow
 }
 
 }  // namespace ElephantTest
