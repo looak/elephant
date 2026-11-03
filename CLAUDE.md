@@ -34,6 +34,7 @@ New and changed code follows these; `.clang-tidy` (`readability-identifier-namin
 - **Comments** say why, in prose, wrapped by hand at 120: what the code can't say (why a pruning is safe here, what a
   number was fitted on), not what the next line does.
 - **clang-tidy** warns only until the naming cleanup is done: run it over the files a change touches
-  (`clang-tidy -p build <files>`) and fix what's in your own lines.
+  (`clang-tidy -p .build/vscode-<os>-Debug <files>`, a tree from `gen/generate_workspace.py`'s workspaces) and fix what's
+  in your own lines.
 - **Renames and cleanups** are their own commits, with the bench line unchanged, never mixed into a search or
   evaluation change waiting on SPRT.
