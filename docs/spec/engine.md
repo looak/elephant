@@ -75,7 +75,7 @@ on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. T
 
 ### Bench
 
-`eg-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
+`eg-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 11 with one
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is

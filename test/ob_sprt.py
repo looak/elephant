@@ -63,7 +63,9 @@ FORM_DEFAULTS = {
     "win_adj": "movecount=3 score=400",
     "draw_adj": "movenumber=40 movecount=8 score=10",
     "scale_method": "DEV",
-    "scale_nps": "1198000",
+    # 1198000 at bench depth 7, times the 1.2414 depth 11 reports with every thread benching at once, so a time control
+    # stays what it was. A dev commit with the older bench would get about 24% more time.
+    "scale_nps": "1487000",
 }
 
 

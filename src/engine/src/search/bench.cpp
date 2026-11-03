@@ -42,8 +42,8 @@ Result run(const std::vector<std::string>& positions, u32 searchDepth, size_t ha
 Result runSignature(SearchListener& listener)
 {
     // 16 MB rather than more: each position clears the whole table and OpenBench benches every worker thread at once,
-    // clearing 64 MB 26 times made the bench measure memory bandwidth. The depth 7 searches don't fill 16 MB, the node
-    // count is the same.
+    // clearing 64 MB 26 times made the bench measure memory bandwidth. At depth 11 the size moves the node count by
+    // a few hundred of 5.7M, so it's part of the signature: changing it changes the bench.
     return run(fens, depth, 16, listener);
 }
 
