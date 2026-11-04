@@ -161,6 +161,8 @@ cmake --build .build/mine --config Release --parallel
 
 `.build/` holds objects and fetched sources and is safe to delete.
 
+For VS Code, `python gen/generate_workspace.py` writes a workspace with everything and one per target to `.vscode/workspaces/<os>/`, with build and launch set up for your OS. `--help` says how to open one.
+
 ## Running Elephant Gambit
 
 Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0][v0.4.0-link] supports [UCI protocol][uci-link] and you can interface it with your Chess GUI of choice. Personally, I have been using [Arena](http://www.playwitharena.de/) & [CuteChess](https://cutechess.com/). Every so often I'll host the engine locally and one can play against it on [lichess.org][lichess-link].

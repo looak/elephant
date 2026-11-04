@@ -230,6 +230,9 @@ whoever plays the games writes the players and tags.
   named `eg-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
   their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
 - `build.cmd` runs `build.sh` in Git Bash with the same options, for PowerShell & cmd on Windows.
+- `gen/generate_workspace.py` writes VS Code workspaces for the machine's OS into `.vscode/workspaces/<os>/`, not tracked:
+  `all`, `engine`, `uci`, `cli`, `tuner` & `indexer`. Each is the whole repository with the rest hidden, launches its targets
+  through CMake Tools and builds in `.build/vscode-<os>-<variant>`, with tests, tuner & indexer on.
 - `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
   A build of `eg-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it

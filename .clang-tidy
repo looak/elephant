@@ -1,6 +1,6 @@
 ---
 # Written for LLVM 15, checked with 22 (Visual Studio's clang-tidy). Run it over the files a change touches:
-#   clang-tidy -p build <files>
+#   clang-tidy -p .build/vscode-<os>-Debug <files>
 
 # The checks are split it into 4 groups:
 #
