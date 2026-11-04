@@ -1,4 +1,4 @@
-# ElephantTuner
+# phant-tuner
 
 The offline tuner for Elephant's evaluation. It takes positions from real games, each labelled with the game's
 result, and adjusts the evaluation's numbers until the evaluation predicts those results as well as it can. The output
@@ -247,7 +247,7 @@ the writer itself (exit code 4 if they don't).
 ## Running it
 
 ```
-ElephantTuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]
+phant-tuner <dataset> [--limit N] [--threads N] [--leave N] [--epochs N] [--rate R]
               [--tune LIST] [--out DIR] [--held-back N] [--free-mobility] [--free-psqt] [--min-usage N]
 ```
 

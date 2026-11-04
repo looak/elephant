@@ -18,7 +18,7 @@
  * @file draw.hpp
  * @brief Training positions drawn from games: `phant-indexer --draw`. From each game that read and has a result, the
  * positions after its first plies, naturally quiet ones, a sample of them, none twice in the run or each once with its
- * results averaged, as `<fen> [result]` lines, the format ElephantTuner's dataset reader takes. Every position written
+ * results averaged, as `<fen> [result]` lines, the format phant-tuner's dataset reader takes. Every position written
  * is one the game reached.
  * @author Alexander Loodin Ek  */
 #pragma once

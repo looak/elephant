@@ -12,7 +12,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 
 | Piece | Does |
 |:--|:--|
-| `test/smoke.sh` (`smoke.ps1` on Windows) | the gate: unit tests, bench, ElephantSuite, phant-indexer against python-chess, EPD smoke tier, record, compare, sync |
+| `test/smoke.sh` (`smoke.ps1` on Windows) | the gate: unit tests, bench, phant-suite, phant-indexer against python-chess, EPD smoke tier, record, compare, sync |
 | `test/epd_runner.py` | plays a tier's checks with any UCI engine, writes one JSON line per check |
 | `test/epd_tiers.json` | the tiers: which EPD files, limits, threads, baselines & minimums |
 | `test/indexer_smoke.py` | checks phant-indexer against python-chess over fixtures, random games and real games |
@@ -40,14 +40,14 @@ keeps one number, the line coverage for the README's badge, on the `badges` bran
 Runs in order and prints a summary, exit non-zero if a step fails. Run it in a visible console, it takes about a
 minute.
 
-1. **Unit**: `ElephantTest`.
+1. **Unit**: `phant-test`.
 2. **Bench**: the makefile build with g++ (WSL on Windows), compared with the last commit's `bench` line. A different
    count warns: fine for a search change, not for a refactor.
-3. **Suite**: all of `ElephantSuite`, perft on every core and the deep searches ([tests.md](tests.md)).
+3. **Suite**: all of `phant-suite`, perft on every core and the deep searches ([tests.md](tests.md)).
 3b. **phant-indexer**: `indexer_smoke.py` against python-chess, below. It warns, and doesn't fail, when phant-indexer
    isn't found there (`./build.sh --indexer`), when Python has no
    python-chess, or when it has no zstd.
-4. **EPD smoke tier** through `epd_runner.py` with `ElephantGambit`.
+4. **EPD smoke tier** through `epd_runner.py` with `phant-cli`.
 5. **Results**: `record --kind smoke`, `compare`, `sync`.
 
 ### phant-indexer against python-chess

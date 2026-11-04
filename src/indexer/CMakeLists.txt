@@ -14,17 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# PhantIndexer builds phant-indexer, which replays PGN games and writes an index entry per game for nyayo's game
-# catalogue. PhantIndexerLib is the replay & the entry, linked by the executable and by ElephantTest.
+# phant-indexer replays PGN games and writes an index entry per game for nyayo's game
+# catalogue. PhantIndexerLib is the replay & the entry, linked by the executable and by phant-test.
 set(INDEXER_LIB PhantIndexerLib)
-set(INDEXER_EXE PhantIndexer)
+set(INDEXER_EXE phant-indexer)
 
 # the engine's parsers report an illegal move by throwing, see game_index.cpp.
 if(NOT EXCEPTIONS_ENABLED)
-    message(STATUS "## PhantIndexer: OFF, it needs EXCEPTIONS_ENABLED")
+    message(STATUS "## phant-indexer: OFF, it needs EXCEPTIONS_ENABLED")
     return()
 endif()
-message(STATUS "## PhantIndexer: ON")
+message(STATUS "## phant-indexer: ON")
 
 # bz2, gzip & zstd input: bzip2's, zlib's and zstd's own sources at a pinned release, built here as static libraries
 # with only what decompressing needs, linked into PhantIndexerLib alone, so the release binary needs nothing installed
@@ -84,7 +84,6 @@ target_compile_definitions(${INDEXER_LIB} PRIVATE $<$<BOOL:${WIN32}>:NOMINMAX WI
 
 add_executable(${INDEXER_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 set_target_properties(${INDEXER_EXE} PROPERTIES
-    OUTPUT_NAME phant-indexer
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF)
 target_link_libraries(${INDEXER_EXE} PRIVATE ${INDEXER_LIB} common_warnings)

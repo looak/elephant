@@ -18,10 +18,10 @@
  * @file king_tables.hpp
  * @brief King shelter & pawn storm values, see king_safety.hpp. Shelter & storm by file folded onto a to d, eight
  * values each, index 0 for no pawn and 1 to 6 for the pawn's relative rank 2 to 7 (7 can't happen); blocked storm by
- * relative rank alone. Written by ElephantTuner, laid out the way it writes them. All constexpr, safe to include
+ * relative rank alone. Written by phant-tuner, laid out the way it writes them. All constexpr, safe to include
  * anywhere.
  *
- * Tuned by ElephantTuner, every other value kept, on E12.52-1M-D12-Resolved (9.5M positions, 1000 passes at rate 1).
+ * Tuned by phant-tuner, every other value kept, on E12.52-1M-D12-Resolved (9.5M positions, 1000 passes at rate 1).
  * Shelter & storm: --tune king_shelter, K 1.1798, error 0.086174 -> 0.085840, held back 0.38% lower. kingDanger: then
  * --tune king_attack, K 1.1959, error 0.085820 -> 0.085285, held back 0.61% lower; made monotonic afterwards, each value
  * at most the one before it, the fit's tail from 48 units rose back towards 0 where few positions are.

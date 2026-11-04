@@ -10,7 +10,7 @@
 #include <cctype>
 #include <string>
 
-// Every perft position at the deepest depth within c_perftShallowBudget nodes, milliseconds in all. ElephantSuite runs
+// Every perft position at the deepest depth within c_perftShallowBudget nodes, milliseconds in all. phant-suite runs
 // the same positions deeper, see perft_cases.hpp.
 
 namespace ElephantTest {

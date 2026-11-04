@@ -92,7 +92,7 @@ add_subdirectory(third_party)
 # defines targets and sources
 add_subdirectory(src)
 
-option(ELEPHANT_BUILD_TUNER "Build ElephantTuner, the offline evaluation tuner" ON)
+option(ELEPHANT_BUILD_TUNER "Build phant-tuner, the offline evaluation tuner" ON)
 if(ELEPHANT_BUILD_TUNER)
     add_subdirectory(src/tuner)
 endif()

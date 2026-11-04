@@ -1,9 +1,9 @@
 #!/bin/sh
-# The local sanity check before a merge, in order: unit tests, bench, ElephantSuite, phant-indexer, the EPD smoke
+# The local sanity check before a merge, in order: unit tests, bench, phant-suite, phant-indexer, the EPD smoke
 # tier. Prints a summary and exits non-zero when a step fails. CI runs the unit tests & perft only, see
 # .github/workflows/ci.yml.
 #
-#   test/smoke.sh [folder]        default: dist, where ./build.sh --all puts ElephantTest, ElephantSuite & ElephantGambit
+#   test/smoke.sh [folder]        default: dist, where ./build.sh --all puts phant-test, phant-suite & phant-cli
 #
 # Bench is built with ob_build/makefile and g++ like the commit hook and OpenBench do, through WSL on Windows. It only
 # warns when it differs from the last commit's bench line, a search change is supposed to change it.
@@ -13,7 +13,7 @@
 # hash & a sample of --position scans. Without phant-indexer (built with
 # ELEPHANT_BUILD_INDEXER), python-chess or zstd for python it warns.
 #
-# The EPD smoke tier is test/epd_runner.py playing the positions with ElephantGambit over UCI, one engine per core
+# The EPD smoke tier is test/epd_runner.py playing the positions with phant-cli over UCI, one engine per core
 # (test/epd_tiers.json). A suite below its baseline warns, below its minimum it fails. Every position is recorded with
 # test/results.py and compared with the nearest ancestor commit's smoke run, see test/RESULTS.md. On a dirty tree the
 # run is wip until a commit with exactly that tree is made. Runs are uploaded to nyayo when it's configured
@@ -42,11 +42,11 @@ find_binary() {
     find "$build" -type f \( -name "$1" -o -name "$1.exe" \) -not -path "*CMakeFiles*" 2>/dev/null | head -n 1
 }
 
-unit="$(find_binary ElephantTest)"
-suite="$(find_binary ElephantSuite)"
-engine="$(find_binary ElephantGambit)"
+unit="$(find_binary phant-test)"
+suite="$(find_binary phant-suite)"
+engine="$(find_binary phant-cli)"
 if [ -z "$unit" ] || [ -z "$suite" ] || [ -z "$engine" ]; then
-    echo "smoke: ElephantTest, ElephantSuite or ElephantGambit not found under $build, build them first" >&2
+    echo "smoke: phant-test, phant-suite or phant-cli not found under $build, build them first" >&2
     exit 2
 fi
 
@@ -69,7 +69,7 @@ fi
 
 # --- 2. bench ---
 echo "== bench"
-build_bench='cd ob_build && make -j"$(nproc)" EXE=../.build/make/eg-uci >/dev/null 2>&1 && ../.build/make/eg-uci bench | tail -n 1'
+build_bench='cd ob_build && make -j"$(nproc)" EXE=../.build/make/phant-uci >/dev/null 2>&1 && ../.build/make/phant-uci bench | tail -n 1'
 if command -v g++ >/dev/null 2>&1 && command -v make >/dev/null 2>&1; then
     bench_line="$(cd "$root" && sh -c "$build_bench")"
 elif command -v wsl.exe >/dev/null 2>&1; then
@@ -87,7 +87,7 @@ else
     add_summary PASS bench "$bench_line"
 fi
 
-# --- 3. ElephantSuite: deep perft & deep searches ---
+# --- 3. phant-suite: deep perft & deep searches ---
 echo "== suite: $suite"
 start=$(date +%s)
 suite_log="$log_dir/smoke_suite_$stamp.log"

@@ -22,7 +22,7 @@ input could be read, a game that doesn't read is an entry, not an error; 1 when 
 decompressed (nothing of that input is written) or `--positions` meets more than it can number (below); 2 on a bad
 option or a FEN that doesn't read. It keeps no state between runs.
 
-Built by CMake as the `PhantIndexer` target (`dist/phant-indexer`, `./build.sh --indexer`) only with `ELEPHANT_BUILD_INDEXER`
+Built by CMake (`dist/phant-indexer`, `./build.sh --indexer`) only with `ELEPHANT_BUILD_INDEXER`
 on (off by default) and `EXCEPTIONS_ENABLED` on, the parsers report an illegal move by throwing:
 
 ```
@@ -31,7 +31,7 @@ cmake -B build -DELEPHANT_BUILD_INDEXER=ON
 
 bz2, gzip and zstd are bzip2 1.0.8's, zlib 1.3.1's and zstd 1.5.7's own sources, their decompression only, fetched at
 configure time and linked into phant-indexer alone; an engine build, the default, fetches none of them, and
-`ob_build/makefile` never builds phant-indexer. Its tests join `ElephantTest` when it's built. Released as
+`ob_build/makefile` never builds phant-indexer. Its tests join `phant-test` when it's built. Released as
 `phant-indexer-<version>-<linux|windows>-x86-64`, linked static, by `release.yml`, which turns the option on, as CI's
 `unit` job does.
 
@@ -146,7 +146,7 @@ counters are ignored, as the hash ignores them. Only games that read are searche
 
 **`--draw N`** reads the games like the entries do and writes, instead of them, training positions for the evaluation's
 tuner: one `<fen> [result]` line each, the result white's, `[1.0]`, `[0.5]` or `[0.0]` (`--merge` below writes averages),
-the format `ElephantTuner` reads (`src/tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any
+the format `phant-tuner` reads (`src/tuner/src/dataset.cpp`; E12.52 is in it too). The input is nyayo's export or any
 batch: zstd, bz2, gzip or plain PGN, **any number of files in one run**, or standard input. For each game that read and
 has a result (a `Result` tag or the movetext's, `1-0`, `0-1` or `1/2-1/2`):
 
@@ -177,7 +177,7 @@ has a result (a `Result` tag or the movetext's, `1-0`, `0-1` or `1/2-1/2`):
     `[0.75]` for three wins and a loss, `[0.3333]` for a win and two losses (four places at most, no trailing zeros, at
     least one place). The lines are written when the run ends, not as it goes, in the order the positions were first
     drawn, so a long run that feeds on standard input holds its positions until the input closes. The same inputs in
-    the same order with the same seed give the same lines. `ElephantTuner` reads fractional results: its dataset reader
+    the same order with the same seed give the same lines. `phant-tuner` reads fractional results: its dataset reader
     takes any number from 0 to 1 (widened from 1, 0.5 and 0 in the same change).
 
 A game that didn't read, one without a result and one with a null move (never played over the board) give nothing. The
@@ -229,7 +229,7 @@ A run over many files has an entry for each, 734 on nyayo's stored batches.
 
 ```
 phant-indexer --draw 10 --quiet --min-ply 4 --merge --stats eg-1.4.stats.json eg-1.4/*.pgn.zst > EG-1.4-own.book
-ElephantTuner EG-1.4-own.book --tune psqt_king
+phant-tuner EG-1.4-own.book --tune psqt_king
 ```
 
 On 2026-10-26, on nyayo's 730 stored batches (734 files, 45,248 games, a rehearsal copy), `--draw 10 --quiet --min-ply 4`,
@@ -237,7 +237,7 @@ one thread, 15 seconds: 4,878,988 candidate positions of which 3,906,157 (80%) a
 average, 74 at the median, 26 at the 5th percentile, none at the minimum, and 146 games (0.3%) have fewer than 10. It
 writes 449,413 positions (14,272 duplicates left out). With `--merge` the same run draws 451,933 positions, 443,931
 different, 6,081 of them drawn by more than one game and written with an average (568 of them not a win, draw or loss
-but between). `ElephantTuner` reads all 443,931, finds each already quiet, and takes the averages as results.
+but between). `phant-tuner` reads all 443,931, finds each already quiet, and takes the averages as results.
 
 ## Read as python-chess reads it
 

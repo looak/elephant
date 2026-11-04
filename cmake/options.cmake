@@ -16,7 +16,7 @@ option(OUTPUT_LOG_TO_FILE "Also write the log and std::cout to files in logs/" O
 set(ELEPHANT_ARCH native CACHE STRING "Instruction set to compile for: native, x86-64, sse42 or avx2")
 set_property(CACHE ELEPHANT_ARCH PROPERTY STRINGS native x86-64 sse42 avx2)
 
-# Instrument engine, cli, phant-indexer & ElephantTest for line, function & branch coverage, gcc's --coverage or
+# Instrument engine, cli, phant-indexer & phant-test for line, function & branch coverage, gcc's --coverage or
 # clang's source based coverage, see cmake/coverage.cmake. Turns link time optimization off. test/coverage.ps1 and
 # test/coverage.sh configure .build/coverage with it, run the unit tests and write the report.
 option(ELEPHANT_COVERAGE "Instrument our targets for test coverage, no link time optimization" OFF)

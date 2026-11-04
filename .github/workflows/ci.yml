@@ -20,8 +20,8 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  # ElephantTest, every target but ElephantSuite, phant-indexer included (ELEPHANT_BUILD_INDEXER, its tests are in
-  # ElephantTest), with assertions & exceptions on, the tests check both in an optimized build. Seconds of tests.
+  # phant-test, every target but phant-suite, phant-indexer included (ELEPHANT_BUILD_INDEXER, its tests are in
+  # phant-test), with assertions & exceptions on, the tests check both in an optimized build. Seconds of tests.
   unit:
     strategy:
       fail-fast: false
@@ -42,7 +42,7 @@ jobs:
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{env.BUILD_TYPE}} -L unit --output-on-failure
 
-  # ElephantSuite's perft, reference & deep positions (billions of nodes) on every core. The suite's deep searches are
+  # phant-suite's perft, reference & deep positions (billions of nodes) on every core. The suite's deep searches are
   # left to smoke, they move with the evaluation.
   perft:
     strategy:
@@ -58,7 +58,7 @@ jobs:
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 
     - name: Build
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel --target ElephantSuite
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --parallel --target phant-suite
 
     - name: Perft
       working-directory: ${{github.workspace}}/build

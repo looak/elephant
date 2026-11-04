@@ -1,5 +1,5 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
-EXE ?= ../dist/eg-uci
+EXE ?= ../dist/phant-uci
 
 # Versioning, read from ../version.txt (major.minor.patch[-label] on line 1, the release's codename on line 2 when
 # there is one), the only place the version is written.

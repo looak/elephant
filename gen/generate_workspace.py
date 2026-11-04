@@ -25,20 +25,20 @@ FOLDER = "elephant"
 INDEXER_TESTS = "DrawFixture.*:GameIndexFixture.*:IndexerInput.*:PolyglotFixture.*"
 UCI_TESTS = "Uci*"
 
-# A launch configuration is its name, the CMake target and the arguments. CMake Tools finds the target's file: eg-uci's
+# A launch configuration is its name, the CMake target and the arguments. CMake Tools finds the target's file: phant-uci's
 # name has the version in it, which changes on every merge.
-UCI = ("eg-uci", "eg-uci", [])
-BENCH = ("eg-uci bench", "eg-uci", ["bench"])
-CLI = ("ElephantGambit", "ElephantGambit", [])
-TUNER = ("ElephantTuner", "ElephantTuner", [])
-INDEXER = ("phant-indexer", "PhantIndexer", ["--help"])
-SUITE = ("ElephantSuite", "ElephantSuite", [])
-ALL_TESTS = ("ElephantTest", "ElephantTest", [])
-ENGINE_TESTS = ("ElephantTest, engine", "ElephantTest", [f"--gtest_filter=-{UCI_TESTS}:{INDEXER_TESTS}"])
-ONLY_UCI_TESTS = ("ElephantTest, uci", "ElephantTest", [f"--gtest_filter={UCI_TESTS}"])
-ONLY_INDEXER_TESTS = ("ElephantTest, indexer", "ElephantTest", [f"--gtest_filter={INDEXER_TESTS}"])
+UCI = ("phant-uci", "phant-uci", [])
+BENCH = ("phant-uci bench", "phant-uci", ["bench"])
+CLI = ("phant-cli", "phant-cli", [])
+TUNER = ("phant-tuner", "phant-tuner", [])
+INDEXER = ("phant-indexer", "phant-indexer", ["--help"])
+SUITE = ("phant-suite", "phant-suite", [])
+ALL_TESTS = ("phant-test", "phant-test", [])
+ENGINE_TESTS = ("phant-test, engine", "phant-test", [f"--gtest_filter=-{UCI_TESTS}:{INDEXER_TESTS}"])
+ONLY_UCI_TESTS = ("phant-test, uci", "phant-test", [f"--gtest_filter={UCI_TESTS}"])
+ONLY_INDEXER_TESTS = ("phant-test, indexer", "phant-test", [f"--gtest_filter={INDEXER_TESTS}"])
 
-# ElephantTest is one binary over every target, so a target's tests are its files and a filter. The engine is a library,
+# phant-test is one binary over every target, so a target's tests are its files and a filter. The engine is a library,
 # not a binary, but it's where most of the work is. Every workspace is the whole repository with the rest hidden: a target's
 # CMakeLists.txt can't configure on its own, and go to definition still reaches what's hidden.
 WORKSPACES = {

@@ -17,10 +17,10 @@
 /**
  * @file mobility_tables.hpp
  * @brief Mobility values, see mobility.hpp: for each piece, a TaperedScore by how many safe squares it can move to,
- * index 0 for none. Written by ElephantTuner, laid out the way it writes them. All constexpr, safe to include
+ * index 0 for none. Written by phant-tuner, laid out the way it writes them. All constexpr, safe to include
  * anywhere.
  *
- * Tuned by ElephantTuner with PeSTO's tables kept as they are (--tune mobility): E12.52-1M-D12-Resolved, K 1.1545,
+ * Tuned by phant-tuner with PeSTO's tables kept as they are (--tune mobility): E12.52-1M-D12-Resolved, K 1.1545,
  * 1000 passes at rate 1, error 0.089893 -> 0.088943 (held back positions 1.08% lower). Each table is centred, its
  * average weighted by how often each count occurs is 0, so mobility doesn't change what a piece is worth on average,
  * only how much a free piece is worth over a hemmed in one.
