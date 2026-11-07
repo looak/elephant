@@ -47,7 +47,7 @@ public:
     /**
      * @brief Checks if another iteration of iterative deepening should be started.
      * @return true while within the soft limit, false otherwise.     */
-    bool continueIterativeDeepening() const;
+    bool continueIterativeDeepening(u8 softLimitScale) const;
 
         /**
      * @brief Call this *right before* starting the search to set timers.     */

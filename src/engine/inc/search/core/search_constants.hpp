@@ -16,12 +16,18 @@
 #pragma once
 #include <system/platform.hpp>
 
+#include <array>
+
 inline constexpr u32 c_maxSearchDepth = 64;
 inline constexpr i32 c_infinity = 28000;
 inline constexpr i32 c_checkmateConstant = 24000;
 inline constexpr i32 c_checkmateMaxDistance = 256;
 inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 inline constexpr i16 c_drawConstant = 0;
+
+namespace time_management {
+    inline constexpr std::array<u8, 6> unchangedMoveFactors = { 140, 115, 100, 85, 70, 60 };
+}
 
 // aspiration window parameters
 namespace aspiration_params {
