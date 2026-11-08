@@ -91,6 +91,15 @@ inline constexpr u16 base = 5;
 inline constexpr u16 factor = 2;
 } // namespace lmp_params
 
+// history pruning parameters
+namespace history_pruning_params {
+// at non-PV nodes up to this depth a quiet move whose summed butterfly & continuation history is below
+// -perDepth * depth is skipped. The sum is three tables of at most 16383 each, so at maxDepth the threshold is one
+// table fully negative. A first guess, not fitted on anything.
+inline constexpr u8 maxDepth = 4;
+inline constexpr i32 perDepth = 4096;
+} // namespace history_pruning_params
+
 // internal iterative reduction parameters
 namespace iir_params {
 // nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.

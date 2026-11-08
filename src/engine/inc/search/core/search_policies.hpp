@@ -56,6 +56,7 @@ namespace enabled_policies {
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
+    inline constexpr bool HistoryPruning = true;
     inline constexpr bool IIR = true;
     inline constexpr bool ContinuationHistory = true;
 }
@@ -150,6 +151,17 @@ public:
     // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
     // is skipped while the best score is still a loss by mate, the node needs a real score.
     static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
+};
+
+// --- History Pruning Policies ---
+class HistoryPruning {
+public:
+    static constexpr bool enabled = enabled_policies::HistoryPruning;
+
+    // True when a quiet move at a shallow non-PV node has history so bad it isn't worth even a reduced search. history
+    // is the move's butterfly & continuation scores summed, as for LMR. Never in check, never a move that gives check,
+    // and nothing is skipped while the best score is still a loss by mate, the node needs a real score.
+    static bool skipMove(bool isPV, bool inCheck, u8 depth, i16 bestEval, PackedMove move, bool givesCheck, i32 history);
 };
 
 // --- Quiescence Search Policies ---

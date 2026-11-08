@@ -181,6 +181,16 @@ bool LMP::skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove 
         && MoveOrdering::isQuiet(move) && !givesCheck;
 }
 
+// --- History Pruning Policies ---
+bool HistoryPruning::skipMove(bool isPV, bool inCheck, u8 depth, i16 bestEval, PackedMove move, bool givesCheck, i32 history) {
+    if (isPV || inCheck || givesCheck || depth > history_pruning_params::maxDepth)
+        return false;
+    if (bestEval <= -c_checkmateMinScore || MoveOrdering::isQuiet(move) == false)
+        return false;
+
+    return history < -history_pruning_params::perDepth * depth;
+}
+
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;
 
 // --- Quiescence Search Policies ---
