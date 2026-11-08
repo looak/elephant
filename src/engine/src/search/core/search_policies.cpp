@@ -38,33 +38,37 @@ i16 scoreFromTT(i16 score, u16 ply) {
 } // namespace
 
 // --- Transposition Table Policies ---
-std::optional<i16> TT::probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta, TranspositionFlag& flag, PackedMove& outMove) {
-    i16 score;
-    u8 depth;
-    if (tt.probe(hash, outMove, score, depth, flag) == false)
+std::optional<TT::ProbeResult> TT::probe(TranspositionTable& tt, u64 hash, u16 ply) {
+    TT::ProbeResult result;
+    if (tt.probe(hash, result.move, result.score, result.depth, result.flag) == false)
         return std::nullopt;
 
-    if (depth < requiredDepth)
-        return std::nullopt;
+    result.score = scoreFromTT(result.score, ply);
 
-    score = scoreFromTT(score, ply);
+    return result;
+}
 
-    switch (flag) {
+bool TT::cuts(const ProbeResult& entry, u16 requiredDepth, i16 alpha, i16 beta)
+{
+    if (entry.depth < requiredDepth)
+        return false;
+
+    switch (entry.flag) {
         case TTF_CUT_EXACT:
-            return score;
+            return true;
         case TTF_CUT_BETA:
-            if (score >= beta)
-                return score;
+            if (entry.score >= beta)
+                return true;
             break;
         case TTF_CUT_ALPHA:
-            if (score <= alpha)
-                return score;
+            if (entry.score <= alpha)
+                return true;
             break;
         default:
             break;
     }
 
-    return std::nullopt;
+    return false;
 }
 
 void TT::prefetch(TranspositionTable& tt, u64 hash) {
@@ -179,6 +183,16 @@ u16 LMP::quietLimit(bool isPV, bool inCheck, u8 depth) {
 bool LMP::skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
     return quietLimit > 0 && quietsSearched >= quietLimit && bestEval > -c_checkmateMinScore
         && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
+// -- Singular Extension --
+bool SingularExtensions::tryNode(const TT::ProbeResult& entry, u8 depth)
+{
+    return depth >= singular_params::depthThreshold
+        && entry.depth + singular_params::depthMargin >= depth
+        && (entry.flag == TTF_CUT_EXACT || entry.flag == TTF_CUT_BETA)
+        && entry.move.isNull() == false
+        && std::abs(entry.score) < c_checkmateMinScore;
 }
 
 u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;

@@ -51,6 +51,14 @@ inline constexpr double divisor = 2.25;
 inline constexpr i32 historyDivisor = 8192;
 } // namespace lmr_params
 
+
+namespace singular_params {
+    inline constexpr u8 marginPerDepth = 4;
+    inline constexpr u8 depthThreshold = 8;
+    inline constexpr i8 depthMargin = 3;
+
+} // namespace singular_params
+
 // history heuristic parameters
 namespace history_params {
 // bonus for a quiet cutoff move is depth * depth * scale up to maxBonus, the quiets tried before it get the same malus.

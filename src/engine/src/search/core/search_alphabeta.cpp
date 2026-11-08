@@ -71,18 +71,24 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     PackedMove bestMove = PackedMove::NullMove();
 
+    
+    // check if we're doing a validation search.
+    bool notExcludedAllowCut = context.frame(ply).excludedMove.isNull();
+
     // --- Transposition Table Probe ---
     TranspositionFlag flag = TranspositionFlag::TTF_NONE;
-    if constexpr (search_policies::TT::enabled) {
-        // probe only returns a score when the entry is deep enough and its bound allows a cutoff with this window.
-        // bestMove is set on any hit, also when the entry is too shallow to cut.
-        std::optional<i16> ttProbeResult = search_policies::TT::probe(context.tt, pos.hash(), depth, ply, alpha, beta, flag, bestMove);
+    std::optional<search_policies::TT::ProbeResult> ttProbeResult = std::nullopt;
+    if constexpr (search_policies::TT::enabled) {                
+        ttProbeResult = search_policies::TT::probe(context.tt, pos.hash(), ply);     
+        
+        if (ttProbeResult.has_value()) {
+            // bestMove is set on any hit, also when the entry is too shallow to cut.
+            bestMove = ttProbeResult.value().move;            
 
-        // No cutoffs at PV nodes, the stored score may come from an earlier search or another path with different
-        // repetitions. At the root it would also play the stored move without searching it. The TT move still
-        // orders first below.
-        if (!isPV && ttProbeResult.has_value()) {
-            return ttProbeResult.value();
+            // No cutoffs at PV nodes or at validation search.
+            if (!isPV && notExcludedAllowCut && search_policies::TT::cuts(ttProbeResult.value(), depth, alpha, beta)) {
+                return ttProbeResult.value().score;
+            }
         }
     }
 
@@ -113,6 +119,25 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
         }
     }
 
+    // --- Singular Extension ---
+    // the TT move with a deep enough lower bound: if every other move fails low against a window a margin below its
+    // score, at about half depth, it's the only good move here and is searched a ply deeper.
+    u8 singularExtension = 0;
+    if constexpr (search_policies::SingularExtensions::enabled && kind == NodeKind::NORMAL) {
+        if (ttProbeResult.has_value() && notExcludedAllowCut && search_policies::SingularExtensions::tryNode(*ttProbeResult, depth)) {
+            const i16 singularBeta = static_cast<i16>(ttProbeResult->score - singular_params::marginPerDepth * depth);
+            const u8 singularDepth = static_cast<u8>((depth - 1) / 2);
+
+            context.frame(ply).excludedMove = ttProbeResult->move;
+            PVLine ignoredPv;
+            const i16 score = alphaBeta<us>(context, singularDepth, static_cast<i16>(singularBeta - 1), singularBeta, ply, &ignoredPv);
+            context.frame(ply).excludedMove = PackedMove::NullMove();
+
+            if (score < singularBeta)
+                singularExtension = 1;
+        }
+    }
+
     // --- No-Moves Check (Mate/Stalemate) ---
     MoveOrderingView orderingView;
 
@@ -139,14 +164,14 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta)) {
+        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
             return staticEval;
         }
     }
 
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
-        if (!isPV && !inCheck) {
+        if (isPV == false && inCheck == false && notExcludedAllowCut) {
             if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, depth, beta, ply, staticEval)) {
                 return nullScore.value();
             }
@@ -161,7 +186,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile, orderingView);
+    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile, orderingView, singularExtension);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -169,14 +194,16 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Store to TT ---
     if constexpr (search_policies::TT::enabled) {
-        // All moves searched, no cutoff.
-        search_policies::TT::update(context.tt,
-            pos.hash(),
-            bestMove, // Store the best move found
-            eval, // Store the best score (which is alpha if it was a PV node)
-            depth,
-            ply,
-            flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
+        if (notExcludedAllowCut) {
+            // All moves searched, no cutoff.
+            search_policies::TT::update(context.tt,
+                pos.hash(),
+                bestMove, // Store the best move found
+                eval, // Store the best score (which is alpha if it was a PV node)
+                depth,
+                ply,
+                flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
+        }
     }
 
     return eval;
@@ -193,7 +220,7 @@ INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
 #undef INSTANTIATE_ALPHA_BETA
 
 template<Set us, typename Moves>
-i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering) {
+i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -226,6 +253,15 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
 
         PackedMove move = ordered.move;
 
+        // -- Singular Extension --
+        if constexpr (search_policies::SingularExtensions::enabled) {
+            if (move == context.frame(ply).excludedMove) {
+                ordered = moves.next();
+                index++;
+                continue;
+            }
+        }
+
         // --- Futility Pruning ---
         // skipped quiets weren't searched, they get no history malus either.
         if (search_policies::Futility::skipMove(futile, index, move, ordered.isCheck())) {
@@ -244,6 +280,8 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
 
         // check extensions happen in the child, at alphaBeta entry when it's in check.
         u8 adjustedDepth = depth;
+        if (move == ordering.ttMove)
+            adjustedDepth += singularExtension;
 
         // makeMove advances the fifty move counter, reset by pawn moves & captures.
         u16 halfmoveClock = context.frame(ply).halfmoveClock;
@@ -387,7 +425,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     return bestEval;
 }
 
-template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
-template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
-template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
-template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering);
+template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
+template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
+template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
+template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
