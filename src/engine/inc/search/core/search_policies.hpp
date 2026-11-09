@@ -26,6 +26,7 @@
 #include <search/state/transposition_table_fwd.hpp>
 #include <material/chess_piece_defines.hpp>
 #include <material/chess_piece.hpp>
+#include <move/move.hpp>
 #include <search/core/search_constants.hpp>
 #include <system/clock.hpp>
 
@@ -36,7 +37,6 @@ struct ThreadHeuristics;
 struct PlyFrame;
 class PlyFrames;
 struct MoveOrderingView;
-struct PackedMove;
 
 enum TranspositionFlag : u8;
 
@@ -56,6 +56,7 @@ namespace enabled_policies {
     inline constexpr bool FutilityPruning = true;
     inline constexpr bool RFP = true;
     inline constexpr bool LMP = true;
+    inline constexpr bool SingularExtensions = true;
     inline constexpr bool IIR = true;
     inline constexpr bool ContinuationHistory = true;
 }
@@ -64,11 +65,19 @@ namespace enabled_policies {
 class TT {
 public:
     static constexpr bool enabled = enabled_policies::TT;
+
+    struct ProbeResult
+    {
+        PackedMove move;
+        u8 depth;
+        i16 score;
+        TranspositionFlag flag;
+    };
     
     // every function takes the table it works on, the search hands each thread a reference to the shared one.
     // ply converts mate scores between root relative (search) and node relative (stored).
-    static std::optional<i16> probe(TranspositionTable& tt, u64 hash, u16 requiredDepth, u16 ply, i16 alpha, i16 beta,
-                                    TranspositionFlag& flag, PackedMove& outMove);
+    static std::optional<ProbeResult> probe(TranspositionTable& tt, u64 hash, u16 ply);
+    static bool cuts(const ProbeResult& entry, u16 requiredDepth, i16 alpha, i16 beta);
     static bool probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove);
     static void prefetch(TranspositionTable& tt, u64 hash);
     static void update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply,
@@ -150,6 +159,15 @@ public:
     // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
     // is skipped while the best score is still a loss by mate, the node needs a real score.
     static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
+};
+
+// -- 
+class SingularExtensions
+{
+public:
+    static constexpr bool enabled = enabled_policies::SingularExtensions;
+
+    static bool tryNode(const TT::ProbeResult& entry, u8 depth);
 };
 
 // --- Quiescence Search Policies ---

@@ -62,15 +62,17 @@ void TimeManager::setMoveOverhead(u32 overhead_ms) {
     m_moveOverhead_ms = std::min(overhead_ms, c_maxMoveOverhead_ms);
 }
 
-bool TimeManager::continueIterativeDeepening() const {
+bool TimeManager::continueIterativeDeepening(u8 softLimitScale) const {
     if (m_isTimeManaged == false) {
         // If not time-managed (e.g., depth-limited), always allow.
         // The iterative deepener loop will handle the depth limit.
         return true;
     }
 
+    u64 limit = (m_softLimit_ms * softLimitScale) / 100;
+
     // only start another iteration while within the soft limit, the hard limit aborts it if it runs long.
-    return now() < m_softLimit_ms;
+    return now() < limit;
 }
 
 void TimeManager::begin() {

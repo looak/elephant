@@ -112,7 +112,7 @@ TEST(TimeManagerTest, limits_DepthOnly_AreUnbounded)
     // verify
     EXPECT_EQ(std::numeric_limits<u64>::max(), tm.hardLimit());
     EXPECT_EQ(std::numeric_limits<u64>::max(), tm.softLimit());
-    EXPECT_TRUE(tm.continueIterativeDeepening());
+    EXPECT_TRUE(tm.continueIterativeDeepening(100 /*100% of soft limit should be used*/));
 }
 
 TEST(TimeManagerTest, setMoveOverhead_AboveMaximum_IsClamped)

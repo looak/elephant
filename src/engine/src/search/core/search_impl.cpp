@@ -67,6 +67,8 @@ SearchResult Worker::iterativeDeepening(ThreadContext& context, SearchListener& 
     const u8 maxDepth = static_cast<u8>(c_maxSearchDepth - 1);
     const u8 depthLimit = limits.SearchDepth == 0 ? maxDepth : std::min(limits.SearchDepth, maxDepth);
 
+    u8 unchangedBestMove = 0;
+
     for (u8 itrDepth = 1; itrDepth <= depthLimit; ++itrDepth) {
         if (helperSkipsDepth(context.threadId, itrDepth))
             continue;
@@ -133,6 +135,11 @@ SearchResult Worker::iterativeDeepening(ThreadContext& context, SearchListener& 
             result = itrResult;
             break;
         }
+        
+        if (result.pvLine.moves[0] == itrResult.pvLine.moves[0])
+            unchangedBestMove = static_cast<u8>(std::min(5, unchangedBestMove + 1));
+        else 
+            unchangedBestMove = 0;
 
         result = itrResult;
 
@@ -140,7 +147,8 @@ SearchResult Worker::iterativeDeepening(ThreadContext& context, SearchListener& 
             break;
 
         // whether another iteration fits the time is the main thread's call, the helpers search until it's done.
-        if (context.isMainThread() && context.clock.continueIterativeDeepening() == false)
+        if (context.isMainThread() 
+            && context.clock.continueIterativeDeepening(time_management::unchangedMoveFactors[unchangedBestMove]) == false)
             break;
     }
     

@@ -20,6 +20,9 @@ struct PlyFrame {
     u16 halfmoveClock = 0;
     // set while the reply to a null move made at this ply is searched, so the reply doesn't null move straight back.
     bool nullMove = false;
+    // set while this node searches its other moves without the TT move, to see if the TT move is the only good one. The
+    // search at this ply skips it, and stays out of the TT.
+    PackedMove excludedMove = PackedMove::NullMove();
 
     void pushKiller(PackedMove move) {
         if (killers[0] != move) {

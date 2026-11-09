@@ -16,12 +16,18 @@
 #pragma once
 #include <system/platform.hpp>
 
+#include <array>
+
 inline constexpr u32 c_maxSearchDepth = 64;
 inline constexpr i32 c_infinity = 28000;
 inline constexpr i32 c_checkmateConstant = 24000;
 inline constexpr i32 c_checkmateMaxDistance = 256;
 inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
 inline constexpr i16 c_drawConstant = 0;
+
+namespace time_management {
+    inline constexpr std::array<u8, 6> unchangedMoveFactors = { 140, 115, 100, 85, 70, 60 };
+}
 
 // aspiration window parameters
 namespace aspiration_params {
@@ -44,6 +50,14 @@ inline constexpr double divisor = 2.25;
 // so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on anything.
 inline constexpr i32 historyDivisor = 8192;
 } // namespace lmr_params
+
+
+namespace singular_params {
+    inline constexpr u8 marginPerDepth = 4;
+    inline constexpr u8 depthThreshold = 8;
+    inline constexpr i8 depthMargin = 3;
+
+} // namespace singular_params
 
 // history heuristic parameters
 namespace history_params {
