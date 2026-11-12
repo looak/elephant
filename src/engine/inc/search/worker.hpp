@@ -66,18 +66,35 @@ public:
                      SearchListener& listener, u16 threadId, u16 threadCount);
 
 private:
+    struct NodeInputs {      // from the caller, passed by copy
+        i16 alpha = 0;
+        i16 beta = 0;
+        u8 depth = 0;
+        u16 ply = 0;
+    };
+
+    struct NodePlan {        // decided by prepareNode, passed by const reference        
+        bool futile = false;  // futile: the node failed the futility check, quiet moves that don't give check are skipped.        
+        u8 singularExtension = 0;
+        MoveOrderingView orderingView{};  //  ordering: the view moves was started with, it reads the history tables as they are now.
+    };
+
+    struct NodeResult {      // produced by the move loop
+        i16 score = 0;
+        PackedMove bestMove{};
+        TranspositionFlag flag{};
+        // PVLine* pv = nullptr; // todo maybe rethink pv not being part of the result.
+    };
+
     template<Set us>
     SearchResult iterativeDeepening(ThreadContext& context, SearchListener& listener);
 
     // internal seach methods
     template<Set us, NodeKind kind = NodeKind::NORMAL>
     i16 alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-
-    // todo: cleanup parameter list for searchMoves, it's getting out of hand.
-    // futile: the node failed the futility check, quiet moves that don't give check are skipped. ordering: the view moves
-    // was started with, it reads the history tables as they are now.
+    
     template<Set us, typename Moves>
-    i16 searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension);
+    NodeResult searchMoves(Moves& moves, ThreadContext& context, NodeInputs node, const NodePlan& plan, PVLine* pv);
 
     // Quiescence search from context's position with the whole window, line set to the line it plays. context's moves are
     // made & unmade, it's left as it was. See QuiescenceProbe.

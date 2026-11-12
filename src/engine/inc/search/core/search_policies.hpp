@@ -33,10 +33,10 @@
 // Forward-declare Search class for policy callbacks
 
 struct MaterialPositionMask;
+struct MoveOrderingView;
 struct ThreadHeuristics;
 struct PlyFrame;
 class PlyFrames;
-struct MoveOrderingView;
 
 enum TranspositionFlag : u8;
 
@@ -194,7 +194,7 @@ class ContinuationHistoryPolicy {
 public:
     static constexpr bool enabled = enabled_policies::ContinuationHistory;
 
-    static std::array<std::array<i16, 64>, 12>* slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
+    static void recordContinuation(PlyFrame& frame, ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare);
     // Gravity update of piece to toSquare as a reply to each of the moves 1 to pliesBack plies before ply, a negative
     // bonus is a malus. Lookbacks onto the shared no previous move table are skipped, it stays zero.
     static void update(const PlyFrames& frames, u16 ply, ChessPiece piece, Square toSquare, i32 bonus);

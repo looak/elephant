@@ -3,6 +3,7 @@
 #include <search/state/ply_frame.hpp>
 #include <search/state/search_heuristic_structures.hpp>
 #include <search/state/transposition_table.hpp>
+#include <search/state/thread_context.hpp>
 
 #include <bitboard/bitboard_constants.hpp>
 #include <material/chess_piece.hpp>
@@ -242,8 +243,8 @@ bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, Pack
 }
 
 // Continuation History Policy
-PieceToHistory* ContinuationHistoryPolicy::slot(ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {
-    return &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
+void ContinuationHistoryPolicy::recordContinuation(PlyFrame& frame, ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {
+    frame.continuation = &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
 }
 
 void ContinuationHistoryPolicy::update(const PlyFrames& frames, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {

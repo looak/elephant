@@ -1,6 +1,5 @@
 #pragma once
 #include <array>
-#include <cstddef>
 
 #include <diagnostics/assert.hpp>
 #include <move/move.hpp>
