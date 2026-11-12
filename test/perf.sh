@@ -12,10 +12,10 @@ set -u
 
 a="$1"
 b=""
-rounds=7
+rounds=5
 if [ $# -ge 2 ]; then
     case "$2" in
-        *[!0-9]*) b="$2"; rounds="${3:-7}" ;;
+        *[!0-9]*) b="$2"; rounds="${3:-5}" ;;
         *) rounds="$2" ;;
     esac
 fi
@@ -34,12 +34,14 @@ if [ -n "$b" ]; then
     b="$tmp/engine-b"
 fi
 
-# name, position, depth: about 3 to 10 seconds each.
+# name, position, depth: about 1 to 3 seconds each, so A against B over 5 rounds takes under 2 minutes. Depths fitted on
+# fad9d8e (singular extensions); a search change that grows the tree a lot needs them looked at again, the endgame
+# jumped from 1.3 to 4.4 seconds between depth 22 and 23.
 workload=(
-    "startpos|startpos|19"
-    "kiwipete|fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1|18"
-    "middlegame|fen r1bq1rk1/pp2b1pp/n1pp1n2/3P1p2/2P1p3/2N1P2N/PP2BPPP/R1BQ1RK1 b - - 2 10|18"
-    "endgame|fen 8/8/1p2k1p1/3p3p/1p1P1P1P/1P2PK2/8/8 w - - 3 54|30"
+    "startpos|startpos|17"
+    "kiwipete|fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1|16"
+    "middlegame|fen r1bq1rk1/pp2b1pp/n1pp1n2/3P1p2/2P1p3/2N1P2N/PP2BPPP/R1BQ1RK1 b - - 2 10|16"
+    "endgame|fen 8/8/1p2k1p1/3p3p/1p1P1P1P/1P2PK2/8/8 w - - 3 54|22"
 )
 
 # prints "<nodes> <ms>" of one search.
