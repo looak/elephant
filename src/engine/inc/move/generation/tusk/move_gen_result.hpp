@@ -49,7 +49,7 @@ struct PrioritizedMove {
         check(0) {};
 
     void setCheck(bool value) { check = value ? 1 : 0; }
-    bool isCheck() const { return check == 1; }
+    bool givesCheck() const { return check == 1; }
 
     constexpr operator bool() const { return move.isNull() != true; }
 

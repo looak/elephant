@@ -36,7 +36,7 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
     i16 standPat = -c_infinity;
     if (inCheck) {
         // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
-        moves.start(nullptr, MoveTypes::ALL);
+        moves.beginGeneration(nullptr, MoveTypes::ALL);
     }
     else {
         standPat = context.evaluate<us>();
@@ -60,7 +60,7 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
                 return standPat;
         }
 
-        moves.start(nullptr, MoveTypes::CAPTURES_ONLY);
+        moves.beginGeneration(nullptr, MoveTypes::CAPTURES_ONLY);
     }
 
     // evasions don't consume quiescence depth, the line stays bounded since only captures are searched once out of
@@ -93,7 +93,7 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
             }
         }
 
-        MoveExecutor executor = context.executor();
+        MoveExecutor executor = context.makeExecutor();
         MoveUndoUnit undoState;
         // makeMove updates its ply argument as the fifty move counter (reset on captures), never hand it the search ply.
         u16 fiftyMoveCounter = ply;

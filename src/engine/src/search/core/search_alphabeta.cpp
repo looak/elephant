@@ -146,7 +146,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     if (pvHint.isNull() == false) orderingView.pvMove = pvHint;
     search_policies::MoveOrdering::prime(context.heuristics, context.frames, orderingView, ply);
 
-    moves.start(&orderingView, MoveTypes::ALL);
+    moves.beginGeneration(&orderingView, MoveTypes::ALL);
 
     // --- Terminal Node ---
     if (moves.peek().isNull()) {
@@ -164,7 +164,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
+        if (search_policies::RFP::shouldPrune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
             return staticEval;
         }
     }
@@ -182,7 +182,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // decided per node, searchMoves skips the quiet moves.
     bool futile = false;
     if constexpr (search_policies::Futility::enabled)
-        futile = search_policies::Futility::nodeIsFutile(isPV, inCheck, depth, staticEval, alpha);
+        futile = search_policies::Futility::isNodeFutile(isPV, inCheck, depth, staticEval, alpha);
 
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
@@ -230,7 +230,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     PVLine childPv;
     u16 index = 0;
 
-    MoveExecutor executor = context.executor();
+    MoveExecutor executor = context.makeExecutor();
     PrioritizedMove ordered = moves.next();
     
     // We need to store the "Best Move Found So Far" locally to update outMove correctly
@@ -253,26 +253,11 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
 
         PackedMove move = ordered.move;
 
-        // -- Singular Extension --
-        if constexpr (search_policies::SingularExtensions::enabled) {
-            if (move == context.frame(ply).excludedMove) {
-                ordered = moves.next();
-                index++;
-                continue;
-            }
-        }
-
-        // --- Futility Pruning ---
+        // -- Singular Extension -- // --- Futility Pruning --- // --- Late Move Pruning ---
         // skipped quiets weren't searched, they get no history malus either.
-        if (search_policies::Futility::skipMove(futile, index, move, ordered.isCheck())) {
-            ordered = moves.next();
-            index++;
-            continue;
-        }
-
-        // --- Late Move Pruning ---
-        // skipped quiets weren't searched, they get no history malus either.
-        if (search_policies::LMP::skipMove(quietLimit, quietsSearched, bestEval, move, ordered.isCheck())) {
+        if (search_policies::SingularExtensions::shouldSkipMove(context.frame(ply), move)
+        || search_policies::Futility::shouldSkipMove(futile, index, move, ordered.givesCheck())
+        || search_policies::LMP::shouldSkipMove(quietLimit, quietsSearched, bestEval, move, ordered.givesCheck())) {
             ordered = moves.next();
             index++;
             continue;
@@ -329,7 +314,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
                     ? ordering.getHistoryScore(us, move.sourceSqr(), move.targetSqr())
                         + ordering.getContinuationScore(us, movedPiece.index(), move.targetSqr())
                     : 0;
-                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.isCheck(), history);
+                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.givesCheck(), history);
             }
 
             eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction),

@@ -21,7 +21,7 @@
  * Usage:
  *     SearchMoveSource<us> moves(position);
  *     if (moves.isChecked()) ...                 // known before any generation
- *     moves.start(&ordering, MoveTypes::ALL);    // once, before next()/peek()
+ *     moves.beginGeneration(&ordering, MoveTypes::ALL);    // once, before next()/peek()
  *     while (PrioritizedMove m = moves.next()) { ... }
  *
  * Not copyable or movable, construct it where it's used.
@@ -54,7 +54,7 @@ public:
 
     [[nodiscard]] bool isChecked() const { return m_checkInfo.isChecked(); }
 
-    void start(const MoveOrderingView* ordering, MoveTypes filter) {
+    void beginGeneration(const MoveOrderingView* ordering, MoveTypes filter) {
         m_generator.emplace(m_position, m_checkInfo, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter,
             .deferLosingCaptures = search_policies::enabled_policies::DeferLosingCaptures });
         m_moves.emplace(*m_generator, tusk::Stage::PV_MOVE);
@@ -89,7 +89,7 @@ public:
 
     [[nodiscard]] bool isChecked() const { return m_moves.isChecked(); }
 
-    void start(const MoveOrderingView* ordering, MoveTypes filter) { m_moves.start(ordering, filter); }
+    void beginGeneration(const MoveOrderingView* ordering, MoveTypes filter) { m_moves.beginGeneration(ordering, filter); }
 
     [[nodiscard]] PrioritizedMove next() {
         skipOthers();

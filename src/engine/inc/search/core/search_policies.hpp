@@ -132,7 +132,7 @@ public:
 
     // True when the static eval beats beta by a depth scaled margin at a shallow non-PV node, the node returns its
     // static eval without searching. Never in check or with beta at a mate score.
-    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
+    static bool shouldPrune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
 };
 
 // --- Futility Pruning Policies ---
@@ -142,10 +142,10 @@ public:
 
     // True when the static eval is so far below alpha at a shallow non-PV node that a quiet move isn't expected to
     // reach it. Never in check or with alpha at a mate score.
-    static bool nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha);
+    static bool isNodeFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha);
     // At a futile node quiet moves that don't give check are skipped, captures & promotions are still searched. The
     // first move is always searched so the node has a score.
-    static bool skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
+    static bool shouldSkipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck);
 };
 
 // --- Late Move Pruning (LMP) Policies ---
@@ -158,7 +158,7 @@ public:
     static u16 quietLimit(bool isPV, bool inCheck, u8 depth);
     // Past the limit quiet moves that don't give check are skipped, captures & promotions are still searched. Nothing
     // is skipped while the best score is still a loss by mate, the node needs a real score.
-    static bool skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
+    static bool shouldSkipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck);
 };
 
 // -- 
@@ -166,6 +166,8 @@ class SingularExtensions
 {
 public:
     static constexpr bool enabled = enabled_policies::SingularExtensions;
+
+    static bool shouldSkipMove(const PlyFrame& frame, const PackedMove& move);
 
     static bool tryNode(const TT::ProbeResult& entry, u8 depth);
 };

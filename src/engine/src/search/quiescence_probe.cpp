@@ -50,7 +50,7 @@ void QuiescenceProbe::playLine(const PVLine& line)
     u16 fiftyMoveCounter = 0;
     for (u32 i = 0; i < line.length; ++i) {
         MoveUndoUnit undo;
-        m_impl->context.executor().makeMove(line.moves[i], undo, fiftyMoveCounter);
+        m_impl->context.makeExecutor().makeMove(line.moves[i], undo, fiftyMoveCounter);
     }
 }
 

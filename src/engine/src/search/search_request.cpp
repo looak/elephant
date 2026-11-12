@@ -18,7 +18,7 @@ std::vector<PackedMove> legalRootMoves(PositionReader position, const std::vecto
     std::vector<PackedMove> rootMoves;
     MoveOrderingView ordering;
     SearchMoveSource<us> legalMoves(position);
-    legalMoves.start(&ordering, MoveTypes::ALL);
+    legalMoves.beginGeneration(&ordering, MoveTypes::ALL);
     for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
         for (PackedMove move : requested) {
             if (sameUciMove(move, legal.move)) {

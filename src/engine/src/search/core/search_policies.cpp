@@ -148,7 +148,7 @@ i32 MoveOrdering::quietBonus(u8 depth) {
 }
 
 // --- Reverse Futility Pruning (RFP) Policies ---
-bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
+bool RFP::shouldPrune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
     if (isPV || inCheck || depth > rfp_params::maxDepth)
         return false;
     if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
@@ -158,7 +158,7 @@ bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
 }
 
 // --- Futility Pruning Policies ---
-bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
+bool Futility::isNodeFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
     if (isPV || inCheck || depth > futility_params::maxDepth)
         return false;
     if (alpha >= c_checkmateMinScore || alpha <= -c_checkmateMinScore)
@@ -168,7 +168,7 @@ bool Futility::nodeIsFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i
     return staticEval + margin <= alpha;
 }
 
-bool Futility::skipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
+bool Futility::shouldSkipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
     return futileNode && moveIndex > 0 && MoveOrdering::isQuiet(move) && !givesCheck;
 }
 
@@ -180,12 +180,18 @@ u16 LMP::quietLimit(bool isPV, bool inCheck, u8 depth) {
     return static_cast<u16>(lmp_params::base + lmp_params::factor * depth * depth);
 }
 
-bool LMP::skipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
+bool LMP::shouldSkipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
     return quietLimit > 0 && quietsSearched >= quietLimit && bestEval > -c_checkmateMinScore
         && MoveOrdering::isQuiet(move) && !givesCheck;
 }
 
 // -- Singular Extension --
+bool SingularExtensions::shouldSkipMove(const PlyFrame& frame, const PackedMove& move) {
+    if constexpr (SingularExtensions::enabled)
+        return frame.excludedMove == move;
+    return false;
+}
+
 bool SingularExtensions::tryNode(const TT::ProbeResult& entry, u8 depth)
 {
     return depth >= singular_params::depthThreshold
