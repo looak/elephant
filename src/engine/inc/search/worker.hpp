@@ -71,6 +71,15 @@ private:
         i16 beta = 0;
         u8 depth = 0;
         u16 ply = 0;
+
+        // the child's inputs, the window flipped to its side one ply further down.
+        [[nodiscard]] NodeInputs makeChildInputs(u8 childDepth) const {
+            return { static_cast<i16>(-beta), static_cast<i16>(-alpha), childDepth, static_cast<u16>(ply + 1) };
+        }
+        // the child's inputs with a zero window just above alpha, it only has to show whether the move beats alpha.
+        [[nodiscard]] NodeInputs makeScoutInputs(u8 childDepth) const {
+            return { static_cast<i16>(-alpha - 1), static_cast<i16>(-alpha), childDepth, static_cast<u16>(ply + 1) };
+        }
     };
 
     struct NodePlan {        // decided by prepareNode, passed by const reference        
@@ -91,7 +100,7 @@ private:
 
     // internal seach methods
     template<Set us, NodeKind kind = NodeKind::NORMAL>
-    i16 alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
+    i16 alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv);
     
     template<Set us, typename Moves>
     NodeResult searchMoves(Moves& moves, ThreadContext& context, NodeInputs node, const NodePlan& plan, PVLine* pv);
@@ -109,7 +118,7 @@ private:
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
-    std::optional<i16> tryNullMovePrune(ThreadContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
+    std::optional<i16> tryNullMovePrune(ThreadContext& context, NodeInputs node, i16 staticEval);
 
     ThreadHeuristics m_heuristics;
     PawnHashTable m_pawnHash;

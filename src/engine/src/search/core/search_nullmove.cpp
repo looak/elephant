@@ -8,7 +8,13 @@
 // fail high after giving the opponent a free move, the position is good enough that a full search would too.
 // Called at non-PV nodes that aren't in check, staticEval is the node's eval from alphaBeta.
 template<Set us>
-std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval) {
+std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, NodeInputs node, i16 staticEval) {
+    // non-PV, so the window is beta - 1 to beta and the child's scout window is the null window around beta.
+    ASSERT_MSG(node.beta - node.alpha == 1, "Null move pruning at a PV node.");
+    const u8 depth = node.depth;
+    const i16 beta = node.beta;
+    const u16 ply = node.ply;
+
     // never two null moves in a row, the second would just hand the move back.
     if (ctx.frame(ply - 1).nullMove)
         return std::nullopt;
@@ -52,8 +58,7 @@ std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     const u8 R = search_policies::NMP::getReduction(depth, staticEval, beta);
     const u8 nullDepth = depth > R + 1 ? static_cast<u8>(depth - 1 - R) : 0;
     PVLine nullPv;
-    i16 nullScore = static_cast<i16>(-alphaBeta<opposing_set<us>()>(ctx, nullDepth, static_cast<i16>(-beta),
-        static_cast<i16>(-beta + 1), ply + 1, &nullPv));
+    i16 nullScore = static_cast<i16>(-alphaBeta<opposing_set<us>()>(ctx, node.makeScoutInputs(nullDepth), &nullPv));
 
     // --- unmake null move ---
     ctx.frame(ply).nullMove = false;
@@ -79,7 +84,7 @@ std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     ctx.nmpMinPly = static_cast<u16>(ply + 3 * nullDepth / 4);
     ctx.nmpColorWhite = white;
     PVLine verifyPv;
-    i16 verifyScore = alphaBeta<us>(ctx, nullDepth, beta - 1, beta, ply, &verifyPv);
+    i16 verifyScore = alphaBeta<us>(ctx, NodeInputs{ static_cast<i16>(beta - 1), beta, nullDepth, ply }, &verifyPv);
     ctx.nmpMinPly = 0;
 
     if (ctx.stopped || verifyScore < beta)
@@ -87,5 +92,5 @@ std::optional<i16> Worker::tryNullMovePrune(ThreadContext& ctx, u8 depth, i16 be
     return cutScore;
 }
 
-template std::optional<i16> Worker::tryNullMovePrune<Set::WHITE>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
-template std::optional<i16> Worker::tryNullMovePrune<Set::BLACK>(ThreadContext& ctx, u8 depth, i16 beta, u16 ply, i16 staticEval);
+template std::optional<i16> Worker::tryNullMovePrune<Set::WHITE>(ThreadContext& ctx, NodeInputs node, i16 staticEval);
+template std::optional<i16> Worker::tryNullMovePrune<Set::BLACK>(ThreadContext& ctx, NodeInputs node, i16 staticEval);
