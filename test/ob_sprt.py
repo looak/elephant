@@ -1,70 +1,42 @@
 #!/usr/bin/env python3
-"""Queues an SPRT on OpenBench from the command line, the create test page's form filled with Elephant's presets.
+"""Queues an SPRT on nyayo from the command line: the create test page's preset, with what the command line changes.
 
     python test/ob_sprt.py eval-pieces-mopup-edge eval-pieces              STC, [0, 5]
     python test/ob_sprt.py eval-pieces-mopup-edge eval-pieces --nonreg     STC, [-3, 1]
     python test/ob_sprt.py eval-pieces-pairs eval-pieces --ltc             LTC
-    python test/ob_sprt.py dev base --tc 8+0.08 --bounds -1,4 --dry-run    the form only, nothing sent
+    python test/ob_sprt.py dev base --tc 8+0.08 --bounds -1,4 --dry-run    the request only, nothing created
     python test/ob_sprt.py dev base --nonreg --book Endgames.epd --win-adj None
                                             endgame starts, played out to mate or a draw
 
-dev and base are branches or commits, pushed to GitHub: OpenBench reads them from there, a local one it can't see.
-A branch is checked against its remote, and the bench each side's commit message carries is printed; OpenBench takes
-the bench from the message.
+dev and base are branches or commits, pushed to GitHub: nyayo reads them from there, a local one it can't see. A
+branch is checked against its remote, and the bench each side's commit message carries is printed; nyayo takes the
+bench from the message.
 
-The presets are what the tests so far were run at: STC 8+0 Threads=1 Hash=8, LTC 40+0 Threads=1 Hash=64, book
-8moves_v3.epd, the engine's adjudication and expected nps from OpenBench's Engines/elephant.json. (Its presets say
-8.00.08 and 40.00.4, which OpenBench reads as 8+0 and 40+0, the time control is spelled out here.)
+The time control, options, book, adjudication, expected nps and the rest are nyayo's: its Elephant engine config and the
+preset named STC (the default) or LTC (--ltc). Only what a flag changes is sent, by the field names of nyayo's create
+page (dev_tc, bounds, book, ...). --dry-run fetches the presets and prints the JSON it would send.
 
-OpenBench: git config openbench.url, openbench.username & openbench.password, or OPENBENCH_URL, OPENBENCH_USERNAME &
-OPENBENCH_PASSWORD. The url defaults to http://172.16.100.11:8000. The account has to be enabled to create tests, and
-an approver's tests start at once.
+nyayo's server is `git config nyayo.url` or NYAYO_URL, http://172.16.100.11:8001 by default, and `nyayo.token` or
+NYAYO_TOKEN is the token it is called with. The owner makes one on bobby: `manage.py api_token create <name>`.
+When nyayo refuses the test its errors and warnings are printed and the exit status is 1; a warning only is cleared
+by sending the same command with --anyway.
 
 Standard library only.
 """
 from __future__ import annotations
 
 import argparse
-import html
-import http.cookiejar
+import json
 import os
 import re
 import subprocess
 import sys
-import urllib.parse
+import urllib.error
 import urllib.request
 
-REPO = "https://github.com/looak/elephant"
-DEFAULT_URL = "http://172.16.100.11:8000"
-
-PRESETS = {
-    "stc": {"time_control": "8.0+0.00", "options": "Threads=1 Hash=8", "workload_size": 32},
-    "ltc": {"time_control": "40.0+0.00", "options": "Threads=1 Hash=64", "workload_size": 8},
-}
-BOUNDS = {"gain": "[0.00, 5.00]", "nonreg": "[-3.00, 1.00]"}
-
-# the rest of the form, as Engines/elephant.json and the create test page have them.
-FORM_DEFAULTS = {
-    "dev_engine": "elephant",
-    "base_engine": "elephant",
-    "dev_repo": REPO,
-    "base_repo": REPO,
-    "dev_network": "",
-    "base_network": "",
-    "book_name": "8moves_v3.epd",
-    "upload_pgns": "COMPACT",
-    "test_mode": "SPRT",
-    "test_confidence": "[0.05, 0.05]",
-    "test_max_games": "",
-    "priority": "0",
-    "throughput": "1000",
-    "syzygy_wdl": "DISABLED",
-    "syzygy_adj": "OPTIONAL",
-    "win_adj": "movecount=3 score=400",
-    "draw_adj": "movenumber=40 movecount=8 score=10",
-    "scale_method": "DEV",
-    "scale_nps": "1198000",
-}
+ENGINE = "Elephant"
+DEFAULT_URL = "http://172.16.100.11:8001"
+NONREG_BOUNDS = "[-3.00, 1.00]"
 
 
 def git(*args: str) -> str:
@@ -72,13 +44,13 @@ def git(*args: str) -> str:
 
 
 def setting(name: str) -> str | None:
-    """openbench.<name> from git config, or OPENBENCH_<NAME>."""
+    """nyayo.<name> from git config, or NYAYO_<NAME>."""
     try:
-        if value := git("config", f"openbench.{name}"):
+        if value := git("config", f"nyayo.{name}"):
             return value
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, OSError):
         pass
-    return os.environ.get(f"OPENBENCH_{name.upper()}")
+    return os.environ.get(f"NYAYO_{name.upper()}")
 
 
 def resolve(ref: str) -> tuple[str, str | None]:
@@ -98,107 +70,145 @@ def resolve(ref: str) -> tuple[str, str | None]:
         try:
             local = git("rev-parse", "--verify", ref)
             if local != sha:
-                print(f"  note: local {ref} is {local[:7]}, origin has {sha[:7]}; OpenBench tests origin's")
+                print(f"  note: local {ref} is {local[:7]}, origin has {sha[:7]}; nyayo tests origin's")
         except subprocess.CalledProcessError:
             pass
     bench = re.search(r"^bench (\d+)", git("log", "-1", "--format=%B", sha), re.MULTILINE)
     return sha, bench.group(1) if bench else None
 
 
-def form(args: argparse.Namespace) -> dict[str, str]:
-    preset = PRESETS["ltc" if args.ltc else "stc"]
-    time_control = args.tc or preset["time_control"]
-    options = args.options or preset["options"]
-    bounds = f"[{args.bounds}]" if args.bounds else BOUNDS["nonreg" if args.nonreg else "gain"]
-    data = dict(FORM_DEFAULTS)
-    data.update({
+def bounds(text: str) -> str:
+    """'-1,4' as the form spells bounds, '[-1.00, 4.00]'."""
+    try:
+        low, high = (float(part) for part in text.strip("[] ").split(","))
+    except ValueError:
+        sys.exit(f"--bounds {text}: expected two numbers, like -1,4")
+    return f"[{low:.2f}, {high:.2f}]"
+
+
+def body(args: argparse.Namespace) -> dict[str, object]:
+    """The request: engine, preset, the two branches, and the fields a flag overrides."""
+    data: dict[str, object] = {
+        "engine": ENGINE,
+        "preset": "LTC" if args.ltc else "STC",
         "dev_branch": args.dev,
         "base_branch": args.base,
-        "dev_options": options,
-        "base_options": options,
-        "dev_time_control": time_control,
-        "base_time_control": time_control,
-        "workload_size": str(preset["workload_size"]),
-        "test_bounds": bounds,
-        "action": "CREATE_TEST",
-    })
+    }
+    if args.nonreg:
+        # the page labels a test by its kind, so --nonreg says it is a non-regression test, with its bounds
+        # unless --bounds names others.
+        data["test_kind"] = "regression"
+        data["bounds"] = NONREG_BOUNDS
+    if args.bounds:
+        data["bounds"] = bounds(args.bounds)
+    if args.tc:
+        data["dev_tc"] = data["base_tc"] = args.tc
+    if args.options:
+        data["dev_options"] = data["base_options"] = args.options
     if args.book:
-        data["book_name"] = args.book
+        data["book"] = args.book
     if args.win_adj:
         data["win_adj"] = args.win_adj
     if args.draw_adj:
         data["draw_adj"] = args.draw_adj
     if args.priority is not None:
         data["priority"] = str(args.priority)
+    if args.anyway:
+        data["anyway"] = True
     return data
 
 
-def message(page: str, kind: str) -> str | None:
-    """The error or warning OpenBench left on the page it redirected to."""
-    found = re.search(rf'<div class="{kind}-message">\s*<pre>(.*?)</pre>', page, re.DOTALL)
-    return html.unescape(found.group(1)).strip() if found else None
+def call(url: str, token: str | None, data: dict | None = None) -> tuple[int, dict]:
+    """The status and JSON body of nyayo's answer; a 4xx is an answer, an unreachable server exits."""
+    headers = {"Accept": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    payload = None
+    if data is not None:
+        payload = json.dumps(data).encode()
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, payload, headers)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            status, raw = response.status, response.read()
+    except urllib.error.HTTPError as error:
+        status, raw = error.code, error.read()
+    except (urllib.error.URLError, OSError) as error:
+        sys.exit(f"{url}: {error}")
+    try:
+        return status, json.loads(raw or b"{}")
+    except ValueError:
+        sys.exit(f"{url}: HTTP {status}, not JSON: {raw[:200]!r}")
 
 
-def newest_test(opener: urllib.request.OpenerDirector, url: str) -> int | None:
-    page = opener.open(f"{url}/index/").read().decode("utf-8", "replace")
-    ids = [int(found) for found in re.findall(r"/test/(\d+)/", page)]
-    return max(ids) if ids else None
-
-
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("dev", help="branch or commit under test")
     parser.add_argument("base", help="branch or commit it's tested against")
-    parser.add_argument("--ltc", action="store_true", help="the long time control preset, 40+0 Hash=64")
+    parser.add_argument("--ltc", action="store_true", help="nyayo's LTC preset, 40+0.4 Hash=64; STC is the default")
     parser.add_argument("--nonreg", action="store_true", help="non-regression bounds [-3, 1], for fixes & reworks")
     parser.add_argument("--bounds", help="Elo bounds, e.g. -1,4; overrides --nonreg")
     parser.add_argument("--tc", help="time control, e.g. 8+0.08; overrides the preset's")
     parser.add_argument("--options", help="UCI options for both, e.g. 'Threads=1 Hash=16'; overrides the preset's")
-    parser.add_argument("--book", help="opening book as OpenBench names it, e.g. Endgames.epd; 8moves_v3.epd by default")
+    parser.add_argument("--book", help="opening book as nyayo names it, e.g. Endgames.epd; the preset's by default")
     parser.add_argument("--win-adj", help="win adjudication, e.g. 'movecount=3 score=400', or None to play games out")
     parser.add_argument("--draw-adj", help="draw adjudication, e.g. 'movenumber=40 movecount=8 score=10', or None")
-    parser.add_argument("--priority", type=int, help="OpenBench's priority, 0 by default; the worker plays only the "
+    parser.add_argument("--priority", type=int, help="the priority, 0 by default; the worker plays only the "
                         "highest priority's tests, so -1 waits for the others and 1 goes first")
-    parser.add_argument("--dry-run", action="store_true", help="print the form, send nothing")
-    args = parser.parse_args()
+    parser.add_argument("--anyway", action="store_true", help="create the test although nyayo warns about it")
+    parser.add_argument("--dry-run", action="store_true", help="fetch the presets, print the request, create nothing")
+    # argparse takes "-1,4" for an option, so "--bounds -1,4" is read as "--bounds=-1,4".
+    argv = list(sys.argv[1:] if argv is None else argv)
+    for i, word in enumerate(argv[:-1]):
+        if word == "--bounds":
+            argv[i:i + 2] = [f"--bounds={argv[i + 1]}"]
+            break
+    args = parser.parse_args(argv)
 
     git("fetch", "--quiet", "origin")
     for side, ref in (("dev", args.dev), ("base", args.base)):
         sha, bench = resolve(ref)
-        print(f"  {side:4} {ref} = {sha[:7]}, bench {bench or 'MISSING from the message, OpenBench will refuse it'}")
+        print(f"  {side:4} {ref} = {sha[:7]}, bench {bench or 'MISSING from the message, nyayo will refuse it'}")
 
-    data = form(args)
-    print(f"  test {data['dev_time_control']} {data['dev_options']} {data['test_bounds']} {data['book_name']}, "
-          f"win adj {data['win_adj']}, draw adj {data['draw_adj']}, priority {data['priority']}")
+    data = body(args)
+    url = (setting("url") or DEFAULT_URL).rstrip("/")
+    token = setting("token")
+
     if args.dry_run:
-        for key, value in data.items():
-            print(f"    {key} = {value}")
+        status, found = call(f"{url}/api/tests/presets?engine={ENGINE}", token)
+        if status != 200:
+            print(f"  presets: HTTP {status} {json.dumps(found)}")
+            return 1
+        preset = found.get("presets", {}).get(data["preset"])
+        if preset is None:
+            print(f"  no preset {data['preset']} for {ENGINE}, nyayo has {', '.join(found.get('presets', {})) or 'none'}")
+            return 1
+        print(f"  preset {data['preset']}: {json.dumps(preset)}")
+        print(f"  POST {url}/api/tests")
+        print(json.dumps(data, indent=2))
         return 0
 
-    url = (setting("url") or DEFAULT_URL).rstrip("/")
-    username, password = setting("username"), setting("password")
-    if not username or not password:
-        sys.exit("no OpenBench login: git config openbench.username & openbench.password, or OPENBENCH_USERNAME & "
-                 "OPENBENCH_PASSWORD")
-    data.update({"username": username, "password": password})
+    if not token:
+        sys.exit("no nyayo token: git config nyayo.token, or NYAYO_TOKEN. The owner makes one on bobby with "
+                 "`manage.py api_token create <name>`")
 
-    # the session cookie carries the login, and the message the redirect's page shows.
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    response = opener.open(f"{url}/scripts/", urllib.parse.urlencode(data).encode())
-    page = response.read().decode("utf-8", "replace")
-    landed = urllib.parse.urlparse(response.geturl()).path
-
-    if error := message(page, "error"):
-        print(f"  refused: {error}")
-        return 1
-    if landed != "/index/":
-        print(f"  refused: OpenBench sent us to {landed}")
-        return 1
-    if warning := message(page, "warning"):
+    status, answer = call(f"{url}/api/tests", token, data)
+    if status == 201:
+        for warning in answer.get("warnings", []):
+            print(f"  warning: {warning}")
+        print(f"  queued: {answer.get('url') or answer.get('id')}")
+        return 0
+    for error in answer.get("errors", []):
+        print(f"  error: {error}")
+    for warning in answer.get("warnings", []):
         print(f"  warning: {warning}")
-    test_id = newest_test(opener, url)
-    print(f"  queued: {url}/test/{test_id}/" if test_id else "  queued, its id not found on the index")
-    return 0
+    if status == 401:
+        print("  nyayo didn't accept the token: check nyayo.token, or have the owner make a new one")
+    elif status == 400 and not answer.get("errors") and answer.get("warnings"):
+        print("  nothing was created; --anyway sends it again, past the warnings")
+    elif not answer:
+        print(f"  refused: HTTP {status}")
+    return 1
 
 
 if __name__ == "__main__":

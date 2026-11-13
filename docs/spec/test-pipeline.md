@@ -17,7 +17,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 | `test/epd_tiers.json` | the tiers: which EPD files, limits, threads, baselines & minimums |
 | `test/indexer_smoke.py` | checks phant-indexer against python-chess over fixtures, random games and real games |
 | `test/results.py` | records checks as a run, keeps history, compares, uploads to nyayo |
-| `test/ob_sprt.py` | queues an SPRT on OpenBench with Elephant's presets |
+| `test/ob_sprt.py` | queues an SPRT on nyayo, with nyayo's Elephant preset and what the command line changes |
 | `hooks/prepare-commit-msg` | the `bench N nodes` line in commit messages |
 | `hooks/post-commit` | promotes wip runs to the new commit and syncs |
 | `test/RESULTS.md` | the long form of all of this, the record format by example |
@@ -27,7 +27,7 @@ from, and uploads it. It's the local gate before a merge (smoke) and the deeper 
 
 **Does:** deterministic, repeatable checks run on the developer's machine, with history along the commit graph.
 
-**Doesn't:** Elo or speed (OpenBench; `ob_sprt.py` only queues its tests), live games (nyayo shows them, uwanja plays
+**Doesn't:** Elo or speed (nyayo's lab; `ob_sprt.py` only queues its tests), live games (nyayo shows them, uwanja plays
 them), CI results. CI (`ci.yml`) runs only the unit tests and perft, correctness checks whose results are thrown away;
 the unit tests' coverage is `coverage.yml`, run by hand (gcc & gcovr, a summary on the run's page; run on `main` it
 keeps one number, the line coverage for the README's badge, on the `badges` branch); no EPD tier runs in CI.
@@ -128,22 +128,27 @@ played, score, nodes, `time_ms` and PV.
 ### ob_sprt.py
 
 `python test/ob_sprt.py <dev> <base> [--ltc] [--nonreg | --bounds L,U] [--tc TC] [--options OPTS] [--book BOOK]
-[--win-adj ADJ] [--draw-adj ADJ] [--priority N] [--dry-run]`
-queues an SPRT on OpenBench: the create test page's form, filled in and sent to the fork's `/scripts/` endpoint
-(`action=CREATE_TEST`) with the user's login. dev and base are branches or commits on GitHub, where OpenBench reads
-them; the script checks they're pushed and prints each side's bench from its commit message, which is where OpenBench
-takes it from.
+[--win-adj ADJ] [--draw-adj ADJ] [--priority N] [--anyway] [--dry-run]`
+queues an SPRT on nyayo: `POST {nyayo.url}/api/tests` with a JSON body and `Authorization: Bearer {nyayo.token}`.
+dev and base are branches or commits on GitHub, where nyayo reads them; the script checks they're pushed and prints
+each side's bench from its commit message, which is where nyayo takes it from (the bench is not sent).
 
-| Preset | Time control | Options | Workload |
-|:--|:--|:--|--:|
-| STC (default) | 8+0 | `Threads=1 Hash=8` | 32 |
-| `--ltc` | 40+0 | `Threads=1 Hash=64` | 8 |
+The body is `engine` (`Elephant`), `preset` (`STC` by default, `LTC` with `--ltc`), `dev_branch`, `base_branch`, and
+only the fields a flag changes, by the names of nyayo's create page: `--nonreg` is `test_kind` `regression`
+with `bounds` `[-3.00, 1.00]`, `--bounds` is `bounds` (`L,U` is spelled `[L.00, U.00]`) and wins over `--nonreg`'s, `--tc` is `dev_tc` & `base_tc`, `--options` is `dev_options` &
+`base_options`, `--book` is `book`, plus `win_adj`, `draw_adj` and `priority`. The time control, options, book,
+adjudication, expected nps and workload size are nyayo's Elephant engine config and its presets; the script holds no
+copy of them.
 
-Bounds [0, 5], or [-3, 1] with `--nonreg`; confidence [0.05, 0.05], book `8moves_v3.epd`, adjudication and expected
-nps as OpenBench's `Engines/elephant.json` has them. Its presets say `8.00.08` and `40.00.4`, which OpenBench parses as
-8+0 and 40+0, what every test so far ran at; the script spells the time control out. Prints the new test's link, or
-the error OpenBench gave. Login: git config `openbench.url`, `openbench.username` & `openbench.password`, or
-`OPENBENCH_URL`, `OPENBENCH_USERNAME` & `OPENBENCH_PASSWORD`; the url defaults to `http://172.16.100.11:8000`.
+- **201** `{id, match, url, warnings}`: prints the warnings and the new test's `url`.
+- **400** `{errors, warnings}`: prints both and exits 1, nothing created. `--anyway` sends the same request with
+  `"anyway": true`, which creates it despite the warnings. **401**: the token wasn't accepted, exit 1.
+- **`--dry-run`**: `GET {nyayo.url}/api/tests/presets?engine=Elephant`, prints the chosen preset's fields and the JSON
+  it would send, and creates nothing.
+
+Settings: git config `nyayo.url` & `nyayo.token`, or `NYAYO_URL` & `NYAYO_TOKEN`; the url defaults to
+`http://172.16.100.11:8001`. The owner makes a token on bobby with `manage.py api_token create <name>`. There is no
+password. `test/ob_sprt_test.py` (`python test/ob_sprt_test.py`, not part of CI) runs the script against a stub server.
 
 ### Extended runs
 
@@ -159,6 +164,6 @@ There's no script for the extended tier yet: run `epd_runner.py --tier extended`
 | in | EPD files in `res/` | `bm`, `am`, `id`, `c0` (STS points); `c1` free text |
 | in | the tiers | [`test/epd_tiers.json`](../../test/epd_tiers.json), which is the contract |
 | out | runs to nyayo | nyayo `docs/results-schema.md`, schema v1 |
-| out | a new test to OpenBench | the create test form posted to `/scripts/`, [openbench_eg](https://github.com/looak/openbench_eg) `OpenBench/workloads/verify_workload.py` |
+| out | a new test to nyayo | `POST /api/tests` and `GET /api/tests/presets`, nyayo's `docs/spec.md` (ramani `plans/nyayo-2.md` step 15) |
 | out | bench line in commit messages | [engine.md](engine.md#bench) |
 
