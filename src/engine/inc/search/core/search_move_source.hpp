@@ -44,9 +44,9 @@
 template<Set us>
 class TuskSearchMoveSource {
 public:
-    explicit TuskSearchMoveSource(PositionReader position) :
+    explicit TuskSearchMoveSource(PositionReader position, const tusk::CheckInfo<us>& checkInfo) :
         m_position(position),
-        m_checkInfo(position)
+        m_checkInfo(checkInfo)
     {}
 
     TuskSearchMoveSource(const TuskSearchMoveSource&) = delete;
@@ -65,7 +65,7 @@ public:
 
 private:
     PositionReader m_position;
-    tusk::CheckInfo<us> m_checkInfo;
+    const tusk::CheckInfo<us>& m_checkInfo;
     std::optional<tusk::MoveGenerator<us>> m_generator;
     std::optional<tusk::MoveGenResult<us>> m_moves;    // points at *m_generator, declared after it
 };
@@ -82,8 +82,8 @@ public:
 template<Set us>
 class RootMoveSource {
 public:
-    RootMoveSource(PositionReader position, std::span<const PackedMove> allowed) :
-        m_moves(position),
+    RootMoveSource(PositionReader position, std::span<const PackedMove> allowed, const tusk::CheckInfo<us>& checkInfo) :
+        m_moves(position, checkInfo),
         m_allowed(allowed)
     {}
 

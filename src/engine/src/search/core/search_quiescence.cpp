@@ -26,10 +26,19 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
+    auto pos = context.position.read();
+
     // The move source knows whether we're in check before generating anything, the filter is decided after. Reuses
     // the one alphaBeta built when it dropped into quiescence at a leaf, the position is the same.
     std::optional<SearchMoveSource<us>> ownMoves;
-    SearchMoveSource<us>& moves = leafMoves != nullptr ? *leafMoves : ownMoves.emplace(context.position.read());
+    std::optional<tusk::CheckInfo<us>> ownCheckInfo;
+    if (leafMoves == nullptr) {
+        ownCheckInfo.emplace(pos);
+        ownMoves.emplace(pos, ownCheckInfo.value());
+    }
+
+    SearchMoveSource<us>& moves = leafMoves != nullptr ? *leafMoves : *ownMoves;
+    
     const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;

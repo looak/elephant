@@ -17,7 +17,8 @@ template<Set us>
 std::vector<PackedMove> legalRootMoves(PositionReader position, const std::vector<PackedMove>& requested) {
     std::vector<PackedMove> rootMoves;
     MoveOrderingView ordering;
-    SearchMoveSource<us> legalMoves(position);
+    tusk::CheckInfo<us> checkInfo(position);
+    SearchMoveSource<us> legalMoves(position, checkInfo);
     legalMoves.beginGeneration(&ordering, MoveTypes::ALL);
     for (PrioritizedMove legal = legalMoves.next(); legal.move.isNull() == false; legal = legalMoves.next()) {
         for (PackedMove move : requested) {

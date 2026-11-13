@@ -54,13 +54,15 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
     if (node.ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
+    tusk::CheckInfo<us> chkInfo(pos);
+
     // Knows whether we're in check before generating anything, start() is called once ordering is primed below.
     using Moves = std::conditional_t<kind == NodeKind::RESTRICTED_ROOT, RootMoveSource<us>, SearchMoveSource<us>>;
     Moves moves = [&]() -> Moves {
         if constexpr (kind == NodeKind::RESTRICTED_ROOT)
-            return Moves(pos, context.request.rootMoves);
+            return Moves(pos, context.request.rootMoves, chkInfo);
         else
-            return Moves(pos);
+            return Moves(pos, chkInfo);
     }();
 
     // --- Check Extension ---
