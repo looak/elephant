@@ -134,8 +134,8 @@ dev and base are branches or commits on GitHub, where nyayo reads them; the scri
 each side's bench from its commit message, which is where nyayo takes it from (the bench is not sent).
 
 The body is `engine` (`Elephant`), `preset` (`STC` by default, `LTC` with `--ltc`), `dev_branch`, `base_branch`, and
-only the fields a flag changes, by the names of nyayo's create page: `--nonreg` and `--bounds` are `bounds`
-(`[-3.00, 1.00]`; `L,U` is spelled `[L.00, U.00]`), `--tc` is `dev_tc` & `base_tc`, `--options` is `dev_options` &
+only the fields a flag changes, by the names of nyayo's create page: `--nonreg` is `test_kind` `regression`
+with `bounds` `[-3.00, 1.00]`, `--bounds` is `bounds` (`L,U` is spelled `[L.00, U.00]`) and wins over `--nonreg`'s, `--tc` is `dev_tc` & `base_tc`, `--options` is `dev_options` &
 `base_options`, `--book` is `book`, plus `win_adj`, `draw_adj` and `priority`. The time control, options, book,
 adjudication, expected nps and workload size are nyayo's Elephant engine config and its presets; the script holds no
 copy of them.

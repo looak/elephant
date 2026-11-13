@@ -99,13 +99,19 @@ class ObSprt(unittest.TestCase):
                                   "--book", "Endgames.epd", "--win-adj", "None", "--draw-adj", "None", "--priority", "-1")
         self.assertEqual(code, 0)
         self.assertEqual(Stub.seen[0]["body"], {
-            "engine": "Elephant", "preset": "LTC", "dev_branch": "dev", "base_branch": "base", "bounds": "[-3.00, 1.00]",
+            "engine": "Elephant", "preset": "LTC", "dev_branch": "dev", "base_branch": "base", "test_kind": "regression",
+            "bounds": "[-3.00, 1.00]",
             "dev_tc": "8+0.08", "base_tc": "8+0.08", "dev_options": "Threads=1 Hash=16", "base_options": "Threads=1 Hash=16",
             "book": "Endgames.epd", "win_adj": "None", "draw_adj": "None", "priority": "-1"})
 
     def test_bounds_beat_nonreg_and_are_spelled_as_the_form_has_them(self):
         self.run_script("dev", "base", "--nonreg", "--bounds", "-1,4")
         self.assertEqual(Stub.seen[0]["body"]["bounds"], "[-1.00, 4.00]")
+        self.assertEqual(Stub.seen[0]["body"]["test_kind"], "regression")
+
+    def test_without_nonreg_there_is_no_test_kind(self):
+        self.run_script("dev", "base", "--bounds", "-1,4")
+        self.assertNotIn("test_kind", Stub.seen[0]["body"])
 
     def test_a_400_prints_errors_and_warnings_and_fails(self):
         Stub.reply = (400, {"errors": ["dev: no such branch"], "warnings": ["dev is behind base"]})

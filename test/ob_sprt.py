@@ -94,10 +94,13 @@ def body(args: argparse.Namespace) -> dict[str, object]:
         "dev_branch": args.dev,
         "base_branch": args.base,
     }
+    if args.nonreg:
+        # the page labels a test by its kind, so --nonreg says it is a non-regression test, with its bounds
+        # unless --bounds names others.
+        data["test_kind"] = "regression"
+        data["bounds"] = NONREG_BOUNDS
     if args.bounds:
         data["bounds"] = bounds(args.bounds)
-    elif args.nonreg:
-        data["bounds"] = NONREG_BOUNDS
     if args.tc:
         data["dev_tc"] = data["base_tc"] = args.tc
     if args.options:
