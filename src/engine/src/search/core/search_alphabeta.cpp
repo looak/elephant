@@ -416,9 +416,10 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     if (context.stopped)
         return 0;
 
-    // Ensure outMove is set if we found *any* valid move that improved bestEval (even if it didn't beat alpha)
-    // Though usually, we only care about outMove if it beat alpha (PV) or beta (Cutoff).
-    if (intermmediateMove.isNull() == false && outMove.isNull()) {
+    // fail-low: no move raised alpha, so outMove is still the TT move that came in. The scores are upper bounds, but the
+    // highest of them is the best guess at what to try first next time, it replaces the TT move. When every move was
+    // pruned there's nothing to replace it with and the TT move stays.
+    if (flag == TranspositionFlag::TTF_CUT_ALPHA && intermmediateMove.isNull() == false) {
         outMove = intermmediateMove;
     }
 
