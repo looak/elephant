@@ -39,104 +39,39 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
     auto gated = OpenNode<us, kind>{ { context, checkInfo, pv }, node }.gate();
     if (gated.isCut())
         return gated.score();
-    GateNode<us, kind>& gate = gated.next();
+    GateNode<us, kind>& gate = gated.next();    
 
-    const PackedMove ttMove = gate.probeResult.has_value() ? gate.probeResult->move : PackedMove::NullMove();
+    // --- Leaf Node Check ---
+    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
+    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
+    // stand pat instead of a draw score.
+    if (gate.shouldQuiesenceSearch()) {
+        if constexpr (search_policies::QuiescencePolicy::enabled) {
+            // Start Q-Search with its *own* depth limit, configured with search params.
+            NoQuiescenceLine noLine;
+            return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, gate.inputs.alpha, gate.inputs.beta, gate.inputs.ply, noLine, checkInfo);
+        } else {
+            return context.evaluate<us>();
+        }
+    }
 
-    // check if we're doing a validation search.
-    const bool notExcludedAllowCut = frame.excludedMove.isNull();
-
-    // Knows whether we're in check before generating anything, start() is called once ordering is primed below.
     using Moves = std::conditional_t<kind == NodeKind::RESTRICTED_ROOT, RootMoveSource<us>, SearchMoveSource<us>>;
-    Moves moves = [&]() -> Moves {
+    Moves moves = [&]() -> Moves {        
         if constexpr (kind == NodeKind::RESTRICTED_ROOT)
             return Moves(pos, context.request.rootMoves, checkInfo);
         else
             return Moves(pos, checkInfo);
     }();
 
-    // --- Leaf Node Check ---
-    // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
-    // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
-    // stand pat instead of a draw score.
-    if (gate.inputs.depth <= 0) {
-        if constexpr (search_policies::QuiescencePolicy::enabled) {
-            // Start Q-Search with its *own* depth limit, configured with search params.
-            NoQuiescenceLine noLine;
-            // the root never gets here, iterations start at depth 1 and IIR only takes a ply off deeper ones. A restricted
-            // root's source isn't the type quiescence takes.
-            if constexpr (kind == NodeKind::RESTRICTED_ROOT)
-                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, gate.inputs.alpha, gate.inputs.beta, gate.inputs.ply, noLine);
-            else
-                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, gate.inputs.alpha, gate.inputs.beta, gate.inputs.ply, noLine, &moves);
-        } else {
-            return context.evaluate<us>();
-        }
-    }
-
-    // --- Singular Extension ---
-    // the TT move with a deep enough lower bound: if every other move fails low against a window a margin below its
-    // score, at about half depth, it's the only good move here and is searched a ply deeper.
-    NodePlan plan{};
-    if constexpr (search_policies::SingularExtensions::enabled && kind == NodeKind::NORMAL) {
-        if (gate.probeResult.has_value() && notExcludedAllowCut && search_policies::SingularExtensions::tryNode(*gate.probeResult, gate.inputs.depth)) {
-            const i16 singularBeta = static_cast<i16>(gate.probeResult->score - singular_params::marginPerDepth * gate.inputs.depth);
-            const u8 singularDepth = static_cast<u8>((gate.inputs.depth - 1) / 2);
-
-            frame.excludedMove = gate.probeResult->move;
-            PVLine ignoredPv;
-            const i16 score = alphaBeta<us>(context, NodeInputs{ static_cast<i16>(singularBeta - 1), singularBeta, singularDepth, gate.inputs.ply }, &ignoredPv);
-            frame.excludedMove = PackedMove::NullMove();
-
-            if (score < singularBeta)
-                plan.singularExtension = 1;
-        }
-    }
-
-    // --- prime move ordering ---
-    if (ttMove.isNull() == false) plan.orderingView.ttMove = ttMove;
-    if (gate.pvHint.isNull() == false) plan.orderingView.pvMove = gate.pvHint;
-    search_policies::MoveOrdering::prime(context.heuristics, context.frames, plan.orderingView, gate.inputs.ply);
-
-    moves.beginGeneration(&plan.orderingView, MoveTypes::ALL);
-
-    // --- Terminal Node ---
-    if (moves.peek().isNull()) {
-        if (moves.isChecked()){
-            ASSERT(gate.inputs.ply < c_checkmateMaxDistance);
-            return -c_checkmateConstant + (i16)gate.inputs.ply; // Mate score adjusted by ply
-        }
-        return -c_drawConstant; // Stalemate
-    }
-
-    // --- Static Eval ---
-    // Only the pruning at non-PV nodes uses it, and it means nothing in check.
-    const i16 staticEval = (gate.isPv || moves.isChecked()) ? -c_infinity : context.evaluate<us>();
-
-    // --- Reverse Futility Pruning ---
-    if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::shouldPrune(gate.isPv, moves.isChecked(), gate.inputs.depth, staticEval, gate.inputs.beta) && notExcludedAllowCut) {
-            return staticEval;
-        }
-    }
-
-    // --- Null Move Pruning ---
-    if constexpr (search_policies::NMP::enabled) {
-        if (gate.isPv == false && moves.isChecked() == false && notExcludedAllowCut) {
-            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, gate.inputs, staticEval)) {
-                return nullScore.value();
-            }
-        }
-    }
-
-    // --- Futility Pruning ---
-    // decided per node, searchMoves skips the quiet moves.
-    plan.futile = false;
-    if constexpr (search_policies::Futility::enabled)
-        plan.futile = search_policies::Futility::isNodeFutile(gate.isPv, moves.isChecked(), gate.inputs.depth, staticEval, gate.inputs.alpha);
+    // examine: singular extension, move ordering, terminal nodes, static eval, RFP, NMP and futility. A cut returns its
+    // score, otherwise the plan for the move loop.
+    auto examined = gate.examine(*this, moves);
+    if (examined.isCut())
+        return examined.score();
+    PlanNode<us, kind>& planned = examined.next();
 
     // --- Main Search Loop ---
-    NodeResult result = searchMoves<us>(moves, context, gate.inputs, plan, pv);
+    NodeResult result = searchMoves<us>(moves, context, planned.inputs, planned.decisions, pv);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -144,14 +79,14 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
 
     // --- Store to TT ---
     if constexpr (search_policies::TT::enabled) {
-        if (notExcludedAllowCut) {
+        if (frame.excludedMove.isNull()) {
             // All moves searched, no cutoff.
             search_policies::TT::update(context.tt,
                 pos.hash(),
                 result.bestMove, // Store the best move found
                 result.score, // Store the best score (which is alpha if it was a PV node)
-                gate.inputs.depth,
-                gate.inputs.ply,
+                planned.inputs.depth,
+                planned.inputs.ply,
                 result.flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
         }
     }

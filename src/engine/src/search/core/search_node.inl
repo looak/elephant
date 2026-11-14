@@ -20,6 +20,7 @@
 #include <search/core/search_constants.hpp>
 #include <search/search_results.hpp>
 #include <search/state/thread_context.hpp>
+#include <search/worker.hpp>
 
 template<Set us, NodeKind kind>
 StageResult<GateNode<us, kind>> OpenNode<us, kind>::gate() {
@@ -85,4 +86,76 @@ StageResult<GateNode<us, kind>> OpenNode<us, kind>::gate() {
     }
 
     return StageResult<GateNode<us, kind>>::carryOn(GateNode<us, kind>{ env, inputs, pvHint, isPv, probeResult });
+}
+
+template<Set us, NodeKind kind>
+template<typename Moves>
+StageResult<PlanNode<us, kind>> GateNode<us, kind>::examine(Worker& worker, Moves& moves) {
+    NodePlan plan{};
+    ThreadContext& context = env.context;
+    PlyFrame& frame = context.frame(inputs.ply);
+    const bool inCheck = env.checkInfo.isChecked();
+
+    // a validation search (singular extension's, with a move excluded) must not cut on what it finds here.
+    const bool notExcludedAllowCut = frame.excludedMove.isNull();
+
+    // --- Singular Extension ---
+    // the TT move with a deep enough lower bound: if every other move fails low against a window a margin below its
+    // score, at about half depth, it's the only good move here and is searched a ply deeper.
+    if constexpr (search_policies::SingularExtensions::enabled && kind == NodeKind::NORMAL) {
+        if (probeResult.has_value() && notExcludedAllowCut && search_policies::SingularExtensions::tryNode(*probeResult, inputs.depth)) {
+            const i16 singularBeta = static_cast<i16>(probeResult->score - singular_params::marginPerDepth * inputs.depth);
+            const u8 singularDepth = static_cast<u8>((inputs.depth - 1) / 2);
+
+            frame.excludedMove = probeResult->move;
+            PVLine ignoredPv;
+            const i16 score = worker.alphaBeta<us>(context, NodeInputs{ static_cast<i16>(singularBeta - 1), singularBeta, singularDepth, inputs.ply }, &ignoredPv);
+            frame.excludedMove = PackedMove::NullMove();
+
+            if (score < singularBeta)
+                plan.singularExtension = 1;
+        }
+    }
+
+    // --- prime move ordering ---
+    plan.orderingView.ttMove = probeResult.has_value() ? probeResult->move : PackedMove::NullMove();
+    plan.orderingView.pvMove = pvHint;
+    search_policies::MoveOrdering::prime(context.heuristics, context.frames, plan.orderingView, inputs.ply);
+
+    moves.beginGeneration(&plan.orderingView, MoveTypes::ALL);
+
+    // --- Terminal Node ---
+    if (moves.peek().isNull()) {
+        if (inCheck) {
+            ASSERT(inputs.ply < c_checkmateMaxDistance);
+            return Cut{ static_cast<i16>(-c_checkmateConstant + inputs.ply) }; // Mate score adjusted by ply
+        }
+        return Cut{ -c_drawConstant }; // Stalemate
+    }
+
+    // --- Static Eval ---
+    // Only the pruning at non-PV nodes uses it, and it means nothing in check.
+    const i16 staticEval = (isPv || inCheck) ? -c_infinity : context.evaluate<us>();
+
+    // --- Reverse Futility Pruning ---
+    if constexpr (search_policies::RFP::enabled) {
+        if (search_policies::RFP::shouldPrune(isPv, inCheck, inputs.depth, staticEval, inputs.beta) && notExcludedAllowCut)
+            return Cut{ staticEval };
+    }
+
+    // --- Null Move Pruning ---
+    if constexpr (search_policies::NMP::enabled) {
+        if (!isPv && !inCheck && notExcludedAllowCut) {
+            if (std::optional<i16> nullScore = worker.tryNullMovePrune<us>(context, inputs, staticEval))
+                return Cut{ nullScore.value() };
+        }
+    }
+
+    // --- Futility Pruning ---
+    // decided per node, searchMoves skips the quiet moves.
+    plan.futile = false;
+    if constexpr (search_policies::Futility::enabled)
+        plan.futile = search_policies::Futility::isNodeFutile(isPv, inCheck, inputs.depth, staticEval, inputs.alpha);
+
+    return StageResult<PlanNode<us, kind>>::carryOn(PlanNode<us, kind>{ env, inputs, plan });
 }

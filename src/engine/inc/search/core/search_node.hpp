@@ -28,10 +28,13 @@
 #include <move/generation/move_ordering_view.hpp>
 #include <move/move.hpp>
 #include <search/core/search_policies.hpp>
+#include <search/core/search_move_source.hpp>
 #include <system/platform.hpp>
 
 struct PVLine;
 struct ThreadContext;
+
+class Worker;
 
 namespace tusk {
 template<Set us>
@@ -95,12 +98,18 @@ struct NodeResult {      // produced by the move loop
     // PVLine* pv = nullptr; // todo maybe rethink pv not being part of the result.
 };
 
-
 template<Set us>
 struct NodeEnv {                 // borrowed from alphaBeta's stack, same for every stage
     ThreadContext& context;
     const tusk::CheckInfo<us>& checkInfo;
     PVLine* pv;
+};
+
+template<Set us, NodeKind kind>
+struct PlanNode {
+    NodeEnv<us> env;
+    NodeInputs inputs;
+    NodePlan decisions;
 };
 
 template<Set us, NodeKind kind>
@@ -110,6 +119,10 @@ struct GateNode {
     PackedMove pvHint;
     bool isPv;
     std::optional<search_policies::TT::ProbeResult> probeResult;
+
+    template<typename Moves>
+    StageResult<PlanNode<us, kind>> examine(Worker& worker, Moves& moves);
+    bool shouldQuiesenceSearch() const { return inputs.depth <= 0; }
 };
 
 template<Set us, NodeKind kind>

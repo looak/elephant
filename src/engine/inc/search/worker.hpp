@@ -48,7 +48,9 @@ struct SharedSearchState {
 // builds what a go needs on the thread's stack, a ThreadContext, so nothing of one search can leak into the next without
 // being meant to. It isn't a thread, a Monad starts one for each Worker when a search starts. Big, it belongs on the heap.
 class Worker {
-    friend class QuiescenceProbe;
+    template<Set us, NodeKind kind>
+    friend struct GateNode;
+    friend class QuiescenceProbe;    
 public:
     // Games are independent: zeroes the tables, keeping the memory.
     void newGame();
@@ -73,12 +75,10 @@ private:
     // made & unmade, it's left as it was. See QuiescenceProbe.
     template<Set us>
     static i16 quiescenceLine(ThreadContext& context, PVLine& line);
-
-    // moves, when given, is an unstarted move source for this position, alphaBeta passes the one it built at a leaf so
-    // the check & pin info isn't computed twice. line records the line played, NoQuiescenceLine records nothing.
+    
+    // line records the line played, NoQuiescenceLine records nothing.
     template<Set us, typename Line>
-    static i16 quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line,
-                          SearchMoveSource<us>* moves = nullptr);
+    static i16 quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, const tusk::CheckInfo<us>& chkInfo);
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
