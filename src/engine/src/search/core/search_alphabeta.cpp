@@ -160,11 +160,20 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // --- Static Eval ---
     // Only the pruning at non-PV nodes uses it, and it means nothing in check.
     const bool inCheck = moves.isChecked();
-    const i16 staticEval = (isPV || inCheck) ? -c_infinity : context.evaluate<us>();
+    const i16 staticEval = (isPV || inCheck) ? PlyFrame::noStaticEval : context.evaluate<us>();
+    context.frame(ply).staticEval = staticEval;
+
+    // --- Improving ---
+    // our static eval is higher than at our previous turn, two plies up the line: the position is getting better for us
+    // and a fail high is more likely. Every node on the line wrote its frame here before searching a child, so the frame
+    // two plies up is this line's, never a sibling's. Without an eval on either side there's nothing to compare.
+    const i16 previousEval = context.frame(ply - 2).staticEval;
+    const bool improving = staticEval != PlyFrame::noStaticEval && previousEval != PlyFrame::noStaticEval
+        && staticEval > previousEval;
 
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
+        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta, improving) && notExcludedAllowCut) {
             return staticEval;
         }
     }

@@ -148,13 +148,15 @@ i32 MoveOrdering::quietBonus(u8 depth) {
 }
 
 // --- Reverse Futility Pruning (RFP) Policies ---
-bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
+bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta, bool improving) {
     if (isPV || inCheck || depth > rfp_params::maxDepth)
         return false;
     if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
         return false;
 
-    return staticEval - rfp_params::margin * depth >= beta;
+    // an improving position is trusted to hold its eval, half a depth step less is asked of it.
+    const i32 margin = rfp_params::margin * depth - (improving ? rfp_params::margin / 2 : 0);
+    return staticEval - margin >= beta;
 }
 
 // --- Futility Pruning Policies ---

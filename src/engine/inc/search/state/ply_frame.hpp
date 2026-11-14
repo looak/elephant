@@ -23,6 +23,10 @@ struct PlyFrame {
     // set while this node searches its other moves without the TT move, to see if the TT move is the only good one. The
     // search at this ply skips it, and stays out of the TT.
     PackedMove excludedMove = PackedMove::NullMove();
+    // the static eval of the node at this ply, for the side to move there, written before any of its children are
+    // searched. noStaticEval when the node didn't compute one: in check, a PV node, or a ply before the root.
+    static constexpr i16 noStaticEval = static_cast<i16>(-c_infinity);
+    i16 staticEval = noStaticEval;
 
     void pushKiller(PackedMove move) {
         if (killers[0] != move) {

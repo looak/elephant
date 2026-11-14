@@ -131,8 +131,9 @@ public:
     static constexpr bool enabled = enabled_policies::RFP;
 
     // True when the static eval beats beta by a depth scaled margin at a shallow non-PV node, the node returns its
-    // static eval without searching. Never in check or with beta at a mate score.
-    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
+    // static eval without searching. Never in check or with beta at a mate score. The margin is half a depth step
+    // smaller when the node is improving.
+    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta, bool improving);
 };
 
 // --- Futility Pruning Policies ---
