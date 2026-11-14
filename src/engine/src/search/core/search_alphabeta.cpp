@@ -17,103 +17,58 @@
 
 #include <system/time_manager.hpp>
 
+#include "search_node.inl"
+
 template<Set us, NodeKind kind>
 i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
-    ASSERT_MSG(node.depth >= 0, "Depth cannot be negative in alphaBeta.");
-    ASSERT_MSG(node.ply < c_maxSearchDepth, "Ply exceeds maximum search depth in alphaBeta.");
-    ASSERT_MSG(node.alpha >= -c_infinity && node.beta <= c_infinity, "Alpha and Beta must be within valid bounds in alphaBeta.");
+    ASSERT_MSG(node.depth >= 0, "Depth cannot be negative.");
+    ASSERT_MSG(node.ply < c_maxSearchDepth, "Ply exceeds maximum search depth.");
+    ASSERT_MSG(node.alpha >= -c_infinity && node.beta <= c_infinity, "Alpha and Beta must be within valid bounds.");
     
     // the incremental hash, used by the TT & repetition checks, has to match the position after every make, unmake &
     // null move. Assertion builds only, recomputing it is far too slow otherwise.
     PositionReader pos = context.position.read();
-    ASSERT_MSG(pos.hash() == zobrist::computePositionHash(pos, us == Set::WHITE), "The incremental hash differs from the position's in alphaBeta.");
+    ASSERT_MSG(pos.hash() == zobrist::computePositionHash(pos, us == Set::WHITE), "The incremental hash differs from the position's.");
     context.debug_print_alphabeta_entry(node.depth, node.ply, node.alpha, node.beta, pos.hash());
 
     PlyFrame& frame = context.frame(node.ply);
-    
-    // PVS searches everything off the principal variation with a null window, so a wider window means a PV node.
-    // The root is always a PV node. Pruning and TT cutoffs are only safe at non-PV nodes.
-    const bool isPV = node.beta - node.alpha > 1;
 
-    // The incoming line's first move is searched first, iterative deepening hands the root its previous best move this
-    // way. The line is cleared so every return below leaves an empty PV unless a move raises alpha.
-    const PackedMove pvHint = pv->length > 0 ? pv->moves[0] : PackedMove::NullMove();
-    pv->length = 0;
+    // the gate: PV flag & hint, draws, ply limit, check extension, TT probe & cutoff and IIR. A cut returns its score,
+    // otherwise gate.inputs carries the depth after the extension & IIR.
+    tusk::CheckInfo<us> checkInfo(pos);
+    auto gated = OpenNode<us, kind>{ { context, checkInfo, pv }, node }.gate();
+    if (gated.isCut())
+        return gated.score();
+    GateNode<us, kind>& gate = gated.next();
 
-    // --- Draws ---
-    // threefold repetition, the root & the game's earlier positions included, and the fifty move rule. Never at the
-    // root, a search started in a drawn position still has to return a move. A mate given on the hundredth half move
-    // would win but is scored a draw, rare enough not to generate moves for.
-    if constexpr (kind == NodeKind::NORMAL) {
-        if (context.repetitions.isRepetition(pos.hash(), frame.halfmoveClock) || frame.halfmoveClock >= 100)
-            return -c_drawConstant;
-    }
+    const PackedMove ttMove = gate.probeResult.has_value() ? gate.probeResult->move : PackedMove::NullMove();
 
-    // hard ply limit, frames & pv are sized by it and asserts are compiled out. Check extensions can otherwise keep
-    // depth from ever reaching 0 along a chain of checks.
-    if (node.ply >= c_maxSearchDepth - 1)
-        return context.evaluate<us>();
-
-    tusk::CheckInfo<us> chkInfo(pos);
+    // check if we're doing a validation search.
+    const bool notExcludedAllowCut = frame.excludedMove.isNull();
 
     // Knows whether we're in check before generating anything, start() is called once ordering is primed below.
     using Moves = std::conditional_t<kind == NodeKind::RESTRICTED_ROOT, RootMoveSource<us>, SearchMoveSource<us>>;
     Moves moves = [&]() -> Moves {
         if constexpr (kind == NodeKind::RESTRICTED_ROOT)
-            return Moves(pos, context.request.rootMoves, chkInfo);
+            return Moves(pos, context.request.rootMoves, checkInfo);
         else
-            return Moves(pos, chkInfo);
+            return Moves(pos, checkInfo);
     }();
-
-    // --- Check Extension ---
-    // Search one ply deeper when in check so forcing sequences aren't cut off at the horizon. Covers direct and
-    // discovered checks alike. Done before the TT probe so stored and probed depths agree.
-    if (moves.isChecked())
-        node.depth++;
-
-    PackedMove ttMove = PackedMove::NullMove();
-    
-    // check if we're doing a validation search.
-    bool notExcludedAllowCut = frame.excludedMove.isNull();
-
-    // --- Transposition Table Probe ---    
-    std::optional<search_policies::TT::ProbeResult> ttProbeResult = std::nullopt;
-    if constexpr (search_policies::TT::enabled) {                
-        ttProbeResult = search_policies::TT::probe(context.tt, pos.hash(), node.ply);
-        
-        if (ttProbeResult.has_value()) {
-            // any hit, also when the entry is too shallow to cut.
-            ttMove = ttProbeResult.value().move;
-
-            // No cutoffs at PV nodes or at validation search.
-            if (!isPV && notExcludedAllowCut && search_policies::TT::cuts(ttProbeResult.value(), node.depth, node.alpha, node.beta)) {
-                return ttProbeResult.value().score;
-            }
-        }
-    }
-
-    // --- Internal Iterative Reduction ---
-    // Without a TT or PV move the ordering is a guess and the node is likely new to the search, a ply shallower is
-    // cheaper and stores a move for the next visit.
-    if constexpr (search_policies::enabled_policies::IIR) {
-        if (node.depth >= iir_params::minDepth && ttMove.isNull() && pvHint.isNull())
-            node.depth--;
-    }
 
     // --- Leaf Node Check ---
     // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
     // keeps depth > 0, so mates are still found by the full search; a stalemate at the horizon gets quiescence's
     // stand pat instead of a draw score.
-    if (node.depth <= 0) {
+    if (gate.inputs.depth <= 0) {
         if constexpr (search_policies::QuiescencePolicy::enabled) {
             // Start Q-Search with its *own* depth limit, configured with search params.
             NoQuiescenceLine noLine;
             // the root never gets here, iterations start at depth 1 and IIR only takes a ply off deeper ones. A restricted
             // root's source isn't the type quiescence takes.
             if constexpr (kind == NodeKind::RESTRICTED_ROOT)
-                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, node.alpha, node.beta, node.ply, noLine);
+                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, gate.inputs.alpha, gate.inputs.beta, gate.inputs.ply, noLine);
             else
-                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, node.alpha, node.beta, node.ply, noLine, &moves);
+                return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, gate.inputs.alpha, gate.inputs.beta, gate.inputs.ply, noLine, &moves);
         } else {
             return context.evaluate<us>();
         }
@@ -124,13 +79,13 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
     // score, at about half depth, it's the only good move here and is searched a ply deeper.
     NodePlan plan{};
     if constexpr (search_policies::SingularExtensions::enabled && kind == NodeKind::NORMAL) {
-        if (ttProbeResult.has_value() && notExcludedAllowCut && search_policies::SingularExtensions::tryNode(*ttProbeResult, node.depth)) {
-            const i16 singularBeta = static_cast<i16>(ttProbeResult->score - singular_params::marginPerDepth * node.depth);
-            const u8 singularDepth = static_cast<u8>((node.depth - 1) / 2);
+        if (gate.probeResult.has_value() && notExcludedAllowCut && search_policies::SingularExtensions::tryNode(*gate.probeResult, gate.inputs.depth)) {
+            const i16 singularBeta = static_cast<i16>(gate.probeResult->score - singular_params::marginPerDepth * gate.inputs.depth);
+            const u8 singularDepth = static_cast<u8>((gate.inputs.depth - 1) / 2);
 
-            frame.excludedMove = ttProbeResult->move;
+            frame.excludedMove = gate.probeResult->move;
             PVLine ignoredPv;
-            const i16 score = alphaBeta<us>(context, NodeInputs{ static_cast<i16>(singularBeta - 1), singularBeta, singularDepth, node.ply }, &ignoredPv);
+            const i16 score = alphaBeta<us>(context, NodeInputs{ static_cast<i16>(singularBeta - 1), singularBeta, singularDepth, gate.inputs.ply }, &ignoredPv);
             frame.excludedMove = PackedMove::NullMove();
 
             if (score < singularBeta)
@@ -138,37 +93,37 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
         }
     }
 
-    // --- prime move ordering ---    
+    // --- prime move ordering ---
     if (ttMove.isNull() == false) plan.orderingView.ttMove = ttMove;
-    if (pvHint.isNull() == false) plan.orderingView.pvMove = pvHint;
-    search_policies::MoveOrdering::prime(context.heuristics, context.frames, plan.orderingView, node.ply);
+    if (gate.pvHint.isNull() == false) plan.orderingView.pvMove = gate.pvHint;
+    search_policies::MoveOrdering::prime(context.heuristics, context.frames, plan.orderingView, gate.inputs.ply);
 
     moves.beginGeneration(&plan.orderingView, MoveTypes::ALL);
 
     // --- Terminal Node ---
     if (moves.peek().isNull()) {
         if (moves.isChecked()){
-            ASSERT(node.ply < c_checkmateMaxDistance);
-            return -c_checkmateConstant + (i16)node.ply; // Mate score adjusted by ply
+            ASSERT(gate.inputs.ply < c_checkmateMaxDistance);
+            return -c_checkmateConstant + (i16)gate.inputs.ply; // Mate score adjusted by ply
         }
         return -c_drawConstant; // Stalemate
     }
 
     // --- Static Eval ---
-    // Only the pruning at non-PV nodes uses it, and it means nothing in check.    
-    const i16 staticEval = (isPV || moves.isChecked()) ? -c_infinity : context.evaluate<us>();
+    // Only the pruning at non-PV nodes uses it, and it means nothing in check.
+    const i16 staticEval = (gate.isPv || moves.isChecked()) ? -c_infinity : context.evaluate<us>();
 
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::shouldPrune(isPV, moves.isChecked(), node.depth, staticEval, node.beta) && notExcludedAllowCut) {
+        if (search_policies::RFP::shouldPrune(gate.isPv, moves.isChecked(), gate.inputs.depth, staticEval, gate.inputs.beta) && notExcludedAllowCut) {
             return staticEval;
         }
     }
 
     // --- Null Move Pruning ---
     if constexpr (search_policies::NMP::enabled) {
-        if (isPV == false && moves.isChecked() == false && notExcludedAllowCut) {
-            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, node, staticEval)) {
+        if (gate.isPv == false && moves.isChecked() == false && notExcludedAllowCut) {
+            if (std::optional<i16> nullScore = tryNullMovePrune<us>(context, gate.inputs, staticEval)) {
                 return nullScore.value();
             }
         }
@@ -178,10 +133,10 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
     // decided per node, searchMoves skips the quiet moves.
     plan.futile = false;
     if constexpr (search_policies::Futility::enabled)
-        plan.futile = search_policies::Futility::isNodeFutile(isPV, moves.isChecked(), node.depth, staticEval, node.alpha);
+        plan.futile = search_policies::Futility::isNodeFutile(gate.isPv, moves.isChecked(), gate.inputs.depth, staticEval, gate.inputs.alpha);
 
-    // --- Main Search Loop ---    
-    NodeResult result = searchMoves<us>(moves, context, node, plan, pv);
+    // --- Main Search Loop ---
+    NodeResult result = searchMoves<us>(moves, context, gate.inputs, plan, pv);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -195,8 +150,8 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
                 pos.hash(),
                 result.bestMove, // Store the best move found
                 result.score, // Store the best score (which is alpha if it was a PV node)
-                node.depth,
-                node.ply,
+                gate.inputs.depth,
+                gate.inputs.ply,
                 result.flag); // Flag is either TTF_CUT_ALPHA or TTF_CUT_EXACT
         }
     }

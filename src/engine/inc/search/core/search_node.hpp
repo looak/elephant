@@ -38,9 +38,20 @@ template<Set us>
 class CheckInfo;
 }
 
+// Where a node is in the tree, decided at compile time so the root's special cases cost the rest of the tree nothing.
+enum class NodeKind {
+    NORMAL,
+    ROOT,
+    // the root of a go searchmoves, only the moves in the request are searched.
+    RESTRICTED_ROOT
+};
+
+struct Cut { i16 score; };
+
 template<typename Next>
 class [[nodiscard]] StageResult {
 public:
+    StageResult(Cut c) : m_score(c.score) {};
     static StageResult cut(i16 score)  { return StageResult{score}; }
     static StageResult carryOn(Next n) { return StageResult{std::move(n)}; }
 
@@ -71,7 +82,7 @@ struct NodeInputs {      // from the caller, passed by copy
     }
 };
 
-struct NodePlan {        // decided by prepareNode, passed by const reference        
+struct NodePlan {
     bool futile = false;  // futile: the node failed the futility check, quiet moves that don't give check are skipped.        
     u8 singularExtension = 0;
     MoveOrderingView orderingView{};  //  ordering: the view moves was started with, it reads the history tables as they are now.
@@ -92,19 +103,19 @@ struct NodeEnv {                 // borrowed from alphaBeta's stack, same for ev
     PVLine* pv;
 };
 
-template<Set us>
+template<Set us, NodeKind kind>
 struct GateNode {
     NodeEnv<us> env;
     NodeInputs inputs;
     PackedMove pvHint;
     bool isPv;
-    std::optional<search_policies::TT::ProbeResult> probe;
+    std::optional<search_policies::TT::ProbeResult> probeResult;
 };
 
-template<Set us>
+template<Set us, NodeKind kind>
 struct OpenNode {
     NodeEnv<us> env;
     NodeInputs inputs;
 
-    StageResult<GateNode<us>> gate();
+    StageResult<GateNode<us, kind>> gate();
 };

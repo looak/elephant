@@ -178,7 +178,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/search/core/search_impl.cpp
     ${ENGINE_SRC_DIR}/search/core/search_alphabeta.cpp
     ${ENGINE_SRC_DIR}/search/core/search_nullmove.cpp
-    ${ENGINE_SRC_DIR}/search/core/search_node.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_node.inl
     ${ENGINE_SRC_DIR}/search/core/search_quiescence.cpp
     ${ENGINE_SRC_DIR}/search/core/search_policies.cpp
     ${ENGINE_SRC_DIR}/search/core/static_exchange.cpp

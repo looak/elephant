@@ -44,14 +44,6 @@ struct SharedSearchState {
     std::atomic<u64> nodes{0};
 };
 
-// Where a node is in the tree, decided at compile time so the root's special cases cost the rest of the tree nothing.
-enum class NodeKind {
-    NORMAL,
-    ROOT,
-    // the root of a go searchmoves, only the moves in the request are searched.
-    RESTRICTED_ROOT
-};
-
 // A search thread's tables and the search itself. It holds what outlives a go, the history tables & the pawn hash, and
 // builds what a go needs on the thread's stack, a ThreadContext, so nothing of one search can leak into the next without
 // being meant to. It isn't a thread, a Monad starts one for each Worker when a search starts. Big, it belongs on the heap.
