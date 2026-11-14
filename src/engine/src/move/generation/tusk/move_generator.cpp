@@ -182,7 +182,7 @@ MoveGenResult<us> MoveGenerator<us>::generateAll() const {
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     const bool capturesOnly = m_params.moveFilter == MoveTypes::CAPTURES_ONLY;
     const bool deferLosing = m_params.deferLosingCaptures && !capturesOnly;
     auto accepted = [&](PackedMove move) {
@@ -295,7 +295,7 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
         result.m_checkSquaresReady = true;
     }
     const std::array<u64, 6>& checkSquares = result.m_checkSquares;
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     constexpr bool includeKillers = type == GenType::QUIETS;
 
     auto sink = [&](PackedMove move, u8 pieceId) {
@@ -320,7 +320,7 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
 
 template<Set us>
 bool MoveGenerator<us>::isOrderingMove(PackedMove move, bool includeKillers) const {
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     if (ordering == nullptr)
         return false;
     if (move == ordering->pvMove || move == ordering->ttMove)

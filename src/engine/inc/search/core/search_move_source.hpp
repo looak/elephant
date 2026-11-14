@@ -54,8 +54,10 @@ public:
 
     [[nodiscard]] bool isChecked() const { return m_checkInfo.isChecked(); }
 
+    // the generator copies the view, ordering only has to live for this call. nullptr means no ordering hints.
     void beginGeneration(const MoveOrderingView* ordering, MoveTypes filter) {
-        m_generator.emplace(m_position, m_checkInfo, tusk::MoveGenParams{ .ordering = ordering, .moveFilter = filter,
+        std::optional<MoveOrderingView> view = ordering != nullptr ? std::optional{ *ordering } : std::nullopt;
+        m_generator.emplace(m_position, m_checkInfo, tusk::MoveGenParams{ .ordering = view, .moveFilter = filter,
             .deferLosingCaptures = search_policies::enabled_policies::DeferLosingCaptures });
         m_moves.emplace(*m_generator, tusk::Stage::PV_MOVE);
     }
