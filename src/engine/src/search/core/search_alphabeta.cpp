@@ -215,7 +215,7 @@ INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
 #undef INSTANTIATE_ALPHA_BETA
 
 template<Set us, typename Moves>
-Worker::NodeResult Worker::searchMoves(Moves& moves, ThreadContext& context, NodeInputs node, const NodePlan& plan, PVLine* pv) {
+NodeResult Worker::searchMoves(Moves& moves, ThreadContext& context, NodeInputs node, const NodePlan& plan, PVLine* pv) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -399,7 +399,7 @@ Worker::NodeResult Worker::searchMoves(Moves& moves, ThreadContext& context, Nod
     return { intermmediateScore, settledMove, settledFlag };
 }
 
-template Worker::NodeResult Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
-template Worker::NodeResult Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
-template Worker::NodeResult Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
-template Worker::NodeResult Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
+template NodeResult Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
+template NodeResult Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
+template NodeResult Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);
+template NodeResult Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, NodeInputs, const NodePlan&, PVLine*);

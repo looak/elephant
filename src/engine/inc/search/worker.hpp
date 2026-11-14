@@ -18,6 +18,7 @@
 #include <position/position_accessors.hpp>
 #include <eval/pawn_hash.hpp>
 #include <search/core/search_policies.hpp>
+#include <search/core/search_node.hpp>
 #include <search/search_listener.hpp>
 #include <search/search_request.hpp>
 #include <search/search_results.hpp>
@@ -66,35 +67,6 @@ public:
                      SearchListener& listener, u16 threadId, u16 threadCount);
 
 private:
-    struct NodeInputs {      // from the caller, passed by copy
-        i16 alpha = 0;
-        i16 beta = 0;
-        u8 depth = 0;
-        u16 ply = 0;
-
-        // the child's inputs, the window flipped to its side one ply further down.
-        [[nodiscard]] NodeInputs makeChildInputs(u8 childDepth) const {
-            return { static_cast<i16>(-beta), static_cast<i16>(-alpha), childDepth, static_cast<u16>(ply + 1) };
-        }
-        // the child's inputs with a zero window just above alpha, it only has to show whether the move beats alpha.
-        [[nodiscard]] NodeInputs makeScoutInputs(u8 childDepth) const {
-            return { static_cast<i16>(-alpha - 1), static_cast<i16>(-alpha), childDepth, static_cast<u16>(ply + 1) };
-        }
-    };
-
-    struct NodePlan {        // decided by prepareNode, passed by const reference        
-        bool futile = false;  // futile: the node failed the futility check, quiet moves that don't give check are skipped.        
-        u8 singularExtension = 0;
-        MoveOrderingView orderingView{};  //  ordering: the view moves was started with, it reads the history tables as they are now.
-    };
-
-    struct NodeResult {      // produced by the move loop
-        i16 score = 0;
-        PackedMove bestMove{};
-        TranspositionFlag flag{};
-        // PVLine* pv = nullptr; // todo maybe rethink pv not being part of the result.
-    };
-
     template<Set us>
     SearchResult iterativeDeepening(ThreadContext& context, SearchListener& listener);
 

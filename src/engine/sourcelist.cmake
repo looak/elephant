@@ -112,6 +112,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/core/search_constants.hpp
     ${ENGINE_INC_DIR}/search/state/search_heuristic_structures.hpp
     ${ENGINE_INC_DIR}/search/core/search_move_source.hpp
+    ${ENGINE_INC_DIR}/search/core/search_node.hpp
     ${ENGINE_INC_DIR}/search/core/search_policies.hpp    
     ${ENGINE_INC_DIR}/search/search_results.hpp
     ${ENGINE_INC_DIR}/search/core/static_exchange.hpp
@@ -177,6 +178,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/search/core/search_impl.cpp
     ${ENGINE_SRC_DIR}/search/core/search_alphabeta.cpp
     ${ENGINE_SRC_DIR}/search/core/search_nullmove.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_node.cpp
     ${ENGINE_SRC_DIR}/search/core/search_quiescence.cpp
     ${ENGINE_SRC_DIR}/search/core/search_policies.cpp
     ${ENGINE_SRC_DIR}/search/core/static_exchange.cpp
