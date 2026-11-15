@@ -34,6 +34,7 @@ namespace time_management {
 #else
     #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline constexpr type name = def; }
 #endif
+#define TUNABLE_DERIVED(ns, name, type, def, lo, hi, step, hook) TUNABLE(ns, name, type, def, lo, hi, step)
 #include "search_tunables.def"
 #undef TUNABLE
 

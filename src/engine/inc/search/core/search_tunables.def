@@ -10,6 +10,9 @@
 // have no entry, and a constant used where a compile time value is needed (array size, template argument,
 // static_assert, if constexpr) can't be here, the tuning build wouldn't compile.
 //
+// TUNABLE_DERIVED(group, name, type, defaultValue, minValue, maxValue, step, hook) is a TUNABLE something else is computed
+// from: setoption calls hook() after setting it, search_constants.hpp & the option announcement treat it as a TUNABLE.
+//
 // Adding a parameter: add its line here and delete its constant from search_constants.hpp.
 
 #ifndef TUNABLE
@@ -64,12 +67,12 @@ TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
 // killers. A ply less per historyDivisor of history, a ply more per that much below zero. The score is three tables of at
 // most 16383 each, so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on
 // anything. The table's reduction = baseCenti / 100 + ln(depth) * ln(move index) / (divisorCenti / 100), one ply less at
-// PV nodes, rebuilt by a setoption of either (see rebuildLmrTable).
+// PV nodes, rebuilt by a setoption of either, see TUNABLE_DERIVED.
 TUNABLE(lmr_params, minDepth,       u8,  3,    1,    6,     1)
 TUNABLE(lmr_params, fullDepthMoves, u16, 3,    1,    8,     1)
 TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
-TUNABLE(lmr_params, baseCenti,      i32, 75,   25,   150,   5)
-TUNABLE(lmr_params, divisorCenti,   i32, 225,  150,  350,   10)
+TUNABLE_DERIVED(lmr_params, baseCenti,    i32, 75,  25,  150,  5, search_policies::rebuildLmrTable)
+TUNABLE_DERIVED(lmr_params, divisorCenti, i32, 225, 150, 350, 10, search_policies::rebuildLmrTable)
 
 // internal iterative reduction, nodes from minDepth with neither a TT nor a PV move to search first are searched a ply
 // shallower.
@@ -82,3 +85,4 @@ TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
 
 
 #undef TUNABLE
+#undef TUNABLE_DERIVED
