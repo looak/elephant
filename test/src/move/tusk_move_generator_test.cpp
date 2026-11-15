@@ -51,7 +51,7 @@ u64 tuskStagedPerft(Game& context, int depth) {
             ordering.killers[killerIndx] = PackedMove::NullMove();
     }
 
-    tusk::MoveGenerator<us> generator(position, pins, { .ordering = &ordering });
+    tusk::MoveGenerator<us> generator(position, pins, { .ordering = ordering });
     tusk::MoveGenResult<us> moves = generator.generate();
 
     u64 nodes = 0;
@@ -130,7 +130,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_LosingCaptureComesAfterTheQuiets) {
     const std::string losingCapture = "d2d5";
 
     auto handOutOrder = [&](bool defer) {
-        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .deferLosingCaptures = defer });
+        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = std::nullopt, .deferLosingCaptures = defer });
         tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
         std::vector<std::string> order;
         while (PrioritizedMove move = moves.next())
@@ -161,7 +161,7 @@ TEST(TuskMoveGenerator, DeferLosingCaptures_StagedHandsOutEachMoveOnce) {
 
         PositionReader position = context.readPosition();
         tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
-        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .deferLosingCaptures = true });
+        tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = std::nullopt, .deferLosingCaptures = true });
         tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
         tusk::MoveGenResult<Set::WHITE> all = generator.generateAll();
 
@@ -182,7 +182,7 @@ TEST(TuskMoveGenerator, CapturesOnlyFilter) {
 
     PositionReader position = context.readPosition();
     tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
-    tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .moveFilter = MoveTypes::CAPTURES_ONLY });
+    tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = std::nullopt, .moveFilter = MoveTypes::CAPTURES_ONLY });
     tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
     u32 count = 0;
@@ -220,7 +220,7 @@ TEST(TuskMoveGenerator, StagedOrdering) {
 
     PositionReader position = context.readPosition();
     tusk::CheckInfo<Set::WHITE> pins = computePins<Set::WHITE>(position);
-    tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = &view });
+    tusk::MoveGenerator<Set::WHITE> generator(position, pins, { .ordering = view });
     tusk::MoveGenResult<Set::WHITE> moves = generator.generate();
 
     for (const PackedMove& expected : expectedOrder) {

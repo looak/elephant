@@ -98,14 +98,22 @@ void TT::printStats([[maybe_unused]] TranspositionTable& tt)
 // --- Late Move Reduction (LMR) Policies ---
 namespace {
 // [depth][move index], both capped at 63.
-const std::array<std::array<u8, 64>, 64> s_lmrTable = [] {
+std::array<std::array<u8, 64>, 64> makeLmrTable() {
+    const double base = lmr_params::baseCenti / 100.0;
+    const double divisor = lmr_params::divisorCenti / 100.0;
     std::array<std::array<u8, 64>, 64> table{};
     for (u32 depth = 1; depth < 64; ++depth)
         for (u32 index = 1; index < 64; ++index)
-            table[depth][index] = static_cast<u8>(lmr_params::base + std::log(depth) * std::log(index) / lmr_params::divisor);
+            table[depth][index] = static_cast<u8>(base + std::log(depth) * std::log(index) / divisor);
     return table;
-}();
+}
+
+std::array<std::array<u8, 64>, 64> s_lmrTable = makeLmrTable();
 } // namespace
+
+#ifdef ELEPHANT_TUNE
+void rebuildLmrTable() { s_lmrTable = makeLmrTable(); }
+#endif
 
 u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history) {
     if (depth < lmr_params::minDepth || moveIndex < lmr_params::fullDepthMoves || !quiet || inCheck || givesCheck)

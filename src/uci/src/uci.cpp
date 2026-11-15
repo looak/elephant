@@ -11,6 +11,7 @@
 #include <core/game.hpp>
 #include <move/move.hpp>
 #include <search/bench.hpp>
+#include <search/core/search_policies.hpp>
 
 #include <algorithm>
 #include <functional>
@@ -115,6 +116,18 @@ UCI::SetOption(const std::list<std::string> args)
         else if (name == "Move Overhead") {
             m_monad.setMoveOverhead(static_cast<u32>(std::max(0, toInt())));
         }
+#ifdef ELEPHANT_TUNE
+        #define TUNABLE(ns, param, type, def, lo, hi, step)               \
+        else if (name == #ns "__" #param) {                         \
+            ns::param = static_cast<type>(std::clamp(toInt(), lo, hi));   \
+        }
+        #define TUNABLE_DERIVED(ns, param, type, def, lo, hi, step, hook)     \
+        else if (name == #ns "__" #param) {                                   \
+            ns::param = static_cast<type>(std::clamp(toInt(), lo, hi));       \
+            hook();                                                           \
+        }
+        #include <search/core/search_tunables.def>
+#endif
         else {
             throw ephant::uci_command_exception("option", "Unknown option: " + name);
         }

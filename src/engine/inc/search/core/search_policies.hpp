@@ -97,6 +97,12 @@ public:
     static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history);
 };
 
+#ifdef ELEPHANT_TUNE
+// Rebuilds the reduction table from lmr_params::baseCenti & divisorCenti, after a setoption changed one. Not while a
+// search is running, the table is read without a lock.
+void rebuildLmrTable();
+#endif
+
 // --- Move Ordering Heuristics (Killers/History) Policies ---
 class MoveOrdering {
 public:

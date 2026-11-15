@@ -110,6 +110,7 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/search/state/ply_frame.hpp
     ${ENGINE_INC_DIR}/search/state/repetition_history.hpp
     ${ENGINE_INC_DIR}/search/core/search_constants.hpp
+    ${ENGINE_INC_DIR}/search/core/search_tunables.def
     ${ENGINE_INC_DIR}/search/state/search_heuristic_structures.hpp
     ${ENGINE_INC_DIR}/search/core/search_move_source.hpp
     ${ENGINE_INC_DIR}/search/core/search_node.hpp

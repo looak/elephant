@@ -29,93 +29,17 @@ namespace time_management {
     inline constexpr std::array<u8, 6> unchangedMoveFactors = { 140, 115, 100, 85, 70, 60 };
 }
 
-// aspiration window parameters
-namespace aspiration_params {
-// from this depth the root is searched in a window around the previous iteration's score, earlier scores swing too much.
-inline constexpr u8 minDepth = 5;
-inline constexpr i32 initialDelta = 25;
-// a side of the window that would grow beyond this opens up fully.
-inline constexpr i32 maxDelta = 1000;
-} // namespace aspiration_params
-
-// late move reduction parameters
-namespace lmr_params {
-inline constexpr u8 minDepth = 3;
-// moves before this index are searched at full depth, covers the pv/tt move and usually the killers.
-inline constexpr u16 fullDepthMoves = 3;
-// reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
-inline constexpr double base = 0.75;
-inline constexpr double divisor = 2.25;
-// a ply less per this much history, a ply more per this much below zero. The score is three tables of at most 16383 each,
-// so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on anything.
-inline constexpr i32 historyDivisor = 8192;
-} // namespace lmr_params
-
-
-namespace singular_params {
-    inline constexpr u8 marginPerDepth = 4;
-    inline constexpr u8 depthThreshold = 8;
-    inline constexpr i8 depthMargin = 3;
-
-} // namespace singular_params
-
-// history heuristic parameters
-namespace history_params {
-// bonus for a quiet cutoff move is depth * depth * scale up to maxBonus, the quiets tried before it get the same malus.
-inline constexpr i32 bonusScale = 32;
-inline constexpr i32 maxBonus = 2048;
-} // namespace history_params
-
-// null move pruning parameters
-namespace nmp_params {
-inline constexpr u8 minDepth = 3;
-// null move fail highs from this depth up are verified with a reduced normal search before cutting, guards against
-// zugzwang where passing is better than any real move.
-inline constexpr u8 verificationDepth = 6;
-// reduction = base + depth / depthDivisor + min((staticEval - beta) / evalDivisor, maxEvalReduction), deeper nodes and
-// a bigger margin over beta reduce more. The common 3 + depth / 3 + min(.., 3) never found the zugzwang win in the
-// null move search test, the verification search shrinks with the null move's depth.
-inline constexpr i32 baseReduction = 2;
-inline constexpr i32 depthDivisor = 4;
-inline constexpr i32 evalDivisor = 200;
-inline constexpr i32 maxEvalReduction = 1;
-} // namespace nmp_params
-
-// futility pruning parameters
-namespace futility_params {
-// quiet moves are skipped at nodes up to this depth when the static eval is this far below alpha.
-inline constexpr u8 maxDepth = 3;
-// margin = base + perDepth * depth.
-inline constexpr i16 base = 100;
-inline constexpr i16 perDepth = 100;
-} // namespace futility_params
-
-// late move pruning parameters
-namespace lmp_params {
-// at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
-// 3 + depth * depth pushed the zugzwang win in the null move search test from depth 15 to 20, this costs it a ply.
-inline constexpr u8 maxDepth = 5;
-inline constexpr u16 base = 5;
-inline constexpr u16 factor = 2;
-} // namespace lmp_params
-
-// internal iterative reduction parameters
-namespace iir_params {
-// nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.
-inline constexpr u8 minDepth = 4;
-} // namespace iir_params
-
-// reverse futility pruning parameters
-namespace rfp_params {
-// nodes up to this depth return when the static eval beats beta by margin * depth.
-inline constexpr u8 maxDepth = 6;
-inline constexpr i16 margin = 80;
-} // namespace rfp_params
+#ifdef ELEPHANT_TUNE
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline type name = def; }
+#else
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline constexpr type name = def; }
+#endif
+#define TUNABLE_DERIVED(ns, name, type, def, lo, hi, step, hook) TUNABLE(ns, name, type, def, lo, hi, step)
+#include "search_tunables.def"
+#undef TUNABLE
 
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
-// delta pruning, slack on top of the material a capture can win before it's judged hopeless.
-inline constexpr i16 deltaMargin = 200; // 2 pawns
 } // namespace quiescence_params
 
 namespace continuation_params {
