@@ -25,11 +25,6 @@
 // TUNABLE(lmr_params, fullDepthMoves, u16, 3, 1, 6)
 // TUNABLE(lmr_params, historyDivisor, i32, 8192, 2048, 16384)
 
-// singular extensions
-// TUNABLE(singular_params, marginPerDepth, u8, 4, 1, 8)
-// TUNABLE(singular_params, depthThreshold, u8, 8, 5, 12)
-// TUNABLE(singular_params, depthMargin, i8, 3, 1, 6)
-
 // history heuristic
 // TUNABLE(history_params, bonusScale, i32, 32, 8, 96)
 // TUNABLE(history_params, maxBonus, i32, 2048, 512, 4096)
@@ -68,5 +63,9 @@ TUNABLE(nmp_params, maxEvalReduction,  i32, 1,   0,   3,  1)
 TUNABLE(lmp_params, maxDepth, u8,  5, 2, 10, 1)
 TUNABLE(lmp_params, base,     u16, 5, 2, 10, 1)
 TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
+
+// singular extensions
+TUNABLE(singular_params, depthThreshold, u8, 8, 4, 16, 1)
+TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
 
 #undef TUNABLE

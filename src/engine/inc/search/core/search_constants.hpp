@@ -62,8 +62,6 @@ inline constexpr i32 historyDivisor = 8192;
 
 namespace singular_params {
     inline constexpr u8 marginPerDepth = 4;
-    inline constexpr u8 depthThreshold = 8;
-    inline constexpr i8 depthMargin = 3;
 
 } // namespace singular_params
 
