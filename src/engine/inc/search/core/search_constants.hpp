@@ -37,12 +37,6 @@ namespace time_management {
 #include "search_tunables.def"
 #undef TUNABLE
 
-// aspiration window parameters
-namespace aspiration_params {
-// a side of the window that would grow beyond this opens up fully.
-inline constexpr i32 maxDelta = 1000;
-} // namespace aspiration_params
-
 // late move reduction parameters
 namespace lmr_params {
 // reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
