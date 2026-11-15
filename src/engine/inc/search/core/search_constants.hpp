@@ -52,11 +52,6 @@ inline constexpr double divisor = 2.25;
 } // namespace lmr_params
 
 
-namespace singular_params {
-    inline constexpr u8 marginPerDepth = 4;
-
-} // namespace singular_params
-
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
 } // namespace quiescence_params

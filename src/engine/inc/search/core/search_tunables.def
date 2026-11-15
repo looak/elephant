@@ -45,9 +45,6 @@ TUNABLE(lmp_params, maxDepth, u8,  5, 2, 10, 1)
 TUNABLE(lmp_params, base,     u16, 5, 2, 10, 1)
 TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
 
-// singular extensions
-TUNABLE(singular_params, depthThreshold, u8, 8, 4, 16, 1)
-TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
 
 // history heuristic, the bonus for a quiet cutoff move is depth * depth * bonusScale up to maxBonus, the quiets tried
 // before it get the same malus.
@@ -74,5 +71,10 @@ TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
 // internal iterative reduction, nodes from minDepth with neither a TT nor a PV move to search first are searched a ply
 // shallower.
 TUNABLE(iir_params, minDepth, u8, 4, 2, 8, 1)
+
+// singular extensions
+TUNABLE(singular_params, marginPerDepth, u8, 4, 1,  8, 1)
+TUNABLE(singular_params, depthThreshold, u8, 8, 4, 16, 1)
+TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
 
 #undef TUNABLE
