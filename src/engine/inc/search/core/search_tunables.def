@@ -42,11 +42,6 @@
 // TUNABLE(nmp_params, evalDivisor, i32, 200, 100, 400)
 // TUNABLE(nmp_params, maxEvalReduction, i32, 1, 0, 3)
 
-// futility pruning
-// TUNABLE(futility_params, maxDepth, u8, 3, 1, 6)
-// TUNABLE(futility_params, base, i16, 100, 25, 250)
-// TUNABLE(futility_params, perDepth, i16, 100, 25, 250)
-
 // late move pruning
 // TUNABLE(lmp_params, maxDepth, u8, 5, 3, 8)
 // TUNABLE(lmp_params, base, u16, 5, 2, 10)
@@ -61,5 +56,11 @@ TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
 
 // quiescence
 // TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400)
+
+// futility pruning, quiet moves are skipped at nodes up to maxDepth when the static eval is this far below alpha:
+// margin = base + perDepth * depth.
+TUNABLE(futility_params, maxDepth, u8,  3,  1,   6,  1)
+TUNABLE(futility_params, base,     i16, 100, 50, 200, 10)
+TUNABLE(futility_params, perDepth, i16, 100, 50, 200, 10)
 
 #undef TUNABLE

@@ -89,15 +89,6 @@ inline constexpr i32 evalDivisor = 200;
 inline constexpr i32 maxEvalReduction = 1;
 } // namespace nmp_params
 
-// futility pruning parameters
-namespace futility_params {
-// quiet moves are skipped at nodes up to this depth when the static eval is this far below alpha.
-inline constexpr u8 maxDepth = 3;
-// margin = base + perDepth * depth.
-inline constexpr i16 base = 100;
-inline constexpr i16 perDepth = 100;
-} // namespace futility_params
-
 // late move pruning parameters
 namespace lmp_params {
 // at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
