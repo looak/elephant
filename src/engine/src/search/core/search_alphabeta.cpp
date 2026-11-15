@@ -32,14 +32,13 @@ i16 Worker::alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv) {
     context.debug_print_alphabeta_entry(node.depth, node.ply, node.alpha, node.beta, pos.hash());
 
     PlyFrame& frame = context.frame(node.ply);
+    tusk::CheckInfo<us> checkInfo(pos);
 
     // the gate: PV flag & hint, draws, ply limit, check extension, TT probe & cutoff and IIR. A cut returns its score,
     // otherwise gate.inputs carries the depth after the extension & IIR.
-    tusk::CheckInfo<us> checkInfo(pos);
     auto gated = OpenNode<us, kind>{ { context, checkInfo, pv }, node }.gate();
-    if (gated.isCut())
-        return gated.score();
-    GateNode<us, kind>& gate = gated.next();    
+    if (gated.isCut())  return gated.score();
+    GateNode<us, kind>& gate = gated.next();
 
     // --- Leaf Node Check ---
     // Before generating moves, most nodes are leaves and quiescence generates its own. In check the extension above
