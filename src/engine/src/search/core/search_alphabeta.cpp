@@ -165,15 +165,16 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Improving ---
     // our static eval is higher than at our previous turn, two plies up the line: the position is getting better for us
-    // and a fail high is more likely. Every node on the line wrote its frame here before searching a child, so the frame
-    // two plies up is this line's, never a sibling's. Without an eval on either side there's nothing to compare.
+    // and a late quiet move is less likely to be a waste, LMR reduces it a ply less. Every node on the line wrote its
+    // frame here before searching a child, so the frame two plies up is this line's, never a sibling's. Without an eval
+    // on either side there's nothing to compare.
     const i16 previousEval = context.frame(ply - 2).staticEval;
     const bool improving = staticEval != PlyFrame::noStaticEval && previousEval != PlyFrame::noStaticEval
         && staticEval > previousEval;
 
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
-        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta, improving) && notExcludedAllowCut) {
+        if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
             return staticEval;
         }
     }
@@ -195,7 +196,7 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
 
     // --- Main Search Loop ---
     flag = TranspositionFlag::TTF_CUT_ALPHA; // Assume we'll fail-low
-    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile, orderingView, singularExtension);
+    i16 eval = searchMoves<us>(moves, context, depth, alpha, beta, ply, pv, flag, bestMove, futile, orderingView, singularExtension, improving);
 
     // aborted, the score is meaningless and must not reach the TT.
     if (context.stopped)
@@ -229,7 +230,7 @@ INSTANTIATE_ALPHA_BETA(Set::BLACK, NodeKind::RESTRICTED_ROOT);
 #undef INSTANTIATE_ALPHA_BETA
 
 template<Set us, typename Moves>
-i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension) {
+i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension, bool improving) {
     // --- Main Search Loop ---
     PositionReader pos = context.position.read();
     // window at entry, alpha moves during the loop.
@@ -338,7 +339,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
                     ? ordering.getHistoryScore(us, move.sourceSqr(), move.targetSqr())
                         + ordering.getContinuationScore(us, movedPiece.index(), move.targetSqr())
                     : 0;
-                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.isCheck(), history);
+                reduction = search_policies::LMR::reduction(depth, index, isPV, quiet, moves.isChecked(), ordered.isCheck(), history, improving);
             }
 
             eval = static_cast<i16>(-alphaBeta<opposing_set<us>()>(context, static_cast<u8>(adjustedDepth - reduction),
@@ -434,7 +435,7 @@ i16 Worker::searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alph
     return bestEval;
 }
 
-template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
-template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
-template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
-template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8);
+template i16 Worker::searchMoves<Set::WHITE, SearchMoveSource<Set::WHITE>>(SearchMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8, bool);
+template i16 Worker::searchMoves<Set::WHITE, RootMoveSource<Set::WHITE>>(RootMoveSource<Set::WHITE>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8, bool);
+template i16 Worker::searchMoves<Set::BLACK, SearchMoveSource<Set::BLACK>>(SearchMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8, bool);
+template i16 Worker::searchMoves<Set::BLACK, RootMoveSource<Set::BLACK>>(RootMoveSource<Set::BLACK>& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8, bool);

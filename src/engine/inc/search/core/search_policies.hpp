@@ -93,8 +93,9 @@ public:
     // Plies to take off a late move's search, 0 when it's searched at full depth. Only quiet moves late in the
     // ordering are reduced, never in check or when the move gives check, and the reduced search keeps depth >= 1.
     // history is the move's butterfly & continuation scores summed: good history reduces less, down to no reduction, bad
-    // history more.
-    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history);
+    // history more. improving, the node's static eval is higher than two plies up: a ply less.
+    static u8 reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history,
+        bool improving);
 };
 
 // --- Move Ordering Heuristics (Killers/History) Policies ---
@@ -131,9 +132,8 @@ public:
     static constexpr bool enabled = enabled_policies::RFP;
 
     // True when the static eval beats beta by a depth scaled margin at a shallow non-PV node, the node returns its
-    // static eval without searching. Never in check or with beta at a mate score. The margin is half a depth step
-    // smaller when the node is improving.
-    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta, bool improving);
+    // static eval without searching. Never in check or with beta at a mate score.
+    static bool prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta);
 };
 
 // --- Futility Pruning Policies ---

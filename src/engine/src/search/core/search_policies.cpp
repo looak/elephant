@@ -106,7 +106,7 @@ const std::array<std::array<u8, 64>, 64> s_lmrTable = [] {
 }();
 } // namespace
 
-u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history) {
+u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history, bool improving) {
     if (depth < lmr_params::minDepth || moveIndex < lmr_params::fullDepthMoves || !quiet || inCheck || givesCheck)
         return 0;
 
@@ -114,6 +114,9 @@ u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, 
     if (isPV)
         r--;
     r -= history / lmr_params::historyDivisor;
+    // only quiets get this far, the clamp below keeps it from going under 0.
+    if (improving)
+        r--;
 
     // the reduced child is searched at depth - 1 - r, keep it out of quiescence.
     return static_cast<u8>(std::clamp(r, 0, depth - 2));
@@ -148,15 +151,13 @@ i32 MoveOrdering::quietBonus(u8 depth) {
 }
 
 // --- Reverse Futility Pruning (RFP) Policies ---
-bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta, bool improving) {
+bool RFP::prune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
     if (isPV || inCheck || depth > rfp_params::maxDepth)
         return false;
     if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
         return false;
 
-    // an improving position is trusted to hold its eval, half a depth step less is asked of it.
-    const i32 margin = rfp_params::margin * depth - (improving ? rfp_params::margin / 2 : 0);
-    return staticEval - margin >= beta;
+    return staticEval - rfp_params::margin * depth >= beta;
 }
 
 // --- Futility Pruning Policies ---

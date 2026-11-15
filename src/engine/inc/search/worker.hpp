@@ -75,9 +75,10 @@ private:
 
     // todo: cleanup parameter list for searchMoves, it's getting out of hand.
     // futile: the node failed the futility check, quiet moves that don't give check are skipped. ordering: the view moves
-    // was started with, it reads the history tables as they are now.
+    // was started with, it reads the history tables as they are now. improving: the node's static eval is higher than two
+    // plies up, see alphaBeta.
     template<Set us, typename Moves>
-    i16 searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension);
+    i16 searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension, bool improving);
 
     // Quiescence search from context's position with the whole window, line set to the line it plays. context's moves are
     // made & unmade, it's left as it was. See QuiescenceProbe.
