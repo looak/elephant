@@ -70,8 +70,6 @@ inline constexpr u8 minDepth = 4;
 
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
-// delta pruning, slack on top of the material a capture can win before it's judged hopeless.
-inline constexpr i16 deltaMargin = 200; // 2 pawns
 } // namespace quiescence_params
 
 namespace continuation_params {

@@ -28,9 +28,6 @@
 TUNABLE(rfp_params, maxDepth, u8,   6,  2,  10,  1)
 TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
 
-// quiescence
-// TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400)
-
 // futility pruning, quiet moves are skipped at nodes up to maxDepth when the static eval is this far below alpha:
 // margin = base + perDepth * depth.
 TUNABLE(futility_params, maxDepth, u8,  3,  1,   6,  1)
@@ -69,5 +66,9 @@ TUNABLE(history_params, maxBonus,   i32, 2048, 1024, 4096, 150)
 // scores swing too much. maxDelta, where a side of the window opens up fully, stays a constant.
 TUNABLE(aspiration_params, minDepth,     u8,  5,  3, 10, 1)
 TUNABLE(aspiration_params, initialDelta, i32, 25, 12, 50, 2)
+
+// quiescence, delta pruning: slack on top of the material a capture can win before it's judged hopeless, 200 is 2
+// pawns. defaultMaxDepth stays a constant.
+TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
 
 #undef TUNABLE
