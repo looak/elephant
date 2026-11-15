@@ -1,0 +1,65 @@
+// The search parameters SPSA may tune, one X-macro entry each. Include it with TUNABLE defined:
+//
+//     #define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) ...
+//     #include <search/core/search_tunables.def>
+//
+// group is the namespace in search_constants.hpp the parameter lives in, name the constant in it. The default must equal
+// that constant's value, search_constants.hpp stays the source of truth for normal builds, this list only says which
+// ones a build with ELEPHANT_TUNE exposes and the range SPSA may move them in. Integers only: the fractional lmr_params
+// base & divisor are left out until they have an integer scale. minValue and maxValue are the bounds SPSA clamps to,
+// not what the search accepts, a first guess of about half to double the default, step is the delta allowed to be 
+// applied between tunes.
+//
+// Adding a parameter: add its line here and keep the default in step with search_constants.hpp.
+
+#ifndef TUNABLE
+#error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
+#endif
+
+// aspiration windows
+// TUNABLE(aspiration_params, minDepth, u8, 5, 3, 8)
+// TUNABLE(aspiration_params, initialDelta, i32, 25, 10, 60)
+
+// late move reductions
+// TUNABLE(lmr_params, minDepth, u8, 3, 2, 5)
+// TUNABLE(lmr_params, fullDepthMoves, u16, 3, 1, 6)
+// TUNABLE(lmr_params, historyDivisor, i32, 8192, 2048, 16384)
+
+// singular extensions
+// TUNABLE(singular_params, marginPerDepth, u8, 4, 1, 8)
+// TUNABLE(singular_params, depthThreshold, u8, 8, 5, 12)
+// TUNABLE(singular_params, depthMargin, i8, 3, 1, 6)
+
+// history heuristic
+// TUNABLE(history_params, bonusScale, i32, 32, 8, 96)
+// TUNABLE(history_params, maxBonus, i32, 2048, 512, 4096)
+
+// null move pruning
+// TUNABLE(nmp_params, minDepth, u8, 3, 2, 5)
+// TUNABLE(nmp_params, verificationDepth, u8, 6, 4, 12)
+// TUNABLE(nmp_params, baseReduction, i32, 2, 1, 4)
+// TUNABLE(nmp_params, depthDivisor, i32, 4, 2, 8)
+// TUNABLE(nmp_params, evalDivisor, i32, 200, 100, 400)
+// TUNABLE(nmp_params, maxEvalReduction, i32, 1, 0, 3)
+
+// futility pruning
+// TUNABLE(futility_params, maxDepth, u8, 3, 1, 6)
+// TUNABLE(futility_params, base, i16, 100, 25, 250)
+// TUNABLE(futility_params, perDepth, i16, 100, 25, 250)
+
+// late move pruning
+// TUNABLE(lmp_params, maxDepth, u8, 5, 3, 8)
+// TUNABLE(lmp_params, base, u16, 5, 2, 10)
+// TUNABLE(lmp_params, factor, u16, 2, 1, 4)
+
+// internal iterative reduction
+// TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
+
+// reverse futility pruning
+TUNABLE(rfp_params, maxDepth, u8,   6,  2,  10,  1)
+TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
+
+// quiescence
+// TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400)
+
+#undef TUNABLE

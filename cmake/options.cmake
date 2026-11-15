@@ -21,6 +21,11 @@ set_property(CACHE ELEPHANT_ARCH PROPERTY STRINGS native x86-64 sse42 avx2)
 # test/coverage.sh configure .build/coverage with it, run the unit tests and write the report.
 option(ELEPHANT_COVERAGE "Instrument our targets for test coverage, no link time optimization" OFF)
 
+# Build phant-uci and the CLI for SPSA tuning: defines ELEPHANT_TUNE for every target, so engine code can expose its
+# tunable parameters (as UCI options) under #ifdef ELEPHANT_TUNE. Off in every release and SPRT build, a tuning binary is
+# never the one that is tested or shipped.
+option(ELEPHANT_TUNE "Build the UCI and CLI binaries for SPSA tuning (defines ELEPHANT_TUNE)" OFF)
+
 # The log's level, spdlog compiles out everything below it. A level's position in the list is spdlog's
 # SPDLOG_LEVEL_* value.
 set(LOG_LEVELS trace debug info warn error critical off)
@@ -42,6 +47,7 @@ set(PRECOMPILE_OPTIONS
     ASSERTIONS_ENABLED
     DEBUG_TRANSITION_TABLE
     DEVELOPMENT_BUILD
+    ELEPHANT_TUNE
     EXCEPTIONS_ENABLED
     OUTPUT_LOG_TO_FILE
     DEBUG_SEARCH_TREE

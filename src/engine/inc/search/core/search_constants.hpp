@@ -29,6 +29,14 @@ namespace time_management {
     inline constexpr std::array<u8, 6> unchangedMoveFactors = { 140, 115, 100, 85, 70, 60 };
 }
 
+#ifdef ELEPHANT_TUNE
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline type name = def; }
+#else
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline constexpr type name = def; }
+#endif
+#include "search_tunables.def"
+#undef TUNABLE
+
 // aspiration window parameters
 namespace aspiration_params {
 // from this depth the root is searched in a window around the previous iteration's score, earlier scores swing too much.
@@ -106,11 +114,11 @@ inline constexpr u8 minDepth = 4;
 } // namespace iir_params
 
 // reverse futility pruning parameters
-namespace rfp_params {
-// nodes up to this depth return when the static eval beats beta by margin * depth.
-inline constexpr u8 maxDepth = 6;
-inline constexpr i16 margin = 80;
-} // namespace rfp_params
+// namespace rfp_params {
+// // nodes up to this depth return when the static eval beats beta by margin * depth.
+// inline constexpr u8 maxDepth = 6;
+// inline constexpr i16 margin = 80;
+// } // namespace rfp_params
 
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
