@@ -57,12 +57,6 @@ namespace singular_params {
 
 } // namespace singular_params
 
-// internal iterative reduction parameters
-namespace iir_params {
-// nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.
-inline constexpr u8 minDepth = 4;
-} // namespace iir_params
-
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
 } // namespace quiescence_params

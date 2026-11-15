@@ -16,9 +16,6 @@
 #error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
 #endif
 
-// internal iterative reduction
-// TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
-
 // reverse futility pruning, nodes up to maxDepth return when the static eval beats beta by margin * depth.
 TUNABLE(rfp_params, maxDepth, u8,   6,  2,  10,  1)
 TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
@@ -73,5 +70,9 @@ TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
 TUNABLE(lmr_params, minDepth,       u8,  3,    1,    6,     1)
 TUNABLE(lmr_params, fullDepthMoves, u16, 3,    1,    8,     1)
 TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
+
+// internal iterative reduction, nodes from minDepth with neither a TT nor a PV move to search first are searched a ply
+// shallower.
+TUNABLE(iir_params, minDepth, u8, 4, 2, 8, 1)
 
 #undef TUNABLE
