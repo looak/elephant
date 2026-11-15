@@ -14,7 +14,7 @@
 #include <optional>
 
 template<Set us, typename Line>
-i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, SearchMoveSource<us>* leafMoves) {
+i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, const tusk::CheckInfo<us>& chkInfo) {
     ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
     ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
     ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
@@ -26,17 +26,17 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
     if (ply >= c_maxSearchDepth - 1)
         return context.evaluate<us>();
 
-    // The move source knows whether we're in check before generating anything, the filter is decided after. Reuses
-    // the one alphaBeta built when it dropped into quiescence at a leaf, the position is the same.
-    std::optional<SearchMoveSource<us>> ownMoves;
-    SearchMoveSource<us>& moves = leafMoves != nullptr ? *leafMoves : ownMoves.emplace(context.position.read());
+    auto pos = context.position.read();    
+
+    SearchMoveSource<us> moves(pos, chkInfo);
+    
     const bool inCheck = moves.isChecked();
 
     i16 bestEval = -c_infinity;
     i16 standPat = -c_infinity;
     if (inCheck) {
         // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
-        moves.start(nullptr, MoveTypes::ALL);
+        moves.beginGeneration(nullptr, MoveTypes::ALL);
     }
     else {
         standPat = context.evaluate<us>();
@@ -60,7 +60,7 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
                 return standPat;
         }
 
-        moves.start(nullptr, MoveTypes::CAPTURES_ONLY);
+        moves.beginGeneration(nullptr, MoveTypes::CAPTURES_ONLY);
     }
 
     // evasions don't consume quiescence depth, the line stays bounded since only captures are searched once out of
@@ -93,14 +93,18 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
             }
         }
 
-        MoveExecutor executor = context.executor();
+        MoveExecutor executor = context.makeExecutor();
         MoveUndoUnit undoState;
         // makeMove updates its ply argument as the fifty move counter (reset on captures), never hand it the search ply.
         u16 fiftyMoveCounter = ply;
         executor.makeMove(move, undoState, fiftyMoveCounter);
+
+        constexpr Set op = opposing_set<us>();
+
+        tusk::CheckInfo<op> childChkInfo(pos);
         
-        i16 qEval = static_cast<i16>(-quiescence<opposing_set<us>()>(context, childDepth, static_cast<i16>(-beta),
-            static_cast<i16>(-alpha), ply + 1, childLine));
+        i16 qEval = static_cast<i16>(-quiescence<op>(context, childDepth, static_cast<i16>(-beta),
+            static_cast<i16>(-alpha), ply + 1, childLine, childChkInfo));
         context.qNodeCount++;
 
         executor.unmakeMove(undoState);
@@ -138,13 +142,14 @@ i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u1
 
 template<Set us>
 i16 Worker::quiescenceLine(ThreadContext& context, PVLine& line) {
+    tusk::CheckInfo<us> chkInfo(context.position.read());
     return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, static_cast<i16>(-c_infinity),
-                          static_cast<i16>(c_infinity), 1, line);
+                          static_cast<i16>(c_infinity), 1, line, chkInfo);
 }
 
-template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::WHITE>*);
-template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, SearchMoveSource<Set::BLACK>*);
-template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::WHITE>*);
-template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, PVLine&, SearchMoveSource<Set::BLACK>*);
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, const tusk::CheckInfo<Set::WHITE>&);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, const tusk::CheckInfo<Set::BLACK>&);
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, PVLine&, const tusk::CheckInfo<Set::WHITE>&);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, PVLine&, const tusk::CheckInfo<Set::BLACK>&);
 template i16 Worker::quiescenceLine<Set::WHITE>(ThreadContext&, PVLine&);
 template i16 Worker::quiescenceLine<Set::BLACK>(ThreadContext&, PVLine&);

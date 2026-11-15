@@ -158,7 +158,7 @@ struct ThreadContext {
     }
 
     // Makes & unmakes moves on position, keeping the accumulator in step.
-    MoveExecutor executor() { return MoveExecutor(position.edit(), &accumulator); }
+    MoveExecutor makeExecutor() { return MoveExecutor(position.edit(), &accumulator); }
 
 #ifdef DEBUG_SEARCH_TREE
     int m_debugIndentation = 0;

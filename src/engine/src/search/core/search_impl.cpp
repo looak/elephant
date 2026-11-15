@@ -98,8 +98,8 @@ SearchResult Worker::iterativeDeepening(ThreadContext& context, SearchListener& 
             }
 
             itrResult.score = restrictedRoot
-                ? alphaBeta<us, NodeKind::RESTRICTED_ROOT>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine)
-                : alphaBeta<us, NodeKind::ROOT>(context, itrDepth, checked_cast<i16>(alpha), checked_cast<i16>(beta), 1, &itrResult.pvLine);
+                ? alphaBeta<us, NodeKind::RESTRICTED_ROOT>(context, NodeInputs{ checked_cast<i16>(alpha), checked_cast<i16>(beta), itrDepth, 1 }, &itrResult.pvLine)
+                : alphaBeta<us, NodeKind::ROOT>(context, NodeInputs{ checked_cast<i16>(alpha), checked_cast<i16>(beta), itrDepth, 1 }, &itrResult.pvLine);
             if (context.stopped)
                 break;
 

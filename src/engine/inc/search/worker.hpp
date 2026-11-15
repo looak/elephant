@@ -18,6 +18,7 @@
 #include <position/position_accessors.hpp>
 #include <eval/pawn_hash.hpp>
 #include <search/core/search_policies.hpp>
+#include <search/core/search_node.hpp>
 #include <search/search_listener.hpp>
 #include <search/search_request.hpp>
 #include <search/search_results.hpp>
@@ -43,19 +44,13 @@ struct SharedSearchState {
     std::atomic<u64> nodes{0};
 };
 
-// Where a node is in the tree, decided at compile time so the root's special cases cost the rest of the tree nothing.
-enum class NodeKind {
-    NORMAL,
-    ROOT,
-    // the root of a go searchmoves, only the moves in the request are searched.
-    RESTRICTED_ROOT
-};
-
 // A search thread's tables and the search itself. It holds what outlives a go, the history tables & the pawn hash, and
 // builds what a go needs on the thread's stack, a ThreadContext, so nothing of one search can leak into the next without
 // being meant to. It isn't a thread, a Monad starts one for each Worker when a search starts. Big, it belongs on the heap.
 class Worker {
-    friend class QuiescenceProbe;
+    template<Set us, NodeKind kind>
+    friend struct GateNode;
+    friend class QuiescenceProbe;    
 public:
     // Games are independent: zeroes the tables, keeping the memory.
     void newGame();
@@ -71,28 +66,23 @@ private:
 
     // internal seach methods
     template<Set us, NodeKind kind = NodeKind::NORMAL>
-    i16 alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv);
-
-    // todo: cleanup parameter list for searchMoves, it's getting out of hand.
-    // futile: the node failed the futility check, quiet moves that don't give check are skipped. ordering: the view moves
-    // was started with, it reads the history tables as they are now.
+    i16 alphaBeta(ThreadContext& context, NodeInputs node, PVLine* pv);
+    
     template<Set us, typename Moves>
-    i16 searchMoves(Moves& moves, ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, PVLine* pv, TranspositionFlag& flag, PackedMove& outMove, bool futile, const MoveOrderingView& ordering, u8 singularExtension);
+    NodeResult searchMoves(Moves& moves, ThreadContext& context, NodeInputs node, const NodePlan& plan, PVLine* pv);
 
     // Quiescence search from context's position with the whole window, line set to the line it plays. context's moves are
     // made & unmade, it's left as it was. See QuiescenceProbe.
     template<Set us>
     static i16 quiescenceLine(ThreadContext& context, PVLine& line);
-
-    // moves, when given, is an unstarted move source for this position, alphaBeta passes the one it built at a leaf so
-    // the check & pin info isn't computed twice. line records the line played, NoQuiescenceLine records nothing.
+    
+    // line records the line played, NoQuiescenceLine records nothing.
     template<Set us, typename Line>
-    static i16 quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line,
-                          SearchMoveSource<us>* moves = nullptr);
+    static i16 quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, const tusk::CheckInfo<us>& chkInfo);
 
     // Returns the score to cut with when a reduced search after passing the move still fails high.
     template<Set us>
-    std::optional<i16> tryNullMovePrune(ThreadContext& context, u8 depth, i16 beta, u16 ply, i16 staticEval);
+    std::optional<i16> tryNullMovePrune(ThreadContext& context, NodeInputs node, i16 staticEval);
 
     ThreadHeuristics m_heuristics;
     PawnHashTable m_pawnHash;
