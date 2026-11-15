@@ -28,6 +28,14 @@ void runUciLoop()
     UCI interface;
     for (const auto& option : UCICommands::options)
         std::cout << "option name " << option.first << " " << option.second << "\n";
+
+#ifdef ELEPHANT_TUNE
+    #define TUNABLE(ns, name, type, def, lo, hi, step) \
+    std::cout << "option name " #ns "__" #name " type spin default " << def << " min " << lo << " max " << hi << "\n";
+    #define TUNABLE_DERIVED(ns, name, type, def, lo, hi, step, hook) TUNABLE(ns, name, type, def, lo, hi, step)
+    #include <search/core/search_tunables.def>
+#endif
+
     interface.Enable();
 
     std::string line;

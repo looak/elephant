@@ -1,6 +1,14 @@
 # THIS MAKEFILE IS ONLY INTENDED FOR OPENBENCH
 EXE ?= ../dist/phant-uci
 
+TUNE ?= 0
+DEFINES :=
+ifeq ($(TUNE),1)
+DEFINES += -DELEPHANT_TUNE
+BUILD_DIR := ../.build/make-tune
+EXE := ../dist/phant-uci-tune
+endif
+
 # Versioning, read from ../version.txt (major.minor.patch[-label] on line 1, the release's codename on line 2 when
 # there is one), the only place the version is written.
 VERSION_FILE := ../version.txt
@@ -42,7 +50,7 @@ INC_DIR := $(addprefix -I,$(INCLUDE_PATHS))
 CXX := g++
 ARCH ?= native
 LDFLAGS ?=
-CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion \
+CXXFLAGS := -std=c++2a -O3 -flto=auto -march=$(ARCH) $(DEFINES) -MMD -MP $(INC_DIR) -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Wno-unknown-pragmas -Wunused-variable -Wunused-parameter -Wconversion \
 	-Wnon-virtual-dtor -Woverloaded-virtual -Wcast-qual -Wformat=2 -Wimplicit-fallthrough -Wundef -Wduplicated-cond \
 	-Wduplicated-branches -Wlogical-op -Wuseless-cast
 
