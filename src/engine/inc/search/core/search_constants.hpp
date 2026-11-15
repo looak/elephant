@@ -39,9 +39,6 @@ namespace time_management {
 
 // aspiration window parameters
 namespace aspiration_params {
-// from this depth the root is searched in a window around the previous iteration's score, earlier scores swing too much.
-inline constexpr u8 minDepth = 5;
-inline constexpr i32 initialDelta = 25;
 // a side of the window that would grow beyond this opens up fully.
 inline constexpr i32 maxDelta = 1000;
 } // namespace aspiration_params

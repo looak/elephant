@@ -16,10 +16,6 @@
 #error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
 #endif
 
-// aspiration windows
-// TUNABLE(aspiration_params, minDepth, u8, 5, 3, 8)
-// TUNABLE(aspiration_params, initialDelta, i32, 25, 10, 60)
-
 // late move reductions
 // TUNABLE(lmr_params, minDepth, u8, 3, 2, 5)
 // TUNABLE(lmr_params, fullDepthMoves, u16, 3, 1, 6)
@@ -68,5 +64,10 @@ TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
 // before it get the same malus.
 TUNABLE(history_params, bonusScale, i32, 32,   16,   64,   3)
 TUNABLE(history_params, maxBonus,   i32, 2048, 1024, 4096, 150)
+
+// aspiration windows, from minDepth the root is searched in a window around the previous iteration's score, earlier
+// scores swing too much. maxDelta, where a side of the window opens up fully, stays a constant.
+TUNABLE(aspiration_params, minDepth,     u8,  5,  3, 10, 1)
+TUNABLE(aspiration_params, initialDelta, i32, 25, 12, 50, 2)
 
 #undef TUNABLE
