@@ -146,6 +146,7 @@ gates anything.
 | `test/smoke.sh`, locally before a merge | `phant-test --gtest_brief=1`, then all of `phant-suite`, then phant-indexer against python-chess | pass/fail in the smoke summary, logs in `logs/` |
 | CI `ci.yml` job `unit`, pushes & PRs to main, both OSes | `ctest -L unit`, built with assertions & exceptions and `ELEPHANT_BUILD_INDEXER=ON`, suite off, warnings as errors | thrown away |
 | CI `ci.yml` job `perft`, pushes & PRs to main, both OSes | `ctest -L suite -R "^PerftFixture\."`, warnings as errors | thrown away |
+| CI `ci.yml` job `tune`, pushes & PRs to main, both OSes | `phant-uci` built with `ELEPHANT_TUNE=ON` (no tests), then `uci` must announce the tunables; warnings as errors | thrown away |
 | CI `coverage.yml`, run by hand on any branch, ubuntu-24.04 | `ctest -L unit` built with gcc and `ELEPHANT_COVERAGE=ON` (Debug), then gcovr's text summary | the job's summary page, thrown away; on `main` the line coverage replaces `coverage.json` on the `badges` branch, the README's badge |
 | `test/coverage.ps1` / `test/coverage.sh`, locally by hand | `ctest -L unit` instrumented | HTML report in `.build/coverage/coverage/` |
 
