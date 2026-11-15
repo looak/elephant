@@ -165,7 +165,9 @@ i16 Worker::alphaBeta(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16
     // --- Reverse Futility Pruning ---
     if constexpr (search_policies::RFP::enabled) {
         if (search_policies::RFP::prune(isPV, inCheck, depth, staticEval, beta) && notExcludedAllowCut) {
-            return staticEval;
+            // the static eval is unsearched and can sit far above beta, halfway to beta is a more cautious score to
+            // hand the parent than the raw eval.
+            return static_cast<i16>((staticEval + beta) / 2);
         }
     }
 
