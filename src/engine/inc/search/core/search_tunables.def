@@ -34,11 +34,6 @@
 // TUNABLE(history_params, bonusScale, i32, 32, 8, 96)
 // TUNABLE(history_params, maxBonus, i32, 2048, 512, 4096)
 
-// late move pruning
-// TUNABLE(lmp_params, maxDepth, u8, 5, 3, 8)
-// TUNABLE(lmp_params, base, u16, 5, 2, 10)
-// TUNABLE(lmp_params, factor, u16, 2, 1, 4)
-
 // internal iterative reduction
 // TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
 
@@ -66,5 +61,12 @@ TUNABLE(nmp_params, baseReduction,     i32, 2,   1,   4,  1)
 TUNABLE(nmp_params, depthDivisor,      i32, 4,   2,   8,  1)
 TUNABLE(nmp_params, evalDivisor,       i32, 200, 100, 400, 15)
 TUNABLE(nmp_params, maxEvalReduction,  i32, 1,   0,   3,  1)
+
+// late move pruning, at non-PV nodes up to maxDepth only the first base + factor * depth * depth quiet moves are
+// searched. The common 3 + depth * depth pushed the zugzwang win in the null move search test from depth 15 to 20, this
+// costs it a ply.
+TUNABLE(lmp_params, maxDepth, u8,  5, 2, 10, 1)
+TUNABLE(lmp_params, base,     u16, 5, 2, 10, 1)
+TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
 
 #undef TUNABLE

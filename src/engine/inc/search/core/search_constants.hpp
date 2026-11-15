@@ -74,15 +74,6 @@ inline constexpr i32 bonusScale = 32;
 inline constexpr i32 maxBonus = 2048;
 } // namespace history_params
 
-// late move pruning parameters
-namespace lmp_params {
-// at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
-// 3 + depth * depth pushed the zugzwang win in the null move search test from depth 15 to 20, this costs it a ply.
-inline constexpr u8 maxDepth = 5;
-inline constexpr u16 base = 5;
-inline constexpr u16 factor = 2;
-} // namespace lmp_params
-
 // internal iterative reduction parameters
 namespace iir_params {
 // nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.
