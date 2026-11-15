@@ -16,11 +16,6 @@
 #error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
 #endif
 
-// late move reductions
-// TUNABLE(lmr_params, minDepth, u8, 3, 2, 5)
-// TUNABLE(lmr_params, fullDepthMoves, u16, 3, 1, 6)
-// TUNABLE(lmr_params, historyDivisor, i32, 8192, 2048, 16384)
-
 // internal iterative reduction
 // TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
 
@@ -70,5 +65,13 @@ TUNABLE(aspiration_params, initialDelta, i32, 25, 12, 50, 2)
 // quiescence, delta pruning: slack on top of the material a capture can win before it's judged hopeless, 200 is 2
 // pawns. defaultMaxDepth stays a constant.
 TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
+
+// late move reductions. Moves before fullDepthMoves are searched at full depth, covers the pv/tt move and usually the
+// killers. A ply less per historyDivisor of history, a ply more per that much below zero. The score is three tables of at
+// most 16383 each, so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on
+// anything. base & divisor stay constants, they only feed the reduction table built once at startup.
+TUNABLE(lmr_params, minDepth,       u8,  3,    1,    6,     1)
+TUNABLE(lmr_params, fullDepthMoves, u16, 3,    1,    8,     1)
+TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
 
 #undef TUNABLE
