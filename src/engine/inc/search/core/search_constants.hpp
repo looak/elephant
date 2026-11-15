@@ -113,13 +113,6 @@ namespace iir_params {
 inline constexpr u8 minDepth = 4;
 } // namespace iir_params
 
-// reverse futility pruning parameters
-// namespace rfp_params {
-// // nodes up to this depth return when the static eval beats beta by margin * depth.
-// inline constexpr u8 maxDepth = 6;
-// inline constexpr i16 margin = 80;
-// } // namespace rfp_params
-
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
 // delta pruning, slack on top of the material a capture can win before it's judged hopeless.

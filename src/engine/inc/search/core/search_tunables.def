@@ -1,16 +1,16 @@
-// The search parameters SPSA may tune, one X-macro entry each. Include it with TUNABLE defined:
+// The search parameters SPSA may tune, one X-macro entry each, and the only place their values are written:
 //
-//     #define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) ...
-//     #include <search/core/search_tunables.def>
+//     TUNABLE(group, name, type, defaultValue, minValue, maxValue, step)
 //
-// group is the namespace in search_constants.hpp the parameter lives in, name the constant in it. The default must equal
-// that constant's value, search_constants.hpp stays the source of truth for normal builds, this list only says which
-// ones a build with ELEPHANT_TUNE exposes and the range SPSA may move them in. Integers only: the fractional lmr_params
-// base & divisor are left out until they have an integer scale. minValue and maxValue are the bounds SPSA clamps to,
-// not what the search accepts, a first guess of about half to double the default, step is the delta allowed to be 
-// applied between tunes.
+// group is the namespace the constant lives in, name the constant in it. Three files include this list with their own
+// TUNABLE: search_constants.hpp declares the constants, constexpr normally and mutable inline variables in a build with
+// ELEPHANT_TUNE; uci.cpp reads them from setoption, and uci_loop.cpp announces them as UCI spin options, both only with
+// ELEPHANT_TUNE, as <group>__<name>. minValue and maxValue are the bounds SPSA and setoption clamp to, not what the
+// search accepts, step is the delta SPSA may apply between tunes. Integers only: lmr_params' fractional base & divisor
+// have no entry, and a constant used where a compile time value is needed (array size, template argument,
+// static_assert, if constexpr) can't be here, the tuning build wouldn't compile.
 //
-// Adding a parameter: add its line here and keep the default in step with search_constants.hpp.
+// Adding a parameter: add its line here and delete its constant from search_constants.hpp.
 
 #ifndef TUNABLE
 #error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
@@ -55,7 +55,7 @@
 // internal iterative reduction
 // TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
 
-// reverse futility pruning
+// reverse futility pruning, nodes up to maxDepth return when the static eval beats beta by margin * depth.
 TUNABLE(rfp_params, maxDepth, u8,   6,  2,  10,  1)
 TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
 
