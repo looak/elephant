@@ -45,7 +45,6 @@ TUNABLE(lmp_params, maxDepth, u8,  5, 2, 10, 1)
 TUNABLE(lmp_params, base,     u16, 5, 2, 10, 1)
 TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
 
-
 // history heuristic, the bonus for a quiet cutoff move is depth * depth * bonusScale up to maxBonus, the quiets tried
 // before it get the same malus.
 TUNABLE(history_params, bonusScale, i32, 32,   16,   64,   3)
@@ -64,10 +63,13 @@ TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
 // late move reductions. Moves before fullDepthMoves are searched at full depth, covers the pv/tt move and usually the
 // killers. A ply less per historyDivisor of history, a ply more per that much below zero. The score is three tables of at
 // most 16383 each, so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on
-// anything. base & divisor stay constants, they only feed the reduction table built once at startup.
+// anything. The table's reduction = baseCenti / 100 + ln(depth) * ln(move index) / (divisorCenti / 100), one ply less at
+// PV nodes, rebuilt by a setoption of either (see rebuildLmrTable).
 TUNABLE(lmr_params, minDepth,       u8,  3,    1,    6,     1)
 TUNABLE(lmr_params, fullDepthMoves, u16, 3,    1,    8,     1)
 TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
+TUNABLE(lmr_params, baseCenti,      i32, 75,   25,   150,   5)
+TUNABLE(lmr_params, divisorCenti,   i32, 225,  150,  350,   10)
 
 // internal iterative reduction, nodes from minDepth with neither a TT nor a PV move to search first are searched a ply
 // shallower.

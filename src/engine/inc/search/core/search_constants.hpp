@@ -37,15 +37,6 @@ namespace time_management {
 #include "search_tunables.def"
 #undef TUNABLE
 
-// late move reduction parameters
-namespace lmr_params {
-// reduction = base + ln(depth) * ln(move index) / divisor, one ply less at PV nodes.
-inline constexpr double base = 0.75;
-inline constexpr double divisor = 2.25;
-// base & divisor only feed the table built once at startup, a setoption can't move them.
-} // namespace lmr_params
-
-
 namespace quiescence_params {
 inline constexpr u32 defaultMaxDepth = 8;
 } // namespace quiescence_params
