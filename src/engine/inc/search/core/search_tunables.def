@@ -34,14 +34,6 @@
 // TUNABLE(history_params, bonusScale, i32, 32, 8, 96)
 // TUNABLE(history_params, maxBonus, i32, 2048, 512, 4096)
 
-// null move pruning
-// TUNABLE(nmp_params, minDepth, u8, 3, 2, 5)
-// TUNABLE(nmp_params, verificationDepth, u8, 6, 4, 12)
-// TUNABLE(nmp_params, baseReduction, i32, 2, 1, 4)
-// TUNABLE(nmp_params, depthDivisor, i32, 4, 2, 8)
-// TUNABLE(nmp_params, evalDivisor, i32, 200, 100, 400)
-// TUNABLE(nmp_params, maxEvalReduction, i32, 1, 0, 3)
-
 // late move pruning
 // TUNABLE(lmp_params, maxDepth, u8, 5, 3, 8)
 // TUNABLE(lmp_params, base, u16, 5, 2, 10)
@@ -62,5 +54,17 @@ TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
 TUNABLE(futility_params, maxDepth, u8,  3,  1,   6,  1)
 TUNABLE(futility_params, base,     i16, 100, 50, 200, 10)
 TUNABLE(futility_params, perDepth, i16, 100, 50, 200, 10)
+
+// null move pruning. Null move fail highs from verificationDepth up are verified with a reduced normal search before
+// cutting, guards against zugzwang where passing is better than any real move. reduction = baseReduction + depth /
+// depthDivisor + min((staticEval - beta) / evalDivisor, maxEvalReduction), deeper nodes and a bigger margin over beta
+// reduce more. The common 3 + depth / 3 + min(.., 3) never found the zugzwang win in the null move search test, the
+// verification search shrinks with the null move's depth.
+TUNABLE(nmp_params, minDepth,          u8,  3,   1,   6,  1)
+TUNABLE(nmp_params, verificationDepth, u8,  6,   3,  12,  1)
+TUNABLE(nmp_params, baseReduction,     i32, 2,   1,   4,  1)
+TUNABLE(nmp_params, depthDivisor,      i32, 4,   2,   8,  1)
+TUNABLE(nmp_params, evalDivisor,       i32, 200, 100, 400, 15)
+TUNABLE(nmp_params, maxEvalReduction,  i32, 1,   0,   3,  1)
 
 #undef TUNABLE

@@ -74,21 +74,6 @@ inline constexpr i32 bonusScale = 32;
 inline constexpr i32 maxBonus = 2048;
 } // namespace history_params
 
-// null move pruning parameters
-namespace nmp_params {
-inline constexpr u8 minDepth = 3;
-// null move fail highs from this depth up are verified with a reduced normal search before cutting, guards against
-// zugzwang where passing is better than any real move.
-inline constexpr u8 verificationDepth = 6;
-// reduction = base + depth / depthDivisor + min((staticEval - beta) / evalDivisor, maxEvalReduction), deeper nodes and
-// a bigger margin over beta reduce more. The common 3 + depth / 3 + min(.., 3) never found the zugzwang win in the
-// null move search test, the verification search shrinks with the null move's depth.
-inline constexpr i32 baseReduction = 2;
-inline constexpr i32 depthDivisor = 4;
-inline constexpr i32 evalDivisor = 200;
-inline constexpr i32 maxEvalReduction = 1;
-} // namespace nmp_params
-
 // late move pruning parameters
 namespace lmp_params {
 // at non-PV nodes up to this depth only the first base + factor * depth * depth quiet moves are searched. The common
