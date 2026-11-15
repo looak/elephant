@@ -65,13 +65,6 @@ namespace singular_params {
 
 } // namespace singular_params
 
-// history heuristic parameters
-namespace history_params {
-// bonus for a quiet cutoff move is depth * depth * scale up to maxBonus, the quiets tried before it get the same malus.
-inline constexpr i32 bonusScale = 32;
-inline constexpr i32 maxBonus = 2048;
-} // namespace history_params
-
 // internal iterative reduction parameters
 namespace iir_params {
 // nodes from this depth with neither a TT nor a PV move to search first are searched a ply shallower.

@@ -25,10 +25,6 @@
 // TUNABLE(lmr_params, fullDepthMoves, u16, 3, 1, 6)
 // TUNABLE(lmr_params, historyDivisor, i32, 8192, 2048, 16384)
 
-// history heuristic
-// TUNABLE(history_params, bonusScale, i32, 32, 8, 96)
-// TUNABLE(history_params, maxBonus, i32, 2048, 512, 4096)
-
 // internal iterative reduction
 // TUNABLE(iir_params, minDepth, u8, 4, 2, 8)
 
@@ -67,5 +63,10 @@ TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
 // singular extensions
 TUNABLE(singular_params, depthThreshold, u8, 8, 4, 16, 1)
 TUNABLE(singular_params, depthMargin,    i8, 3, 1,  6, 1)
+
+// history heuristic, the bonus for a quiet cutoff move is depth * depth * bonusScale up to maxBonus, the quiets tried
+// before it get the same malus.
+TUNABLE(history_params, bonusScale, i32, 32,   16,   64,   3)
+TUNABLE(history_params, maxBonus,   i32, 2048, 1024, 4096, 150)
 
 #undef TUNABLE
