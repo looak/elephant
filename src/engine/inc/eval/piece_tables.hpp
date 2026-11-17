@@ -31,7 +31,12 @@
  *
  * Then fine-tuned on Elephant's own games, the same groups, kept values and centring as the rebalance (--min-usage
  * 6000 on elephant-positions-0.1, 1.2M positions from nyayo, K 1.2633): its held back error 1.23% lower, but
- * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.    */
+ * E12.52's 1.13% higher (0.084365 -> 0.085321, K 1.2302 -> 1.1608), the two datasets disagree.
+ *
+ * Then refitted on Elephant's games since 1.4, the same groups, kept values and centring (--min-usage 7250 on
+ * positions-3, 1.45M positions from nyayo's games since 2026-10-30, K 1.3545): its held back error 0.57% lower.
+ * Unlike the first own-games fit it agrees with E12.52, whose error is 0.26% lower (0.085307 -> 0.085085), while
+ * elephant-positions-0.1's is 0.74% higher, the older games those tables were fitted on.    */
 
 #pragma once
 #include <system/platform.hpp>
@@ -42,7 +47,7 @@ namespace evaluator_data
 
 // a side with two or more knights, bishops on both colours, two or more rooks; knight, bishop & rook.
 constexpr TaperedScore piecePair[3] = {
-    S(   8,  13), S(  13,  56), S(  22,  -7),
+    S(   2,  18), S(   2,  52), S(  18,   5),
 };
 
 } // namespace evaluator_data
