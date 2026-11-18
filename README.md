@@ -76,22 +76,26 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
     * transposition table: 8 entries to a 64 byte cache line, each entry one lock-free 64-bit word, every megabyte of `Hash` used
     * draw detection: threefold repetition including the game's earlier positions, fifty move rule
     * quiescence search with delta pruning and static exchange (SEE) pruning
-    * check extensions
+    * check extensions, singular extensions of the transposition table move
     * null move pruning with verification, the reduction grows with depth
     * late move reductions, adjusted by the move's history
     * late move pruning
     * internal iterative reduction
     * reverse futility pruning
     * futility pruning
-    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic, captures that lose material by SEE after the quiet moves
+    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, butterfly & continuation history (one and two plies back), captures that lose material by SEE after the quiet moves
+    * search parameters tuned by SPSA: a tuning build exposes 29 of them as UCI options
 
 * Time management:
     * soft & hard limits, a new iteration only starts within the soft limit and the hard limit aborts the search
     * increment aware, never plans beyond what is on the clock
+    * the soft limit shrinks while the best move holds and grows when it changes
     * configurable move overhead for GUI & network latency
 
 * Evaluation:
     * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase, updated incrementally as pieces move
+    * mobility, pawn structure, passed pawns, king shelter & pawn storm, king attack, piece pairs
+    * every table fitted with a Texel style tuner, last on Elephant's own games
     * mop-up for converting won endgames
 
 * API:
@@ -102,8 +106,8 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 ## Goals & todo
 
 * evaluation: an NNUE trained on the engine's own games
-* search: singular extensions, continuation history, history adjusted reductions, SPSA tuning of the search parameters
-* time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
+* search: deeper continuation history, more SPSA rounds on each new table fit
+* time management: scale the soft limit by score drops and nodes spent on the best move
 * pondering, the engine already handles `go ponder` but doesn't advertise the `Ponder` option
 * a terminal UI
 * ~~reach elo 2000~~
