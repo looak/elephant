@@ -14,6 +14,9 @@
 // from: setoption calls hook() after setting it, search_constants.hpp & the option announcement treat it as a TUNABLE.
 //
 // Adding a parameter: add its line here and delete its constant from search_constants.hpp.
+//
+// The defaults of rfp margin, futility base & perDepth, nmp evalDivisor, history maxBonus, quiescence deltaMargin and
+// lmr historyDivisor are SPSA's, tuned on 1.4.0's evaluation tables.
 
 #ifndef TUNABLE
 #error "define TUNABLE(group, name, type, defaultValue, minValue, maxValue, step) before including search_tunables.def"
@@ -21,13 +24,13 @@
 
 // reverse futility pruning, nodes up to maxDepth return when the static eval beats beta by margin * depth.
 TUNABLE(rfp_params, maxDepth, u8,   6,  2,  10,  1)
-TUNABLE(rfp_params, margin,   i32, 80, 20, 200, 10)
+TUNABLE(rfp_params, margin,   i32, 84, 20, 200, 10)
 
 // futility pruning, quiet moves are skipped at nodes up to maxDepth when the static eval is this far below alpha:
 // margin = base + perDepth * depth.
 TUNABLE(futility_params, maxDepth, u8,  3,  1,   6,  1)
-TUNABLE(futility_params, base,     i16, 100, 50, 200, 10)
-TUNABLE(futility_params, perDepth, i16, 100, 50, 200, 10)
+TUNABLE(futility_params, base,     i16, 99,  50, 200, 10)
+TUNABLE(futility_params, perDepth, i16, 97,  50, 200, 10)
 
 // null move pruning. Null move fail highs from verificationDepth up are verified with a reduced normal search before
 // cutting, guards against zugzwang where passing is better than any real move. reduction = baseReduction + depth /
@@ -38,7 +41,7 @@ TUNABLE(nmp_params, minDepth,          u8,  3,   1,   6,  1)
 TUNABLE(nmp_params, verificationDepth, u8,  6,   3,  12,  1)
 TUNABLE(nmp_params, baseReduction,     i32, 2,   1,   4,  1)
 TUNABLE(nmp_params, depthDivisor,      i32, 4,   2,   8,  1)
-TUNABLE(nmp_params, evalDivisor,       i32, 200, 100, 400, 15)
+TUNABLE(nmp_params, evalDivisor,       i32, 204, 100, 400, 15)
 TUNABLE(nmp_params, maxEvalReduction,  i32, 1,   0,   3,  1)
 
 // late move pruning, at non-PV nodes up to maxDepth only the first base + factor * depth * depth quiet moves are
@@ -51,7 +54,7 @@ TUNABLE(lmp_params, factor,   u16, 2, 1,  4, 1)
 // history heuristic, the bonus for a quiet cutoff move is depth * depth * bonusScale up to maxBonus, the quiets tried
 // before it get the same malus.
 TUNABLE(history_params, bonusScale, i32, 32,   16,   64,   3)
-TUNABLE(history_params, maxBonus,   i32, 2048, 1024, 4096, 150)
+TUNABLE(history_params, maxBonus,   i32, 2101, 1024, 4096, 150)
 
 // aspiration windows, from minDepth the root is searched in a window around the previous iteration's score, earlier
 // scores swing too much. A side of the window that would grow beyond maxDelta opens up fully.
@@ -59,18 +62,18 @@ TUNABLE(aspiration_params, minDepth,     u8,  5,    3,   10,  1)
 TUNABLE(aspiration_params, initialDelta, i32, 25,   12,   50,  2)
 TUNABLE(aspiration_params, maxDelta,     i32, 1000, 250, 2000, 75)
 
-// quiescence, delta pruning: slack on top of the material a capture can win before it's judged hopeless, 200 is 2
+// quiescence, delta pruning: slack on top of the material a capture can win before it's judged hopeless, about 2
 // pawns. defaultMaxDepth stays a constant.
-TUNABLE(quiescence_params, deltaMargin, i16, 200, 100, 400, 15)
+TUNABLE(quiescence_params, deltaMargin, i16, 201, 100, 400, 15)
 
 // late move reductions. Moves before fullDepthMoves are searched at full depth, covers the pv/tt move and usually the
-// killers. A ply less per historyDivisor of history, a ply more per that much below zero. The score is three tables of at
-// most 16383 each, so at most 5 plies either way, and under this it changes nothing. A first guess, not fitted on
-// anything. The table's reduction = baseCenti / 100 + ln(depth) * ln(move index) / (divisorCenti / 100), one ply less at
-// PV nodes, rebuilt by a setoption of either, see TUNABLE_DERIVED.
+// killers. A ply less per historyDivisor of history, a ply more per that much below zero. The score is three tables of
+// at most 16383 each, so at most 5 plies either way, and under this it changes nothing. The table's reduction =
+// baseCenti / 100 + ln(depth) * ln(move index) / (divisorCenti / 100), one ply less at PV nodes, rebuilt by a setoption
+// of either, see TUNABLE_DERIVED.
 TUNABLE(lmr_params, minDepth,       u8,  3,    1,    6,     1)
 TUNABLE(lmr_params, fullDepthMoves, u16, 3,    1,    8,     1)
-TUNABLE(lmr_params, historyDivisor, i32, 8192, 4096, 16384, 600)
+TUNABLE(lmr_params, historyDivisor, i32, 8166, 4096, 16384, 600)
 TUNABLE_DERIVED(lmr_params, baseCenti,    i32, 75,  25,  150,  5, search_policies::rebuildLmrTable)
 TUNABLE_DERIVED(lmr_params, divisorCenti, i32, 225, 150, 350, 10, search_policies::rebuildLmrTable)
 
