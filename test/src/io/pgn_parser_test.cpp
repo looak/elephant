@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <io/pgn_parser.hpp>
 #include <diagnostics/exceptions.hpp>
@@ -28,15 +28,15 @@ public:
     std::string fen() const
     {
         std::string output;
-        io::fen_parser::serialize(m_game.readChessboard(), output);
+        io::fen_parser::serialize(m_game.board(), output);
         const size_t moveNumber = output.find_last_of(' ');
         const size_t halfmoveClock = output.find_last_of(' ', moveNumber - 1);
         return output.substr(0, halfmoveClock) + output.substr(moveNumber);
     }
 
-    size_t plies() const { return m_game.readGameHistory().moveUndoUnits.size(); }
+    size_t plies() const { return m_game.moves().size(); }
 
-    GameContext m_game;
+    Game m_game;
 };
 
 // 1.e4 e5 2.Nf3 Nc6, the position most of these tests end in.
@@ -47,7 +47,7 @@ static const std::string c_kingsKnight = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP
 // the PGN standard's export format puts a space between a move number and its move.
 TEST_F(PgnParserFixture, SpaceAfterMoveNumber)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1. e4 e5 2. Nf3 Nc6");
 
@@ -57,7 +57,7 @@ TEST_F(PgnParserFixture, SpaceAfterMoveNumber)
 
 TEST_F(PgnParserFixture, NewlineBetweenMoves)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5\n2.Nf3 Nc6");
 
@@ -67,7 +67,7 @@ TEST_F(PgnParserFixture, NewlineBetweenMoves)
 
 TEST_F(PgnParserFixture, CommentWithSpacesAroundIt)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 {a comment} e5 2.Nf3 Nc6");
 
@@ -78,7 +78,7 @@ TEST_F(PgnParserFixture, CommentWithSpacesAroundIt)
 // after a comment, black's move is numbered again with three dots.
 TEST_F(PgnParserFixture, BlackMoveNumberAfterComment)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 2.Nf3 {a comment} 2...Nc6 3.Bb5 a6");
 
@@ -90,7 +90,7 @@ TEST_F(PgnParserFixture, BlackMoveNumberAfterComment)
 TEST_F(PgnParserFixture, ResultToken_EndsTheGame)
 {
     for (const char* result : { "1-0", "0-1", "1/2-1/2", "*" }) {
-        m_game.NewGame();
+        m_game = Game{};
 
         io::pgn_parser::deserialize(m_game, std::string("1.e4 e5 2.Nf3 Nc6 ") + result);
 
@@ -102,7 +102,7 @@ TEST_F(PgnParserFixture, ResultToken_EndsTheGame)
 // a game white ends, its last move number has no black move.
 TEST_F(PgnParserFixture, OddNumberOfPlies)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 2.Nf3");
 
@@ -112,7 +112,7 @@ TEST_F(PgnParserFixture, OddNumberOfPlies)
 
 TEST_F(PgnParserFixture, MoveSuffixesAndNags_AreSkipped)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4! e5?! 2.Nf3 $1 Nc6");
 
@@ -123,7 +123,7 @@ TEST_F(PgnParserFixture, MoveSuffixesAndNags_AreSkipped)
 // a variation is an alternative to the move before it, the mainline goes on after it.
 TEST_F(PgnParserFixture, Variation_IsSkipped)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 (1...c5 2.Nf3 d6) 2.Nf3 Nc6");
 
@@ -133,7 +133,7 @@ TEST_F(PgnParserFixture, Variation_IsSkipped)
 
 TEST_F(PgnParserFixture, RestOfLineComment_IsSkipped)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 ; to the end of the line\n2.Nf3 Nc6");
 
@@ -144,7 +144,7 @@ TEST_F(PgnParserFixture, RestOfLineComment_IsSkipped)
 // a whole game as a file holds it: tags, a blank line, the movetext and its result.
 TEST_F(PgnParserFixture, TagSectionAndMovetext)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game,
         "[Event \"?\"]\n"
@@ -161,7 +161,7 @@ TEST_F(PgnParserFixture, TagSectionAndMovetext)
 // the movetext starts after the tag section, not after the last ']' in the game.
 TEST_F(PgnParserFixture, TagSection_BracketInAComment)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "[Result \"*\"]\n\n1.e4 e5 {see [1]} 2.Nf3 Nc6 *");
 
@@ -172,7 +172,7 @@ TEST_F(PgnParserFixture, TagSection_BracketInAComment)
 // a PGN from a position with black to move starts with black's move.
 TEST_F(PgnParserFixture, BlackMovesFirst)
 {
-    io::fen_parser::deserialize("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", m_game.editChessboard());
+    m_game.loadFen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1");
 
     io::pgn_parser::deserialize(m_game, "1... e5 2. Nf3 Nc6");
 
@@ -183,8 +183,7 @@ TEST_F(PgnParserFixture, BlackMovesFirst)
 // OpenBench (UnitTests/example3.pgn in openbench_eg): from the book's FEN, no move numbers, a comment after every move.
 TEST_F(PgnParserFixture, OpenBenchGame)
 {
-    io::fen_parser::deserialize("r3kbnr/ppqb2pp/2n1pp2/3pP3/3p4/2P2N2/PP2BPPP/RNBQR1K1 w kq - 0 1",
-        m_game.editChessboard());
+    m_game.loadFen("r3kbnr/ppqb2pp/2n1pp2/3pP3/3p4/2P2N2/PP2BPPP/RNBQR1K1 w kq - 0 1");
 
     io::pgn_parser::deserialize(m_game,
         "cxd4 {+1.31 14/40 159 377044} fxe5 {-1.21 14/34 136 319833} dxe5 {+1.36 15/34 160 378606} "
@@ -197,7 +196,7 @@ TEST_F(PgnParserFixture, OpenBenchGame)
 // fastchess, as uwanja's gauntlets write it: from the book's FEN at move 2, comments, lines wrapped.
 TEST_F(PgnParserFixture, FastchessGame)
 {
-    io::fen_parser::deserialize("rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2", m_game.editChessboard());
+    m_game.loadFen("rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2");
 
     io::pgn_parser::deserialize(m_game,
         "2. e3 {+0.04/10 0.049s} d5 {-0.04/9 0.033s} 3. Nf3 {+0.05/8 0.015s}\n"
@@ -211,7 +210,7 @@ TEST_F(PgnParserFixture, FastchessGame)
 // the parser looped forever on a space where it expected a move.
 TEST_F(PgnParserFixture, LeadingAndRepeatedSpaces)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "   1.e4   e5    2.Nf3\t\tNc6   ");
 
@@ -222,7 +221,7 @@ TEST_F(PgnParserFixture, LeadingAndRepeatedSpaces)
 // python-chess plays the moves after a result too.
 TEST_F(PgnParserFixture, MovesAfterTheResult_ArePlayed)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "1.e4 e5 1-0 2.Nf3 Nc6");
 
@@ -234,7 +233,7 @@ TEST_F(PgnParserFixture, MovesAfterTheResult_ArePlayed)
 TEST_F(PgnParserFixture, FenTag_SetsTheStartPosition)
 {
     for (const char* setUp : { "[SetUp \"1\"]\n", "" }) {
-        m_game.NewGame();
+        m_game = Game{};
 
         io::pgn_parser::deserialize(m_game, std::string(setUp)
             + "[FEN \"r3kbnr/ppqb2pp/2n1pp2/3pP3/3p4/2P2N2/PP2BPPP/RNBQR1K1 w kq - 0 1\"]\n\n"
@@ -247,7 +246,7 @@ TEST_F(PgnParserFixture, FenTag_SetsTheStartPosition)
 
 TEST_F(PgnParserFixture, StandardVariant_IsPlayed)
 {
-    m_game.NewGame();
+    m_game = Game{};
 
     io::pgn_parser::deserialize(m_game, "[Variant \"Standard\"]\n\n1.e4 e5 2.Nf3 Nc6 *");
 
@@ -262,11 +261,11 @@ TEST_F(PgnParserFixture, OtherVariantsAndNullMoves_ShouldThrow)
 #ifndef EXCEPTIONS_ENABLED
     GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
 #else
-    m_game.NewGame();
+    m_game = Game{};
     EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "[Variant \"Chess960\"]\n\n1.e4 *"); }, ephant::io_error);
-    m_game.NewGame();
+    m_game = Game{};
     EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "1.e4 -- 2.d4 *"); }, ephant::io_error);
-    m_game.NewGame();
+    m_game = Game{};
     EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "[FEN \"not a fen\"]\n\n1.e4 *"); }, ephant::io_error);
 #endif
 }
@@ -276,7 +275,7 @@ TEST_F(PgnParserFixture, IllegalMove_ShouldThrow)
 #ifndef EXCEPTIONS_ENABLED
     GTEST_SKIP() << "EXCEPTIONS_ENABLED is off, the parser doesn't validate input.";
 #else
-    m_game.NewGame();
+    m_game = Game{};
 
     EXPECT_THROW({ io::pgn_parser::deserialize(m_game, "1.e4 e5 2.Ke3 Nc6"); }, ephant::io_error);
 #endif
@@ -344,7 +343,7 @@ TEST(PgnTokenizer, CastlingWithZerosIsNotAMoveNumber)
     EXPECT_FALSE(tokenizer.next());
 }
 
-TEST(PgnGameReader, SplitsAStreamIntoGames)
+TEST(GameReader, SplitsAStreamIntoGames)
 {
     const std::string stream =
         "\xEF\xBB\xBF[Event \"one\"]\n"
@@ -387,7 +386,7 @@ TEST(PgnGameReader, SplitsAStreamIntoGames)
 
 // python-chess's reading: a value runs to the last "] of its line, quotes in it unescaped or not, and a line that
 // isn't a tag is skipped.
-TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
+TEST(GameReader, TagLines_AsPythonChessReadsThem)
 {
     const std::string stream =
         "[Event \"one\"]\n[White unquoted]\n[Black \"Elephant \"herd\" dev\"]\n[_Bad \"x\"]\n[Site\"x\"]\n"
@@ -410,7 +409,7 @@ TEST(PgnGameReader, TagLines_AsPythonChessReadsThem)
 
 // where python-chess splits games: ; and % lines skipped among the tags, one blank line skipped, a second one ends the
 // game without moves, and a blank line in the movetext ends the game there, what follows is the next one.
-TEST(PgnGameReader, SplitsWherePythonChessDoes)
+TEST(GameReader, SplitsWherePythonChessDoes)
 {
     const std::string stream =
         "; a comment line\n[Event \"one\"]\n% an escape line\n\n[Site \"x\"]\n\n1. e4 *\n\n"
@@ -457,7 +456,7 @@ TEST(PgnFixtures, EveryGameIsPlayed)
     const std::vector<Fixture> fixtures = { { "openbench_workload.pgn", 34 }, { "openbench_unstripped_1.pgn", 1 },
         { "openbench_unstripped_2.pgn", 1 }, { "fastchess_gauntlet.pgn", 8 }, { "edge_cases.pgn", 11 } };
 
-    GameContext game;
+    Game game;
     for (const Fixture& fixture : fixtures) {
         std::ifstream file(std::filesystem::path(ELEPHANT_TEST_PGN_DIR) / fixture.file, std::ios::binary);
         ASSERT_TRUE(file) << fixture.file;
@@ -467,18 +466,18 @@ TEST(PgnFixtures, EveryGameIsPlayed)
 
         io::pgn_parser::GameReader reader(stream);
         size_t games = 0;
-        while (std::optional<io::pgn_parser::Game> parsed = reader.next()) {
+        while (std::optional<io::pgn_parser::PgnGame> parsed = reader.next()) {
             ++games;
             const std::string_view text = std::string_view(stream).substr(parsed->offset, parsed->length);
             const std::string* event = parsed->tag("Event");
-            game.NewGame();
+            game = Game{};
             if (event && event->starts_with("an illegal move")) {
                 EXPECT_THROW({ io::pgn_parser::deserialize(game, text); }, ephant::io_error) << fixture.file;
                 continue;
             }
             EXPECT_NO_THROW({ io::pgn_parser::deserialize(game, text); }) << fixture.file << " game " << games;
             if (const std::string* plyCount = parsed->tag("PlyCount")) {
-                EXPECT_EQ(*plyCount, std::to_string(game.readGameHistory().moveUndoUnits.size()))
+                EXPECT_EQ(*plyCount, std::to_string(game.moves().size()))
                     << fixture.file << " game " << games;
             }
         }

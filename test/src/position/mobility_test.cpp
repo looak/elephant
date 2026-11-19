@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/mobility.hpp>
 #include <io/fen_parser.hpp>
 
@@ -23,10 +23,10 @@ struct RecordingTrace {
 };
 
 RecordingTrace traceOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    Game context;
+    context.loadFen(fen);
     RecordingTrace trace;
-    (void)mobilityScore(context.readChessPosition().material(), trace);
+    (void)mobilityScore(context.readPosition().material(), trace);
     return trace;
 }
 
@@ -66,9 +66,9 @@ TEST(Mobility, MirroredPositionsScoreNothing) {
     // white's pieces are black's mirrored, their mobility cancels whatever the tables say.
     for (const char* fen : { "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
                              "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4" }) {
-        GameContext context;
-        io::fen_parser::deserialize(fen, context.editChessboard());
-        EXPECT_EQ(S(0, 0), mobilityScore(context.readChessPosition().material())) << fen;
+        Game context;
+        context.loadFen(fen);
+        EXPECT_EQ(S(0, 0), mobilityScore(context.readPosition().material())) << fen;
     }
 }
 

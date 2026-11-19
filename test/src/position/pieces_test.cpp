@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/pieces.hpp>
 #include <io/fen_parser.hpp>
 
@@ -29,17 +29,17 @@ struct RecordingTrace {
 };
 
 RecordingTrace traceOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
+    Game context;
+    context.loadFen(fen);
     RecordingTrace trace;
-    (void)pieceScore(context.readChessPosition().material(), trace);
+    (void)pieceScore(context.readPosition().material(), trace);
     return trace;
 }
 
 TaperedScore scoreOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
-    return pieceScore(context.readChessPosition().material());
+    Game context;
+    context.loadFen(fen);
+    return pieceScore(context.readPosition().material());
 }
 
 } // namespace

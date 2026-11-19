@@ -20,7 +20,7 @@
  * totals the endgame coefficient uses, kept up to date as pieces are added & removed so the evaluator doesn't walk
  * every piece on every call.
  *
- * Lives outside the position, search owns one (ThreadSearchContext::accumulator) and a MoveExecutor given it adds &
+ * Lives outside the position, search owns one (ThreadContext::accumulator) and a MoveExecutor given it adds &
  * removes pieces as moves are made and unmade. computeFromScratch gives the same values from the bitboards, used to
  * initialize and to verify.
  *

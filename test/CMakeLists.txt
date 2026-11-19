@@ -15,13 +15,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 message(STATUS "## Enabling testing")
-set(PROJECT_NAME ElephantTest)
+set(PROJECT_NAME phant-test)
 
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.17.0)
+elephant_declare_dep(googletest https://github.com/google/googletest.git v1.17.0)
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -38,7 +34,7 @@ endforeach()
 
 include(sourcelist.cmake)
 
-option(ELEPHANT_BUILD_TEST_SUITE "Build ElephantSuite, the long running perft & search depth tests" ON)
+option(ELEPHANT_BUILD_TEST_SUITE "Build phant-suite, the long running perft & search depth tests" ON)
 
 include(GoogleTest)
 
@@ -64,10 +60,10 @@ function(elephant_add_test_executable target)
     # call, after PRIVATE it's read as a directory named SYSTEM.
     target_include_directories(${target} SYSTEM
       PRIVATE
-        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googletest/include"
-        "${CMAKE_BINARY_DIR}/_deps/googletest-src/googlemock/include")
+        "${googletest_SOURCE_DIR}/googletest/include"
+        "${googletest_SOURCE_DIR}/googlemock/include")
 
-    target_link_libraries(${target} common_warnings gtest_main engine spdlog)
+    target_link_libraries(${target} common_warnings gtest_main uci engine spdlog)
 
     gtest_discover_tests(${target} PROPERTIES LABELS ${ARG_LABEL} TIMEOUT ${ARG_TIMEOUT})
 endfunction()
@@ -77,7 +73,7 @@ elephant_add_test_executable(${PROJECT_NAME} LABEL unit SOURCES ${TEST_SOURCE_AL
 # the PGN fixtures, OpenBench's & fastchess's games.
 target_compile_definitions(${PROJECT_NAME} PRIVATE ELEPHANT_TEST_PGN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/pgn")
 
-# instrumented with ELEPHANT_COVERAGE, ElephantSuite isn't: too slow instrumented, and the report is the unit tests'.
+# instrumented with ELEPHANT_COVERAGE, phant-suite isn't: too slow instrumented, and the report is the unit tests'.
 target_link_libraries(${PROJECT_NAME} coverage_flags)
 
 # phant-indexer's entries & input, when it's built: ELEPHANT_BUILD_INDEXER on, and EXCEPTIONS_ENABLED, which it needs.
@@ -90,5 +86,5 @@ endif()
 
 # Deep perft on every core & deep searches, a minute or two.
 if(ELEPHANT_BUILD_TEST_SUITE)
-    elephant_add_test_executable(ElephantSuite LABEL suite TIMEOUT 3600 SOURCES ${TEST_SUITE_SOURCE_ALL})
+    elephant_add_test_executable(phant-suite LABEL suite TIMEOUT 3600 SOURCES ${TEST_SUITE_SOURCE_ALL})
 endif()

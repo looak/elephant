@@ -2,7 +2,7 @@
 
 #include "commands/command_api.hpp"
 #include "commands/logic/command_registry.hpp"
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <io/fen_parser.hpp>
 #include <printer/printer.hpp>
 
@@ -39,12 +39,11 @@ public:
 		// If fen is empty we want to serialize current context.
 		if (args.fen.empty()) {
 			std::string output;
-			bool result = io::fen_parser::serialize(m_context->readChessboard(), output);
+			bool result = io::fen_parser::serialize(m_context->game.board(), output);
 			prnt::err << " " << (result ? output : "Serializing failed!");
 			return result;
 		}
-		m_context->Reset();
-		bool ret = io::fen_parser::deserialize(args.fen.c_str(), m_context->editChessboard());
+		bool ret = m_context->game.loadFen(args.fen.c_str());
 		if (!ret)
 			prnt::err << " Invalid FEN: " << args.fen << std::endl;
 		return ret;

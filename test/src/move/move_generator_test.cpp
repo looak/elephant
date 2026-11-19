@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <io/fen_parser.hpp>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <move_gen_ab.hpp>
 
 
@@ -34,7 +34,7 @@ public:
             if (!pred || pred(mv))
                 result.push_back(mv);
         };
-        forEachLegalMove<us>(GetParam(), testContext.readChessPosition(), add);
+        forEachLegalMove<us>(GetParam(), testContext.readPosition(), add);
         return result;
     }
 
@@ -51,13 +51,13 @@ public:
     template<Set us>
     bool isChecked()
     {
-        return ElephantTest::isChecked<us>(GetParam(), testContext.readChessPosition());
+        return ElephantTest::isChecked<us>(GetParam(), testContext.readPosition());
     }
 
     // sets the board up from fen and returns the moves of the side to move, those matching pred when one is given.
     std::vector<PackedMove> legalMoves(std::string_view fen, MovePredicate pred = nullptr)
     {
-        EXPECT_TRUE(io::fen_parser::deserialize(fen, testContext.editChessboard())) << fen;
+        EXPECT_TRUE(testContext.loadFen(fen)) << fen;
         if (testContext.readToPlay() == Set::WHITE)
             return collectMoves<Set::WHITE>(pred);
         return collectMoves<Set::BLACK>(pred);
@@ -77,7 +77,7 @@ public:
 
     MovePredicate pieceType(PieceType type)
     {
-        return [this, type](const PackedMove& mv) { return testContext.readChessPosition().pieceAt(mv.sourceSqr()).getType() == type; };
+        return [this, type](const PackedMove& mv) { return testContext.readPosition().pieceAt(mv.sourceSqr()).getType() == type; };
     }
 
     static bool isCapture(const PackedMove& mv) { return mv.isCapture(); }
@@ -119,13 +119,14 @@ public:
         }
     }
 
-    GameContext testContext;
+    Game testContext;
 };
 ////////////////////////////////////////////////////////////////
 
 // move generator asserts if the board is empty
 TEST_P(MoveGeneratorFixture, Empty)
 {
+    testContext = Game(Chessboard{});
     EXPECT_TRUE(collectMoves<Set::WHITE>().empty());
     EXPECT_TRUE(collectMoves<Set::BLACK>().empty());
 }
@@ -137,10 +138,9 @@ TEST_P(MoveGeneratorFixture, KingFromE4_White_EightMovesAvailable)
     using enum Square;
 
     // setup
-    PositionEditor editor = testContext.editChessPosition();
-    editor.placePieces(
-        piece_constants::white_king, Square::E4
-    );
+    Chessboard board;
+    board.editPosition().placePieces(piece_constants::white_king, Square::E4);
+    testContext = Game(board);
 
     // expected
     Bitboard expected = BitboardResultFactory::buildExpectedBoard(
@@ -160,10 +160,9 @@ TEST_P(MoveGeneratorFixture, BlackKingE4_EightMovesAvailable)
     using enum Square;
 
     // setup
-    PositionEditor editor = testContext.editChessPosition();
-    editor.placePieces(
-        piece_constants::black_king, Square::E4
-    );
+    Chessboard board;
+    board.editPosition().placePieces(piece_constants::black_king, Square::E4);
+    testContext = Game(board);
 
     // expected
     Bitboard expected = BitboardResultFactory::buildExpectedBoard(
@@ -540,9 +539,9 @@ TEST_P(MoveGeneratorFixture, PawnPromotionCaptureCheck)
 
     int checks = 0;
     for (auto mv : result) {
-        testContext.MakeMove(mv);
+        testContext.makeMove(mv);
         checks += sideToMoveIsChecked() ? 1 : 0;
-        testContext.UnmakeMove();
+        testContext.unmakeMove();
     }
     EXPECT_EQ(2, checks);
 }
@@ -795,14 +794,14 @@ TEST_P(MoveGeneratorFixture, Pawn_Pinned_FromSideOddSituation)
 
 TEST_P(MoveGeneratorFixture, Pawn_NotCheckingKing)
 {
-    io::fen_parser::deserialize("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34", testContext.editChessboard());
+    testContext.loadFen("r4b2/1p4p1/p5k1/2p5/6pK/4Pq2/P1n2P1P/3R3R w - - 6 34");
 
     EXPECT_FALSE(sideToMoveIsChecked());
 }
 
 TEST_P(MoveGeneratorFixture, Pawn_White_CheckingKing)
 {
-    io::fen_parser::deserialize("8/8/6k1/7P/7K/8/8/8 b - - 0 1", testContext.editChessboard());
+    testContext.loadFen("8/8/6k1/7P/7K/8/8/8 b - - 0 1");
 
     EXPECT_TRUE(isChecked<Set::BLACK>());
     EXPECT_FALSE(isChecked<Set::WHITE>());
@@ -810,7 +809,7 @@ TEST_P(MoveGeneratorFixture, Pawn_White_CheckingKing)
 
 TEST_P(MoveGeneratorFixture, Pawn_Black_CheckingKing)
 {
-    io::fen_parser::deserialize("8/8/6k1/6p1/7K/8/8/8 w - - 0 1", testContext.editChessboard());
+    testContext.loadFen("8/8/6k1/6p1/7K/8/8/8 w - - 0 1");
 
     EXPECT_TRUE(isChecked<Set::WHITE>());
     EXPECT_FALSE(isChecked<Set::BLACK>());
@@ -829,7 +828,7 @@ TEST_P(MoveGeneratorFixture, Pawn_Black_CheckingKing)
 TEST_P(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R3pPk/8/4P3/8 b - g3 0 1");
-    EXPECT_EQ(Square::G3, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::G3, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_EQ(17u, result.size());
     for (auto mv : result) {
@@ -856,7 +855,7 @@ TEST_P(MoveGeneratorFixture, PinnedPawn_Black_CanNotCaptureEnPassant)
 TEST_P(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R2Pp1k/8/8/8 b - e3 0 1", pieceType(PieceType::PAWN));
-    EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::E3, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_TRUE(contains_exactly_target_squares(result, Square::C6, Square::C5, Square::D5, Square::F3));
 }
@@ -864,7 +863,7 @@ TEST_P(MoveGeneratorFixture, Pawn_SelfDiscoveryCheck_EnPassantCaptureIllegal)
 TEST_P(MoveGeneratorFixture, PinnedPawn_Black_SimilarAsAboveButMorePieces)
 {
     auto result = legalMoves("8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1");
-    EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::E3, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_EQ(16u, result.size());
     for (auto mv : result) {
@@ -881,7 +880,7 @@ TEST_P(MoveGeneratorFixture, PinnedPawn_Black_SimilarAsAboveButMorePieces)
 TEST_P(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWouldPutUsInCheck)
 {
     auto result = legalMoves("8/8/3p4/KPp4r/1R2Pp1k/8/6P1/8 w - c6 0 2");
-    EXPECT_EQ(Square::C6, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::C6, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_EQ(13u, result.size());
     for (auto mv : result) {
@@ -898,7 +897,7 @@ TEST_P(MoveGeneratorFixture, PinnedPawn_White_CanNotCaptureEnPassantSinceItWould
 TEST_P(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRank)
 {
     auto result = legalMoves("8/8/8/K7/4Pp1k/8/6P1/8 b - e3 0 2", pieceType(PieceType::PAWN));
-    EXPECT_EQ(Square::E3, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::E3, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_TRUE(contains_exactly_target_squares(result, Square::F3, Square::E3));
     EXPECT_EQ(1u, countIf(result, isEnPassant));
@@ -907,7 +906,7 @@ TEST_P(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRa
 TEST_P(MoveGeneratorFixture, Pawn_NotPinned_CanCaptureEnPassantWhileKingIsOnEPRankMorePawnsVariation)
 {
     auto result = legalMoves("8/8/8/K7/1R2PpPk/8/8/8 b - g3 0 2", pieceType(PieceType::PAWN));
-    EXPECT_EQ(Square::G3, testContext.readChessPosition().enPassant().readSquare());
+    EXPECT_EQ(Square::G3, testContext.readPosition().enPassant().readSquare());
 
     EXPECT_TRUE(contains_exactly_target_squares(result, Square::F3, Square::G3));
     EXPECT_EQ(1u, countIf(result, isEnPassant));
@@ -1193,7 +1192,7 @@ TEST_P(MoveGeneratorFixture, Bishop_KingInCheck_BlockingOrCapturingCheckingPiece
 {
     auto result = legalMoves("R3k2r/1b4bq/8/8/8/8/7B/4K2R b Kk - 0 1", from(Square::B7));
 
-    EXPECT_EQ(WHITEROOK, testContext.readChessPosition().pieceAt(Square::A8));
+    EXPECT_EQ(WHITEROOK, testContext.readPosition().pieceAt(Square::A8));
     EXPECT_TRUE(contains_exactly_target_squares(result, Square::C8, Square::A8));
 }
 
@@ -1212,7 +1211,7 @@ TEST_P(MoveGeneratorFixture, Pawn_PawnCapturesDuringCheck_IdentifiedABugWherePaw
     auto result = legalMoves("4k3/8/4p3/3P4/8/7p/4b1P1/5K2 w - - 0 2", pieceType(PieceType::PAWN));
 
     // just make sure setup is correct
-    PositionReader pos = testContext.readChessPosition();
+    PositionReader pos = testContext.readPosition();
     EXPECT_EQ(WHITEPAWN, pos.pieceAt(Square::D5));
     EXPECT_EQ(BLACKPAWN, pos.pieceAt(Square::E6));
     EXPECT_EQ(BLACKBISHOP, pos.pieceAt(Square::E2));

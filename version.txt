@@ -1,2 +1,2 @@
-1.4.0
-Matriarch
+1.6.0
+Stride

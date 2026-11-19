@@ -35,7 +35,7 @@ namespace evaluator_data
 
 /**
  * Tempo, the side to move's bonus for the move it's about to make: the evaluation scores a position as if neither
- * side were to move. Added by search, from the side to move's view, see SearchThreadContext::evaluate. Hand-set, a
+ * side were to move. Added by search, from the side to move's view, see ThreadContext::evaluate. Hand-set, a
  * quiet position fit doesn't see it.  */
 constexpr i16 tempoBonus = 15;
 

@@ -20,7 +20,7 @@
  *
  * Usage:
  *     CheckInfo<us> checkInfo(pos);
- *     MoveGenerator<us> gen(pos, checkInfo, { .ordering = &ordering });
+ *     MoveGenerator<us> gen(pos, checkInfo, { .ordering = ordering });
  *     MoveGenResult<us> moves = gen.generate();
  *     while (PrioritizedMove m = moves.next()) { ... }
  *

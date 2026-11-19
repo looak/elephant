@@ -34,7 +34,7 @@ struct PVLine {
 };
 
 /**
- * Search::quiescence's line policy when nothing records the line, the search's own path. Both calls compile away.
+ * Worker::quiescence's line policy when nothing records the line, the search's own path. Both calls compile away.
  * PVLine is the policy that records it: reset() when a node starts, raise(move, child) when move raises alpha, the
  * tuner fits the evaluation on the position at the end of that line.    */
 struct NoQuiescenceLine {
@@ -46,7 +46,7 @@ struct NoQuiescenceLine {
  * @brief Represents the result of a search.   */
 struct SearchResult {
     i32 score;
-    PackedMove move() { return pvLine.moves[0]; };
+    PackedMove move() const { return pvLine.moves[0]; }
     bool ForcedMate = false;
     u64 count = 0;            // every thread's nodes
     u64 mainThreadCount = 0;  // the main thread's own, count holds the helpers' on top

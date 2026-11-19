@@ -1,7 +1,7 @@
 # Elephant engine
 
-Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.4.0
-"Matriarch" on `main`, with a bench of 504347
+Repo: [looak/elephant](https://github.com/looak/elephant) · C++20 · true at the commit it is read at; `version.txt` is 1.6.0
+"Stride" on `search-time`, with a bench of 7341755
 
 ## Purpose
 
@@ -11,12 +11,13 @@ fourth binary reads games with the library's PGN and SAN parsing and move genera
 
 | Binary | Built by | Entry | For |
 |:--|:--|:--|:--|
-| `elephant_ob` and the release binaries | `ob_build/makefile`, g++ | `src/cli/src/openbench.cpp` | playing: OpenBench, GitHub releases, match runners |
-| `ElephantGambit` | CMake (MSVC, clang, gcc) | `src/main.cpp` | development: an interactive CLI, UCI with `ElephantGambit uci`, the engine epd_runner drives in smoke |
-| `ElephantTuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
-| `phant-indexer` | CMake target `PhantIndexer`, `ELEPHANT_BUILD_INDEXER` (off by default) | `indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
+| `phant-uci` and the release binaries | `ob_build/makefile` with g++, or CMake | `src/uci/src/main.cpp` | playing: OpenBench, GitHub releases, match runners. UCI and `bench`, none of the CLI |
+| `phant-cli` | CMake (MSVC, clang, gcc) | `src/cli/main.cpp` | development: an interactive CLI, UCI with `phant-cli uci`, the engine epd_runner drives in smoke |
+| `phant-uci-tune` | `ob_build/makefile` with `TUNE=1`, or CMake with `ELEPHANT_TUNE` | `src/uci/src/main.cpp` | SPSA: `phant-uci` with the search parameters as UCI options, see [Search parameters & SPSA](#search-parameters--spsa) |
+| `phant-tuner` | CMake, `ELEPHANT_BUILD_TUNER` (on by default) | `src/tuner/src/main.cpp` | offline: fits the evaluation tables to a dataset of positions and results, see [Evaluation tables & tuning](#evaluation-tables--tuning) |
+| `phant-indexer` | CMake, `ELEPHANT_BUILD_INDEXER` (off by default) | `src/indexer/src/main.cpp` | offline: reads PGN and writes one JSON line per game, and every position's hash, see [phant-indexer](#phant-indexer-the-game-reader) |
 
-`ElephantGambit` and `elephant_ob` speak the same UCI. The makefile build is the reference: OpenBench builds it, the
+`phant-cli` and `phant-uci` speak the same UCI, `src/uci`, which the engine library knows nothing of. The makefile build is the reference: OpenBench builds it, the
 release binaries are it, and the bench signature comes from it. The test binaries are in [tests.md](tests.md).
 
 ## Scope
@@ -60,6 +61,9 @@ Standard [UCI](https://www.shredderchess.com/download/div/uci.zip), plus two non
 `info score cp|mate <s> depth <d> nodes <n> time <ms> hashfull <h> pv <moves>`, nodes counted over all threads; the
 last line before `bestmove` is `info nodes <n> time <ms> nps <nps>`. With `debug on` the helper threads' iterations
 come as `info string thread <id> depth <d> score <s> nodes <n> pv <moves>`.
+`go infinite` and `go ponder` run until `stop` or `ponderhit`: one that ends on its own, on a forced mate or at the
+ply limit, sends those last two lines only then, with the search's own time.
+Before any `position` the engine is at the start position.
 With no legal move at the root (mate or stalemate) the answer is `bestmove 0000`. `position fen` refuses a board
 without exactly one king a side.
 
@@ -72,13 +76,13 @@ on a detached HEAD), `compiler`, `config`, `assertions`, `exceptions`, `bits`. T
 
 ### Bench
 
-`elephant_ob bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 7 with one
+`phant-uci bench` (command line) and the UCI `bench` search a fixed list of 26 positions to depth 11 with one
 16 MB transposition table reused and cleared between positions. The command line prints `info string <ms> ms`, then
 `<nodes> nodes <nps> nps`; the UCI `bench` prints `info string <s> seconds`, then `info string <nodes> nodes <nps> nps`.
 The node count is the **bench signature**: it changes when the search or the evaluation changes, and only then. It is
-504347 on `main` at 1.4.0. Every commit
+7341755 at 1.6.0. Every commit
 message carries `bench <nodes> nodes`, written by `hooks/prepare-commit-msg`: when the commit touches the engine
-(`src/engine`, `src/cli/src`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
+(`src/engine`, `src/uci`, `ob_build/makefile`) the hook runs the bench from the g++ makefile build (through WSL on
 Windows), otherwise it repeats the last commit's line. `ELEPHANT_BENCH=force` runs it anyway, `ELEPHANT_BENCH=skip`
 leaves the line out. Windows and Linux builds give the same count since the Zobrist keys come from a fixed seed
 splitmix64.
@@ -86,10 +90,27 @@ splitmix64.
 ### Search
 
 Negamax alpha-beta with PVS, iterative deepening with aspiration windows, Lazy SMP, a lock-free transposition table
-of 8 entries per 64-byte bucket, quiescence with delta & SEE pruning, check extensions, null move pruning with
-verification, LMR, LMP, IIR, reverse futility and futility pruning; ordering by PV/TT move, MVV-LVA, killers, history,
-losing captures last. Threefold repetition (with the game's earlier positions) and the fifty move rule. Time management
-uses soft & hard limits, is increment aware and subtracts `Move Overhead`. The README's feature list is the long form.
+of 8 entries per 64-byte bucket, quiescence with delta & SEE pruning, check extensions, singular extensions of the TT move, null
+move pruning with verification, LMR adjusted by history, LMP, IIR, reverse futility and futility pruning; ordering by
+PV/TT move, MVV-LVA, killers, butterfly & continuation history (one and two plies back, kept across `go`), losing
+captures last. Threefold repetition (with the game's earlier positions) and the fifty move rule. Time management uses
+soft & hard limits, is increment aware, subtracts `Move Overhead` and scales the soft limit by how many iterations the
+best move has held. The README's feature list is the long form.
+
+#### Search parameters & SPSA
+
+The search's numeric parameters are listed once, in `src/engine/inc/search/core/search_tunables.def`: an X-macro entry
+per parameter with its default, the bounds SPSA and `setoption` clamp to, and SPSA's step. In a normal build they are
+`constexpr` and nothing about them is visible over UCI. A build with `ELEPHANT_TUNE` (CMake option, or `make TUNE=1`,
+which writes `dist/phant-uci-tune` from `.build/make-tune`) makes them mutable and announces each as a UCI spin option
+named `<group>__<name>` (`rfp_params__margin`), after the options above and before `uciok`; `setoption` sets one,
+clamped to its bounds, and a `TUNABLE_DERIVED` entry runs a hook after it (the LMR table is rebuilt). 29 parameters:
+reverse futility, futility, null move, LMP, history, aspiration, quiescence delta, LMR, IIR and singular extension
+constants. A constant needed at compile time (an array size, a template argument) can't be one. Bench at the defaults
+is the release build's. nyayo reads the list from the tuning build's `uci` answer to set up a tune; a tune's result
+reaches the engine as new defaults in the `.def`, which moves the bench. 1.6.0's defaults for rfp margin, futility
+base & perDepth, null move evalDivisor, history maxBonus, quiescence deltaMargin and LMR historyDivisor came from the
+first SPSA run (1600 iterations, 12864 games on UHO_Lichess_4852_v1), tuned on 1.4.0's tables.
 
 ### Evaluation
 
@@ -109,7 +130,7 @@ promotions.
 | king attack: the enemy's knights, bishops, rooks & queens on the king zone, the files open to its rooks & queens | `eval/king_safety.hpp` | `eval/king_tables.hpp`: the danger tuned, the units hand-set | every evaluation, counted in mobility's pass |
 | piece pairs: bishops on both colours, two or more knights, two or more rooks | `eval/pieces.hpp` | `eval/piece_tables.hpp`, tuned | every evaluation |
 | mop-up: more than two pawns ahead in an endgame (12 pieces or fewer, or under half the starting material counting six rooks), the winning king closes in on the enemy's and to the centre | `eval/mop_up.hpp` | `evaluator_data::mopUpKingDistance`, `mopUpCentre`, hand-set | every evaluation, outside the taper |
-| tempo: 15 cp to the side to move | `search/search_threadcontext.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
+| tempo: 15 cp to the side to move | `search/state/thread_context.hpp` | `evaluator_data::tempoBonus`, hand-set | by search, after the turn to the side to move's view |
 
 `Evaluator::EvaluateTapered` is the tapered sum, the part the tuner fits; `Evaluate` adds mop-up and asserts both
 kings are on the board (search never evaluates without one), search adds tempo. A safe square is
@@ -134,9 +155,10 @@ adds 3 when open and 2 without the king's pawns. Nothing counts below two attack
 
 The tables are plain `constexpr` arrays of `S(mg, eg)` in `src/engine/inc/eval/*_tables.hpp`, compiled in. Nothing
 reads weights at runtime: there is no weights file, no tuning build and no option that changes them. A new value
-reaches the engine as a changed header in a commit, which moves the bench.
+reaches the engine as a changed header in a commit, which moves the bench. (The tuning build exposes search
+parameters only, see [Search parameters & SPSA](#search-parameters--spsa).)
 
-| File | Tables | Values | Status (1.4.0) |
+| File | Tables | Values | Status (1.6.0) |
 |:--|:--|--:|:--|
 | `pesto_tables.hpp` | `pestoMaterial`, `pestoPawn` … `pestoKing` (by square, A8 first) | 6 + 384 | PeSTO's material and king table; the pawn to queen tables rebalanced with every term, each kept centred on its own average |
 | `mobility_tables.hpp` | `knightMobility`, `bishopMobility`, `rookMobility`, `queenMobility` (by safe squares, 0 first) | 66 | rebalanced with every term, each table centred at 0 |
@@ -145,9 +167,11 @@ reaches the engine as a changed header in a commit, which moves the bench.
 | `piece_tables.hpp` | `piecePair` (knight, bishop, rook) | 3 | rebalanced with every term |
 
 Every table rebalanced with every term was then fine-tuned on Elephant's own games, the same groups, kept values and
-centring (1.4.0-pieces.3).
+centring (1.4.0-pieces.3), and refitted again for 1.6.0 from those values on `positions-3`, Elephant's games since
+1.4 (K 1.3545, `--min-usage 7250`, held back error 0.57% lower). [docs/tuning-guide.md](../tuning-guide.md) is the
+workflow, dataset to SPRT.
 
-**ElephantTuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
+**phant-tuner** (`tuner/`, its README has the long form) fits these tables to a dataset, one position per line as a
 FEN and the game's result. Phase 0 plays each position's quiescence line out to a quiet position, evaluates it with a
 trace that records every table entry it used and how often, and checks that the trace rebuilds the engine's
 `EvaluateTapered` exactly; mop-up is carried along as a fixed offset. Phase 1 finds K, the scale of the sigmoid that
@@ -172,11 +196,13 @@ rose back towards 0 and was made monotonic by hand. The fit's held back error is
 values are only best for the data they were fitted on. `elephant-positions-0.1` holds 1.2M positions from Elephant's
 own games in nyayo (FEN and result, no duplicates); the 1.4 fine-tune fitted on it lowered its held back error 1.23%
 and raised E12.52's 1.13%, yet passed in play: the two datasets disagree, and the positions Elephant reaches won.
+`positions-3` holds 1.45M positions from nyayo's games since 2026-10-30 (games of 1.4 and later, all unique); its
+refit lowered E12.52's error 0.26% and positions-3's 0.85%, and raised elephant-positions-0.1's 0.74%.
 
-### ElephantGambit, the development binary
+### phant-cli, the development binary
 
 Without arguments it starts an interactive CLI: `help`, `about`, `new`, `fen`, `move`, `print`, `evaluate`, `search`,
-`perft`, `divide`, `bench`, `exit`. `ElephantGambit uci` goes straight into UCI mode. It logs through spdlog. CMake
+`perft`, `divide`, `bench`, `exit`. It starts at the start position. `search` keeps its 64 MB table and history tables between commands, `new` clears them. `phant-cli uci` goes straight into UCI mode. It logs through spdlog. CMake
 builds have assertions and exceptions on in every configuration by default (`ASSERTIONS_ENABLED`,
 `EXCEPTIONS_ENABLED` in `cmake/options.cmake`, always on in Debug); the makefile builds have neither.
 
@@ -201,32 +227,42 @@ whoever plays the games writes the players and tags.
   limit, saying so and exiting 1. `--position FEN` writes the games and plies that reach a position instead of the
   cards.
 - **Training positions.** `--draw N [--quiet] [--min-ply P] [--seed S]` writes, instead of the cards, `<fen> [result]`
-  lines for the evaluation's tuner (the format `ElephantTuner` reads): up to N positions of each game that read and
+  lines for the evaluation's tuner (the format `phant-tuner` reads): up to N positions of each game that read and
   has a result, past the game's first P plies, counted from the position the game starts at (`--min-ply`, 0 by
   default; `FILE:P` gives one input's games their own, a `[DrawMinPly "P"]` tag one game's, which is how standard input
   carries one), none twice in the run by Polyglot hash, a seeded sample that repeats on any platform.
   With `--quiet` only positions that are naturally quiet are written: not in check, and the engine's own quiescence
-  search (`Search::quiescenceLine`) returns the position's own static evaluation. The search is a test and its line is
+  search (`QuiescenceProbe`) returns the position's own static evaluation. The search is a test and its line is
   discarded, so every position written is one the game reached. `--merge` writes each position once, when the run
   ends, with the average of the results of the games that drew it, like `[0.75]`, in place of dropping later
-  duplicates; `ElephantTuner` reads such results. Progress for each input and a summary go to standard error, and
-  `--stats OUT` writes the run's statistics as versioned JSON (`indexer/README.md`).
+  duplicates; `phant-tuner` reads such results. Progress for each input and a summary go to standard error, and
+  `--stats OUT` writes the run's statistics as versioned JSON (`src/indexer/README.md`).
 - **Built only with `ELEPHANT_BUILD_INDEXER`**, off by default, and with `EXCEPTIONS_ENABLED`: the parsers report an
   illegal move by throwing. With it on, configuring fetches zlib, bzip2 and zstd at pinned tags and builds their
   decompression as static libraries linked into phant-indexer alone, so the release binary needs nothing installed. An
   engine build, and `ob_build/makefile`, which never builds phant-indexer, fetch and link none of it; the bench doesn't
   move.
 - **The cards' format** (now format 2) and the positions records are a contract with nyayo, owned here:
-  [`indexer/README.md`](../../indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
+  [`src/indexer/README.md`](../../src/indexer/README.md) is the text. Its tests are in [tests.md](tests.md#phant-indexer), its
   check against python-chess in [test-pipeline.md](test-pipeline.md#phant-indexer-against-python-chess).
 
 ### Builds & releases
 
+- `./build.sh`, on anything with bash, checks the toolchain and builds into `dist/`: `phant-uci` by default, `--cli`, `--tuner`,
+  `--indexer`, `--tests` or `--all`, `--arch native | x86-64 | sse42 | avx2`, `--reference` for the makefile & g++. `phant-uci` is
+  named `phant-uci-<version>-<win | linux | mac>-<instructions>`, with `-dev` when it has assertions, the other binaries keep
+  their names. Debug builds go in `dist/debug`. MSVC has no native level, a native build there is `/arch:AVX2` and named so.
+- `build.cmd` runs `build.sh` in Git Bash with the same options, for PowerShell & cmd on Windows.
+- `gen/generate_workspace.py` writes VS Code workspaces for the machine's OS into `.vscode/workspaces/<os>/`, not tracked:
+  `all`, `engine`, `uci`, `cli`, `tuner` & `indexer`. Each is the whole repository with the rest hidden, launches its targets
+  through CMake Tools and builds in `.build/vscode-<os>-<variant>`, with tests, tuner & indexer on.
+- `.build/` is what can be thrown away: objects per configuration, `.build/deps` the fetched sources, one copy per OS & tag.
+  A build of `phant-uci` alone fetches nothing, `ELEPHANT_BUILD_TESTS` & `ELEPHANT_BUILD_INDEXER` are what fetch.
 - `ob_build/makefile`: `g++ -std=c++2a -O3 -flto=auto -march=$(ARCH)`, `ARCH` defaults to `native`. OpenBench runs it
-  with its own `EXE`.
+  with its own `EXE`, objects in `$(BUILD_DIR)`, `.build/make` by default.
 - `release.yml`, on publishing a GitHub release (or by hand): the makefile for Windows & Linux at `-march=x86-64`,
   `x86-64-v2` and `x86-64-v3`, linked static, named by the instructions each needs:
-  `elephant-gambit-<version>-<os>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
+  `phant-uci-<version>-<win | linux>-<x86-64 | x86-64-sse42-popcnt | x86-64-avx2-bmi2>`. phant-indexer only when run by
   hand with `indexer` on, never on a release: in a job of its own with CMake and `ELEPHANT_BUILD_INDEXER=ON`, for
   Windows & Linux at `x86-64`, linked static (the C runtime too), named `phant-indexer-<version>-<os>-x86-64` and
   smoke tested on OpenBench's workload, bz2 compressed, before it is attached. A third job titles the GitHub release
@@ -235,7 +271,7 @@ whoever plays the games writes the players and tags.
 - `version.txt` is the only place the version is written. Line 1 is the version: major = engine generation or a UCI
   option change, minor = a cycle with an SPRT verified gain or feature, patch = fixes and non-regressions.
   Pre-releases are `<version>-<label>.N`, e.g. `1.0.0-herd.4`. Tags are lightweight. Line 2, optional, is the
-  release's **codename** (1.0.0 was "Herd", 1.3.2 is "Matriarch"): letters, digits, spaces, `.`, `_` and `-`, empty when
+  release's **codename** (1.0.0 was "Herd", 1.4.0 "Matriarch", 1.6.0 "Stride"): letters, digits, spaces, `.`, `_` and `-`, empty when
   absent. CMake and `ob_build/makefile` read it into `ELEPHANT_GAMBIT_CODENAME` next to `ELEPHANT_GAMBIT_VERSION_FULL`;
   a malformed one fails the configure or the make. It shows as `v: 1.3.2 "Matriarch"` in the CLI banner and the
   `about` command's engine version, and as `buildinfo codename`; not in `id name`.
@@ -252,7 +288,7 @@ whoever plays the games writes the players and tags.
 | out | UCI on stdout | above |
 | out | bench line in commit messages | `bench <nodes> nodes`, its own paragraph before trailers |
 | out | release binaries | `release.yml` |
-| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`indexer/README.md`](../../indexer/README.md) |
-| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`indexer/README.md`](../../indexer/README.md) |
-| out | training positions, `<fen> [result]` lines (`--draw`) | read by `ElephantTuner`, [`indexer/README.md`](../../indexer/README.md) |
+| in | PGN, plain, bz2, gzip or zstd, on standard input or as files | phant-indexer, read as python-chess reads it, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | cards, JSON lines, format 2; position records; `--position` lines | phant-indexer, [`src/indexer/README.md`](../../src/indexer/README.md) |
+| out | training positions, `<fen> [result]` lines (`--draw`) | read by `phant-tuner`, [`src/indexer/README.md`](../../src/indexer/README.md) |
 

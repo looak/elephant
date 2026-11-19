@@ -46,7 +46,7 @@
 
 #include <system/platform.hpp>
 
-class GameContext;
+class Game;
 
 namespace io {
 namespace pgn_parser {
@@ -84,7 +84,7 @@ namespace pgn_parser {
     };
 
     // A game as it stands in a PGN stream: its tags and its movetext, not yet played.
-    struct Game {
+    struct PgnGame {
         size_t offset = 0;              // where the game starts in the stream, in bytes
         size_t length = 0;              // its length in bytes, through its movetext
         std::vector<Tag> tags;
@@ -102,10 +102,10 @@ namespace pgn_parser {
     public:
         explicit GameReader(std::string_view stream) : m_stream(stream) {}
 
-        std::optional<Game> next();
+        std::optional<PgnGame> next();
 
     private:
-        bool readTag(Game& game);
+        bool readTag(PgnGame& game);
         void skipWhitespace();
 
         std::string_view m_stream;
@@ -118,9 +118,9 @@ namespace pgn_parser {
 
     // Plays a game: a whole game with its tags, or movetext alone. A FEN tag sets the start position, with or without
     // SetUp; without one the moves are played on the game's current position. Throws io_error on a Variant that isn't
-    // standard chess, a FEN that doesn't read, a null move (a GameContext can't take one back), and a move that
+    // standard chess, a FEN that doesn't read, a null move (a Game can't take one back), and a move that
     // doesn't read or isn't legal.
-    void deserialize(GameContext& game, std::string_view pgn);
+    void deserialize(::Game& game, std::string_view pgn);
 
 } // namespace pgn_parser
 } // namespace io

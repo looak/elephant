@@ -29,8 +29,6 @@
 #include <move/move.hpp>
 #include <move/move_undo.hpp>
 
-class GameContext;
-struct GameHistory;
 struct GameState;
 
 class MoveExecutor {
@@ -43,7 +41,7 @@ public:
     ~MoveExecutor() = default;
 
     template<bool validation = false>
-    void makeMove(const PackedMove move, MoveUndoUnit& undoState, u16& plyCount);
+    void makeMove(const PackedMove move, MoveUndoUnit& undoState, u16& halfmoveClock);
     bool unmakeMove(const MoveUndoUnit& undoState);
 
 private:

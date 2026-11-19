@@ -1,0 +1,155 @@
+#include <search/worker.hpp>
+#include <position/position_hash.hpp>
+
+#include <eval/evaluator.hpp>
+
+#include <move/move_executor.hpp>
+
+#include <search/core/search_move_source.hpp>
+#include <search/core/search_policies.hpp>
+#include <search/state/thread_context.hpp>
+#include <search/core/static_exchange.hpp>
+#include <system/time_manager.hpp>
+
+#include <optional>
+
+template<Set us, typename Line>
+i16 Worker::quiescence(ThreadContext& context, u8 depth, i16 alpha, i16 beta, u16 ply, Line& line, const tusk::CheckInfo<us>& chkInfo) {
+    ASSERT_MSG(ply < c_maxSearchDepth, "Ply exceeds maximum search depth in quiescence.");
+    ASSERT_MSG(alpha >= -c_infinity && beta <= c_infinity, "Alpha and Beta must be within valid bounds in quiescence.");
+    ASSERT_MSG(context.position.read().hash() == zobrist::computePositionHash(context.position.read(), us == Set::WHITE),
+               "The incremental hash differs from the position's in quiescence.");
+
+    line.reset();
+
+    // hard ply limit, the static eval is the best we can do even when in check.
+    if (ply >= c_maxSearchDepth - 1)
+        return context.evaluate<us>();
+
+    auto pos = context.position.read();    
+
+    SearchMoveSource<us> moves(pos, chkInfo);
+    
+    const bool inCheck = moves.isChecked();
+
+    i16 bestEval = -c_infinity;
+    i16 standPat = -c_infinity;
+    if (inCheck) {
+        // no stand pat while in check, every evasion has to be searched. Captures alone could miss the only escapes.
+        moves.beginGeneration(nullptr, MoveTypes::ALL);
+    }
+    else {
+        standPat = context.evaluate<us>();
+
+        // Stand-pat beta cutoff
+        if (standPat >= beta)
+            return standPat;
+
+        if (standPat > alpha)
+            alpha = standPat;
+
+        // Leaf node - return stand-pat
+        if (depth == 0)
+            return standPat;
+
+        bestEval = standPat;
+
+        // --- Delta Pruning (node) ---
+        if constexpr (search_policies::QuiescencePolicy::deltaPruning) {
+            if (search_policies::QuiescencePolicy::deltaPruneNode(context.position.read().material(), us, standPat, alpha))
+                return standPat;
+        }
+
+        moves.beginGeneration(nullptr, MoveTypes::CAPTURES_ONLY);
+    }
+
+    // evasions don't consume quiescence depth, the line stays bounded since only captures are searched once out of
+    // check, and the ply limit above.
+    const u8 childDepth = (inCheck || depth == 0) ? depth : static_cast<u8>(depth - 1);
+    u32 movesSearched = 0;
+    Line childLine;
+    PrioritizedMove ordered = moves.next();
+
+    while (!ordered.move.isNull()) {
+        if (context.shouldStop())
+            break;
+
+        PackedMove move = ordered.move;
+
+        // --- Delta Pruning (move) ---
+        if constexpr (search_policies::QuiescencePolicy::deltaPruning) {
+            if (!inCheck && search_policies::QuiescencePolicy::deltaPruneMove(context.position.read().material(), move, standPat, alpha)) {
+                ordered = moves.next();
+                continue;
+            }
+        }
+
+        // --- SEE Pruning ---
+        // a capture that loses material once the exchange on its square plays out won't raise alpha.
+        if constexpr (search_policies::QuiescencePolicy::seePruning) {
+            if (!inCheck && !see::ge(context.position.read().material(), move, 0)) {
+                ordered = moves.next();
+                continue;
+            }
+        }
+
+        MoveExecutor executor = context.makeExecutor();
+        MoveUndoUnit undoState;
+        // makeMove updates its ply argument as the fifty move counter (reset on captures), never hand it the search ply.
+        u16 fiftyMoveCounter = ply;
+        executor.makeMove(move, undoState, fiftyMoveCounter);
+
+        constexpr Set op = opposing_set<us>();
+
+        tusk::CheckInfo<op> childChkInfo(pos);
+        
+        i16 qEval = static_cast<i16>(-quiescence<op>(context, childDepth, static_cast<i16>(-beta),
+            static_cast<i16>(-alpha), ply + 1, childLine, childChkInfo));
+        context.qNodeCount++;
+
+        executor.unmakeMove(undoState);
+
+        // the child was aborted, its score is meaningless.
+        if (context.stopped)
+            return 0;
+
+        ++movesSearched;
+
+        if (qEval > bestEval)
+            bestEval = qEval;
+
+        if (bestEval >= beta)
+            return bestEval;
+        
+        if (bestEval > alpha) {
+            alpha = bestEval;
+            line.raise(move, childLine);
+        }
+
+        ordered = moves.next();
+    }
+
+    if (context.stopped)
+        return 0;
+
+    // In check with every legal move generated and none found -> Checkmate.
+    if (inCheck && movesSearched == 0) {
+        return checked_cast<i16>(-c_checkmateConstant + ply); // Mate score
+    }
+
+    return bestEval;
+}
+
+template<Set us>
+i16 Worker::quiescenceLine(ThreadContext& context, PVLine& line) {
+    tusk::CheckInfo<us> chkInfo(context.position.read());
+    return quiescence<us>(context, search_policies::QuiescencePolicy::maxDepth, static_cast<i16>(-c_infinity),
+                          static_cast<i16>(c_infinity), 1, line, chkInfo);
+}
+
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, const tusk::CheckInfo<Set::WHITE>&);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, NoQuiescenceLine&, const tusk::CheckInfo<Set::BLACK>&);
+template i16 Worker::quiescence<Set::WHITE>(ThreadContext&, u8, i16, i16, u16, PVLine&, const tusk::CheckInfo<Set::WHITE>&);
+template i16 Worker::quiescence<Set::BLACK>(ThreadContext&, u8, i16, i16, u16, PVLine&, const tusk::CheckInfo<Set::BLACK>&);
+template i16 Worker::quiescenceLine<Set::WHITE>(ThreadContext&, PVLine&);
+template i16 Worker::quiescenceLine<Set::BLACK>(ThreadContext&, PVLine&);

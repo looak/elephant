@@ -1,0 +1,50 @@
+// Elephant Gambit Chess Engine - a Chess AI
+// Copyright(C) 2024  Alexander Loodin Ek
+
+// This program is free software : you can redistribute it and /or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program.If not, see < http://www.gnu.org/licenses/>.
+#pragma once
+#include <system/platform.hpp>
+
+#include <array>
+
+inline constexpr u32 c_maxSearchDepth = 64;
+inline constexpr i32 c_infinity = 28000;
+inline constexpr i32 c_checkmateConstant = 24000;
+inline constexpr i32 c_checkmateMaxDistance = 256;
+inline constexpr i16 c_checkmateMinScore = c_checkmateConstant - c_checkmateMaxDistance;
+inline constexpr i16 c_drawConstant = 0;
+
+namespace time_management {
+    inline constexpr std::array<u8, 6> unchangedMoveFactors = { 140, 115, 100, 85, 70, 60 };
+}
+
+#ifdef ELEPHANT_TUNE
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline type name = def; }
+#else
+    #define TUNABLE(ns, name, type, def, lo, hi, step) namespace ns { inline constexpr type name = def; }
+#endif
+#define TUNABLE_DERIVED(ns, name, type, def, lo, hi, step, hook) TUNABLE(ns, name, type, def, lo, hi, step)
+#include "search_tunables.def"
+#undef TUNABLE
+
+namespace quiescence_params {
+inline constexpr u32 defaultMaxDepth = 8;
+} // namespace quiescence_params
+
+namespace continuation_params {
+// parameters for continuation history heuristic
+// pliesBack, slots reserved in front of the per-ply continuation pointers. Scoring a move reads the entries of the
+// moves made 1 and 2 plies earlier, which near the root would index ply - 1 and ply - 2 below zero.
+inline constexpr u8 pliesBack = 2;
+} // namespace continuation_params

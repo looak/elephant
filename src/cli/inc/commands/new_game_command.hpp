@@ -3,7 +3,7 @@
 #include "commands/logic/command_registry.hpp"
 #include "commands/command_api.hpp"
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <printer/printer.hpp>
 
 class NewGameCommand : public CommandNoArgs<true> {
@@ -15,8 +15,8 @@ public:
     // Executes the command with the given arguments.
     bool execute() override
     {
-        m_context->Reset();
-        m_context->NewGame();
+        m_context->game = Game{};
+        m_context->monad.newGame();
         return true;
     }
 

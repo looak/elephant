@@ -5,7 +5,7 @@
 namespace chess {
     void ClearBoard(Chessboard& board) {
         board.editPosition().clear();
-        board.editState().plyCount = 0;
+        board.editState().halfmoveClock = 0;
         board.editState().moveCount = 1;
         board.editState().whiteToMove = true;
     }

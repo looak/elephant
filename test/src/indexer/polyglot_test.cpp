@@ -37,7 +37,7 @@ public:
             PackedMove move = io::san_parser::deserialize(board.readPosition(), white, san);
             MoveExecutor executor(board.editPosition());
             GameState& state = board.editState();
-            executor.makeMove<true>(move, undo, state.plyCount);
+            executor.makeMove<true>(move, undo, state.halfmoveClock);
             state.whiteToMove = !state.whiteToMove;
             state.moveCount += static_cast<u16>(state.whiteToMove);
         }

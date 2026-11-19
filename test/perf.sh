@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# Compares the speed of two builds that search the same tree: a refactor, or anything else that shouldn't change the bench.
+# Strength is OpenBench's question, this is for what it can't see in time: a layout change in the hot path.
+#
+#   test/perf.sh [-t N] <A> <B> [rounds]   A & B take turns on one pinned core, so a busy or warm machine hits both alike
+#   test/perf.sh [-t N] <A> [rounds]       only A's numbers
+#
+# Compare builds made the same way, ob_build/makefile and g++ is what OpenBench and releases run. Compare a build with itself
+# for the machine's noise floor: a difference smaller than that isn't one. Nodes are deterministic on one thread, so they
+# have to match between A & B too, or it isn't a refactor. Needs Linux for taskset, on Windows run it in WSL.
+#
+# -t N searches with N threads on N pinned cores from PERF_CORE (default 4) up. Lazy SMP's threads share the TT, so nodes
+# vary from run to run: they aren't checked, nps is compared per run and it's a lot noisier than one thread.
+set -u
+
+usage() { sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+
+threads=1
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help) usage ;;
+        -t) threads="${2:-}"; shift 2 || usage ;;
+        -t*) threads="${1#-t}"; shift ;;
+        *) args+=("$1"); shift ;;
+    esac
+done
+case "$threads" in ''|*[!0-9]*|0) echo "perf.sh: -t takes a thread count, got '$threads'" >&2; exit 2 ;; esac
+[ ${#args[@]} -ge 1 ] || usage
+set -- "${args[@]}"
+if [ ! -x "$1" ]; then
+    echo "perf.sh: $1 isn't an executable engine build" >&2
+    exit 2
+fi
+
+a="$1"
+b=""
+rounds=5
+if [ $# -ge 2 ]; then
+    case "$2" in
+        *[!0-9]*) b="$2"; rounds="${3:-5}" ;;
+        *) rounds="$2" ;;
+    esac
+fi
+core="${PERF_CORE:-4}"
+cores="$core"
+if [ "$threads" -gt 1 ]; then
+    cores="$core-$((core + threads - 1))"
+    if [ $((core + threads)) -gt "$(nproc)" ]; then
+        echo "perf.sh: $threads threads from core $core need cores up to $((core + threads - 1)), there are $(nproc); lower PERF_CORE" >&2
+        exit 2
+    fi
+fi
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# Run from names of the same length and take turns going first. A longer path alone shifts the stack and with it the
+# alignment of everything on it: a build against a copy of itself under another name lost every round.
+shown_a="$a"
+shown_b="$b"
+cp "$a" "$tmp/engine-a"
+a="$tmp/engine-a"
+if [ -n "$b" ]; then
+    cp "$b" "$tmp/engine-b"
+    b="$tmp/engine-b"
+fi
+
+# name, position, depth: about 1 to 3 seconds each, so A against B over 5 rounds takes under 2 minutes. Depths fitted on
+# fad9d8e (singular extensions); a search change that grows the tree a lot needs them looked at again, the endgame
+# jumped from 1.3 to 4.4 seconds between depth 22 and 23.
+workload=(
+    "startpos|startpos|17"
+    "kiwipete|fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1|16"
+    "middlegame|fen r1bq1rk1/pp2b1pp/n1pp1n2/3P1p2/2P1p3/2N1P2N/PP2BPPP/R1BQ1RK1 b - - 2 10|16"
+    "endgame|fen 8/8/1p2k1p1/3p3p/1p1P1P1P/1P2PK2/8/8 w - - 3 54|22"
+)
+
+# prints "<nodes> <ms>" of one search.
+search() {
+    local fifo="$tmp/in"
+    mkfifo "$fifo"
+    taskset -c "$cores" "$1" < "$fifo" 2>/dev/null | {
+        exec 3> "$fifo"
+        printf 'setoption name Hash value 64\nsetoption name Threads value %s\nucinewgame\nposition %s\ngo depth %s\n' \
+            "$threads" "$2" "$3" >&3
+        while IFS= read -r line; do
+            case "$line" in
+                "info nodes "*) set -- $line; echo "$3 $5" ;;
+                bestmove*) echo quit >&3; break ;;
+            esac
+        done
+        exec 3>&-
+    }
+    rm -f "$fifo"
+}
+
+median() { sort -n | awk '{ v[NR] = $1 } END { print v[int((NR + 1) / 2)] }'; }
+
+# one search of a workload by build a or b, kept for the table and shown as it finishes. Progress goes to stderr so the
+# table on stdout can be redirected on its own.
+done_runs=0
+total_runs=$(( rounds * ${#workload[@]} * (${#b} > 0 ? 2 : 1) ))
+run() {
+    local which="$1" engine="$2" name="$3" position="$4" depth="$5" result nodes ms
+    result="$(search "$engine" "$position" "$depth")"
+    echo "$result" >> "$tmp/$name.$which"
+    read -r nodes ms <<< "$result"
+    done_runs=$((done_runs + 1))
+    printf '[%2d/%d] round %d/%d  %-11s %s  %6.2f s  %9s nps\n' "$done_runs" "$total_runs" "$round" "$rounds" "$name" \
+        "${which^^}" "$(awk -v ms="$ms" 'BEGIN { print ms / 1000 }')" "$(( ms > 0 ? nodes * 1000 / ms : 0 ))" >&2
+}
+
+echo "cpu: $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ //'), core $cores, $threads thread(s), $rounds rounds"
+echo "A: $shown_a"
+[ -n "$b" ] && echo "B: $shown_b"
+
+for ((round = 1; round <= rounds; ++round)); do
+    for entry in "${workload[@]}"; do
+        IFS='|' read -r name position depth <<< "$entry"
+        if [ -n "$b" ] && [ $((round % 2)) = 0 ]; then
+            run b "$b" "$name" "$position" "$depth"
+            run a "$a" "$name" "$position" "$depth"
+        else
+            run a "$a" "$name" "$position" "$depth"
+            [ -n "$b" ] && run b "$b" "$name" "$position" "$depth"
+        fi
+    done
+done
+echo >&2
+
+if [ -n "$b" ]; then
+    printf '%-11s %11s %11s %11s %8s  %s\n' workload nodes 'A nps' 'B nps' 'B - A' 'rounds B won'
+else
+    printf '%-11s %11s %11s %11s %11s\n' workload nodes 'best nps' 'median nps' 'worst nps'
+fi
+
+sum_a=0; sum_b=0; sum_nodes=0; mismatch=0
+
+# several threads: nodes differ every run, so each run's nps is the measure, medians per workload, totals over all runs.
+if [ "$threads" -gt 1 ]; then
+    nps_runs() { awk '{ print int($1 * 1000 / $2) }' "$1"; }
+    total() { awk '{ n += $1; ms += $2 } END { print int(n * 1000 / ms) }' "$@"; }
+    for entry in "${workload[@]}"; do
+        IFS='|' read -r name _ _ <<< "$entry"
+        nodes="$(cut -d' ' -f1 "$tmp/$name.a" | median)"
+        if [ -n "$b" ]; then
+            nps_a="$(nps_runs "$tmp/$name.a" | median)"
+            nps_b="$(nps_runs "$tmp/$name.b" | median)"
+            wins="$(paste -d' ' "$tmp/$name.a" "$tmp/$name.b" | awk '$3 / $4 > $1 / $2 { n++ } END { print n + 0 }')"
+            printf '%-11s %11s %11s %11s %+7.2f%%  %s of %s\n' "$name" "$nodes" "$nps_a" "$nps_b" \
+                "$(awk -v a="$nps_a" -v b="$nps_b" 'BEGIN { print (b / a - 1) * 100 }')" "$wins" "$rounds"
+        else
+            sorted="$(nps_runs "$tmp/$name.a" | sort -n)"
+            printf '%-11s %11s %11s %11s %11s\n' "$name" "$nodes" "$(tail -n 1 <<< "$sorted")" "$(median <<< "$sorted")" \
+                "$(head -n 1 <<< "$sorted")"
+        fi
+    done
+    all_a=("$tmp"/*.a)
+    if [ -n "$b" ]; then
+        all_b=("$tmp"/*.b)
+        tot_a="$(total "${all_a[@]}")"; tot_b="$(total "${all_b[@]}")"
+        printf 'total: A %s nps, B %s nps, B - A %+.2f%% (all runs, nodes vary with %s threads)\n' "$tot_a" "$tot_b" \
+            "$(awk -v a="$tot_a" -v b="$tot_b" 'BEGIN { print (b / a - 1) * 100 }')" "$threads"
+    else
+        echo "total: $(total "${all_a[@]}") nps over all runs, nodes vary with $threads threads"
+    fi
+    exit 0
+fi
+
+for entry in "${workload[@]}"; do
+    IFS='|' read -r name _ _ <<< "$entry"
+    nodes="$(head -n 1 "$tmp/$name.a" | cut -d' ' -f1)"
+    [ "$(cut -d' ' -f1 "$tmp/$name.a" | sort -u | wc -l)" = 1 ] || { echo "$name: A's nodes vary between runs"; mismatch=1; }
+    ms_a="$(cut -d' ' -f2 "$tmp/$name.a" | median)"
+    sum_nodes=$((sum_nodes + nodes)); sum_a=$((sum_a + ms_a))
+    if [ -n "$b" ]; then
+        nodes_b="$(head -n 1 "$tmp/$name.b" | cut -d' ' -f1)"
+        [ "$nodes" = "$nodes_b" ] || { echo "$name: nodes differ, A $nodes, B $nodes_b, this isn't a refactor"; mismatch=1; }
+        ms_b="$(cut -d' ' -f2 "$tmp/$name.b" | median)"
+        sum_b=$((sum_b + ms_b))
+        wins="$(paste -d' ' "$tmp/$name.a" "$tmp/$name.b" | awk '$4 < $2 { n++ } END { print n + 0 }')"
+        printf '%-11s %11s %11s %11s %+7.2f%%  %s of %s\n' "$name" "$nodes" "$((nodes * 1000 / ms_a))" "$((nodes_b * 1000 / ms_b))" \
+            "$(awk -v a="$ms_a" -v b="$ms_b" 'BEGIN { print (a / b - 1) * 100 }')" "$wins" "$rounds"
+    else
+        sorted="$(cut -d' ' -f2 "$tmp/$name.a" | sort -n)"
+        printf '%-11s %11s %11s %11s %11s\n' "$name" "$nodes" "$((nodes * 1000 / $(head -n 1 <<< "$sorted")))" "$((nodes * 1000 / ms_a))" "$((nodes * 1000 / $(tail -n 1 <<< "$sorted")))"
+    fi
+done
+
+if [ -n "$b" ]; then
+    printf 'total: %s nodes, A %s nps, B %s nps, B - A %+.2f%%\n' "$sum_nodes" "$((sum_nodes * 1000 / sum_a))" "$((sum_nodes * 1000 / sum_b))" \
+        "$(awk -v a="$sum_a" -v b="$sum_b" 'BEGIN { print (a / b - 1) * 100 }')"
+else
+    echo "total: $sum_nodes nodes, $((sum_nodes * 1000 / sum_a)) nps by medians"
+fi
+exit "$mismatch"

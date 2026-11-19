@@ -80,6 +80,9 @@ set(TEST_SOURCE ${TEST_SOURCE}
     ${TEST_SRC_DIR}/position/square_notation_test.cpp
 
 ## /search/...
+    ${TEST_SRC_DIR}/search/bench_test.cpp
+    ${TEST_SRC_DIR}/search/monad_test.cpp
+    ${TEST_SRC_DIR}/search/quiescence_probe_test.cpp
     ${TEST_SRC_DIR}/search/search_test.cpp
     ${TEST_SRC_DIR}/search/static_exchange_test.cpp
     ${TEST_SRC_DIR}/search/transposition_test.cpp

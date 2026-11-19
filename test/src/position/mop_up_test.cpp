@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/mop_up.hpp>
 #include <io/fen_parser.hpp>
 
@@ -9,9 +9,9 @@ namespace ElephantTest {
 namespace {
 
 i32 mopUpOf(const char* fen) {
-    GameContext context;
-    io::fen_parser::deserialize(fen, context.editChessboard());
-    const auto& material = context.readChessPosition().material();
+    Game context;
+    context.loadFen(fen);
+    const auto& material = context.readPosition().material();
     return mopUpScore(material, PestoAccumulator::computeFromScratch(material));
 }
 

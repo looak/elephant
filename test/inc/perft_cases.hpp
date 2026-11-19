@@ -7,11 +7,11 @@
 namespace ElephantTest {
 
 /**
- * @brief Perft positions with their node count at every depth, shared by the unit tests & ElephantSuite. Each runs
+ * @brief Perft positions with their node count at every depth, shared by the unit tests & phant-suite. Each runs
  * a position at the deepest depth within its node budget:
- *     ElephantTest   PerftShallow                     up to c_perftShallowBudget nodes, milliseconds
- *     ElephantSuite  PerftFixture.ReferencePositions  up to c_perftReferenceBudget nodes, seconds
- *     ElephantSuite  PerftFixture.DeepPositions       the deepest listed depth, past the reference budget, a minute
+ *     phant-test   PerftShallow                     up to c_perftShallowBudget nodes, milliseconds
+ *     phant-suite  PerftFixture.ReferencePositions  up to c_perftReferenceBudget nodes, seconds
+ *     phant-suite  PerftFixture.DeepPositions       the deepest listed depth, past the reference budget, a minute
  *
  * The six standard positions are from https://www.chessprogramming.org/Perft_Results, every depth published. The
  * others list their published count as the deepest depth, the shallower ones are the engine's own, written down once

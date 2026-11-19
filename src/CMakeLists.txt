@@ -14,9 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(MAIN_EXE ElephantGambit)
+set(MAIN_EXE phant-cli)
 
-add_executable (${MAIN_EXE} main.cpp)
+add_executable (${MAIN_EXE} cli/main.cpp)
 
 target_compile_features(${MAIN_EXE} PUBLIC cxx_std_20)
 set_target_properties(${MAIN_EXE} PROPERTIES 
@@ -26,10 +26,12 @@ set_target_properties(${MAIN_EXE} PROPERTIES
 
 set(ENGINE_LIB engine)
 set(CLI_LIB cli)
+set(UCI_LIB uci)
 
 # Include sub-projects.
 add_subdirectory("cli")
 add_subdirectory("engine")
+add_subdirectory("uci")
 
 target_link_libraries(${MAIN_EXE}
   PUBLIC

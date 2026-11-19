@@ -3,13 +3,13 @@
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
+#include <exception>
 #include <list>
 #include <sstream>
 #include <string>
 
 #include <elephant_gambit.hpp>
 #include <core/chessboard.hpp>
-#include <core/game_context.hpp>
 #include <diagnostics/exceptions.hpp>
 #include <math/cast.hpp>
 #include <position/castling_state_info.hpp>
@@ -209,13 +209,13 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     tokens.pop_front();
 
     if (containsMoveCounts == true) {
-        byte plyCount = parseCounter(tokens.front());
+        byte halfmoveClock = parseCounter(tokens.front());
         tokens.pop_front();
 
         byte moveCount = parseCounter(tokens.front());
         tokens.pop_front();
 
-        outputBoard.editState().plyCount = plyCount;
+        outputBoard.editState().halfmoveClock = halfmoveClock;
         outputBoard.editState().moveCount = moveCount;
     }
 
@@ -225,59 +225,17 @@ bool deserialize(std::string_view input, Chessboard& outputBoard)
     return true;
 }
 
-bool deserialize(const char* input, Chessboard& outputBoard)
+std::optional<Chessboard> read(std::string_view fen)
 {
-    std::istringstream ssfen(input);
-    std::list<std::string> tokens;
-    std::string token;
-    while (std::getline(ssfen, token, ' ')) {
-        tokens.push_back(token);
+    Chessboard board;
+    try {
+        if (!deserialize(fen, board))
+            return std::nullopt;
     }
-
-    chess::ClearBoard(outputBoard);
-
-    if (tokens.size() < 4 || tokens.size() > 6)
-        return false;
-
-    bool containsMoveCounts = false;
-    if (token.size() == 6)
-        containsMoveCounts = true;    
-
-    if (!deserializeBoard(tokens.front(), outputBoard.editPosition()))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeToPlay(tokens.front(), outputBoard))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeCastling(tokens.front(), outputBoard.editPosition()))
-        return false;
-
-    tokens.pop_front();
-
-    if (!deserializeEnPassant(tokens.front(), outputBoard.editPosition(), outputBoard.readToPlay()))
-        return false;
-
-    tokens.pop_front();
-
-    if (containsMoveCounts == true) {
-        byte plyCount = parseCounter(tokens.front());
-        tokens.pop_front();
-
-        byte moveCount = parseCounter(tokens.front());
-        tokens.pop_front();
-
-        outputBoard.editState().plyCount = plyCount;
-        outputBoard.editState().moveCount = moveCount;
+    catch (const std::exception&) {
+        return std::nullopt;
     }
-
-    if (!tokens.empty())
-        return false;
-
-    return true;
+    return board;
 }
 
 bool serialize(const Chessboard& board, std::string& resultFen)
@@ -366,7 +324,7 @@ bool serialize(const Chessboard& board, std::string& resultFen)
     
     resultFen += ' ';
 
-    resultFen += std::to_string(board.readState().plyCount) + " ";
+    resultFen += std::to_string(board.readState().halfmoveClock) + " ";
     resultFen += std::to_string(board.readState().moveCount);
 
     return true;

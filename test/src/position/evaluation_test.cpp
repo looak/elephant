@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <core/game_context.hpp>
+#include <core/game.hpp>
 #include <eval/evaluator.hpp>
 #include <eval/mobility.hpp>
 #include <eval/passed_pawns.hpp>

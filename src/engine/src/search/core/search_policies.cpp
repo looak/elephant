@@ -1,0 +1,273 @@
+#include <search/core/search_policies.hpp>
+#include <search/core/search_constants.hpp>
+#include <search/state/ply_frame.hpp>
+#include <search/state/search_heuristic_structures.hpp>
+#include <search/state/transposition_table.hpp>
+#include <search/state/thread_context.hpp>
+
+#include <bitboard/bitboard_constants.hpp>
+#include <material/chess_piece.hpp>
+#include <material/material_mask.hpp>
+#include <move/move.hpp>
+#include <move/generation/move_ordering_view.hpp>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <optional>
+
+namespace search_policies {
+
+namespace {
+// Mate scores in search are relative to the root (-mate + ply). In the TT they're stored relative to the node, so a
+// position reached at a different ply reads the right distance to mate.
+i16 scoreToTT(i16 score, u16 ply) {
+    if (score >= c_checkmateMinScore)
+        return static_cast<i16>(score + ply);
+    if (score <= -c_checkmateMinScore)
+        return static_cast<i16>(score - ply);
+    return score;
+}
+
+i16 scoreFromTT(i16 score, u16 ply) {
+    if (score >= c_checkmateMinScore)
+        return static_cast<i16>(score - ply);
+    if (score <= -c_checkmateMinScore)
+        return static_cast<i16>(score + ply);
+    return score;
+}
+} // namespace
+
+// --- Transposition Table Policies ---
+std::optional<TT::ProbeResult> TT::probe(TranspositionTable& tt, u64 hash, u16 ply) {
+    TT::ProbeResult result;
+    if (tt.probe(hash, result.move, result.score, result.depth, result.flag) == false)
+        return std::nullopt;
+
+    result.score = scoreFromTT(result.score, ply);
+
+    return result;
+}
+
+bool TT::cuts(const ProbeResult& entry, u16 requiredDepth, i16 alpha, i16 beta)
+{
+    if (entry.depth < requiredDepth)
+        return false;
+
+    switch (entry.flag) {
+        case TTF_CUT_EXACT:
+            return true;
+        case TTF_CUT_BETA:
+            if (entry.score >= beta)
+                return true;
+            break;
+        case TTF_CUT_ALPHA:
+            if (entry.score <= alpha)
+                return true;
+            break;
+        default:
+            break;
+    }
+
+    return false;
+}
+
+void TT::prefetch(TranspositionTable& tt, u64 hash) {
+    tt.prefetch(hash);
+}
+
+bool TT::probeMove(TranspositionTable& tt, u64 hash, PackedMove& outMove) {
+    i16 dummyScore;
+    u8 dummyDepth;
+    TranspositionFlag dummyFlag;
+    return tt.probe(hash, outMove, dummyScore, dummyDepth, dummyFlag);
+}
+
+void TT::update(TranspositionTable& tt, u64 hash, const PackedMove& move, i16 score, u8 depth, u16 ply, const TranspositionFlag& flag)
+{
+    tt.store(hash, move, scoreToTT(score, ply), depth, flag);
+}
+
+void TT::printStats([[maybe_unused]] TranspositionTable& tt)
+{
+#ifdef DEBUG_TRANSITION_TABLE
+    tt.print_stats();
+#endif
+}
+
+// --- Late Move Reduction (LMR) Policies ---
+namespace {
+// [depth][move index], both capped at 63.
+std::array<std::array<u8, 64>, 64> makeLmrTable() {
+    const double base = lmr_params::baseCenti / 100.0;
+    const double divisor = lmr_params::divisorCenti / 100.0;
+    std::array<std::array<u8, 64>, 64> table{};
+    for (u32 depth = 1; depth < 64; ++depth)
+        for (u32 index = 1; index < 64; ++index)
+            table[depth][index] = static_cast<u8>(base + std::log(depth) * std::log(index) / divisor);
+    return table;
+}
+
+std::array<std::array<u8, 64>, 64> s_lmrTable = makeLmrTable();
+} // namespace
+
+#ifdef ELEPHANT_TUNE
+void rebuildLmrTable() { s_lmrTable = makeLmrTable(); }
+#endif
+
+u8 LMR::reduction(u8 depth, u16 moveIndex, bool isPV, bool quiet, bool inCheck, bool givesCheck, i32 history) {
+    if (depth < lmr_params::minDepth || moveIndex < lmr_params::fullDepthMoves || !quiet || inCheck || givesCheck)
+        return 0;
+
+    i32 r = s_lmrTable[std::min<u32>(depth, 63)][std::min<u32>(moveIndex, 63)];
+    if (isPV)
+        r--;
+    r -= history / lmr_params::historyDivisor;
+
+    // the reduced child is searched at depth - 1 - r, keep it out of quiescence.
+    return static_cast<u8>(std::clamp(r, 0, depth - 2));
+}
+
+// --- Move Ordering Heuristics (Killers/History) Policies ---
+bool MoveOrdering::isQuiet(PackedMove move) {
+    return !move.isCapture() && !move.isPromotion();
+}
+
+void MoveOrdering::updateQuietCutoff(ThreadHeuristics& heuristic, Set us, PackedMove move, std::span<const PackedMove> quietsTried, u8 depth, PlyFrame& frame) {
+    // killers keep their original rule, castling isn't one.
+    if (move.isQuiet())
+        frame.pushKiller(move);
+
+    const i32 bonus = quietBonus(depth);
+    heuristic.butterfly.update(us, move, bonus);
+    for (PackedMove tried : quietsTried)
+        heuristic.butterfly.update(us, tried, -bonus);
+}
+
+void MoveOrdering::prime(const ThreadHeuristics& heuristic, const PlyFrames& frames, MoveOrderingView& view, u16 ply) {
+    view.killers[0] = frames[ply].killers[0];
+    view.killers[1] = frames[ply].killers[1];
+    view.history = heuristic.butterfly.data();
+    view.negativeOnePly = frames[ply - 1].continuation->front().data();
+    view.negativeTwoPly = frames[ply - 2].continuation->front().data();
+}
+
+i32 MoveOrdering::quietBonus(u8 depth) {
+    return std::min(history_params::bonusScale * depth * depth, history_params::maxBonus);
+}
+
+// --- Reverse Futility Pruning (RFP) Policies ---
+bool RFP::shouldPrune(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 beta) {
+    if (isPV || inCheck || depth > rfp_params::maxDepth)
+        return false;
+    if (beta >= c_checkmateMinScore || beta <= -c_checkmateMinScore)
+        return false;
+
+    return staticEval - rfp_params::margin * depth >= beta;
+}
+
+// --- Futility Pruning Policies ---
+bool Futility::isNodeFutile(bool isPV, bool inCheck, u8 depth, i16 staticEval, i16 alpha) {
+    if (isPV || inCheck || depth > futility_params::maxDepth)
+        return false;
+    if (alpha >= c_checkmateMinScore || alpha <= -c_checkmateMinScore)
+        return false;
+
+    const i32 margin = futility_params::base + futility_params::perDepth * depth;
+    return staticEval + margin <= alpha;
+}
+
+bool Futility::shouldSkipMove(bool futileNode, u16 moveIndex, PackedMove move, bool givesCheck) {
+    return futileNode && moveIndex > 0 && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
+// --- Late Move Pruning (LMP) Policies ---
+u16 LMP::quietLimit(bool isPV, bool inCheck, u8 depth) {
+    if (isPV || inCheck || depth > lmp_params::maxDepth)
+        return 0;
+
+    return static_cast<u16>(lmp_params::base + lmp_params::factor * depth * depth);
+}
+
+bool LMP::shouldSkipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, PackedMove move, bool givesCheck) {
+    return quietLimit > 0 && quietsSearched >= quietLimit && bestEval > -c_checkmateMinScore
+        && MoveOrdering::isQuiet(move) && !givesCheck;
+}
+
+// -- Singular Extension --
+bool SingularExtensions::shouldSkipMove(const PlyFrame& frame, const PackedMove& move) {
+    if constexpr (SingularExtensions::enabled)
+        return frame.excludedMove == move;
+    else
+        return false;
+}
+
+bool SingularExtensions::tryNode(const TT::ProbeResult& entry, u8 depth)
+{
+    return depth >= singular_params::depthThreshold
+        && entry.depth + singular_params::depthMargin >= depth
+        && (entry.flag == TTF_CUT_EXACT || entry.flag == TTF_CUT_BETA)
+        && entry.move.isNull() == false
+        && std::abs(entry.score) < c_checkmateMinScore;
+}
+
+u8 QuiescencePolicy::maxDepth = quiescence_params::defaultMaxDepth;
+
+// --- Quiescence Search Policies ---
+namespace {
+// a promotion's gain on top of anything it captures.
+constexpr i32 c_promotionGain = piece_constants::value[queenId] - piece_constants::value[pawnId];
+
+bool deltaPrune(i32 standPat, i32 gain, i16 alpha) {
+    return standPat + gain + quiescence_params::deltaMargin < alpha;
+}
+
+i32 mostValuablePiece(const MaterialPositionMask& material, Set set) {
+    // signed, an unsigned index would wrap past the pawn when only the king is left.
+    for (i32 pieceIndx = queenId; pieceIndx >= pawnId; --pieceIndx) {
+        if (material.read(set, static_cast<u8>(pieceIndx)).empty() == false)
+            return piece_constants::value[pieceIndx];
+    }
+    return 0;
+}
+} // namespace
+
+bool QuiescencePolicy::deltaPruneNode(const MaterialPositionMask& material, Set us, i16 standPat, i16 alpha) {
+    const Set them = us == Set::WHITE ? Set::BLACK : Set::WHITE;
+    const u64 seventhRank = board_constants::rankMasks[us == Set::WHITE ? 6 : 1];
+    const bool canPromote = (material.read(us, pawnId) & seventhRank).empty() == false;
+
+    const i32 bestGain = mostValuablePiece(material, them) + (canPromote ? c_promotionGain : 0);
+    return deltaPrune(standPat, bestGain, alpha);
+}
+
+bool QuiescencePolicy::deltaPruneMove(const MaterialPositionMask& material, PackedMove move, i16 standPat, i16 alpha) {
+    // an empty target is en passant or a quiet promotion, counted as a pawn, erring on the safe side.
+    const ChessPiece victim = material.pieceAt(move.targetSqr());
+    i32 gain = victim.isValid() ? piece_constants::value[victim.index()] : piece_constants::value[pawnId];
+    if (move.isPromotion())
+        gain += c_promotionGain;
+
+    return deltaPrune(standPat, gain, alpha);
+}
+
+// Continuation History Policy
+void ContinuationHistoryPolicy::recordContinuation(PlyFrame& frame, ThreadHeuristics& heuristics, ChessPiece piece, Square toSquare) {
+    frame.continuation = &heuristics.continuationHistory[pieceIndex(piece)][*toSquare];
+}
+
+void ContinuationHistoryPolicy::update(const PlyFrames& frames, u16 ply, ChessPiece piece, Square toSquare, i32 bonus) {
+    for (u16 distance = 1; distance <= continuation_params::pliesBack; ++distance) {
+        PieceToHistory* replies = frames[ply - distance].continuation;
+        if (replies == &heuristic_defaults::noPreviousMove)
+            continue;
+
+        // same gravity as HistoryTable::update, in 32 bits. |bonus| <= maxBonus < historyMax keeps it within i16.
+        i16& entry = (*replies)[pieceIndex(piece)][*toSquare];
+        const i32 current = entry;
+        entry = static_cast<i16>(current + bonus - current * std::abs(bonus) / MoveOrderingView::historyMax);
+    }
+}
+
+
+} // namespace search_policies

@@ -29,10 +29,9 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
 ## /core/...
     ${ENGINE_INC_DIR}/core/build_info.hpp
     ${ENGINE_INC_DIR}/core/chessboard.hpp
-    ${ENGINE_INC_DIR}/core/game_context.hpp
+    ${ENGINE_INC_DIR}/core/game.hpp
     ${ENGINE_INC_DIR}/core/square.hpp
     ${ENGINE_INC_DIR}/core/square_notation.hpp
-    ${ENGINE_INC_DIR}/core/uci.hpp
 
 ## /diagnostics/...
     ${ENGINE_INC_DIR}/diagnostics/assert.hpp
@@ -71,7 +70,6 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/material/material_topology.hpp
 
 ## /math/...
-    ${ENGINE_INC_DIR}/math/bench_positions.hpp
     ${ENGINE_INC_DIR}/math/cast.hpp
     ${ENGINE_INC_DIR}/math/math.hpp    
 
@@ -101,15 +99,27 @@ set(ENGINE_SOURCE_INCLUDE ${ENGINE_SOURCE_INCLUDE}
     ${ENGINE_INC_DIR}/position/position_proxy.hpp
 
 ## /search/...
-    ${ENGINE_INC_DIR}/search/perft_search.hpp
-    ${ENGINE_INC_DIR}/search/search.hpp
-    ${ENGINE_INC_DIR}/search/search_constants.hpp
-    ${ENGINE_INC_DIR}/search/search_heuristic_structures.hpp
-    ${ENGINE_INC_DIR}/search/search_move_source.hpp
-    ${ENGINE_INC_DIR}/search/search_policies.hpp    
+    ${ENGINE_INC_DIR}/search/perft/perft_search.hpp
+    ${ENGINE_INC_DIR}/search/worker.hpp
+    ${ENGINE_INC_DIR}/search/search_listener.hpp
+    ${ENGINE_INC_DIR}/search/bench.hpp
+    ${ENGINE_INC_DIR}/search/bench_positions.hpp
+    ${ENGINE_INC_DIR}/search/monad.hpp
+    ${ENGINE_INC_DIR}/search/quiescence_probe.hpp
+    ${ENGINE_INC_DIR}/search/search_request.hpp
+    ${ENGINE_INC_DIR}/search/state/ply_frame.hpp
+    ${ENGINE_INC_DIR}/search/state/repetition_history.hpp
+    ${ENGINE_INC_DIR}/search/core/search_constants.hpp
+    ${ENGINE_INC_DIR}/search/core/search_tunables.def
+    ${ENGINE_INC_DIR}/search/state/search_heuristic_structures.hpp
+    ${ENGINE_INC_DIR}/search/core/search_move_source.hpp
+    ${ENGINE_INC_DIR}/search/core/search_node.hpp
+    ${ENGINE_INC_DIR}/search/core/search_policies.hpp    
     ${ENGINE_INC_DIR}/search/search_results.hpp
-    ${ENGINE_INC_DIR}/search/static_exchange.hpp
-    ${ENGINE_INC_DIR}/search/transposition_table.hpp
+    ${ENGINE_INC_DIR}/search/core/static_exchange.hpp
+    ${ENGINE_INC_DIR}/search/state/transposition_table.hpp
+    ${ENGINE_INC_DIR}/search/state/transposition_table_fwd.hpp
+    ${ENGINE_INC_DIR}/search/state/thread_context.hpp
 
 ## /system/...
     ${ENGINE_INC_DIR}/system/platform.hpp
@@ -129,8 +139,7 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
 ## /core/...
     ${ENGINE_SRC_DIR}/core/build_info.cpp
     ${ENGINE_SRC_DIR}/core/chessboard.cpp
-    ${ENGINE_SRC_DIR}/core/game_context.cpp
-    ${ENGINE_SRC_DIR}/core/uci.cpp
+    ${ENGINE_SRC_DIR}/core/game.cpp
 
 ## /diagnostics/...
     ${ENGINE_SRC_DIR}/diagnostics/assert.cpp
@@ -162,15 +171,19 @@ set(ENGINE_SOURCE ${ENGINE_SOURCE}
     ${ENGINE_SRC_DIR}/position/position_proxy.cpp
 
 ## /search/...
-    ${ENGINE_SRC_DIR}/search/perft_search.cpp
-    ${ENGINE_SRC_DIR}/search/search.cpp
-    ${ENGINE_SRC_DIR}/search/search_impl.cpp
-    ${ENGINE_SRC_DIR}/search/search_alphabeta.cpp
-    ${ENGINE_SRC_DIR}/search/search_nullmove.cpp
-    ${ENGINE_SRC_DIR}/search/search_quiescence.cpp
-    ${ENGINE_SRC_DIR}/search/search_policies.cpp
-    ${ENGINE_SRC_DIR}/search/static_exchange.cpp
-    ${ENGINE_SRC_DIR}/search/transposition_table.cpp
+    ${ENGINE_SRC_DIR}/search/perft/perft_search.cpp
+    ${ENGINE_SRC_DIR}/search/bench.cpp
+    ${ENGINE_SRC_DIR}/search/monad.cpp
+    ${ENGINE_SRC_DIR}/search/quiescence_probe.cpp
+    ${ENGINE_SRC_DIR}/search/search_request.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_impl.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_alphabeta.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_nullmove.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_node.inl
+    ${ENGINE_SRC_DIR}/search/core/search_quiescence.cpp
+    ${ENGINE_SRC_DIR}/search/core/search_policies.cpp
+    ${ENGINE_SRC_DIR}/search/core/static_exchange.cpp
+    ${ENGINE_SRC_DIR}/search/state/transposition_table.cpp
 
 ## /system/...
     ${ENGINE_SRC_DIR}/system/clock.cpp

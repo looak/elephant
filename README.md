@@ -76,22 +76,26 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
     * transposition table: 8 entries to a 64 byte cache line, each entry one lock-free 64-bit word, every megabyte of `Hash` used
     * draw detection: threefold repetition including the game's earlier positions, fifty move rule
     * quiescence search with delta pruning and static exchange (SEE) pruning
-    * check extensions
+    * check extensions, singular extensions of the transposition table move
     * null move pruning with verification, the reduction grows with depth
-    * late move reductions
+    * late move reductions, adjusted by the move's history
     * late move pruning
     * internal iterative reduction
     * reverse futility pruning
     * futility pruning
-    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, history heuristic, captures that lose material by SEE after the quiet moves
+    * move ordering: pv & transposition table move, MVV-LVA captures, killer moves, butterfly & continuation history (one and two plies back), captures that lose material by SEE after the quiet moves
+    * search parameters tuned by SPSA: a tuning build exposes 29 of them as UCI options
 
 * Time management:
     * soft & hard limits, a new iteration only starts within the soft limit and the hard limit aborts the search
     * increment aware, never plans beyond what is on the clock
+    * the soft limit shrinks while the best move holds and grows when it changes
     * configurable move overhead for GUI & network latency
 
 * Evaluation:
     * [PeSTO](https://www.chessprogramming.org/PeSTO%27s_Evaluation_Function) material and piece-square tables, tapered between midgame and endgame by game phase, updated incrementally as pieces move
+    * mobility, pawn structure, passed pawns, king shelter & pawn storm, king attack, piece pairs
+    * every table fitted with a Texel style tuner, last on Elephant's own games
     * mop-up for converting won endgames
 
 * API:
@@ -102,8 +106,8 @@ v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached 
 ## Goals & todo
 
 * evaluation: an NNUE trained on the engine's own games
-* search: singular extensions, continuation history, history adjusted reductions, SPSA tuning of the search parameters
-* time management: scale the soft limit by best move stability, score drops and nodes spent on the best move
+* search: deeper continuation history, more SPSA rounds on each new table fit
+* time management: scale the soft limit by score drops and nodes spent on the best move
 * pondering, the engine already handles `go ponder` but doesn't advertise the `Ponder` option
 * a terminal UI
 * ~~reach elo 2000~~
@@ -120,9 +124,9 @@ Every [release][release-link] has Windows and Linux binaries of the UCI engine, 
 
 | Binary | Needs | CPUs |
 |:-------|:------|:-----|
-| `x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
-| `x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
-| `x86-64` | any 64-bit CPU | anything else |
+| `phant-uci-...-x86-64-avx2-bmi2` | AVX2, BMI2 | most from ~2015 on, Intel Haswell & AMD Zen and newer |
+| `phant-uci-...-x86-64-sse42-popcnt` | POPCNT, SSE4.2 | most from ~2009 on |
+| `phant-uci-...-x86-64` | any 64-bit CPU | anything else |
 
 The binaries are statically linked and need nothing else installed. They start in UCI mode, `bench` as an argument runs the OpenBench bench.
 
@@ -140,30 +144,28 @@ git bash example:
 git clone --recursive https://github.com/looak/elephant.git
 ```
 
-#### Windows
-
-Easiest way to get running on Windows is installing Visual Studio Code and extensions for cmake projects, or Visual Studio Community and opening the initial CMakeLists.txt.
-
-#### Linux
-
-* Create a build directory:
+`build.sh` checks your toolchain, builds and puts the result in `dist/`. It runs on Linux, macOS and in Git Bash or MSYS2 on Windows, and needs CMake and a C++20 compiler. On Windows it finds Visual Studio by itself:
 
 ```bash
-$ mkdir build
-$ cd build
+./build.sh                 # phant-uci, the UCI engine
+./build.sh --arch avx2     # for other machines: x86-64, sse42 or avx2, native is the default
+./build.sh --cli --tuner   # also --indexer, --tests, or --all
+./build.sh --reference     # with g++ & the makefile, what OpenBench and the releases build
+./build.sh --help
 ```
 
-* Call Cmake:
+From PowerShell or cmd on Windows use `./build --all` instead, `build.cmd` runs the same script in Git Bash. There `./build.sh` only opens it in a window of its own, and `bash` can be WSL's, which builds a Linux binary.
+
+Plain CMake works just the same, the binaries still land in `dist/`:
 
 ```bash
-$ cmake ..
+cmake -S . -B .build/mine -DCMAKE_BUILD_TYPE=Release
+cmake --build .build/mine --config Release --parallel
 ```
 
-* Build:
+`.build/` holds objects and fetched sources and is safe to delete.
 
-```
-$ make
-```
+For VS Code, `python gen/generate_workspace.py` writes a workspace with everything and one per target to `.vscode/workspaces/<os>/`, with build and launch set up for your OS. `--help` says how to open one.
 
 ## Running Elephant Gambit
 
@@ -179,16 +181,16 @@ Interfacing with elephant can nativly be done through ElephantCLI. As of [v0.4.0
 
 ## Running the tests
 
-Either run the output binary `ElephantTest` after build or browse to `.\build\` and execute `ctest`. `ElephantSuite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
+Either run `dist/phant-test` after build or browse to the build folder and execute `ctest`. `phant-suite` runs the slower perft suite. The EPD suites (Win at Chess, Arasan, STS) are played over UCI by `test/epd_runner.py`, one engine process per core, in two tiers set in `test/epd_tiers.json`:
 
 | Tier | Runs | Takes | What |
 |:--|:--|:--|:--|
 | smoke | `test/smoke.sh` (`test\smoke.ps1` from PowerShell) | under a minute | the local sanity check before a merge: unit tests, perft, bench, then WAC with 1 & 4 threads and the first 25 positions of each STS theme, at low node counts |
-| extended | `python test/epd_runner.py --engine <ElephantGambit> --tier extended` | minutes, depending on the cores | WAC and all of STS with more budget, plus Arasan 2024 with 1 & 4 threads, CI runs it with perft on pull requests to main |
+| extended | `python test/epd_runner.py --engine <phant-cli> --tier extended` | minutes, depending on the cores | WAC and all of STS with more budget, plus Arasan 2024 with 1 & 4 threads, CI runs it with perft on pull requests to main |
 
 The EPD suites search a fixed number of nodes per position. With one thread the solved count is the same on every run and every machine, so a change in it means the engine plays differently. Every suite has two levels: below its baseline is a warning that names the drop, below its minimum it fails. A search change can lose a few solves and still gain Elo, that's for SPRT to decide, the minimum only catches drops too large to be anything else. `test/smoke.sh` also warns when the bench differs from the last commit's, expected for a search change, a red flag for a refactor. The runner's `--nodes`, `--depth`, `--movetime`, `--threads` and `--hash` override the settings for experiments. Every position searched is recorded, `test/smoke.sh` compares the run with the nearest ancestor commit's position by position, see [test/RESULTS.md](test/RESULTS.md).
 
-`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `build-cov` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `build-cov/coverage/index.html`. The Coverage workflow (`coverage.yml`, Actions > Coverage > Run workflow) prints the same summary on its page, it runs only by hand. Run on `main` it also updates the coverage badge above: line coverage, in `coverage.json` on the `badges` branch, which holds only the latest.
+`test\coverage.ps1` (clang-cl) and `test/coverage.sh` (gcc & gcovr) measure what the unit tests reach: they configure `.build/coverage` with `-DELEPHANT_COVERAGE=ON`, run `ctest -L unit` and write a line, function & branch report to `.build/coverage/coverage/index.html`. The Coverage workflow (`coverage.yml`, Actions > Coverage > Run workflow) prints the same summary on its page, it runs only by hand. Run on `main` it also updates the coverage badge above: line coverage, in `coverage.json` on the `badges` branch, which holds only the latest.
 
 Changes to the search and evaluation are tested for strength with SPRT on [OpenBench](https://github.com/AndyGrant/OpenBench), which builds the engine with `ob_build/makefile`.
 

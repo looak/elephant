@@ -11,7 +11,7 @@
 #include <position/castling_state_info.hpp>
 #include <position/en_passant_state_info.hpp>
 #include <position/position.hpp>
-#include <search/static_exchange.hpp>
+#include <search/core/static_exchange.hpp>
 
 namespace tusk {
 namespace {
@@ -112,9 +112,12 @@ ScoredMove scoreMove(PackedMove move, u8 pieceId, const MaterialPositionMask& ma
     else {
         if (check)
             score += priority::givesCheck;
-        if (ordering != nullptr)
-            score += (std::clamp(ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr()), -priority::historyMax, priority::historyMax)
-                      + priority::historyMax) / 2;
+        if (ordering != nullptr) {
+            const i32 histAndContSum = ordering->getHistoryScore(us, move.sourceSqr(), move.targetSqr())
+                + ordering->getContinuationScore(us, pieceId, move.targetSqr());
+            static constexpr i32 historyTerms = 3;
+            score += (histAndContSum + historyTerms * priority::historyMax) / (2 * historyTerms);
+        }
     }
 
     return ScoredMove::make(move, static_cast<u16>(std::max(score, 0)), check);
@@ -179,7 +182,7 @@ MoveGenResult<us> MoveGenerator<us>::generateAll() const {
 
 template<Set us>
 PrioritizedMove MoveGenerator<us>::advance(MoveGenResult<us>& result) const {
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     const bool capturesOnly = m_params.moveFilter == MoveTypes::CAPTURES_ONLY;
     const bool deferLosing = m_params.deferLosingCaptures && !capturesOnly;
     auto accepted = [&](PackedMove move) {
@@ -292,7 +295,7 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
         result.m_checkSquaresReady = true;
     }
     const std::array<u64, 6>& checkSquares = result.m_checkSquares;
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     constexpr bool includeKillers = type == GenType::QUIETS;
 
     auto sink = [&](PackedMove move, u8 pieceId) {
@@ -317,7 +320,7 @@ void MoveGenerator<us>::generateScored(MoveGenResult<us>& result) const {
 
 template<Set us>
 bool MoveGenerator<us>::isOrderingMove(PackedMove move, bool includeKillers) const {
-    const MoveOrderingView* ordering = m_params.ordering;
+    const MoveOrderingView* ordering = m_params.ordering.has_value() ? &*m_params.ordering : nullptr;
     if (ordering == nullptr)
         return false;
     if (move == ordering->pvMove || move == ordering->ttMove)

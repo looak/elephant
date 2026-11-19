@@ -25,6 +25,8 @@
 #include <move/move.hpp>
 #include <move/generation/move_ordering_view.hpp>
 
+#include <optional>
+
 namespace tusk {
 
 // Which subset of moves a single generation pass produces. Used as a template parameter so each pass is a fully
@@ -52,7 +54,8 @@ enum class Stage : u8 {
 
 // Read-only input for a MoveGenerator. Held by value in the generator, keep it small.
 struct MoveGenParams {
-    const MoveOrderingView* ordering = nullptr;
+    // a copy, not a pointer, so whoever built the view can move or drop it while the generator runs. It's 32 bytes.
+    std::optional<MoveOrderingView> ordering;
     MoveTypes moveFilter = MoveTypes::ALL;
     // captures & promotions that lose material by static exchange are handed out after the quiets instead of with the
     // other captures. Only with MoveTypes::ALL.

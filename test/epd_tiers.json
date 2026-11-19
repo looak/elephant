@@ -4,11 +4,11 @@
     "files are names or globs in the EPD directory. limit is {nodes|depth|movetime: N}, nodes for all threads together.",
     "per_file runs the first N positions of each file. scored checks total the c0 points (STS) rather than solves.",
     "baseline warns below it, minimum fails below it. repeatable false (multi threaded): only the minimum is checked.",
-    "Baselines are the counts measured by ElephantSuite at 1.0.0-herd.10."
+    "Baselines are the counts measured by phant-suite at 1.0.0-herd.10."
   ],
   "smoke": [
     { "id": "epd.wac_new", "name": "Smoke_WinAtChess", "files": ["wac_new.epd"],
-      "limit": { "nodes": 150000 }, "baseline": 259, "minimum": 250 },
+      "limit": { "nodes": 150000 }, "baseline": 266, "minimum": 250 },
     { "id": "epd.wac_new", "name": "Smoke_WinAtChess_4Threads", "files": ["wac_new.epd"],
       "limit": { "nodes": 400000 }, "threads": 4, "baseline": 258, "minimum": 240, "repeatable": false },
     { "id": "epd.sts", "name": "Smoke_STS", "files": ["STS*.epd"], "per_file": 25, "scored": true,
