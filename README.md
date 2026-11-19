@@ -46,21 +46,22 @@ Community on Engine Programmer discord & OpenBench Discord have been very great 
 
 ## Performance
 
-| Version | moves p/s<br>sngl core | moves p/s<br>mul core|nodes p/s<br>sngl core|[lichess.org][lichess-link] |
+The current release against the one before it. Older versions are in the [releases][releases-link], each with its
+own notes.
+
+| Version | CCRL Blitz | [lichess.org][lichess-link]<br>bullet / blitz / rapid | nodes p/s<br>1 thread | perft moves p/s<br>1 thread |
 |:-------:|:---:|:---:|:---:|:---:|
-|[v1.0.0][v1.0.0-link]|~140 million| N/A | ~4.5 million | testing |
-|[v0.15.0][v0.15.0-link]|~139 million| N/A | ~5 million | ~2250 elo |
-|[v0.13.3][v0.13.3-link]|~18.3 million| N/A | ~1.5 million | N/A |
-|[v0.7.0][v0.7.0-link]|~19.5 million| N/A | ~1.65 million | ~1600 elo |
-|[v0.6.5][v0.6.5-link]|~16.45 million| N/A | ~1.24 million | ~1500 elo |
-|[v0.6.1][v0.6.0-link]|~20 million| N/A | ~1.97 million | N/A |
-|v0.5.0|~11 million| N/A | ~1.65 million | ~1100 elo |
-|[v0.4.0][v0.4.0-link]|~5 million|~110 million best case | ~600k | ~1350 elo |
-|[v0.2.0-alpha.1][v0.2.0-alpha.1-link]| ~4 million | ~35 million best case | ~250k | ~1350 elo |
+|[v1.6.0][v1.6.0-link] "Stride"| ~3030, provisional | not yet | ~3.1 million | ~450 million |
+|[v1.3.2][v1.3.2-link]| 2920 | 2462 / 2479 / 2451 | ~3.3 million | ~440 million |
 
-*moves p/s is perft from the start position, nodes p/s is search from the start position, one thread. v1.0.0 and v0.15.0 are measured with the g++ build OpenBench and the release binaries use (`-O3 -march=native`) on an AMD Ryzen 9 9900X. v0.13.3 on the same CPU, but from a 32-bit build with assertions compiled in, which understates it. Earlier versions on an AMD Ryzen 9 5950X, so the rows aren't directly comparable.*
+*CCRL Blitz for 1.6.0 is a gauntlet against nine engines on that list rated 2978–3160, run on a loaded machine, see
+the [v1.6.0 release][v1.6.0-link]; 1.3.2's is CCRL's own. The lichess ratings are the bot's, which played 1.3.0, the
+same engine node for node as 1.3.2. Speeds are the g++ build the releases use (`-O3 -march=native`) on an AMD Ryzen 9
+9900X, one pinned core: a 10 second search from the start position, and perft 7 from it.*
 
-v0.11.0, the last version before v0.13.3's evaluation and pruning work, reached the low 2000s in bullet, blitz and rapid. Since then PeSTO evaluation gained ~180 Elo and the new pruning ~120 Elo in self-play SPRT tests, see the [v0.13.3 release][v0.13.3-link]. v0.15.0's search and speed work is another +224 Elo over v0.13.7 in self-play, see the [v0.15.0 release][v0.15.0-link]. v1.0.0 adds Lazy SMP: on four threads it's about +200 Elo over v0.15.2 on one, see the [v1.0.0 release][v1.0.0-link].
+Head to head 1.6.0 is about +75 Elo over 1.4.0, and 1.4.0 about +70 over 1.2.0. 1.6.0 searches about 6% fewer nodes
+a second than 1.3.2: singular extensions' verification searches and continuation history cost time at every node and
+buy it back many times over in what gets searched.
 
 
 ## Features
@@ -228,6 +229,9 @@ For the versions available, see the [tags on this repository](https://github.com
 [release-link]:         https://github.com/looak/elephant/releases/latest
 [commits-link]:         https://github.com/looak/elephant/commits/main
 
+[releases-link]:         https://github.com/looak/elephant/releases
+[v1.6.0-link]:           https://github.com/looak/elephant/releases/tag/1.6.0
+[v1.3.2-link]:           https://github.com/looak/elephant/releases/tag/1.3.2
 [lichess-link]:         https://lichess.org/@/elephantgambitengine
 [uci-link]:             https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
 
