@@ -198,7 +198,8 @@ bool LMP::shouldSkipMove(u16 quietLimit, u16 quietsSearched, i16 bestEval, Packe
 bool SingularExtensions::shouldSkipMove(const PlyFrame& frame, const PackedMove& move) {
     if constexpr (SingularExtensions::enabled)
         return frame.excludedMove == move;
-    return false;
+    else
+        return false;
 }
 
 bool SingularExtensions::tryNode(const TT::ProbeResult& entry, u8 depth)
